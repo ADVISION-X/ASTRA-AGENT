@@ -1,3 +1,4 @@
+import { parseProductResult } from "../../../src/plugins/hehun-report-followup/result-contract.js";
 import { governanceAssert as assert } from "../../audit/shared/governance-exam-assert.js";
 import { zipSync, strToU8, unzipSync, strFromU8 } from "fflate";
 import type { WebsiteAgentTask } from "../../../src/mediator/product-plugin-contract.js";
@@ -77,9 +78,31 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
     answer_summary: { professional_markdown: "专业层", reader_explanation_markdown: "读者层" },
     answer_blocks: [{ section: "one" }],
     parent_report_ref: task.parameters.parent_report_ref, parent_raw_output_hash: task.parameters.parent_raw_output_hash,
-    new_question_snapshot: "question", covered_question_unit_refs: ["question:1"],
+    new_question_snapshot: { schema_version: "hehun-question-snapshot.v2", snapshot_ref: "question:1", research_scope: [] }, coverage_units: [{ unit_ref: "question:1", status: "answered", reason: "已回答", block_refs: ["one"] }],
     citations: [], uncertainties: [], limitations: [], safety_notes: [],
   };
+  {
+    const rawText = "  e\u0301𠮷🌙\n原文  ";
+    const extra = { rawText, nested: ["first", { last: rawText }] };
+    if (route.relation_kind === "review") {
+      const issue = { observation: rawText, provider_extra: extra };
+      const received = parseProductResult(task, { decision: "issues", issues: issue, provider_extra: extra }, route);
+      assert.deepEqual(received.issues, [issue]);
+      assert.deepEqual(received.provider_extra, extra);
+      assert.throws(() => parseProductResult(task, { decision: "unknown", issues: [] }, route), /AGENT_REVIEW_DECISION_INVALID/u);
+    } else {
+      const received = parseProductResult(task, { ...output, uncertainties: rawText, limitations: rawText,
+        safety_notes: rawText, provider_extra: extra }, route);
+      for (const field of ["uncertainties", "limitations", "safety_notes"]) assert.deepEqual(received[field], [rawText]);
+      assert.deepEqual(received.provider_extra, extra);
+      assert.throws(() => parseProductResult(task, { ...output, schema_version: "wrong" }, route), /SCHEMA_VERSION_INVALID/u);
+      for (const key of ["parent_report_ref", "parent_raw_output_hash"]) {
+        assert.throws(() => parseProductResult(task, { ...output, [key]: "foreign" }, route), /LOCK_INVALID|LOCKED_IDENTITY_INVALID|SNAPSHOT/u);
+      }
+    }
+    assert.throws(() => parseProductResult({ ...task, product_id: "foreign" }, output, route), /PRODUCT_RESULT_OWNER_MISMATCH/u);
+    assert.throws(() => parseProductResult(task, output, { ...route, action_id: "foreign" }), /PRODUCT_RESULT_OWNER_MISMATCH/u);
+  }
   const run = await exerciseProductFlow(plugin, { task, output, materialContents: zipMaterials(task, route) });
   await exerciseConfirmedSubmitRecovery(plugin, { task, output, materialContents: zipMaterials(task, route) });
   const selectedModel = run.calls.find(call => call.child === "select_gpt_model_from_start_v3")!;

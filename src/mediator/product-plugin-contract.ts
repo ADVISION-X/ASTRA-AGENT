@@ -256,25 +256,11 @@ const resultStringArray = (value: unknown, code: string, nonempty = false): read
   return items as readonly string[];
 };
 
-const resultDual = (value: unknown, code: string): void => {
-  const row = resultObject(value, code);
-  resultExact(row, ["professional_markdown", "reader_explanation_markdown"], code);
-  resultText(row.professional_markdown, code);
-  resultText(row.reader_explanation_markdown, code);
-};
 
 const resultHash = (value: unknown, code: string): void => {
   if (typeof value !== "string" || !RESULT_HASH.test(value)) resultFailure(code);
 };
 
-const commonReport = (output: Record<string, unknown>, summary: string, blocks: string): void => {
-  resultDual(output[summary], "AGENT_RESULT_DUAL_LAYER_INVALID");
-  resultArray(output[blocks], "AGENT_RESULT_BLOCKS_INVALID", true);
-  resultArray(output.citations, "AGENT_RESULT_CITATIONS_INVALID");
-  resultStringArray(output.uncertainties, "AGENT_RESULT_UNCERTAINTIES_INVALID");
-  resultStringArray(output.limitations, "AGENT_RESULT_LIMITATIONS_INVALID");
-  resultStringArray(output.safety_notes, "AGENT_RESULT_SAFETY_NOTES_INVALID");
-};
 
 const assertLocked = (output: Record<string, unknown>, task: WebsiteAgentTask, fields: readonly string[]): void => {
   for (const field of fields) {
@@ -282,47 +268,15 @@ const assertLocked = (output: Record<string, unknown>, task: WebsiteAgentTask, f
   }
 };
 
-const parseReview = (raw: string): Readonly<Record<string, unknown>> => {
-  const output = parsePluginJsonObject(raw, "AGENT_REVIEW_OUTPUT");
-  resultExact(output as Record<string, unknown>, ["decision", "issues"], "AGENT_REVIEW_OUTPUT_FIELDS_INVALID");
-  const issues = resultArray(output.issues, "AGENT_REVIEW_ISSUES_INVALID");
-  if ((output.decision === "no_issue" && issues.length !== 0)
-    || (output.decision === "issues" && (issues.length < 1 || issues.length > 50))
-    || (output.decision !== "no_issue" && output.decision !== "issues")) {
-    resultFailure("AGENT_REVIEW_DECISION_INVALID");
-  }
-  const categories = new Set([
-    "source_text_possible_error", "index_navigation_friction", "missing_condition_or_exception",
-    "citation_locator_problem", "prompt_ambiguity", "missing_input", "output_contract_friction",
-    "reasoning_depth_gap", "safety_boundary_conflict", "conversation_context_loss",
-    "provider_or_tooling_issue",
-  ]);
-  for (const rawIssue of issues) {
-    const issue = resultObject(rawIssue, "AGENT_REVIEW_ISSUE_INVALID");
-    resultExact(issue, ["category", "target_type", "target_ref", "observation", "evidence_refs", "impact", "confidence", "suggested_inspection"], "AGENT_REVIEW_ISSUE_FIELDS_INVALID");
-    if (!categories.has(resultText(issue.category, "AGENT_REVIEW_CATEGORY_INVALID"))
-      || !["low", "medium", "high"].includes(String(issue.confidence))) {
-      resultFailure("AGENT_REVIEW_ISSUE_INVALID");
-    }
-    for (const field of ["target_type", "target_ref", "observation", "impact", "suggested_inspection"] as const) {
-      resultText(issue[field], "AGENT_REVIEW_ISSUE_INVALID");
-    }
-    resultStringArray(issue.evidence_refs, "AGENT_REVIEW_EVIDENCE_REQUIRED", true);
-  }
-  return Object.freeze(output);
-};
 
 export const productResultValidation = Object.freeze({
   array: resultArray,
-  commonReport,
-  dual: resultDual,
   exact: resultExact,
   fail: resultFailure,
   hash: resultHash,
   locked: assertLocked,
   object: resultObject,
   parseJsonObject: parsePluginJsonObject,
-  parseReview,
   stringArray: resultStringArray,
   text: resultText,
 });

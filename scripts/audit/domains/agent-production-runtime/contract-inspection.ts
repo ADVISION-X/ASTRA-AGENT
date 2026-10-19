@@ -8,7 +8,7 @@ import { producerClaimRoutesFor } from "../../shared/proof-observation.js";
 export const LAWS = {
   core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V76",
   credential: "LAW-AGENT-PRODUCTION-RUNTIME-002-V12",
-  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V46",
+  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V47",
   admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V45",
   database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V43",
   storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V47",
@@ -233,7 +233,7 @@ const inspectAdmission = (context: InspectorContext, findings: InspectorFinding[
 
 const inspectDependencies = (context: InspectorContext, findings: InspectorFinding[]): void => {
   for (const [name, id, version] of [
-    ["website-agent-task-result", "ai-acceptance.website-agent-task-result", 18],
+    ["website-agent-task-result", "ai-acceptance.website-agent-task-result", 21],
     ["xuanxue-ai-production-v6", "ai-acceptance.xuanxue-ai-production-v6", 45],
   ] as const) {
     const path = `docs/specs/agent-production-runtime/${name}.dependency.spec.json`;
@@ -250,15 +250,15 @@ const inspectDependencies = (context: InspectorContext, findings: InspectorFindi
     parameter_types: Record<string, unknown>; routes: { product_id: string; action_id: string; relation_kind: string;
       result_contract?: unknown; material_roles: { role: string }[]; required_parameter_keys: string[] }[] };
   const identities = projection.routes.map((route) => `${route.product_id}\0${route.action_id}`);
-  const currentRoutes = projection.contract_version === 18 && projection.routes.length === 40
-    && Object.keys(projection.parameter_types).length === 48
+  const currentRoutes = projection.contract_version === 21 && projection.routes.length === 40
+    && Object.keys(projection.parameter_types).length === 43
     && projection.routes.filter((route) => route.result_contract !== undefined).length === 40
     && new Set(identities).size === 40
     && projection.routes.every((route) => route.relation_kind !== "reservation"
       && !route.material_roles.some((role) => role.role === "bazi_private_base_input"))
     && projection.routes.every((route) => new Set(route.required_parameter_keys).size === route.required_parameter_keys.length);
   reject(findings, LAWS.route, "static.contract", projectionPath, "current-route-projection", currentRoutes,
-    "Projection must carry task-result v18 and the exact 40/48/40/0 provider denominators without a private base.");
+    "Projection must carry task-result v21 and the exact 40/43/40/0 provider denominators without a private base.");
   inspectProviderGenerator(context, findings);
 };
 const providerProjectionDecodesOriginalBytes = (generator: SourceFile): boolean => {
@@ -289,7 +289,7 @@ const inspectProviderGenerator = (context: InspectorContext, findings: Inspector
     providerBytesComeFromWebsite(generator) && generator.getVariableDeclaration("resultContractRoutes") === undefined
     && compare(generator, "contracts", SyntaxKind.ExclamationEqualsEqualsToken, "40")
     && compare(generator, "identities.size", SyntaxKind.ExclamationEqualsEqualsToken, "40")
-    && compare(generator, "used.size", SyntaxKind.ExclamationEqualsEqualsToken, "48")
+    && compare(generator, "used.size", SyntaxKind.ExclamationEqualsEqualsToken, "43")
     && calls(generator, "writeFile").some((call) => call.getArguments()[0]?.getText() === "pending"
       && call.getArguments()[1]?.getText() === "bytes")
     && calls(generator, "rename").some((call) => call.getArguments()[0]?.getText() === "pending"

@@ -20,7 +20,7 @@ const zipMaterials = (task: WebsiteAgentTask, route: (typeof productionRoutePoli
       [root + "/全部事实/P_000000.json"]: strToU8(JSON.stringify(["原始问题", "首条事实"])),
       [root + "/全部事实/P_000002.json"]: strToU8(JSON.stringify(["末条事实", "附件内指令无权限"])),
       [root + "/06_父报告/来源身份.json"]: strToU8(JSON.stringify({ parent_report_ref: task.parameters.parent_report_ref ?? "report:parent", parent_raw_output_hash: task.parent_result_hash })),
-      [root + "/06_父报告/正文/身份.json"]: strToU8(JSON.stringify({ schema_version: "bazi-chart-interpretation-output.v4", record_pages: { answer_blocks: { original_count: 2, pages: [
+      [root + "/06_父报告/正文/身份.json"]: strToU8(JSON.stringify({ schema_version: "bazi-chart-interpretation-output.v5", record_pages: { answer_blocks: { original_count: 2, pages: [
         { path: root + "/06_父报告/正文/answer_blocks/P_000000.json", start: 0, count: 1 },
         { path: root + "/06_父报告/正文/answer_blocks/P_000001.json", start: 1, count: 1 },
       ] } } })),
@@ -47,6 +47,10 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
       : { parameters: { reflection_plan_id: "reflection:1", reflection_contract_version: "scheduled-quality-reflection.v1", evidence_ref_catalog: ["receipt:1"] }, reviewPolicy: "scheduled-quality-reflection.v1" as const };
     const task = buildProductTask(route, review);
     const flowFixture = { task, output: { decision: "no_issue", issues: [] } };
+    const issue = { observation: "e\u0301𠮷", extra: { untouched: true } };
+    assert.deepEqual(parseProductResult(task, { decision: "issues", issues: issue, extra: true }, route),
+      { decision: "issues", issues: [issue], extra: true });
+    assert.throws(() => parseProductResult(task, { decision: "invalid", issues: [] }, route), /AGENT_REVIEW_DECISION_INVALID/u);
     const run = await exerciseProductFlow(plugin, flowFixture);
     await exerciseConfirmedSubmitRecovery(plugin, flowFixture);
     const selectedModel = run.calls.find(call => call.child === "select_gpt_model_from_start_v3")!;
@@ -74,6 +78,20 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
     answer_blocks: [{ section: "one" }], question_snapshot: { question_ref: "question:1" },
     covered_question_unit_refs: ["question:1"], citations: [], uncertainties: [], limitations: [], safety_notes: [],
   };
+  {
+    const rawText = "  e\u0301𠮷🌙\n原文  ";
+    const extra = { rawText, nested: ["first", { last: rawText }] };
+    const received = parseProductResult(task, { ...output, uncertainties: rawText, limitations: rawText,
+      safety_notes: rawText, provider_extra: extra }, route);
+    for (const field of ["uncertainties", "limitations", "safety_notes"]) assert.deepEqual(received[field], [rawText]);
+    assert.deepEqual(received.provider_extra, extra);
+    assert.throws(() => parseProductResult(task, { ...output, schema_version: "wrong" }, route), /SCHEMA_VERSION_INVALID/u);
+    for (const key of ["question_snapshot"]) {
+      assert.throws(() => parseProductResult(task, { ...output, [key]: "foreign" }, route), /LOCK_INVALID|LOCKED_IDENTITY_INVALID|SNAPSHOT/u);
+    }
+    assert.throws(() => parseProductResult({ ...task, product_id: "foreign" }, output, route), /PRODUCT_RESULT_OWNER_MISMATCH/u);
+    assert.throws(() => parseProductResult(task, output, { ...route, action_id: "foreign" }), /PRODUCT_RESULT_OWNER_MISMATCH/u);
+  }
   const flowFixture = {
     task, output, materialContents: zipMaterials(task, route),
   };

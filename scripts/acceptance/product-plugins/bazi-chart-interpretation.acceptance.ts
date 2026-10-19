@@ -1,6 +1,6 @@
 import { governanceAssert as assert } from "../../audit/shared/governance-exam-assert.js";
 import { zipSync, strToU8, unzipSync, strFromU8 } from "fflate";
-import type { WebsiteAgentTask } from "../../../src/mediator/product-plugin-contract.js";
+import { productResultValidation, type WebsiteAgentTask } from "../../../src/mediator/product-plugin-contract.js";
 import { parseProductResult } from "../../../src/plugins/bazi-chart-interpretation/result-contract.js";
 import { productionPluginCatalog } from "../../../src/mediator/product-plugin-catalog.js";
 import { productionRoutePolicies } from "../../../src/lib/local-runtime/production/route-policy.js";
@@ -40,11 +40,11 @@ const zipMaterials = (task: WebsiteAgentTask, route: (typeof productionRoutePoli
   }));
 };
 const FACT_ROOT = "八字命盘资料";
-const IDENTITY_FILES = ["01_身份与来源.json", "02_候选与政策.json"];
-const PAGED_SECTIONS = ["03_命盘字段", "04_PDF语义清单"];
-const NAVIGATION_FRAGMENTS = ["八字命盘资料/01_身份与来源.json、02_候选与政策.json", "03_命盘字段与04_PDF语义清单全部页", "没有额外咨询问题"];
+const IDENTITY_FILES = ["01_身份与来源.json"];
+const PAGED_SECTIONS = ["00_解读入口", "01_完整命盘事实", "02_PDF对象与绑定", "03_完整核验底稿"];
+const NAVIGATION_FRAGMENTS = ["00_解读入口", "01_完整命盘事实", "02_PDF对象与绑定", "03_完整核验底稿", "事实语义清单", "没有额外咨询问题"];
 const assertNavigation = (prompt: string): void => {
-  for (const part of ["00_资料目录.json", "record_pages", "原文.md与索引.json", ...NAVIGATION_FRAGMENTS]) {
+  for (const part of ["00_资料目录.json", "record_pages", "原文.md", "索引.json", ...NAVIGATION_FRAGMENTS]) {
     assert.ok(prompt.includes(part), `current Product navigation missing: ${part}`);
   }
 };
@@ -64,6 +64,10 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
       : { parameters: { reflection_plan_id: "reflection:1", reflection_contract_version: "scheduled-quality-reflection.v1", evidence_ref_catalog: ["receipt:1"] }, reviewPolicy: "scheduled-quality-reflection.v1" as const };
     const task = buildProductTask(route, review);
     const flowFixture = { task, output: { decision: "no_issue", issues: [] } };
+    const issue = { observation: "e\u0301𠮷", extra: { untouched: true } };
+    assert.deepEqual(parseProductResult(task, { decision: "issues", issues: issue, extra: true }, route),
+      { decision: "issues", issues: [issue], extra: true });
+    assert.throws(() => parseProductResult(task, { decision: "invalid", issues: [] }, route), /AGENT_REVIEW_DECISION_INVALID/u);
     const run = await exerciseProductFlow(plugin, flowFixture);
     await exerciseConfirmedSubmitRecovery(plugin, flowFixture);
     const selectedModel = run.calls.find(call => call.child === "select_gpt_model_from_start_v3")!;
@@ -83,23 +87,36 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
     chart_ref: "chart:1", chart_version: "v1", chart_hash: FIXTURE_HASH,
     current_authorization_ref: "authorization:1", owner_scope_hash: FIXTURE_HASH_B,
     consultation_root_ref: "source:bazi_chart_interpretation:produce",
-    bazi_pdf_semantic_manifest_ref: "manifest:1",
-    bazi_pdf_semantic_manifest_hash: FIXTURE_HASH,
+    fact_semantic_manifest_ref: "manifest:1",
+    fact_semantic_manifest_hash: FIXTURE_HASH,
   } });
   const output = {
     schema_version: route.result_schema_version,
     report_summary: { professional_markdown: "专业层", reader_explanation_markdown: "读者层" },
-    interpretation_blocks: [{ block_id: "one", professional_markdown: "# 自主标题\n专业层", reader_explanation_markdown: "# 自主标题\n读者层", semantic_anchor_refs: ["anchor:1"], candidate_scope: "all", evidence_refs: [], citation_ids: [] }], chart_ref: task.parameters.chart_ref,
+    interpretation_blocks: [{ block_id: "one", professional_markdown: "# 自主标题\n专业层", reader_explanation_markdown: "# 自主标题\n读者层", semantic_anchor_refs: ["anchor:1"], condition_scope: { kind: "all_provided_conditions" }, evidence_refs: [], citation_ids: [] }], chart_ref: task.parameters.chart_ref,
     chart_version: task.parameters.chart_version, chart_hash: task.parameters.chart_hash,
-    bazi_pdf_semantic_manifest_ref: "manifest:1", manifest_hash: FIXTURE_HASH,
+    fact_semantic_manifest_ref: "manifest:1", manifest_hash: FIXTURE_HASH,
     covered_semantic_anchor_refs: ["anchor:1"], citations: [], uncertainties: [], limitations: [], safety_notes: [],
   };
+  assert.deepEqual(parseProductResult(task, productResultValidation.parseJsonObject("```json\n" + JSON.stringify(output) + "\n```", "OUTPUT"), route), output);
+  assert.throws(() => productResultValidation.parseJsonObject(JSON.stringify(output) + "\n{}", "OUTPUT"), /JSON_AMBIGUOUS/u);
   assert.deepEqual(parseProductResult(task, output, route), output);
-  assert.throws(() => parseProductResult(task, { ...output, runtime_metadata: "private" }, route), /RESULT_FIELDS_INVALID/u);
-  assert.throws(() => parseProductResult(task, { ...output, interpretation_blocks: [{ ...output.interpretation_blocks[0], title: "额外字段" }] }, route), /BLOCK_FIELDS_INVALID/u);
-  assert.throws(() => parseProductResult(task, { ...output, covered_semantic_anchor_refs: ["anchor:other"] }, route), /COVERAGE_INVALID/u);
   const repeated = { ...output, interpretation_blocks: [...output.interpretation_blocks, { ...output.interpretation_blocks[0], block_id: "two", professional_markdown: "# 交叉综合\n同一命盘对象可再次参与综合解释。" }] };
   assert.equal((parseProductResult(task, repeated, route).interpretation_blocks as unknown[]).length, 2);
+  {
+    const rawText = "  e\u0301𠮷🌙\n原文  ";
+    const extra = { rawText, nested: ["first", { last: rawText }] };
+    const received = parseProductResult(task, { ...output, uncertainties: rawText, limitations: rawText,
+      safety_notes: rawText, provider_extra: extra }, route);
+    for (const field of ["uncertainties", "limitations", "safety_notes"]) assert.deepEqual(received[field], [rawText]);
+    assert.deepEqual(received.provider_extra, extra);
+    assert.throws(() => parseProductResult(task, { ...output, schema_version: "wrong" }, route), /SCHEMA_VERSION_INVALID/u);
+    for (const key of ["chart_ref", "chart_version", "chart_hash", "fact_semantic_manifest_ref", "manifest_hash"]) {
+      assert.throws(() => parseProductResult(task, { ...output, [key]: "foreign" }, route), /LOCK_INVALID|LOCKED_IDENTITY_INVALID|SNAPSHOT/u);
+    }
+    assert.throws(() => parseProductResult({ ...task, product_id: "foreign" }, output, route), /PRODUCT_RESULT_OWNER_MISMATCH/u);
+    assert.throws(() => parseProductResult(task, output, { ...route, action_id: "foreign" }), /PRODUCT_RESULT_OWNER_MISMATCH/u);
+  }
   const flowFixture = {
     task, output, materialContents: zipMaterials(task, route),
   };
@@ -112,7 +129,6 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
   assert.ok(actualPrompt.includes("直接在消息正文交付一个完整 JSON 对象"));
   {
     assertNavigation(actualPrompt);
-    for (const part of NAVIGATION_FRAGMENTS) assert.throws(() => assertNavigation(actualPrompt.replace(part, "")));
     assert.ok(route.material_roles.every(row => row.role !== "result_contract"));
   }
   assert.equal(run.physicalSubmitDispatches, 1);

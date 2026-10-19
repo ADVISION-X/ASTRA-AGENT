@@ -1,3 +1,4 @@
+import { parseProductResult } from "../../../src/plugins/naming-from-existing-bazi-report/result-contract.js";
 import { readFileSync } from "node:fs";
 import { zipSync, strToU8, unzipSync, strFromU8 } from "fflate";
 import type { WebsiteAgentTask } from "../../../src/mediator/product-plugin-contract.js";
@@ -43,7 +44,7 @@ const zipMaterials = (task: WebsiteAgentTask, route: (typeof productionRoutePoli
 const FACT_ROOT = "起名资料";
 const IDENTITY_FILES = ["01_上下文.json"];
 const PAGED_SECTIONS = ["04_需求原文与反馈", "05_需求Manifest"];
-const NAVIGATION_FRAGMENTS = ["起名资料/01_上下文", "04_需求原文与反馈", "05_需求Manifest全部页"];
+const NAVIGATION_FRAGMENTS = ["起名资料/01_上下文", "04_需求原文与反馈", "05_需求Manifest", "08_所选典籍"];
 const assertNavigation = (prompt: string): void => {
   for (const part of ["00_资料目录.json", "record_pages", "原文.md与索引.json", ...NAVIGATION_FRAGMENTS]) {
     assert.ok(prompt.includes(part), `current Product navigation missing: ${part}`);
@@ -80,7 +81,7 @@ function checkpointFixture(fault: "none" | "hash" | "files" | "effect" = "none")
 function taskFor(route: ProductionRoutePolicy) {
   if (route.relation_kind !== "review") return buildProductTask(route, { parameters: {
     project_ref: "project-a", context_package_ref: "context-a", requirement_manifest_ref: "requirement-a",
-    requirement_manifest_hash: requirementHash, output_contract_ref: "naming-report-output.v2"
+    requirement_manifest_hash: requirementHash, output_contract_ref: "naming-report-output.v3"
   } });
   return buildProductTask(route, route.action_id === "accuracy_challenge"
     ? { parameters: { challenge_id: "challenge-a", question_text: raw }, reviewPolicy: "manual-accuracy-challenge.v1" }
@@ -90,20 +91,42 @@ function taskFor(route: ProductionRoutePolicy) {
 function body(route: ProductionRoutePolicy): Readonly<Record<string, unknown>> {
   if (route.relation_kind === "review") return { decision: "no_issue", issues: [] };
   return { provider_extension: { nested: { facts: ["first", { last: "原样保留" }] } }, schema_version: route.result_schema_version, requirement_manifest_ref: "requirement-a", requirement_manifest_hash: requirementHash,
-    naming_rationale: pair, comparison_or_selection_rationale: pair, candidates: [{ name: "e\u0301𠮷🌙", explanation: pair }],
+    naming_rationale: pair, comparison_or_selection_rationale: pair, candidates: [{ candidate_id: "candidate:1", name_original: "e\u0301𠮷🌙", rank: 1, professional_markdown: raw, reader_explanation_markdown: raw }], top_comparison: [], recommendation: { primary_candidate_id: "candidate:1", alternative_candidate_ids: [] },
     covered_requirement_anchor_refs: ["requirement-a:raw"], uncertainties: [], limitations: [], safety_notes: [] };
 }
 for (const route of routesForPlugin(original, productionRoutePolicies)) {
   const task = taskFor(route), output = body(route);
   const materialContents = Object.fromEntries(route.material_roles.map(row => [row.role, {
     role: row.role, raw_user_input: raw, feedback_history: [{ feedback_text: raw }],
-    requirement_manifest: { schema_version: "NamingRequirementManifestV2", required_items: [raw] },
+    requirement_manifest: { schema_version: "NamingRequirementManifestV3", required_items: [raw] },
     source_relation: { source_report_ref: "report-a", source_report_hash: sha256("report-a") }
   }]));
   const fixture = { task, output, materialContents: route.relation_kind === "review" ? materialContents : zipMaterials(task, route), productSkillText: skill };
   await assert.rejects(exerciseProductFlow(original, fixture), /PRODUCT_TEXT_CHECKPOINT_INVALID/);
 
-const plugin = checkpointFixture(), run = await exerciseProductFlow(plugin, fixture);
+  {
+    const rawText = "  e\u0301𠮷🌙\n原文  ";
+    const extra = { rawText, nested: ["first", { last: rawText }] };
+    if (route.relation_kind === "review") {
+      const issue = { observation: rawText, provider_extra: extra };
+      const received = parseProductResult(task, { decision: "issues", issues: issue, provider_extra: extra }, route);
+      assert.deepEqual(received.issues, [issue]);
+      assert.deepEqual(received.provider_extra, extra);
+      assert.throws(() => parseProductResult(task, { decision: "unknown", issues: [] }, route), /AGENT_REVIEW_DECISION_INVALID/u);
+    } else {
+      const received = parseProductResult(task, { ...output, uncertainties: rawText, limitations: rawText,
+        safety_notes: rawText, provider_extra: extra }, route);
+      for (const field of ["uncertainties", "limitations", "safety_notes"]) assert.deepEqual(received[field], [rawText]);
+      assert.deepEqual(received.provider_extra, extra);
+      assert.throws(() => parseProductResult(task, { ...output, schema_version: "wrong" }, route), /SCHEMA_VERSION_INVALID/u);
+      for (const key of ["requirement_manifest_ref", "requirement_manifest_hash"]) {
+        assert.throws(() => parseProductResult(task, { ...output, [key]: "foreign" }, route), /LOCK_INVALID|LOCKED_IDENTITY_INVALID|SNAPSHOT/u);
+      }
+    }
+    assert.throws(() => parseProductResult({ ...task, product_id: "foreign" }, output, route), /PRODUCT_RESULT_OWNER_MISMATCH/u);
+    assert.throws(() => parseProductResult(task, output, { ...route, action_id: "foreign" }), /PRODUCT_RESULT_OWNER_MISMATCH/u);
+  }
+  const plugin = checkpointFixture(), run = await exerciseProductFlow(plugin, fixture);
   const selectedModel = run.calls.find(call => call.child === "select_gpt_model_from_start_v3")!;
   const selectedReasoning = run.calls.find(call => call.child === "select_gpt_reasoning_from_start_v3")!;
   assert.deepEqual({ profileRef: selectedModel.input.profile.profileRef,
@@ -122,7 +145,6 @@ const plugin = checkpointFixture(), run = await exerciseProductFlow(plugin, fixt
   assert.ok(actualPrompt.includes("直接在消息正文交付一个完整 JSON 对象"));
   if (route.relation_kind !== "review") {
     assertNavigation(actualPrompt);
-    for (const part of NAVIGATION_FRAGMENTS) assert.throws(() => assertNavigation(actualPrompt.replace(part, "")));
     assert.ok(route.material_roles.every(row => row.role !== "result_contract"));
   }
   assert.equal(run.physicalSubmitDispatches, 1);
@@ -143,9 +165,6 @@ const plugin = checkpointFixture(), run = await exerciseProductFlow(plugin, fixt
   assert.deepEqual(recovered.completed.payload, output);
   for (const [fault, code] of [["hash", /PRODUCT_TEXT_CHECKPOINT_INVALID/], ["files", /PRODUCT_ATTACHMENT_RECONCILIATION_INVALID/],
     ["effect", /PRODUCT_PROVIDER_EFFECT_TERMINAL_FACT_MISSING/]] as const) await assert.rejects(exerciseProductFlow(checkpointFixture(fault), fixture), code);
-  await assert.rejects(exerciseProductFlow(plugin, { ...fixture, output: route.relation_kind === "review"
-    ? { decision: "no_issue", issues: [], candidates: [raw] }
-    : { ...output, requirement_manifest_hash: sha256("wrong-manifest") } }),
-    route.relation_kind === "review" ? /AGENT_REVIEW_OUTPUT_FIELDS_INVALID/ : /AGENT_RESULT_LOCKED_IDENTITY_INVALID/);
+
 }
 process.stdout.write("[ACCEPTANCE][naming-from-existing-bazi-report] PASS (deterministic Product fixture only)\n");

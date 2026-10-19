@@ -238,7 +238,13 @@ const receive = (task: WebsiteAgentTask, checkpoint: Checkpoint, context: Shared
     checkpoint.semanticText, "PRODUCT_RESULT_JSON_INVALID",
   );
   if (task.product_id !== "payment_screenshot_observation") fail("PRODUCT_RESULT_OWNER_MISMATCH");
-  if (context.routePolicy.relation_kind === "review") return productResultValidation.parseReview(checkpoint.semanticText);
+  if (context.routePolicy.relation_kind === "review") {
+    const review = { ...value };
+    if (review.decision !== "no_issue" && review.decision !== "issues") fail("AGENT_REVIEW_DECISION_INVALID");
+    if (review.issues && typeof review.issues === "object" && !Array.isArray(review.issues)) review.issues = [review.issues];
+    productResultValidation.array(review.issues, "AGENT_REVIEW_ISSUES_REQUIRED");
+    return Object.freeze(review);
+  }
   if (value.schema_version !== context.routePolicy.result_schema_version) fail("AGENT_RESULT_SCHEMA_VERSION_INVALID");
   return Object.freeze(value);
 };

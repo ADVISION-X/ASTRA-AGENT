@@ -20,7 +20,7 @@
 | 阶级 | 固定业务范围 | `product_id` |
 |---|---|---|
 | Tier 1 | 支付截图观察 | `payment_screenshot_observation` |
-| Tier 2 | 已购付费产品、报告翻译 | `bazi_ai_full_analysis`, `bazi_chart_interpretation`, `bazi_report_followup`, `hehun_ai_analysis`, `hehun_report_followup`, `naming_bazi_analysis_and_naming`, `naming_from_existing_bazi_report`, `qimen_professional_answer`, `qimen_report_followup`, `localization_report_translation` |
+| Tier 2 | 已购付费产品、报告翻译 | `bazi_ai_full_analysis`, `bazi_chart_interpretation`, `bazi_report_followup`, `hehun_ai_analysis`, `hehun_report_followup`, `naming_commercial`, `naming_from_existing_bazi_report`, `qimen_professional_answer`, `qimen_report_followup`, `localization_report_translation` |
 | Tier 3 | 固定文案翻译 | `localization_static_catalog` |
 | Tier 4 | 文章翻译、公开知识文章生产 | `localization_article_translation`, `public_knowledge_article_pipeline` |
 | Tier 5 | 未显式映射的其它产品 | `ELSE 5` |

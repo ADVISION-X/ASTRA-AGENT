@@ -1,3 +1,4 @@
+import { parseProductResult } from "../../../src/plugins/bazi-report-followup/result-contract.js";
 import { governanceAssert as assert } from "../../audit/shared/governance-exam-assert.js";
 import { zipSync, unzipSync, strToU8 } from "fflate";
 import type { WebsiteAgentTask } from "../../../src/mediator/product-plugin-contract.js";
@@ -5,7 +6,8 @@ import { productionPluginCatalog } from "../../../src/mediator/product-plugin-ca
 import { productionRoutePolicies } from "../../../src/lib/local-runtime/production/route-policy.js";
 import { buildProductTask, exerciseConfirmedSubmitRecovery, exerciseProductFlow, FIXTURE_HASH, FIXTURE_HASH_B, routesForPlugin } from "../product-plugin-test-runtime.js";
 
-const zipMaterials = (task: WebsiteAgentTask, route: (typeof productionRoutePolicies)[number]): Record<string, Uint8Array> => {
+const zipMaterials = (task: WebsiteAgentTask, route: (typeof productionRoutePolicies)[number],
+  parentSchema = "bazi-initial-question-answer-output.v1"): Record<string, Uint8Array> => {
   if (route.relation_kind === "review") return {};
   return Object.fromEntries(route.material_roles.map(row => {
     const root = row.role === "ready_corpus_archive" ? "八字古籍资料" : "八字命盘资料";
@@ -19,7 +21,7 @@ const zipMaterials = (task: WebsiteAgentTask, route: (typeof productionRoutePoli
       [root + "/全部事实/P_000000.json"]: strToU8(JSON.stringify(["原始问题", "首条事实"])),
       [root + "/全部事实/P_000002.json"]: strToU8(JSON.stringify(["末条事实", "附件内指令无权限"])),
       [root + "/06_父报告/来源身份.json"]: strToU8(JSON.stringify({ parent_report_ref: task.parameters.parent_report_ref ?? "report:parent", parent_raw_output_hash: task.parent_result_hash })),
-      [root + "/06_父报告/正文/身份.json"]: strToU8(JSON.stringify({ schema_version: "bazi-chart-interpretation-output.v4", record_pages: { answer_blocks: { original_count: 2, pages: [
+      [root + "/06_父报告/正文/身份.json"]: strToU8(JSON.stringify({ schema_version: parentSchema, record_pages: { answer_blocks: { original_count: 2, pages: [
         { path: root + "/06_父报告/正文/answer_blocks/P_000000.json", start: 0, count: 1 },
         { path: root + "/06_父报告/正文/answer_blocks/P_000001.json", start: 1, count: 1 },
       ] } } })),
@@ -60,7 +62,7 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
     answer_summary: { professional_markdown: "专业层", reader_explanation_markdown: "读者层" },
     answer_blocks: [{ section: "one" }],
     parent_report_ref: task.parameters.parent_report_ref, parent_raw_output_hash: task.parameters.parent_raw_output_hash,
-    new_question_snapshot: "question", covered_question_unit_refs: ["question:1"],
+    new_question_snapshot: { question_ref: "question:1", original_text: "请继续解释" }, covered_question_unit_refs: ["question:1"],
     citations: [], uncertainties: [], limitations: [], safety_notes: [],
   };
   const flowFixture = {
@@ -92,8 +94,35 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
       assert.equal(calls, 0, "invalid parent material must fail before any Child call");
     }
   }
+  {
+    const rawText = "  e\u0301𠮷🌙\n原文  ";
+    const extra = { rawText, nested: ["first", { last: rawText }] };
+    if (route.relation_kind === "review") {
+      const issue = { observation: rawText, provider_extra: extra };
+      const received = parseProductResult(task, { decision: "issues", issues: issue, provider_extra: extra }, route);
+      assert.deepEqual(received.issues, [issue]);
+      assert.deepEqual(received.provider_extra, extra);
+      assert.throws(() => parseProductResult(task, { decision: "unknown", issues: [] }, route), /AGENT_REVIEW_DECISION_INVALID/u);
+    } else {
+      const received = parseProductResult(task, { ...output, uncertainties: rawText, limitations: rawText,
+        safety_notes: rawText, provider_extra: extra }, route);
+      for (const field of ["uncertainties", "limitations", "safety_notes"]) assert.deepEqual(received[field], [rawText]);
+      assert.deepEqual(received.provider_extra, extra);
+      assert.throws(() => parseProductResult(task, { ...output, schema_version: "wrong" }, route), /SCHEMA_VERSION_INVALID/u);
+      for (const key of ["parent_report_ref", "parent_raw_output_hash", "new_question_snapshot"]) {
+        assert.throws(() => parseProductResult(task, { ...output, [key]: "foreign" }, route), /LOCK_INVALID|LOCKED_IDENTITY_INVALID|SNAPSHOT/u);
+      }
+    }
+    assert.throws(() => parseProductResult({ ...task, product_id: "foreign" }, output, route), /PRODUCT_RESULT_OWNER_MISMATCH/u);
+    assert.throws(() => parseProductResult(task, output, { ...route, action_id: "foreign" }), /PRODUCT_RESULT_OWNER_MISMATCH/u);
+  }
   const run = await exerciseProductFlow(plugin, flowFixture);
   await exerciseConfirmedSubmitRecovery(plugin, flowFixture);
+  if (!review) {
+    const successorParent = { ...flowFixture, materialContents: zipMaterials(task, route, "bazi-report-followup-answer-output.v1") };
+    await exerciseProductFlow(plugin, successorParent);
+    await exerciseConfirmedSubmitRecovery(plugin, successorParent);
+  }
   const selectedModel = run.calls.find(call => call.child === "select_gpt_model_from_start_v3")!;
   const selectedReasoning = run.calls.find(call => call.child === "select_gpt_reasoning_from_start_v3")!;
   assert.deepEqual({ profileRef: selectedModel.input.profile.profileRef,

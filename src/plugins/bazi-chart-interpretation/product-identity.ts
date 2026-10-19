@@ -2,7 +2,7 @@ import { buildGptExecutionProfile } from "../../capabilities/gpt/index.js";
 
 export const PLUGIN_ID = "bazi-chart-interpretation";
 export const PRODUCT_INSTRUCTION =
-  "依当前 Product Skill 读完两个冻结附件：对来源 PDF 的实际语义对象作完整双层伴读，再自主组织全盘综合、证据、候选条件与现实边界。机器身份仅复制到结构字段。同轮自查后一次提交正式 v4 JSON。";
+  "完整阅读本轮四部分命盘资料、全部联合条件和事实语义清单，完成全盘双层解释；遍历实际 READY 古籍完整索引并核相关原文。PDF 仅消费真实可选绑定，不作为前置；没有专项问题。按当前公开结果合同一次交正式 JSON。";
 export const MODEL_PROFILE = buildGptExecutionProfile({
   profileRef: `${PLUGIN_ID}:chatgpt-latest-reasoning-4`,
   startModelDisplayName: "最新",

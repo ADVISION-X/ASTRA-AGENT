@@ -42,6 +42,12 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
   assert.equal(run.physicalSubmitDispatches, 1);
   const prompt = String(run.calls.find((call) => call.child === "write_exact_gpt_prompt")?.input.prompt);
   assert.ok(prompt.includes(JSON.stringify(route.result_contract)), "the actual prompt must consume the unique public format");
+  if (review) {
+    const issue = { observation: "e\u0301𠮷", extra: { untouched: true } };
+    const received = await exerciseProductFlow(plugin, { task, output: { decision: "issues", issues: issue, extra: true } });
+    assert.deepEqual(received.completed.payload, { decision: "issues", issues: [issue], extra: true });
+    await assert.rejects(exerciseProductFlow(plugin, { task, output: { decision: "invalid", issues: [] } }), /AGENT_REVIEW_DECISION_INVALID/u);
+  }
   if (!review) {
     for (const observed of [
       { ...output, page_kind: "other", payment_app: "unknown", success_visible: false, visible_amount_minor_units: null, extra_observation: { untouched: true } },

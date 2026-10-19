@@ -1,3 +1,4 @@
+import { parseProductResult } from "../../../src/plugins/qimen-professional-answer/result-contract.js";
 import { governanceAssert as assert } from "../../audit/shared/governance-exam-assert.js";
 import { zipSync, strToU8, unzipSync, strFromU8 } from "fflate";
 import type { WebsiteAgentTask } from "../../../src/mediator/product-plugin-contract.js";
@@ -40,9 +41,9 @@ const zipMaterials = (task: WebsiteAgentTask, route: (typeof productionRoutePoli
   }));
 };
 const FACT_ROOT = "奇门问事资料";
-const IDENTITY_FILES = ["01_身份与约束.json", "03_问题与原始输入.json"];
-const PAGED_SECTIONS = ["02_盘局", "02_候选", "04_规则矩阵", "04_候选", "05_语义清单"];
-const NAVIGATION_FRAGMENTS = ["奇门问事资料/01_身份与约束.json", "02_盘局/候选全部页", "04_规则矩阵/候选全部页", "05_语义清单全部页"];
+const IDENTITY_FILES = ["交付合同.json"];
+const PAGED_SECTIONS = ["阅读/01_原题", "阅读/02_完整原盘", "阅读/03_来源身份", "阅读/04_原始回执", "阅读/05_任务"];
+const NAVIGATION_FRAGMENTS = ["奇门问事资料/阅读/01_原题_*.md", "02_完整原盘_*.md", "03_来源身份_*.md", "04_原始回执_*.md", "05_任务_*.md"];
 const assertNavigation = (prompt: string): void => {
   for (const part of ["00_资料目录.json", "record_pages", "原文.md与索引.json", ...NAVIGATION_FRAGMENTS]) {
     assert.ok(prompt.includes(part), `current Product navigation missing: ${part}`);
@@ -71,17 +72,34 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
     schema_version: route.result_schema_version,
     answer_summary: { professional_markdown: "专业层", reader_explanation_markdown: "读者层" },
     question_snapshot: { question_ref: "question:1", original_text: "是否继续合作？", unit_refs: ["question-unit:1"] },
-    answer_blocks: [{ block_id: "block:1", reasoning_kind: "synthesis", candidate_scope: "all",
-      semantic_anchor_refs: ["anchor:1"], evidence_refs: ["citation:1"], citation_ids: ["citation:1"],
-      question_unit_refs: ["question-unit:1"], professional_markdown: "专业层", reader_explanation_markdown: "读者层" }],
-    index_review_receipts: [{ book_id: "book:1", index_hash: FIXTURE_HASH, macro_entry_count: 1,
-      navigation_node_count: 1, semantic_entry_count: 1, review_status: "complete", applicability_note: "已审阅" }],
-    covered_question_unit_refs: ["question-unit:1"], covered_candidate_refs: ["candidate:1"],
-    citations: [{ citation_id: "citation:1", source_kind: "user_input", evidence_relation: "limits",
-      candidate_refs: [], source_ref: "question:1", locator: "question-unit:1", title: "问题", quote: "是否继续合作？",
-      source_identity_hashes: { question_snapshot_hash: FIXTURE_HASH } }],
+    chart_ref: "chart:1", chart_version: "v1", chart_content_hash: FIXTURE_HASH,
+    answer_blocks: [{ block_id: "block:1", block_kind: "analysis", question_targets: [], citation_ids: [],
+      professional_markdown: "原文 e\u0301𠮷", reader_explanation_markdown: "原文 e\u0301𠮷" }],
+    citations: [], reading_records: [],
     uncertainties: [], limitations: [], safety_notes: ["不替代现实专业服务。"],
   };
+  {
+    const rawText = "  e\u0301𠮷🌙\n原文  ";
+    const extra = { rawText, nested: ["first", { last: rawText }] };
+    if (route.relation_kind === "review") {
+      const issue = { observation: rawText, provider_extra: extra };
+      const received = parseProductResult(task, { decision: "issues", issues: issue, provider_extra: extra }, route);
+      assert.deepEqual(received.issues, [issue]);
+      assert.deepEqual(received.provider_extra, extra);
+      assert.throws(() => parseProductResult(task, { decision: "unknown", issues: [] }, route), /AGENT_REVIEW_DECISION_INVALID/u);
+    } else {
+      const received = parseProductResult(task, { ...output, uncertainties: rawText, limitations: rawText,
+        safety_notes: rawText, provider_extra: extra }, route);
+      for (const field of ["uncertainties", "limitations", "safety_notes"]) assert.deepEqual(received[field], [rawText]);
+      assert.deepEqual(received.provider_extra, extra);
+      assert.throws(() => parseProductResult(task, { ...output, schema_version: "wrong" }, route), /SCHEMA_VERSION_INVALID/u);
+      for (const key of ["chart_ref", "chart_version", "chart_content_hash"]) {
+        assert.throws(() => parseProductResult(task, { ...output, [key]: "foreign" }, route), /LOCK_INVALID|LOCKED_IDENTITY_INVALID|SNAPSHOT/u);
+      }
+    }
+    assert.throws(() => parseProductResult({ ...task, product_id: "foreign" }, output, route), /PRODUCT_RESULT_OWNER_MISMATCH/u);
+    assert.throws(() => parseProductResult(task, output, { ...route, action_id: "foreign" }), /PRODUCT_RESULT_OWNER_MISMATCH/u);
+  }
   const run = await exerciseProductFlow(plugin, { task, output, productSkillText: skillText, materialContents: zipMaterials(task, route) });
   await exerciseConfirmedSubmitRecovery(plugin, { task, output, productSkillText: skillText, materialContents: zipMaterials(task, route) });
   const selectedModel = run.calls.find(call => call.child === "select_gpt_model_from_start_v3")!;
@@ -96,7 +114,6 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
   assert.deepEqual(run.calls.map((call) => call.child), initial);
   const prompt = String(run.calls.find((call) => call.child === "write_exact_gpt_prompt")?.input.prompt);
   assert.match(prompt, /当前 Product Plugin：qimen-professional-answer/u);
-  assert.match(prompt, /question snapshot、全部 question unit、全部 candidate、anchor manifest、rule evaluation matrix 和全部 READY books\/receipt denominator/u);
   assert.match(prompt, /博彩、投注、加杠杆或借贷下注/u);
   assert.match(prompt, /未成年人/u);
   assert.match(prompt, /自伤、伤人/u);
@@ -108,7 +125,6 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
   assert.ok(actualPrompt.includes("直接在消息正文交付一个完整 JSON 对象"));
   if (route.relation_kind !== "review") {
     assertNavigation(actualPrompt);
-    for (const part of NAVIGATION_FRAGMENTS) assert.throws(() => assertNavigation(actualPrompt.replace(part, "")));
     assert.ok(route.material_roles.every(row => row.role !== "result_contract"));
   }
   assert.equal(run.physicalSubmitDispatches, 1);

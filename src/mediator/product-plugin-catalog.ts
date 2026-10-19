@@ -6,7 +6,7 @@ import { baziReportFollowupPlugin } from "../plugins/bazi-report-followup/index.
 import { hehunAiAnalysisPlugin } from "../plugins/hehun-ai-analysis/index.js";
 import { hehunReportFollowupPlugin } from "../plugins/hehun-report-followup/index.js";
 import { localizationProductionPlugin } from "../plugins/localization-production/index.js";
-import { namingBaziAnalysisAndNamingPlugin } from "../plugins/naming-bazi-analysis-and-naming/index.js";
+import { namingCommercialPlugin } from "../plugins/naming-commercial/index.js";
 import { namingFromExistingBaziReportPlugin } from "../plugins/naming-from-existing-bazi-report/index.js";
 import { paymentScreenshotObservationPlugin } from "../plugins/payment-screenshot-observation/index.js";
 import { publicKnowledgeArticlePipelinePlugin } from "../plugins/public-knowledge-article-pipeline/index.js";
@@ -31,7 +31,7 @@ export const productionPluginCatalog = Object.freeze([
   qimenReportFollowupPlugin,
   hehunAiAnalysisPlugin,
   hehunReportFollowupPlugin,
-  namingBaziAnalysisAndNamingPlugin,
+  namingCommercialPlugin,
   namingFromExistingBaziReportPlugin,
   publicKnowledgeArticlePipelinePlugin,
   localizationProductionPlugin,

@@ -1,15 +1,21 @@
-import type { ProductionRoutePolicy, WebsiteAgentTask } from "../../mediator/product-plugin-contract.js";
-import { productResultValidation as result } from "../../mediator/product-plugin-contract.js";
+import { productResultValidation as result, type ProductionRoutePolicy, type WebsiteAgentTask } from "../../mediator/product-plugin-contract.js";
 
-export const parseProductResult = (task: WebsiteAgentTask, value: unknown, route: ProductionRoutePolicy): Readonly<Record<string, unknown>> => {
-  if (task.product_id !== "qimen_professional_answer") throw new Error("PRODUCT_RESULT_OWNER_MISMATCH");
-  if (route.relation_kind === "review") return result.parseReview(JSON.stringify(value));
-  const output = result.object(value, "AGENT_RESULT_OBJECT_REQUIRED");
+export function parseProductResult(task: WebsiteAgentTask, value: unknown, route: ProductionRoutePolicy): Readonly<Record<string, unknown>> {
+  if (task.product_id !== "qimen_professional_answer" || route.product_id !== task.product_id || route.action_id !== task.action_id) {
+    throw new Error("PRODUCT_RESULT_OWNER_MISMATCH");
+  }
+  const output = { ...result.object(value, "AGENT_RESULT_OBJECT_REQUIRED") };
+  if (route.relation_kind === "review") {
+    if (output.decision !== "no_issue" && output.decision !== "issues") throw new Error("AGENT_REVIEW_DECISION_INVALID");
+    if (output.issues && typeof output.issues === "object" && !Array.isArray(output.issues)) output.issues = [output.issues];
+    result.array(output.issues, "AGENT_REVIEW_ISSUES_REQUIRED");
+    return Object.freeze(output);
+  }
   if (output.schema_version !== route.result_schema_version) throw new Error("AGENT_RESULT_SCHEMA_VERSION_INVALID");
-  result.exact(output, ["schema_version", "question_snapshot", "answer_summary", "answer_blocks", "citations", "uncertainties", "limitations", "safety_notes", "index_review_receipts", "covered_question_unit_refs", "covered_candidate_refs"], "QIMEN_RESULT_FIELDS_INVALID");
-  result.commonReport(output, "answer_summary", "answer_blocks");
-  result.array(output.index_review_receipts, "QIMEN_INDEX_REVIEW_INVALID", true);
-  result.stringArray(output.covered_question_unit_refs, "QIMEN_QUESTION_COVERAGE_INVALID", true);
-  result.stringArray(output.covered_candidate_refs, "QIMEN_CANDIDATE_COVERAGE_INVALID", true);
+  result.locked(output, task, ["chart_ref", "chart_version"]);
+  if (output.chart_content_hash !== task.parameters.chart_hash) throw new Error("QIMEN_CHART_HASH_LOCK_INVALID");
+  for (const field of ["uncertainties", "limitations", "safety_notes"]) {
+    if (typeof output[field] === "string") output[field] = [output[field]];
+  }
   return Object.freeze(output);
-};
+}
