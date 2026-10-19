@@ -1,498 +1,281 @@
-import { runInNewContext } from "node:vm";
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
-import type { ExtensionDebuggerRuntime } from
-  "../../src/lib/browser/chrome-extension/debugger-runtime.js";
-
-import { executeRegisteredDomIntent } from
-  "../../src/lib/browser/chrome-extension/dom-intent-runtime.js";
-import {
-  exactAssistantRuntimeFor as runtimeFor,
-  exactAssistantTarget as target,
-  exactAssistantObservedAt as observedAt,
-  exactConversationFixtureUrl,
-  executeExactAssistantFixture as execute,
-  successfulAssistantObservation as successfulObservation,
-} from "./local-browser-dom-runtime-fixture.js";
+import { readFixedDocument, FixedDocumentReadFailure } from "../../src/lib/browser/chrome-extension/dom-fixed-document-read.js";
+import { observeKnownGptRateLimitDialog } from "../../src/lib/browser/chrome-extension/gpt-rate-limit-dialog.js";
+import { exactAssistantRuntimeFor, exactAssistantTarget as target, successfulAssistantObservation as observation,
+  executeExactAssistantFixture as execute, exactConversationFixtureUrl } from "./local-browser-dom-runtime-fixture.js";
+import { withSyntheticDom } from "./local-browser-dom-function-fixture.js";
+import type { Page } from "playwright";
 
 export { exactConversationFixtureUrl } from "./local-browser-dom-runtime-fixture.js";
-import {
-  FakeElement,
-  FakeTextNode,
-  RICH_SEMANTIC_TEXT,
-  execute as executeCaptured,
-  richSemanticTree,
-} from "./local-browser-dom-function-fixture.js";
 
-const capturedAssistantFixture = () => {
-  const userTurnId = "00000000-0000-4000-8000-000000000001";
-  const assistantTurnId = "00000000-0000-4000-8000-000000000002";
-  const turnMarker = "fixture-marker";
-  const text = (value: string) => new FakeTextNode(value);
-  const paragraph = new FakeElement("bold", {}, {}, {}, "P", [
-    new FakeElement("bold", {}, {}, {}, "STRONG", [text("bold")]),
-  ]);
-  const list = new FakeElement("item", {}, {}, {}, "UL", [
-    new FakeElement("item", {}, {}, {}, "LI", [text("item")]),
-  ]);
-  const assistant = new FakeElement("bold item", { "pre code": [] }, {}, {}, "DIV", [paragraph, list]);
-  const userMessage = new FakeElement(`provider-folded-message ${turnMarker}`, {}, {}, {
-    "data-user-message-bubble": "true",
-  }, "DIV", [text(`provider-folded-message ${turnMarker}`)]);
-  const user = new FakeElement(`provider-folded-message ${turnMarker}`, {
-    "[data-user-message-bubble='true']": [userMessage],
-  }, {}, {
-    "data-chatgpt-search-unit-key": "fallback-turn-0:0:user",
-    "data-chatgpt-search-message-ids": userTurnId,
-  }, "DIV", [userMessage]);
-  const assistantOuter = (node: FakeElement) => {
-    const role = new FakeElement("assistant", {}, {}, { "data-conversation-role": "assistant" }, "H4");
-    const assistantUnit = new FakeElement(node.textContent, {
-      "h4[data-conversation-role='assistant']": [role],
-      "[data-markdown-text-style='assistant-message']": [node],
-    }, {}, {
-      "data-chatgpt-search-unit-key": "fallback-turn-0:1:assistant",
-      "data-chatgpt-search-message-ids": assistantTurnId,
-    }, "DIV", [role, node]);
-    return new FakeElement(node.textContent, {
-      "[data-chatgpt-search-unit-key]": [user, assistantUnit],
-    }, {}, { "data-turn-key": userTurnId }, "SECTION", [user, assistantUnit]);
-  };
-  const emptyAssistantOuter = new FakeElement(userMessage.textContent, {
-    "[data-chatgpt-search-unit-key]": [user],
-  }, {}, { "data-turn-key": userTurnId }, "SECTION", [user]);
-  const turnsSelector = "[data-turn-key]";
-  const input = { kind: "readExactAssistantTurn", turnMarker, observedUserTurnId: userTurnId,
-    canonicalConversationUrl: exactConversationFixtureUrl };
-  const exactAssistant = assistantOuter(assistant);
-  const turns = (laterTurns: readonly FakeElement[], pointed: FakeElement | null) => ({
-    querySelectorAll: (value: string) => value === turnsSelector
-      ? laterTurns.length ? laterTurns : [emptyAssistantOuter] : [],
-    elementFromPoint: () => pointed,
+const userId = observation.precedingUserTurnId, assistantId = observation.assistantTurnId;
+const body = `<h1>Title</h1><p>Body <code>inline</code></p><ul><li>item</li></ul>`
+  + `<pre><code>{"ok":true}</code></pre><p>end</p>`;
+const turn = (content = body, ids = `${assistantId} ${assistantId}`, outerId = userId) => `
+  <section data-turn-key="${outerId}">
+    <div data-chatgpt-search-unit-key="fallback-turn-0:0:user" data-chatgpt-search-message-ids="${outerId}">
+      <div data-user-message-bubble="true">folded fixture-marker</div>
+    </div>
+    <div data-chatgpt-search-unit-key="fallback-turn-0:1:assistant" data-chatgpt-search-message-ids="${ids}">
+      <h4 data-conversation-role="assistant">assistant</h4>
+      <div data-markdown-text-style="assistant-message">${content}</div>
+    </div>
+  </section>`;
+
+const runPage = (page: Page, deadline = Date.now() + 20_000) => {
+  const fixture = exactAssistantRuntimeFor(observation, ["loader-current"], {
+    evaluate: (expression) => page.evaluate(expression), releaseFailure: new Error("release must be unreachable on success"),
   });
-  let queryCalls = 0;
-  const document = {
-    querySelectorAll: (value: string) => {
-      queryCalls += 1;
-      return value === turnsSelector ? [exactAssistant] : [];
-    },
-    elementFromPoint: () => assistant,
-  };
-  return { assistant, assistantOuter, document, input, queryCalls: () => queryCalls,
-    text, turns, user };
+  return { fixture, result: execute(fixture, deadline) as Promise<Record<string, unknown>> };
 };
 
-const exerciseCapturedAssistantBaseline = async (
-  source: string,
-  fixture: ReturnType<typeof capturedAssistantFixture>,
-): Promise<void> => {
-  const observed = await executeCaptured(
-    source, fixture.document, fixture.input, `${exactConversationFixtureUrl}?query=discarded#fragment`,
-  ) as Readonly<{ rawCount: number; rawDomHtml: string; semanticText: string;
-    currentUrl: string; nativeStage: string }>;
-  assert.equal(fixture.queryCalls(), 2,
-    "the assistant, exact predecessor, and stop state must share one async Runtime call");
-  assert.equal(source.includes("assistantIndex"), false,
-    "a task-owned adjacent assistant must not depend on being the page's final turn");
-  assert.equal(source.includes("composerRaw"), false,
-    "global composer cardinality must not decide whether an adjacent assistant exists");
-  assert.equal(source.includes("browserMechanicalFacts"), false,
-    "display and interaction eligibility must not decide whether exact answer text exists");
-  assert.equal(source.includes("collapsible-user-message-content"), false,
-    "response read must not parse or hash the already-confirmed user prompt DOM");
-  assert.equal(source.includes("precedingPromptHash"), false,
-    "response read must not create a second prompt identity");
-  assert.equal(source.includes("data-chatgpt-selection-message-id"), false,
-    "the selection wrapper ChatGPT adds only after completion must not gate a streaming read");
-  assert.equal(observed.rawCount, 1);
-  assert.match(observed.rawDomHtml, /<strong>bold<\/strong>/u);
-  assert.equal(observed.semanticText, "**bold**\n- item\n");
-  assert.equal(observed.currentUrl, exactConversationFixtureUrl);
-  assert.equal(observed.nativeStage, "runtime-call-function-on");
-  const generatingObserved = await executeCaptured(source, { ...fixture.document,
-    querySelectorAll: (value: string) => {
-      if (value.includes("停止")) {
-        assert.equal(value, "form[data-chatgpt-composer] button[aria-label='停止']");
-        return [fixture.assistant];
-      }
-      return fixture.document.querySelectorAll(value);
-    },
-  }, fixture.input, exactConversationFixtureUrl) as Readonly<{
-    rawCount: number; rawDomHtml: string; semanticText: string; generatingRaw: number;
-  }>;
-  assert.deepEqual({ rawCount: generatingObserved.rawCount, rawDomHtml: generatingObserved.rawDomHtml,
-    semanticText: generatingObserved.semanticText,
-    generatingRaw: generatingObserved.generatingRaw },
-  { rawCount: 1, rawDomHtml: fixture.assistant.outerHTML,
-    semanticText: "**bold**\n- item\n", generatingRaw: 1 },
-  "generation state must remain observable without erasing the exact adjacent assistant candidate");
+const expectStage = (code: string, stage: string) => (error: unknown): boolean => {
+  assert.ok(error instanceof FixedDocumentReadFailure);
+  assert.equal(error.message, code); assert.equal(error.commandStage, stage);
+  return true;
 };
 
-const exerciseCapturedAssistantIdentityRejections = async (
-  source: string,
-  fixture: ReturnType<typeof capturedAssistantFixture>,
-): Promise<void> => {
-  const bubble = new FakeElement("fixture-marker", {}, {},
-    { "data-user-message-bubble": "true" });
-  const wrongMessageIdUser = new FakeElement("fixture-marker",
-    { "[data-user-message-bubble='true']": [bubble] }, {}, {
-      "data-chatgpt-search-unit-key": "fallback-turn-0:0:user",
-      "data-chatgpt-search-message-ids": "00000000-0000-4000-8000-000000000003",
-    });
-  const wrongMessageIdTurn = new FakeElement("fixture-marker",
-    { "[data-chatgpt-search-unit-key]": [wrongMessageIdUser] }, {},
-    { "data-turn-key": "00000000-0000-4000-8000-000000000001" });
-  await assert.rejects(async () => executeCaptured(source, fixture.turns([wrongMessageIdTurn], null),
-    fixture.input, exactConversationFixtureUrl), /BROWSER_DOM_READ_INVALID/u,
-  "a marker with mismatched user message ids must not produce an answer");
-  const wrongRoleUser = new FakeElement("fixture-marker",
-    { "[data-user-message-bubble='true']": [bubble] }, {}, {
-      "data-chatgpt-search-unit-key": "fallback-turn-0:0:assistant",
-      "data-chatgpt-search-message-ids": "00000000-0000-4000-8000-000000000001",
-    });
-  const wrongRoleTurn = new FakeElement("fixture-marker",
-    { "[data-chatgpt-search-unit-key]": [wrongRoleUser] }, {},
-    { "data-turn-key": "00000000-0000-4000-8000-000000000001" });
-  const wrongRole = await executeCaptured(source, fixture.turns([wrongRoleTurn], null),
-    fixture.input, exactConversationFixtureUrl) as Readonly<{ pendingCause: string }>;
-  assert.equal(wrongRole.pendingCause, "exact-user-turn-unavailable");
-};
-
-const exerciseCapturedAssistantRejections = async (
-  source: string,
-  fixture: ReturnType<typeof capturedAssistantFixture>,
-): Promise<void> => {
-  const presentationVariants = [
-    new FakeElement("layoutless", { "pre code": [] }, { display: "none" }, {}, "DIV", [fixture.text("layoutless")]),
-    new FakeElement("hidden", { "pre code": [] }, {}, { hidden: "" }, "DIV", [fixture.text("hidden")]),
-    new FakeElement("aria hidden", { "pre code": [] }, {}, { "aria-hidden": "true" }, "DIV", [fixture.text("aria hidden")]),
-    new FakeElement("inert", { "pre code": [] }, {}, { inert: "" }, "DIV", [fixture.text("inert")]),
-  ];
-  for (const node of presentationVariants) {
-    const observed = await executeCaptured(source, fixture.turns([fixture.assistantOuter(node)], null),
-      fixture.input, exactConversationFixtureUrl) as Readonly<{
-      rawCount: number; rawDomHtml: string; semanticText: string;
-    }>;
-    assert.equal(observed.rawCount, 1);
-    assert.equal(observed.rawDomHtml, node.outerHTML);
-    assert.notEqual(observed.semanticText.trim(), "",
-      "presentation state must not erase exact adjacent assistant content");
+const exerciseRealAtomicBody = async (page: Page): Promise<void> => {
+  await page.goto(exactConversationFixtureUrl + "?discard=query#fragment");
+  await page.setContent(turn());
+  const baseline = runPage(page), result = await baseline.result;
+  assert.equal(result.semanticText, "Title\nBody `inline`\n- item\n\n{\"ok\":true}\nend");
+  assert.match(String(result.rawDomHtml), /<pre><code>\{"ok":true\}<\/code><\/pre>/u);
+  assert.deepEqual(baseline.fixture.released, []);
+  assert.equal(baseline.fixture.scanCalls(), 1);
+  for (const attribute of ["hidden", 'aria-hidden="true"', "inert", 'style="display:none"']) {
+    for (const unit of ['data-markdown-text-style="assistant-message"', 'data-user-message-bubble="true"',
+      `data-turn-key="${userId}"`]) {
+      await page.setContent(turn().replace(unit, `${unit} ${attribute}`));
+      assert.equal((await runPage(page).result).semanticText, result.semanticText);
+    }
   }
-  const missingUser = await executeCaptured(source, {
-    querySelectorAll: () => [],
-    elementFromPoint: () => null,
-  }, fixture.input, exactConversationFixtureUrl) as Readonly<{
-    rawCount: number; pendingCause: string | null;
-  }>;
-  assert.equal(missingUser.rawCount, 0);
-  assert.equal(missingUser.pendingCause, "exact-user-turn-unavailable");
-  const missingAssistant = await executeCaptured(source, fixture.turns([], null),
-    fixture.input, exactConversationFixtureUrl) as Readonly<{
-    rawCount: number; pendingCause: string | null; observedAt: string;
-  }>;
-  assert.equal(missingAssistant.rawCount, 0);
-  assert.equal(missingAssistant.pendingCause, "adjacent-assistant-missing");
-  await assert.rejects(async () => executeCaptured(source, fixture.turns([
-    fixture.assistantOuter(fixture.assistant), fixture.assistantOuter(fixture.assistant),
-  ], fixture.assistant), fixture.input, exactConversationFixtureUrl),
-  /BROWSER_DOM_CANDIDATE_AMBIGUOUS/u,
-  "duplicate exact turn keys must fail closed");
-  await exerciseCapturedAssistantIdentityRejections(source, fixture);
-  const rich = richSemanticTree();
-  const richObserved = await executeCaptured(source, fixture.turns([fixture.assistantOuter(rich)], rich),
-    fixture.input, exactConversationFixtureUrl) as Readonly<{ semanticText: string }>;
-  assert.equal(richObserved.semanticText, RICH_SEMANTIC_TEXT,
-    "exact assistant read must preserve headings, prose, lists, inline code, the code block, and trailing prose");
-  const laterTurn = new FakeElement("later", {}, {}, { "data-turn-key": "00000000-0000-4000-8000-000000000003" });
-  const drifted = await executeCaptured(source,
-    fixture.turns([fixture.assistantOuter(fixture.assistant), laterTurn], fixture.assistant),
-    fixture.input, exactConversationFixtureUrl) as Readonly<{
-    rawCount: number; rawDomHtml: string; semanticText: string;
-  }>;
-  assert.deepEqual({ rawCount: drifted.rawCount, rawDomHtml: drifted.rawDomHtml,
-    semanticText: drifted.semanticText }, {
-    rawCount: 1, rawDomHtml: fixture.assistant.outerHTML,
-    semanticText: "**bold**\n- item\n",
-  }, "a later page turn must not erase the assistant adjacent to the exact task-owned user turn");
-  const wrongConversation = await executeCaptured(
-    source, fixture.document, fixture.input, "https://chatgpt.com/c/another-conversation",
-  ) as Readonly<{ rawCount: number; rawDomHtml: string; semanticText: string }>;
-  assert.equal(wrongConversation.rawCount, 1);
-  assert.equal(wrongConversation.rawDomHtml, "");
-  assert.equal(wrongConversation.semanticText, "",
-    "a different canonical conversation URL must invalidate the observation");
+  await page.setContent(turn() + `<section data-turn-key="00000000-0000-4000-8000-000000000003"></section>
+    <form data-chatgpt-composer><button aria-label="停止"></button></form>`);
+  const generating = await runPage(page).result;
+  assert.equal(generating.semanticText, result.semanticText); assert.equal(generating.generatingRaw, 1);
+  await page.setContent(turn('<pre><code>{"schema_version":"target-language-candidate.v3","items":[]}</code></pre>'));
+  assert.equal(JSON.parse(String((await runPage(page).result).semanticText).trim()).schema_version,
+    "target-language-candidate.v3", "JSON code blocks retain complete parseable content");
 };
 
-const exerciseCapturedExactAssistantTurnFunction = async (source: string): Promise<void> => {
-  const fixture = capturedAssistantFixture();
-  await exerciseCapturedAssistantBaseline(source, fixture);
-  await exerciseCapturedAssistantRejections(source, fixture);
+const exerciseRealPending = async (page: Page): Promise<void> => {
+  await page.setContent("");
+  assert.equal((await runPage(page).result).pendingCause, "exact-user-turn-unavailable");
+  await page.setContent(turn());
+  await page.locator("[data-chatgpt-search-unit-key$=':assistant']").evaluate(node => node.remove());
+  assert.equal((await runPage(page).result).pendingCause, "adjacent-assistant-missing");
 };
 
-const exerciseSingleAtomicRead = async (): Promise<void> => {
-  const fixture = runtimeFor(successfulObservation);
-  const reply = await execute(fixture) as Readonly<Record<string, unknown>>;
-  assert.equal(fixture.callCount(), 2,
-    "the bounded marker scan must precede one coherent answer observation");
-  assert.equal(fixture.releases(), 2);
-  assert.deepEqual(fixture.methods.filter((method) => [
-    "DOM.querySelectorAll", "DOM.describeNode", "DOM.getOuterHTML",
-  ].includes(method)), [], "the exact reply must not splice independent DOM reads");
-  assert.equal(fixture.methods.filter((method) => method === "Page.getFrameTree").length, 3);
-  assert.equal(reply.rawDomHtml, successfulObservation.rawDomHtml);
-  assert.equal(reply.semanticText, successfulObservation.semanticText);
-  assert.equal(reply.observedAt, observedAt);
-  assert.match(String(reply.targetRefHash), /^sha256:[a-f0-9]{64}$/u);
-  assert.match(String(reply.documentRefHash), /^sha256:[a-f0-9]{64}$/u);
-  assert.match(fixture.functionSource(), /^async function \(spec\)/u);
-  await exerciseCapturedExactAssistantTurnFunction(fixture.functionSource());
+const exerciseRealIdentityChanges = async (page: Page): Promise<void> => {
+  await page.setContent(turn());
+  await page.locator("[data-chatgpt-search-unit-key$=':assistant']").evaluate(node => node.after(node.cloneNode(true)));
+  await assert.rejects(runPage(page).result, expectStage("BROWSER_DOM_CANDIDATE_AMBIGUOUS", "exact-assistant-observation"));
+  await page.setContent(turn());
+  let reads = 0;
+  const rerendered = exactAssistantRuntimeFor(observation, ["loader-current"], { evaluate: async expression => {
+    if (++reads === 2) await page.locator("[data-turn-key]").evaluate(node => {
+      const id = "00000000-0000-4000-8000-000000000003";
+      node.setAttribute("data-turn-key", id);
+      node.querySelector("[data-chatgpt-search-unit-key$=':user']")!.setAttribute("data-chatgpt-search-message-ids", id);
+    });
+    return page.evaluate(expression);
+  } });
+  await assert.rejects(execute(rerendered), expectStage("BROWSER_DOCUMENT_INVALID", "exact-assistant-observation"));
 };
 
-const exerciseAtomicFailureClosure = async (): Promise<void> => {
-  for (const pendingCause of ["exact-user-turn-unavailable", "adjacent-assistant-missing"] as const) {
-    const reply = await execute(runtimeFor({ ...successfulObservation,
-      rawCount: 0, rawDomHtml: "", semanticText: "", pendingCause })) as Readonly<Record<string, unknown>>;
-    assert.equal(reply.pendingCause, pendingCause,
-      "a missing exact turn must return a bound negative observation for source readback proof");
-    assert.equal(reply.rawDomHtml, "");
-    assert.equal(reply.semanticText, "");
-    assert.match(String(reply.observationRevisionHash), /^sha256:[a-f0-9]{64}$/u);
+const exerciseRealIdentity = async (page: Page): Promise<void> => {
+  await exerciseRealIdentityChanges(page);
+  await page.setContent(turn() + turn());
+  await assert.rejects(runPage(page).result, expectStage("BROWSER_DOM_CANDIDATE_AMBIGUOUS", "exact-user-materialization"));
+  await page.setContent(turn(body, `${assistantId} 00000000-0000-4000-8000-000000000003`));
+  await assert.rejects(runPage(page).result, expectStage("BROWSER_DOCUMENT_INVALID", "exact-assistant-observation"));
+  await page.setContent(turn().replace(`data-chatgpt-search-message-ids="${userId}"`,
+    'data-chatgpt-search-message-ids="00000000-0000-4000-8000-000000000003"'));
+  await assert.rejects(runPage(page).result, expectStage("BROWSER_DOCUMENT_INVALID", "exact-user-materialization"));
+  await page.goto("https://chatgpt.com/c/wrong"); await page.setContent(turn());
+  await assert.rejects(runPage(page).result, expectStage("BROWSER_DOCUMENT_INVALID", "exact-user-materialization"));
+};
+
+const exerciseDecoderAndLoader = async (): Promise<void> => {
+  for (const patch of [{ rawCount: 2 }, { rawDomHtml: "" }, { extra: true }, { nativeStage: "runtime-call-function-on" }]) {
+    await assert.rejects(execute(exactAssistantRuntimeFor({ ...observation, ...patch })),
+      expectStage("rawCount" in patch ? "BROWSER_DOM_CANDIDATE_AMBIGUOUS" : "BROWSER_DOM_READ_INVALID", "exact-assistant-observation"));
   }
-  for (const [observation, code] of [
-    [{ ...successfulObservation, rawCount: 2, rawDomHtml: "", semanticText: "" },
-      "BROWSER_DOM_CANDIDATE_AMBIGUOUS"],
-    [{ ...successfulObservation, rawCount: 0, rawDomHtml: "", semanticText: "" },
-      "BROWSER_DOM_READ_INVALID"],
-    [{ ...successfulObservation, rawDomHtml: "", semanticText: "" }, "BROWSER_DOM_READ_INVALID"],
-  ] as const) await assert.rejects(execute(runtimeFor(observation)), new RegExp(code, "u"));
-  await assert.rejects(execute(runtimeFor({ ...successfulObservation,
-    currentUrl: "https://chatgpt.com/c/another-conversation", rawDomHtml: "", semanticText: "" })),
-  /BROWSER_DOCUMENT_INVALID/u,
-  "a canonical conversation mismatch must fail closed instead of becoming retryable candidate missing");
-  await assert.rejects(execute(runtimeFor(successfulObservation, ["loader-current", "loader-next"])),
-    /BROWSER_DOCUMENT_INVALID/u,
-    "a main-frame change during the single observation must invalidate the whole reply");
-  const wrongLoader = runtimeFor(successfulObservation, ["loader-next"]);
-  await assert.rejects(execute(wrongLoader), /BROWSER_DOCUMENT_INVALID/u);
-  assert.equal(wrongLoader.callCount(), 0, "loader drift must stop before scan or scroll");
-  await assert.rejects(executeRegisteredDomIntent(
-    runtimeFor(successfulObservation).runtime,
-    target,
-    { kind: "readExactAssistantTurn", turnMarker: "fixture-marker",
-      canonicalConversationUrl: "https://chatgpt.com/c/exact" },
-    () => undefined,
-  ), /BROWSER_DOCUMENT_INVALID/u,
-  "the exact assistant reply must be bound to the Authority-owned current loader");
+  for (let driftAt = 0; driftAt < 4; driftAt += 1) {
+    const loaders = Array.from({ length: 4 }, (_, index) => index < driftAt ? "loader-current" : "loader-next");
+    const fixture = exactAssistantRuntimeFor(observation, loaders);
+    await assert.rejects(execute(fixture), expectStage("BROWSER_DOCUMENT_INVALID",
+      driftAt < 2 ? "exact-user-materialization" : "exact-assistant-observation"));
+  }
+  for (const pendingCause of ["exact-user-turn-unavailable", "adjacent-assistant-missing"]) {
+    const reply = await execute(exactAssistantRuntimeFor({ ...observation, rawCount: 0,
+      rawDomHtml: "", semanticText: "", pendingCause,
+      ...(pendingCause === "exact-user-turn-unavailable" ? { precedingUserTurnId: "", assistantTurnId: "" } : {}),
+    })) as Record<string, unknown>;
+    assert.equal(reply.pendingCause, pendingCause); assert.match(String(reply.observationRevisionHash), /^sha256:[a-f0-9]{64}$/u);
+  }
 };
 
-
-const unavailableObservation = Object.freeze({ ...successfulObservation,
-  rawCount: 0, rawDomHtml: "", semanticText: "", precedingUserTurnId: "",
-  pendingCause: "exact-user-turn-unavailable" });
-
-type ScanStep = Readonly<{
-  documentValid: boolean; containerFound: boolean; atTop: boolean; ids: readonly string[];
-  scrollTop: number; nextScrollTop: number;
-}>;
-const observedUserTurnId = "00000000-0000-4000-8000-000000000001";
-const anotherUserTurnId = "00000000-0000-4000-8000-000000000003";
-const step = (ids: readonly string[], atTop: boolean, scrollTop: number,
-  nextScrollTop = scrollTop): ScanStep => ({
-  documentValid: true, containerFound: true, ids, atTop, scrollTop, nextScrollTop,
+const fixed = (fixture: ReturnType<typeof exactAssistantRuntimeFor>, assertCurrent: () => void = () => undefined) => readFixedDocument({
+  runtime: fixture.runtime, target, expectedMainFrameLoaderId: "loader-current", assertCurrent,
+  stage: "exact-assistant-observation", script: "function () { return 1; }", argument: {},
+  decode: (value) => { if (value !== 1) throw new Error("BROWSER_DOM_READ_INVALID"); return value; },
 });
 
-const scanRuntimeFor = (
-  steps: readonly ScanStep[], finalObservation: Readonly<Record<string, unknown>> = successfulObservation,
-  latencyMs = 0, liveStep?: (spec: Readonly<Record<string, unknown>>) => ScanStep, releaseFailure?: Error,
-) => {
-  const methods: string[] = [];
-  const liveObjects = new Set<string>();
-  let objectSequence = 0;
-  let scanCalls = 0;
-  let mainCalls = 0;
-  let scanSource = "";
-  const runtime = { async send(_tabId: number, method: string,
-    parameters?: Readonly<Record<string, unknown>>) {
-    if (method === "Runtime.releaseObject") {
-      methods.push(method); assert.ok(liveObjects.delete(String(parameters?.objectId)), "release each resolved object once");
-      if (releaseFailure) throw releaseFailure;
-      return {};
-    }
-    if (latencyMs > 0) await new Promise((resolve) => setTimeout(resolve, latencyMs));
-    methods.push(method);
-    if (method === "Page.getFrameTree") return { frameTree: { frame: { loaderId: "loader-current" } } };
-    if (method === "DOM.getDocument") return { root: { nodeId: 1 } };
-    if (method === "DOM.resolveNode") {
-      const objectId = `document-object-${++objectSequence}`; liveObjects.add(objectId); return { object: { objectId } };
-    }
-    if (method !== "Runtime.callFunctionOn") throw new Error(`UNEXPECTED_METHOD:${method}`);
-    await Promise.resolve();
-    assert.ok(liveObjects.has(String(parameters?.objectId)), "CDP object must remain live until the asynchronous read settles");
-    const source = String(parameters?.functionDeclaration ?? "");
-    if (source.startsWith("function (spec)")) {
-      scanSource = source;
-      const value = liveStep
-        ? liveStep(((parameters?.arguments as readonly Readonly<{ value: Record<string, unknown> }>[])?.[0]?.value) ?? {})
-        : steps[scanCalls];
-      scanCalls += 1;
-      if (!value) throw new Error("UNEXPECTED_SCAN_STEP");
-      return { result: { value } };
-    }
-    mainCalls += 1;
-    return { result: { value: finalObservation } };
-  } } as ExtensionDebuggerRuntime;
-  return { runtime, methods, scanCalls: () => scanCalls, mainCalls: () => mainCalls,
-    scanSource: () => scanSource };
+const exerciseFailureClassification = async (page: Page): Promise<void> => {
+  await page.goto(exactConversationFixtureUrl);
+  const fixture = exactAssistantRuntimeFor(observation, ["loader-current"], { evaluate: source => page.evaluate(source) });
+  const binding = { runtime: fixture.runtime, target, expectedMainFrameLoaderId: "loader-current",
+    stage: "exact-assistant-observation" as const, assertCurrent: () => undefined,
+    argument: {}, decode: (value: unknown) => value };
+  for (const [script, code] of [["function () { throw new Error('page secret'); }", "BROWSER_DOM_SCRIPT_FAILED"],
+    ["function () { throw new Error('BROWSER_DOCUMENT_INVALID'); }", "BROWSER_DOCUMENT_INVALID"]]) {
+    await assert.rejects(readFixedDocument({ ...binding, script: script! }), expectStage(code!, "exact-assistant-observation"));
+  }
+  for (const raw of [{ result: { value: { kind: "mystery", value: 1 } } },
+    { result: { value: { kind: "failure", code: "BROWSER_UNKNOWN" } } },
+    { result: { value: { kind: "value", value: 1, extra: true } } }, { result: { value: { kind: "value", value: 2 } } }]) {
+    await assert.rejects(fixed(exactAssistantRuntimeFor(observation, ["loader-current"], { response: () => raw })),
+      expectStage("BROWSER_DOM_READ_INVALID", "exact-assistant-observation"));
+  }
+  for (const [failure, code] of [[new Error("native secret"), "BROWSER_DOM_EXECUTION_FAILED"],
+    [new Error("BROWSER_COMMAND_PERMIT_EXPIRED"), "BROWSER_COMMAND_PERMIT_EXPIRED"]] as const) {
+    await assert.rejects(fixed(exactAssistantRuntimeFor(observation, ["loader-current"], { response: () => { throw failure; } })),
+      expectStage(code, "exact-assistant-observation"));
+  }
+  await assert.rejects(fixed(fixture, () => { throw new Error("BROWSER_DOCUMENT_INVALID"); }),
+    expectStage("BROWSER_DOCUMENT_INVALID", "exact-assistant-observation"));
 };
 
-const withFakeExtensionClock = async <T>(run: () => Promise<T>): Promise<T> => {
-  const originalNow = Date.now;
-  const originalSetTimeout = globalThis.setTimeout;
-  let now = Date.now();
-  Date.now = () => now;
-  globalThis.setTimeout = ((handler: (...args: unknown[]) => void, timeoutMs?: number) => {
-    now += typeof timeoutMs === "number" ? timeoutMs : 0;
-    handler();
-    return originalSetTimeout(() => undefined, 0);
-  }) as typeof setTimeout;
-  try { return await run(); }
-  finally { Date.now = originalNow; globalThis.setTimeout = originalSetTimeout; }
-};
-
-const scan = (fixture: ReturnType<typeof scanRuntimeFor>, deadlineAt: number) =>
-  executeRegisteredDomIntent(fixture.runtime, target,
-    { kind: "readExactAssistantTurn", turnMarker: "fixture-marker",
-      canonicalConversationUrl: exactConversationFixtureUrl },
-    () => undefined, "loader-current", deadlineAt);
-
-const exerciseReverseScrollMaterialization = async (): Promise<void> => {
-  await withFakeExtensionClock(async () => {
-    const fixture = scanRuntimeFor([step([observedUserTurnId], false, 0)]);
-    await scan(fixture, Date.now() + 20_000);
-    const body = new FakeElement("", {}, {}, {}, "BODY");
-    const turn = new FakeElement("other turn", {}, {}, { "data-turn-key": anotherUserTurnId });
-    const container = new FakeElement("", {}, {}, {}, "DIV", [turn]);
-    container.parentElement = body;
-    let scrollTop = 0;
-    let writes = 0;
-    Object.defineProperty(container, "scrollTop", {
-      get: () => scrollTop,
-      set: (value: number) => { writes += 1; scrollTop = Math.max(-66_697, Math.min(0, value)); },
-    });
-    Object.assign(container, { clientHeight: 955, scrollHeight: 67_652 });
-    const targetTurn = capturedAssistantFixture().assistantOuter(new FakeElement("answer"));
-    const pageDocument = { visibilityState: "hidden", body,
-      querySelectorAll: () => scrollTop <= -65_000 ? [targetTurn] : [turn], scrollingElement: null };
-    const spec = { turnMarker: "fixture-marker", canonicalConversationUrl: exactConversationFixtureUrl };
-    const expectedLocation = new URL(exactConversationFixtureUrl);
-    const implementation = runInNewContext(`(${fixture.scanSource()})`, {
-      document: pageDocument,
-      URL,
-      location: { origin: expectedLocation.origin, pathname: expectedLocation.pathname },
-      getComputedStyle: () => ({ overflowY: "auto", flexDirection: "column-reverse" }),
-    }) as (spec: Readonly<Record<string, unknown>>) => ScanStep;
-    const mounted = capturedAssistantFixture().assistantOuter(new FakeElement("answer"));
-    const mountedDocument = { visibilityState: "hidden", body,
-      querySelectorAll: () => [mounted], scrollingElement: null };
-    const hiddenMounted = runInNewContext(`(${fixture.scanSource()})`, {
-      document: mountedDocument,
-      URL,
-      location: { origin: expectedLocation.origin, pathname: expectedLocation.pathname },
-    }) as (spec: Readonly<Record<string, unknown>>) => ScanStep;
-    assert.deepEqual([...hiddenMounted.call(mountedDocument, { ...spec, initial: true }).ids],
-      [observedUserTurnId], "a hidden tab with the exact turn mounted must be readable");
-    assert.equal(implementation.call(pageDocument, { ...spec, initial: true }).nextScrollTop, 0);
-    assert.equal(writes, 0, "initial read must not touch scrollTop even on a hidden tab");
-    implementation.call(pageDocument, { ...spec, resetBottom: true });
-    let samples = 0;
-    for (; samples < 100; samples += 1) {
-      const result = implementation.call(pageDocument, spec);
-      if (result.ids.length === 1) break;
-      assert.ok(result.nextScrollTop < result.scrollTop, "reverse scroll must advance toward the real top");
+const exerciseExceptionalResources = async (): Promise<void> => {
+  for (const [raw, ids, code] of [
+    [{ exceptionDetails: {} }, [], "BROWSER_DOM_SCRIPT_FAILED"],
+    [{ result: { objectId: "a" }, exceptionDetails: { exception: { objectId: "a" } } }, ["a"], "BROWSER_DOM_SCRIPT_FAILED"],
+    [{ result: { objectId: "a" }, exceptionDetails: { exception: { objectId: "b" } } }, ["a", "b"], "BROWSER_DOM_SCRIPT_FAILED"],
+    [{ result: { objectId: "a" } }, ["a"], "BROWSER_DOM_READ_INVALID"],
+  ] as const) {
+    for (const cleanupFailure of [false, true]) {
+      const fixture = exactAssistantRuntimeFor(observation, ["loader-current"], {
+        response: () => raw, ...(cleanupFailure ? { releaseFailure: new Error("cleanup failure") } : {}),
+      });
+      await assert.rejects(fixed(fixture), (error: unknown) => {
+        expectStage(code, "exact-assistant-observation")(error);
+        assert.ok((error as Error).cause instanceof AggregateError);
+        assert.equal(((error as Error).cause as AggregateError).errors.length, 1 + (cleanupFailure ? ids.length : 0));
+        return true;
+      });
+      assert.deepEqual(fixture.released, [...ids]);
     }
-    assert.ok(samples > 80 && samples < 100, "page geometry requires more than the retired 80-step cap");
-    assert.ok(scrollTop <= -65_000);
-    scrollTop = 0;
-    const live = scanRuntimeFor([], successfulObservation, 80,
-      (options) => implementation.call(pageDocument, options));
-    const observed = await scan(live, Date.now() + 20_000) as Readonly<Record<string, unknown>>;
-    assert.ok(live.scanCalls() > 80, "integrated scan must discover a marker mounted after 80 geometry steps");
-    assert.equal(observed.semanticText, successfulObservation.semanticText);
-    assert.equal(live.mainCalls(), 1);
-    assert.equal(live.methods.some((method) => method.startsWith("Input.")), false);
-    const priorWrites = writes;
-    const wrongUrl = runInNewContext(`(${fixture.scanSource()})`, {
-      document: pageDocument,
-      URL,
-      location: { origin: expectedLocation.origin, pathname: "/c/another" },
-    }) as (spec: Readonly<Record<string, unknown>>) => ScanStep;
-    assert.equal(wrongUrl.call(pageDocument, spec).documentValid, false);
-    assert.equal(implementation.call({}, spec).documentValid, false,
-      "a stale Document object must fail before a scroll mutation");
-    assert.equal(writes, priorWrites, "URL drift must fail before any scroll mutation");
+  }
+  const canceled = exactAssistantRuntimeFor(observation, ["loader-current"], {
+    response: () => ({ result: { objectId: "a" }, exceptionDetails: { exception: { objectId: "b" } } }),
   });
+  const guard = () => { if (canceled.callCount()) throw new Error("BROWSER_COMMAND_PERMIT_EXPIRED"); };
+  await assert.rejects(fixed(canceled, guard), (error: unknown) => {
+    expectStage("BROWSER_DOM_SCRIPT_FAILED", "exact-assistant-observation")(error);
+    assert.equal(((error as Error).cause as AggregateError).errors.length, 2); return true;
+  });
+  assert.deepEqual(canceled.released, [], "cancellation cannot release into a new binding");
+  const navigated = exactAssistantRuntimeFor(observation, ["loader-current", "loader-next"], {
+    response: () => ({ result: { objectId: "a" }, exceptionDetails: { exception: { objectId: "b" } } }),
+  });
+  await assert.rejects(fixed(navigated), (error: unknown) => {
+    expectStage("BROWSER_DOM_SCRIPT_FAILED", "exact-assistant-observation")(error);
+    const causes = ((error as Error).cause as AggregateError).errors;
+    assert.equal(causes.length, 2); assert.equal(causes[1].message, "BROWSER_DOCUMENT_INVALID"); return true;
+  });
+  assert.deepEqual(navigated.released, [], "post-read Document drift prohibits all resource sends");
+};
+
+const exercisePreflightBoundary = async (page: Page): Promise<void> => {
+  await page.goto(exactConversationFixtureUrl); await page.setContent("");
+  const fixture = exactAssistantRuntimeFor(observation, ["loader-current"], { evaluate: source => page.evaluate(source) });
+  const fact = await observeKnownGptRateLimitDialog(fixture.runtime, target, `sha256:${"1".repeat(64)}`, () => undefined);
+  assert.equal(fact.state, "absent"); assert.deepEqual(fixture.released, []);
+  for (const [response, code] of [
+    [() => ({ exceptionDetails: {} }), "BROWSER_DOM_SCRIPT_FAILED"],
+    [() => { throw new Error("native failure"); }, "BROWSER_DOM_EXECUTION_FAILED"],
+    [() => ({ result: { value: { kind: "value", value: { ...fact, observationHash: `sha256:${"f".repeat(64)}` } } } }), "BROWSER_DOM_READ_INVALID"],
+  ] as const) {
+    const broken = exactAssistantRuntimeFor(observation, ["loader-current"], { response });
+    await assert.rejects(observeKnownGptRateLimitDialog(broken.runtime, target, `sha256:${"1".repeat(64)}`, () => undefined),
+      expectStage(code, "rate-limit-preflight"));
+  }
+};
+
+const exerciseScanLimits = async (): Promise<void> => {
+  const empty = { ids: [], containerFound: true, atTop: false, scrollTop: 0, nextScrollTop: 0 };
+  const unavailable = { ...observation, rawCount: 0, rawDomHtml: "", semanticText: "",
+    precedingUserTurnId: "", assistantTurnId: "", pendingCause: "exact-user-turn-unavailable" };
+  for (const samples of [[empty, empty, { ...empty, atTop: true }],
+    [empty, empty, empty, empty],
+    [empty, empty, empty, { ...empty, scrollTop: -100 }, { ...empty, ids: [userId] }]]) {
+    const found = samples.at(-1)!.ids.length > 0;
+    const fixture = exactAssistantRuntimeFor(found ? observation : unavailable, ["loader-current"], {
+      response: async (phase, _source, index) => {
+        await Promise.resolve();
+        return { result: { value: { kind: "value", value: phase === "answer"
+          ? found ? observation : unavailable : samples[index] } } };
+      },
+    });
+    assert.equal((await execute(fixture) as Record<string, unknown>).semanticText,
+      found ? observation.semanticText : "");
+    assert.equal(fixture.scanCalls(), samples.length, "scan waits for delayed progress and stops on true absence/stall");
+  }
+  const originalNow = Date.now;
+  let now = originalNow();
+  Date.now = () => now;
+  try {
+    const fixture = exactAssistantRuntimeFor(unavailable, ["loader-current"], {
+      response: (phase, _source, index) => {
+        if (phase === "scan") now += 4_000;
+        return { result: { value: { kind: "value", value: phase === "answer" ? unavailable
+          : { ...empty, scrollTop: -index * 100, nextScrollTop: -(index + 1) * 100 } } } };
+      },
+    });
+    await execute(fixture, now + 100_000);
+    assert.equal(fixture.scanCalls(), 3, "materialization keeps the original 12 second budget");
+    assert.equal(fixture.answerCalls(), 1, "the final observation follows the fully settled bounded scan");
+  } finally { Date.now = originalNow; }
 };
 
 export const exerciseExactAssistantMaterialization = async (): Promise<void> => {
-  await withFakeExtensionClock(async () => {
-    const fixture = scanRuntimeFor([step([observedUserTurnId], false, 0)]);
-    const result = await scan(fixture, Date.now() + 20_000) as Readonly<Record<string, unknown>>;
-    assert.equal(fixture.scanCalls(), 1, "a mounted answer needs no history scan");
-    assert.equal(fixture.mainCalls(), 1);
-    assert.equal(result.semanticText, successfulObservation.semanticText);
-    assert.equal(fixture.methods.some((method) => method.startsWith("Input.")), false);
-    assert.doesNotMatch(fixture.scanSource(), /visibilityState|MATERIALIZE_STEP_MAX_COUNT/u);
-  });
-  await withFakeExtensionClock(async () => {
-    const duplicate = scanRuntimeFor([step([observedUserTurnId, anotherUserTurnId], false, 0)]);
-    await assert.rejects(scan(duplicate, Date.now() + 20_000), /BROWSER_DOM_CANDIDATE_AMBIGUOUS/u);
-    assert.equal(duplicate.mainCalls(), 0);
-  });
-  await withFakeExtensionClock(async () => {
-    const drift = scanRuntimeFor([step([], false, 0), step([], false, 0),
-      { ...step([], false, 0), documentValid: false }], successfulObservation, 0, undefined, new Error("fixture-release-failure"));
-    await assert.rejects(scan(drift, Date.now() + 20_000), /BROWSER_DOCUMENT_INVALID/u);
-    assert.equal(drift.mainCalls(), 0, "identity drift during scanning must stop before final read");
-  });
-  await withFakeExtensionClock(async () => {
-    const unavailable = scanRuntimeFor([step([], false, 0), step([], false, 0), step([], true, -100)],
-      unavailableObservation);
-    const result = await scan(unavailable, Date.now() + 20_000) as Readonly<Record<string, unknown>>;
-    assert.equal(result.pendingCause, "exact-user-turn-unavailable");
-  });
-  await withFakeExtensionClock(async () => {
-    const stalled = scanRuntimeFor([step([], false, 0), step([], false, 0),
-      step([], false, 0, 0), step([], false, 0)],
-      unavailableObservation);
-    const result = await scan(stalled, Date.now() + 20_000) as Readonly<Record<string, unknown>>;
-    assert.equal(result.pendingCause, "exact-user-turn-unavailable");
-  });
-  await withFakeExtensionClock(async () => {
-    const delayed = scanRuntimeFor([step([], false, 0), step([], false, 0),
-      step([], false, 0, 0), step([], false, -100), step([observedUserTurnId], false, -100)]);
-    const result = await scan(delayed, Date.now() + 20_000) as Readonly<Record<string, unknown>>;
-    assert.equal(result.semanticText, successfulObservation.semanticText,
-      "a delayed scroll update must be sampled before declaring no progress");
-  });
-  await withFakeExtensionClock(async () => {
-    const deadline = Date.now() + 3_100;
-    const shortBudget = scanRuntimeFor([step([], false, 0)], unavailableObservation);
-    const result = await scan(shortBudget, deadline) as Readonly<Record<string, unknown>>;
-    assert.equal(result.pendingCause, "exact-user-turn-unavailable");
-    assert.equal(shortBudget.scanCalls(), 1, "short budget permits only the initial mounted-DOM check");
-  });
-  await exerciseReverseScrollMaterialization();
-  await withFakeExtensionClock(async () => {
-    const noScroll = scanRuntimeFor([{
-      documentValid: true, containerFound: false, atTop: true, ids: [observedUserTurnId],
-      scrollTop: 0, nextScrollTop: 0,
-    }]);
-    const result = await scan(noScroll, Date.now() + 20_000) as Readonly<Record<string, unknown>>;
-    assert.equal(result.semanticText, successfulObservation.semanticText);
+  await exerciseScanLimits();
+  await withSyntheticDom(async page => {
+    await page.goto(exactConversationFixtureUrl);
+    for (const reverse of [false, true]) {
+      await page.setContent(`<style>#scroll {height:100px;overflow:auto;display:flex;flex-direction:${reverse ? "column-reverse" : "column"}} .spacer{height:10000px;flex-shrink:0}</style>
+        <div id="scroll"><div data-turn-key="00000000-0000-4000-8000-000000000003"></div><div class="spacer"></div></div>`);
+      await page.evaluate(`(() => {
+        const reverse = ${JSON.stringify(reverse)}, html = ${JSON.stringify(turn())};
+        const scroll = document.querySelector("#scroll");
+        scroll.scrollTop = reverse ? 0 : scroll.scrollHeight;
+        const mount = () => {
+          if (scroll.scrollTop <= (reverse ? -9500 : 100)) {
+            scroll.removeEventListener("scroll", mount); scroll.insertAdjacentHTML("afterbegin", html);
+          }
+        };
+        scroll.addEventListener("scroll", mount);
+      })()`);
+      const sample = runPage(page), result = await sample.result;
+      assert.equal(result.semanticText, "Title\nBody `inline`\n- item\n\n{\"ok\":true}\nend");
+      assert.ok(sample.fixture.scanCalls() > 80, "live long-page geometry has no fixed 80-step cap");
+      assert.equal(sample.fixture.answerCalls(), 1);
+    }
+    await page.setContent(`<div style="height:100px;overflow:auto"><div style="height:2000px"></div></div>`);
+    const short = runPage(page, Date.now() + 3_100);
+    assert.equal((await short.result).pendingCause, "exact-user-turn-unavailable");
+    assert.equal(short.fixture.scanCalls(), 1);
   });
 };
 
 export const exerciseExactAssistantTurnRead = async (): Promise<void> => {
-  await exerciseSingleAtomicRead();
-  await exerciseAtomicFailureClosure();
+  await exerciseDecoderAndLoader();
+  await exerciseExceptionalResources();
+  await withSyntheticDom(async page => {
+    await exerciseRealAtomicBody(page); await exerciseRealPending(page); await exerciseRealIdentity(page);
+    await exerciseFailureClassification(page); await exercisePreflightBoundary(page);
+  });
   await exerciseExactAssistantMaterialization();
 };

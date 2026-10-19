@@ -10,7 +10,9 @@ import { admitExtensionCommand } from "./command-registry.js";
 import type { ExtensionTargetAuthority } from "./extension-target-authority.js";
 import { knownGptRateLimitExactCallIdentityHash } from "./gpt-rate-limit-dialog.js";
 import { asRecord, browserCommandErrorCode, hashBrowserExtensionText } from "./websocket-actor-crypto.js";
-import { extensionCommandDiagnostic, type ExtensionCommandStage } from "./websocket-command-diagnostic.js";
+import { extensionCommandDiagnostic } from "./websocket-command-diagnostic.js";
+import type { BrowserDiagnosticCommandStage } from "../transport/browser-authority-diagnostic.js";
+import { FixedDocumentReadFailure } from "./dom-fixed-document-read.js";
 import type { BrowserGovernedCommand } from "../exact-target/browser-command-actor.js";
 import { executeAuthenticatedMedia } from "./authenticated-media-runtime.js";
 import { ExtensionDebuggerRuntime } from "./debugger-runtime.js";
@@ -20,6 +22,9 @@ import { executeExtensionFileInput } from "./extension-file-input-runtime.js";
 import { executeBoundedBrowserWait } from "./extension-target-observation.js";
 
 type CommandLifecycle = Readonly<{ assertCurrent(): void; parkTarget(): Promise<void> }>;
+
+const commandFailureStage = (stage: BrowserDiagnosticCommandStage, error: unknown): BrowserDiagnosticCommandStage =>
+  stage === "registered-command" && error instanceof FixedDocumentReadFailure ? error.commandStage : stage;
 
 export const executeRegisteredExtensionCommand = async (
   runtime: ExtensionDebuggerRuntime, target: ExtensionExactTarget,
@@ -48,7 +53,7 @@ export const executeExtensionCommandReply = async (input: Readonly<{
   assertCommandActive(): void; deadline: number; requestSequence: number;
 }>): Promise<Readonly<{ body: Record<string, unknown>; diagnostic: Record<string, unknown> | null }>> => {
   const { permit } = input;
-  let command: BrowserGovernedCommand | null = null, stage: ExtensionCommandStage = "command-shape";
+  let command: BrowserGovernedCommand | null = null, stage: BrowserDiagnosticCommandStage = "command-shape";
   let result: unknown, failure: unknown = null;
   let mechanical: Omit<BrowserMutationTerminalReceipt, "schemaVersion" | "completedAt" | "resultHash" | "submitRecoveryPayload"> | null = null;
   let recoveryPayload: Readonly<Record<string, unknown>> | null = null;
@@ -93,7 +98,7 @@ export const executeExtensionCommandReply = async (input: Readonly<{
     replyChannelToken: permit.replyChannelToken, mutationReceipt,
     ...(failure === null ? { result } : { errorCode: code }) },
   diagnostic: failure === null ? null : extensionCommandDiagnostic({ reasonCode: code!, failedFrameSequence: input.requestSequence,
-    commandStage: stage, commandKind: command?.kind ?? null,
+    commandStage: commandFailureStage(stage, failure), commandKind: command?.kind ?? null,
     commandIntentKind: command?.kind === "dom-intent" ? asRecord(command.intent)?.kind : null, capabilityId: permit.capabilityId }) };
 };
 

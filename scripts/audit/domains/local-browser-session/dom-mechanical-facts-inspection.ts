@@ -13,6 +13,7 @@ const OBSERVATION_RECEIPT_PATH = "src/lib/browser/exact-target/browser-observati
 const COHERENT_CANDIDATE_PATH = "src/lib/browser/chrome-extension/dom-coherent-candidate.ts";
 const COHERENT_CANDIDATE_READBACK_PATH = "src/lib/browser/chrome-extension/dom-coherent-candidate-readback.ts";
 const EXACT_ASSISTANT_TURN_PATH = "src/lib/browser/chrome-extension/dom-exact-assistant-turn.ts";
+const FIXED_DOCUMENT_PATH = "src/lib/browser/chrome-extension/dom-fixed-document-read.ts";
 const SEMANTIC_TEXT_PATH = "src/lib/browser/chrome-extension/dom-semantic-text.ts";
 const NATIVE_CAUSE_PATH = "src/lib/browser/exact-target/browser-interaction-native-cause.ts";
 
@@ -281,46 +282,57 @@ const inspectMechanicalContract = (
   );
 };
 
-export const exactAssistantTurnReadIsAtomic = (source: import("ts-morph").SourceFile): boolean => {
-  const text = source.getFullText();
-  const markerFunction = source.getVariableDeclaration("MARKER_USER_SOURCE")?.getInitializer()?.getText() ?? "";
-  const exactFunction = source.getVariableDeclaration("EXACT_ASSISTANT_TURN_FUNCTION")?.getInitializer()?.getText() ?? "";
-  const observe = source.getVariableDeclaration("observeExactAssistantTurn")?.getInitializer()?.getText() ?? "";
-  const execute = source.getVariableDeclaration("executeExactAssistantTurnRead")?.getInitializer()?.getText() ?? "";
-  const required = ["BROWSER_CANONICAL_SEMANTIC_TEXT_READER_SOURCE", "MARKER_USER_SOURCE",
-    `document.querySelectorAll("[data-turn-key]")`,
-    'browserMarkerUserId(turn, spec.turnMarker)',
-    'item.id === spec.observedUserTurnId',
-    'unit.getAttribute("data-chatgpt-search-message-ids") === precedingUserTurnId',
-    'units[units.indexOf(users[0]) + 1]',
-    'assistantKey.endsWith(":assistant")',
-    "const rawCount = raw.length",
-    "const pendingCause = userRaw.length !== 1 ? \"exact-user-turn-unavailable\"",
-    "if (currentUrl !== expectedUrl || rawCount !== 1)", "const node = raw[0]",
-    "rawDomHtml: node.outerHTML",
-    "semanticText: browserCanonicalSemanticText(node)"];
-  const forbidden = ["queryCandidateSet", "inspectNode", "DOM.getOuterHTML", "DOM.describeNode",
-    "const ordinal =", "turnMarkerMatched", "expectedPromptHash", "precedingPromptHash",
-    "collapsible-user-message-content", ".whitespace-pre-wrap", "assistantIndex", "composerRaw",
-    "browserMechanicalFacts", "eligibleCount", "nativeCauseCode", ".visible", ".hidden",
-    ".ariaHidden", ".inert", "getClientRects", "checkVisibility", "thirdGate",
+export const exactAssistantTurnReadIsAtomic = (source: SourceFile, fixed: SourceFile): boolean => {
+  const text = source.getFullText(), helper = fixed.getFullText();
+  const exact = source.getVariableDeclaration("EXACT_ASSISTANT_TURN_FUNCTION")?.getInitializer()?.getText() ?? "";
+  const marker = source.getVariableDeclaration("MARKER_USER_SOURCE")?.getInitializer()?.getText() ?? "";
+  const read = fixed.getVariableDeclaration("readFixedDocument")?.getInitializer();
+  const sends = read?.getDescendantsOfKind(SyntaxKind.CallExpression).filter(call =>
+    call.getExpression().getText() === "input.runtime.send") ?? [];
+  const pins = read?.getDescendantsOfKind(SyntaxKind.AwaitExpression).filter(awaited =>
+    awaited.getExpression().getText() === "assertPinnedDocument(input)") ?? [];
+  const pinned = fixed.getVariableDeclaration("assertPinnedDocument")?.getInitializer()?.getText() ?? "";
+  const cleanup = fixed.getVariableDeclaration("settleFailedResponse")?.getInitializer()?.getText() ?? "";
+  const cleanupBlock = fixed.getVariableDeclaration("settleFailedResponse")?.getInitializer()
+    ?.getFirstDescendantByKind(SyntaxKind.TryStatement)?.getTryBlock();
+  const gatedRelease = cleanupBlock?.getStatements();
+  const forbidden = ["DOM.getDocument", "DOM.resolveNode", "Runtime.callFunctionOn", "DOM.getOuterHTML",
+    "expectedPromptHash", "precedingPromptHash", "collapsible-user-message-content", "assistantIndex",
+    "composerRaw", "browserMechanicalFacts", "eligibleCount", "getClientRects", "checkVisibility",
     "data-chatgpt-selection-message-id", "visibilityState", "MATERIALIZE_STEP_MAX_COUNT"];
-  const exactCounts = [
-    (observe.match(/Runtime\.callFunctionOn/gu) ?? []).length === 1,
-    (observe.match(/mainFrameLoaderId\(runtime, target\.tabId\)/gu) ?? []).length === 2,
-    (observe.match(/!== expectedMainFrameLoaderId/gu) ?? []).length === 2,
-  ];
-  return required.every((token) => exactFunction.includes(token))
-    && ["data-user-message-bubble", ".includes(marker)", "users.length !== 1"]
-      .every((token) => markerFunction.includes(token))
-    && ['if (first.ids.length === 1)', 'if (result.ids.length === 1)',
-      'result.nextScrollTop === result.scrollTop', 'await materializeExactUserTurn(',
-      'pendingCause !== "adjacent-assistant-missing"',
-      'pendingCause: observed.pendingCause']
-      .every((token) => text.includes(token))
-    && forbidden.every((token) => !text.includes(token))
-    && exactCounts.every(Boolean)
-    && execute.includes("expectedMainFrameLoaderId");
+  const presentationGates = [".hidden", "[hidden]", "aria-hidden", "inert", "getComputedStyle",
+    "getClientRects", "getBoundingClientRect", "checkVisibility", ".style", ".offsetHeight", ".offsetWidth"];
+  const required = ["BROWSER_CANONICAL_SEMANTIC_TEXT_READER_SOURCE", "MARKER_USER_SOURCE",
+    'document.querySelectorAll("[data-turn-key]")', "browserMarkerUserId(turn, spec.turnMarker)",
+    "units[units.indexOf(user) + 1]", 'endsWith(":assistant")', "rawDomHtml: node ? node.outerHTML",
+    'if (matches.length === 1 && matches[0].id !== spec.observedUserTurnId) throw new Error("BROWSER_DOCUMENT_INVALID")',
+    'if (assistants.length > 1) throw new Error("BROWSER_DOM_CANDIDATE_AMBIGUOUS")',
+    "semanticText: node ? browserCanonicalSemanticText(node)", 'nativeStage: "runtime-evaluate"',
+    'document.querySelectorAll("form[data-chatgpt-composer] button[aria-label=\'停止\']")'];
+  return [required.every(token => exact.includes(token)), !exact.includes("await "),
+    ["data-user-message-bubble", ".includes(marker)", "users.length !== 1",
+      'matches[0].getAttribute("data-chatgpt-search-message-ids") !== id'].every(token => marker.includes(token)),
+    presentationGates.every(token => !exact.includes(token) && !marker.includes(token)),
+    ["await materializeExactUserTurn", "sample.nextScrollTop === sample.scrollTop", "observed.pendingCause",
+      'stage: "exact-user-materialization"', 'stage: "exact-assistant-observation"'].every(token => text.includes(token)),
+    forbidden.every(token => !text.includes(token) && !helper.includes(token)),
+    sends.length === 1, sends[0]?.getArguments()[1]?.getText() === '\"Runtime.evaluate\"', pins.length === 2,
+    (pins[0]?.getStart() ?? Infinity) < (sends[0]?.getStart() ?? -Infinity),
+    (pins[1]?.getStart() ?? -Infinity) > (sends[0]?.getEnd() ?? Infinity),
+    ["frame.loaderId !== binding.expectedMainFrameLoaderId", '\"Page.getFrameTree\"', "binding.assertCurrent()"]
+      .every(token => pinned.includes(token)),
+    ["returnByValue: true", "awaitPromise: true", "silent: true", "return await decodeValue(call, input.decode)"]
+      .every(token => read?.getText().includes(token)),
+    !read?.getDescendantsOfKind(SyntaxKind.TryStatement).some(statement => statement.getFinallyBlock()),
+    ["binding.assertCurrent();", '\"Runtime.releaseObject\"', "causes.push(error)",
+      "new FixedDocumentReadFailure(primary.code, primary.commandStage", "new AggregateError(causes"]
+      .every(token => cleanup.includes(token)),
+    cleanup.indexOf("binding.assertCurrent();") < cleanup.indexOf('\"Runtime.releaseObject\"'),
+    gatedRelease?.[0]?.getText() === "await assertPinnedDocument(binding);",
+    gatedRelease?.[1]?.getKind() === SyntaxKind.ForOfStatement,
+    helper.includes("exceptionDetails !== undefined || references.length > 0"),
+    helper.includes('\"BROWSER_DOM_SCRIPT_FAILED\" : \"BROWSER_DOM_READ_INVALID\"'),
+  ].every(Boolean);
 };
 
 const inspectPostconditionEvidence = (
@@ -369,13 +381,13 @@ export const inspectDomMechanicalFacts = (
   const sources = [domMechanicalFactsPath, domExactEditableTextPath, QUERY_RUNTIME_PATH, INTENT_RUNTIME_PATH,
     domMutationPostconditionPath, domCoherentObservationPath, INTENT_CONTRACT_PATH, COHERENT_CANDIDATE_PATH,
     COHERENT_CANDIDATE_READBACK_PATH, EXACT_ASSISTANT_TURN_PATH, MUTATION_RECEIPT_PATH,
-    extensionFileInputPath, SEMANTIC_TEXT_PATH, NATIVE_CAUSE_PATH, OBSERVATION_RECEIPT_PATH]
+    extensionFileInputPath, SEMANTIC_TEXT_PATH, NATIVE_CAUSE_PATH, OBSERVATION_RECEIPT_PATH, FIXED_DOCUMENT_PATH]
     .map((path) => requireSource(context, findings, lawId, path));
   if (!sources.every((source): source is SourceFile => source !== null)) return;
   const [facts, exactEditable, query, runtime, postcondition, observation, contract, candidate,
-    candidateReadback, exactAssistantTurn, mutationReceipt, fileInput, semanticText, nativeCause, observationReceipt] = sources as [
+    candidateReadback, exactAssistantTurn, mutationReceipt, fileInput, semanticText, nativeCause, observationReceipt, fixedDocument] = sources as [
       SourceFile, SourceFile, SourceFile, SourceFile, SourceFile, SourceFile,
-      SourceFile, SourceFile, SourceFile, SourceFile, SourceFile, SourceFile, SourceFile, SourceFile, SourceFile,
+      SourceFile, SourceFile, SourceFile, SourceFile, SourceFile, SourceFile, SourceFile, SourceFile, SourceFile, SourceFile,
     ];
 
   const readerInitializer = facts.getVariableDeclaration("BROWSER_MECHANICAL_FACTS_READER_SOURCE")?.getInitializer();
@@ -429,7 +441,7 @@ export const inspectDomMechanicalFacts = (
     findings,
     lawId,
   );
-  if (!exactAssistantTurnReadIsAtomic(exactAssistantTurn)) finding(
+  if (!exactAssistantTurnReadIsAtomic(exactAssistantTurn, fixedDocument)) finding(
     findings, lawId, EXACT_ASSISTANT_TURN_PATH,
     "The exact assistant turn must bind cardinality, eligibility, raw HTML, and semantic text to one synchronous DOM call and one unchanged current loader.",
   );

@@ -10,10 +10,25 @@ import type { InspectorContext, InspectorFinding } from "../audit/shared/inspect
 import { terminalFact } from "./local-browser-mutation-store-support.js";
 import { BrowserMutationStore } from "../../src/lib/browser/exact-target/browser-mutation-store.js";
 import { assertBrowserDomIntent } from "../../src/lib/browser/exact-target/browser-dom-intent.js";
+import { inspectAuthenticatedChannelGuards } from "../audit/domains/local-browser-session/authenticated-channel-inspection.js";
+import { inspectOpaqueAuthorityBoundary } from "../audit/domains/local-browser-session/opaque-proof-inspection.js";
 import { inspectDomMechanicalFacts } from "../audit/domains/local-browser-session/dom-mechanical-facts-inspection.js";
 
 const hash = (digit: string): `sha256:${string}` => `sha256:${digit.repeat(64)}`;
 const TERMINAL_RULE_MUTANTS = [
+    ["src/lib/browser/chrome-extension/dom-fixed-document-read.ts", "frame.loaderId !== binding.expectedMainFrameLoaderId", "false"],
+    ["src/lib/browser/chrome-extension/dom-fixed-document-read.ts", "    await assertPinnedDocument(input);", "    await Promise.resolve();"],
+    ["src/lib/browser/chrome-extension/dom-fixed-document-read.ts", "new FixedDocumentReadFailure(primary.code, primary.commandStage", "new FixedDocumentReadFailure(\"BROWSER_DOM_READ_INVALID\", primary.commandStage"],
+    ["src/lib/browser/chrome-extension/dom-exact-assistant-turn.ts", "units[units.indexOf(user) + 1]", "units[units.length - 1]"],
+    ["src/lib/browser/chrome-extension/dom-exact-assistant-turn.ts", "rawDomHtml: node ? node.outerHTML", "rawDomHtml: node ? document.body.outerHTML"],
+    ["src/lib/browser/chrome-extension/dom-exact-assistant-turn.ts", 'if (matches.length === 1 && matches[0].id !== spec.observedUserTurnId) throw new Error("BROWSER_DOCUMENT_INVALID");', ""],
+    ["src/lib/browser/chrome-extension/dom-exact-assistant-turn.ts", 'if (assistants.length > 1) throw new Error("BROWSER_DOM_CANDIDATE_AMBIGUOUS");', ""],
+    ["src/lib/browser/chrome-extension/dom-exact-assistant-turn.ts", 'matches[0].getAttribute("data-chatgpt-search-message-ids") !== id', "false"],
+    ["src/lib/browser/chrome-extension/dom-exact-assistant-turn.ts", 'const id = turn.getAttribute("data-turn-key") || "";', 'if (turn.hidden) throw new Error("BROWSER_DOM_READ_INVALID"); const id = turn.getAttribute("data-turn-key") || "";'],
+    ["src/lib/browser/chrome-extension/dom-fixed-document-read.ts", "    await assertPinnedDocument(binding);", "    await Promise.resolve();"],
+    ["src/lib/browser/chrome-extension/extension-command-runtime.ts", 'stage === "registered-command" && error instanceof FixedDocumentReadFailure', 'error instanceof FixedDocumentReadFailure'],
+    ["src/lib/browser/chrome-extension/extension-target-authority.ts", "exactCallIdentityHash, assertCurrent); assertCommandActive();", "exactCallIdentityHash, () => undefined); assertCommandActive();"],
+    ["src/lib/browser/chrome-extension/extension-command-runtime.ts", 'case "authenticated-media": return executeAuthenticatedMedia', 'case "authenticated-media": await executeAuthenticatedMedia(runtime, target, command.canonicalConversationUrl, command.userTurnId, command.semanticMediaId, lifecycle.assertCurrent); return executeAuthenticatedMedia'],
     ["src/lib/browser/chrome-extension/websocket-actor.ts", "pendingTargetHandlers.size > 0 || this.commandDelivery.disconnectedDrain !== null", "false || this.commandDelivery.disconnectedDrain !== null"],
     ["src/lib/browser/chrome-extension/websocket-actor.ts", "this.connection.session?.clientToServerKey === session.clientToServerKey;", "true;"],
     ["src/lib/browser/chrome-extension/websocket-actor.ts", "this.commandDelivery.pendingCommandHandlers.size === 0 && this.commandDelivery.disconnectedDrain === null", "true"],
@@ -93,7 +108,8 @@ const exerciseInspectors = (): void => {
       manifestPath: "scripts/audit/domains/local-browser-session/manifest.json", ownerInspectorPath: "scripts/audit/domains/local-browser-session/inspector.ts" }, generatedPlan: [] };
   const inspect = (): InspectorFinding[] => { const findings: InspectorFinding[] = [];
     inspectBrowserMutationSettlement(context, findings, lawId); inspectTargetClaimGuards(context, findings, lawId); inspectInteractionReadiness(context, findings, lawId);
-    inspectDomMechanicalFacts(context, findings, lawId); return findings; };
+    inspectDomMechanicalFacts(context, findings, lawId); inspectAuthenticatedChannelGuards(context, findings, lawId);
+    inspectOpaqueAuthorityBoundary(context, findings, lawId); return findings; };
   assert.deepEqual(inspect(), [], "Actual native Owner chain must be accepted before negative mutations.");
   for (const [path, original, replacement] of TERMINAL_RULE_MUTANTS) {
     const source = project.getSourceFileOrThrow(path), before = source.getFullText(); assert.ok(before.includes(original), original);

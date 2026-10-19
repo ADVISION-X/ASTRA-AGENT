@@ -1,19 +1,10 @@
-import { BROWSER_DIAGNOSTIC_COMMAND_INTENT_KINDS } from "../transport/browser-authority-diagnostic.js";
-
-export type ExtensionCommandStage =
-  | "payload"
-  | "command-shape"
-  | "command-admission"
-  | "target-resolution"
-  | "registered-command";
+import { BROWSER_DIAGNOSTIC_COMMAND_INTENT_KINDS,
+  type BrowserDiagnosticCommandStage } from "../transport/browser-authority-diagnostic.js";
 
 export const extensionCommandDiagnostic = (input: Readonly<{
-  reasonCode: string;
-  failedFrameSequence: number;
-  commandStage: ExtensionCommandStage;
-  commandKind: string | null;
-  commandIntentKind: unknown;
-  capabilityId: string | null;
+  reasonCode: string; failedFrameSequence: number;
+  commandStage: BrowserDiagnosticCommandStage;
+  commandKind: string | null; commandIntentKind: unknown; capabilityId: string | null;
 }>): Record<string, unknown> => ({
   reasonCode: input.reasonCode,
   failedFrameKind: "COMMAND",
@@ -22,7 +13,8 @@ export const extensionCommandDiagnostic = (input: Readonly<{
   runtimeEventType: "command-handler",
   commandStage: input.commandStage,
   ...(input.commandKind ? { commandKind: input.commandKind } : {}),
-  ...(typeof input.commandIntentKind === "string" && BROWSER_DIAGNOSTIC_COMMAND_INTENT_KINDS.has(input.commandIntentKind)
+  ...(typeof input.commandIntentKind === "string"
+    && BROWSER_DIAGNOSTIC_COMMAND_INTENT_KINDS.has(input.commandIntentKind)
     ? { commandIntentKind: input.commandIntentKind } : {}),
   ...(input.capabilityId ? { capabilityId: input.capabilityId } : {}),
   encodedByteLength: 0,

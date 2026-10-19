@@ -13,6 +13,16 @@ import { rateLimitDetectorCdpResult, verifyKnownGptRateLimitDetector } from "./l
 import { verifyRateLimitCommandAdmission } from "./local-browser-rate-limit-command.acceptance-support.js";
 import { permit } from "./local-browser-terminal-fixture.js";
 import { hashBrowserExtensionText } from "../../src/lib/browser/chrome-extension/websocket-actor-crypto.js";
+import { BrowserTargetLeaseManager } from "../../src/lib/browser/exact-target/browser-target-lease-manager.js";
+import { BrowserSessionWorkspace } from "../../src/lib/browser/exact-target/browser-session-workspace.js";
+import { BrowserAuthorityBroker } from "../../src/lib/browser/infrastructure/browser-authority-broker.js";
+import { BrowserAuthorityIssuer } from "../../src/lib/browser/infrastructure/browser-authority-issuer.js";
+import { decodeKnownGptRateLimitPreflightReply } from "../../src/lib/browser/exact-target/browser-special-mutation-receipt.js";
+import { browserExactCallIdentityHash } from "../../src/lib/browser/exact-target/browser-command-postcondition.js";
+import { parseBrowserAuthorityTargetClaim } from "../../src/lib/browser/transport/browser-authority-frame-payload.js";
+import type { BrowserCommandPermit } from "../../src/lib/browser/transport/command-permit.js";
+import { binding } from "./browser-lane-fifo-support.js";
+import { BROWSER_PROTOCOL_REVISION } from "../../src/lib/browser/protocol/generated/browser-protocol.generated.js";
 
 const chrome = await exerciseAutomaticPairing(); await verifyKnownGptRateLimitDetector();
 await exerciseAuthenticatedTargetIsolation(chrome);
@@ -25,6 +35,7 @@ const attached: number[] = [], detached: number[] = [], activated: number[] = []
 const chromeIdentities = new Map<number, string>();
 const discarded = new Set<number>(), lostDebugger = new Set<number>(), urls = new Map<number, string>(), loaders = new Map<number, string>(), statuses = new Map<number, "loading" | "complete">();
 const frames: { kind: "TARGET_CLAIM" | "TARGET_REVOKE"; body: Record<string, unknown> }[] = [], failures: Record<string, unknown>[] = [], failureOrder: string[] = [];
+let receiveClaim = (_kind: "TARGET_CLAIM" | "TARGET_REVOKE", _body: Record<string, unknown>): void => undefined;
 let event: Parameters<ExtensionChromeApi["debugger"]["onEvent"]["addListener"]>[0] = () => undefined;
 let detach: Parameters<ExtensionChromeApi["debugger"]["onDetach"]["addListener"]>[0] = () => undefined;
 let activation: Parameters<ExtensionChromeApi["tabs"]["onActivated"]["addListener"]>[0] = () => undefined;
@@ -35,7 +46,7 @@ const tabUpdated: typeof update = (id, changes, tab) => { if (changes.status ===
 const tabValue = (id: number) => ({ active: id === state.activeId, discarded: discarded.has(id), id,
   status: statuses.get(id) ?? "complete", title: "ChatGPT", windowId: 1 });
 const simulateDomReadAndInput = async (_tabId: number, method: string, parameters?: Readonly<Record<string, unknown>>): Promise<unknown> => {
-      if (method === "Runtime.callFunctionOn" && String(parameters?.functionDeclaration).includes("known-gpt-rate-limit-preflight.v2"))
+      if (method === "Runtime.evaluate" && String(parameters?.expression).includes("known-gpt-rate-limit-preflight.v2"))
         return rateLimitDetectorCdpResult(parameters, state.detector, detectorStarts);
       if (method === "DOM.getDocument") return { root: { nodeId: 1 } };
       if (method === "DOM.resolveNode") return { object: { objectId: "candidate-root" } };
@@ -82,7 +93,7 @@ const targetChrome: ExtensionChromeApi = { runtime: chrome.runtime, alarms: chro
     onActivated: { addListener: callback => { activation = callback; } }, onUpdated: { addListener: callback => { update = callback; } },
     onRemoved: { addListener: callback => { removal = callback; } } } };
 await exerciseLogicalPageAccessPriority(targetChrome);
-const authority = new ExtensionTargetAuthority(targetChrome, async (kind, body) => { frames.push({ kind, body }); if (kind === "TARGET_REVOKE") failureOrder.push(kind); },
+const authority = new ExtensionTargetAuthority(targetChrome, async (kind, body) => { frames.push({ kind, body }); receiveClaim(kind, body); if (kind === "TARGET_REVOKE") failureOrder.push(kind); },
   failure => { failures.push({ ...failure }); failureOrder.push("DIAGNOSTIC"); }, async () => undefined);
 authority.start();
 const until = async (condition: () => boolean): Promise<void> => { const deadline = Date.now() + 10_000;
@@ -100,6 +111,41 @@ const execute = async (command: Parameters<ExtensionTargetAuthority["executeRegi
   kind: Parameters<ExtensionTargetAuthority["executeRegisteredCommand"]>[2] = "mutation") => {
   const result = await authority.executeRegisteredCommand(command, current, kind, `sha256:${"e".repeat(64)}`, () => { assert.deepEqual(authority.resolve(current.targetRef, current.documentRef), current); });
   const row = result as Record<string, unknown>; return row?.schemaVersion === "grasseye.browser.command-preflight.v1" ? row.commandResult : result;
+};
+const selectionFixture = async () => {
+  const execution = binding("a"), hash = execution.executionRefHash;
+  const certificate = { schemaVersion: "browser-authority-certificate-v1" as const,
+    authorityRef: "authority-1", authorityEpoch: 1, channelSessionHash: hash, artifactSetHash: hash,
+    releaseSecurityPolicyHash: hash, profileEnrollmentHash: hash, connectionGeneration: 1,
+    extensionId: "reload-fixture", extensionVersion: "1.0.0", protocolRevision: BROWSER_PROTOCOL_REVISION,
+    capabilitySetHash: hash, permissionPolicyHash: hash, originPolicyHash: hash, livenessPolicyHash: hash,
+    commandAdmissionBudgetHash: hash, artifactStreamBudgetHash: hash, authTranscriptHash: hash,
+    keyEpoch: 1, livenessLeaseEpoch: 1, issuedAt: new Date().toISOString(), issuedAtMonotonicNs: "1", issuerMac: hash };
+  const issuer = new BrowserAuthorityIssuer();
+  Reflect.set(issuer, "slot", { kind: "PRESENT", authority: certificate });
+  Reflect.set(issuer, "commandPermitKey", Buffer.alloc(32, 7));
+  const workspace = new BrowserSessionWorkspace({ schemaVersion: "grasseye.session-workspace-binding.v6",
+    workspaceRef: "reload-workspace", authorityRef: certificate.authorityRef, authorityEpoch: 1,
+    connectionGeneration: 1, profileHash: hash, extensionId: certificate.extensionId,
+    releaseBuildId: "reload-fixture", directoryHash: hash, sitePolicyHash: hash, establishedAt: certificate.issuedAt });
+  const delivered: { candidate: BrowserCommandPermit; command: Parameters<ExtensionTargetAuthority["executeRegisteredCommand"]>[0]; raw: unknown }[] = [];
+  const actor = { pendingMutationCommandIds: () => [], awaitPostSubmitQuiet: async () => undefined,
+    execute: async (candidate: BrowserCommandPermit, command: Parameters<ExtensionTargetAuthority["executeRegisteredCommand"]>[0]) => {
+      const current = authority.resolve(candidate.targetRef, candidate.documentRef);
+      const raw = await authority.executeRegisteredCommand(command, current, candidate.mutationClass,
+        browserExactCallIdentityHash(candidate), () => { authority.resolve(candidate.targetRef, candidate.documentRef); });
+      delivered.push({ candidate, command, raw });
+      return decodeKnownGptRateLimitPreflightReply(candidate, command, raw).commandResult;
+    }, mutationOutcome: () => null, browserOutcome: () => null };
+  const broker = new BrowserAuthorityBroker(issuer, () => undefined,
+    (bound, resolveGrantPaths, current, issueApprovedArtifactGrants) => new BrowserTargetLeaseManager(
+      certificate, bound, actor as never, issuer, workspace, current, { resolveGrantPaths, issueApprovedArtifactGrants }));
+  receiveClaim = (kind, body) => {
+    if (kind === "TARGET_CLAIM") broker.registerOperatorTargetClaim({ authorityEpoch: 1, ...parseBrowserAuthorityTargetClaim(body) });
+    else broker.revokeOperatorTargetClaim({ targetRef: String(body.targetRef), jobRefHash: job, documentRef: String(body.documentRef) });
+  };
+  receiveClaim("TARGET_CLAIM", initialClaim);
+  return { lease: await broker.acquireOperatorClaimedTargetLease(execution, "same-url-readback"), delivered };
 };
 await exerciseAuthenticatedMedia({ authority, targetRef, documentRef, setRuntime: callback => { state.runtime = callback; } }); assert.deepEqual(activated, []);
 switchTab(99); await execute({ kind: "wait", durationMs: 1 }, target, "observation"); assert.deepEqual(activated, [3]);
@@ -128,7 +174,26 @@ state.pointer = false;
 const select = (url: string, current = target) => execute({ kind: "dom-intent", intent: { kind: "selectExactGptConversation", canonicalConversationUrl: url } }, current, "lifecycle") as Promise<Record<string, unknown>>;
 urls.set(3, "https://chatgpt.com/c/sidebar-target?messageId=one#tail"); const baselineNavigation = state.navigationCount;
 const same = await select("https://chatgpt.com/c/sidebar-target"); assert.equal(same.documentRef, target.documentRef); assert.equal(state.navigationCount, baselineNavigation);
-loaders.set(3, "same-url-new-loader"); const reloaded = await select("https://chatgpt.com/c/sidebar-target"); assert.notEqual(reloaded.documentRef, target.documentRef); assert.equal(state.navigationCount, baselineNavigation);
+const reload = await selectionFixture(), sameIntent = { kind: "selectExactGptConversation" as const, canonicalConversationUrl: "https://chatgpt.com/c/sidebar-target" };
+loaders.set(3, "same-url-new-loader");
+await assert.rejects(select(sameIntent.canonicalConversationUrl), /BROWSER_DOCUMENT_INVALID/u);
+assert.equal(state.navigationCount, baselineNavigation);
+await authority.parkActiveTarget();
+await authority.acquireJobBoundChatGptTarget("confirmed-readback", job, undefined, () => undefined);
+const reacquired = frames.at(-1)!.body;
+assert.notEqual(reacquired.documentRef, target.documentRef); assert.equal(reacquired.targetRef, targetRef);
+await reload.lease.executeDomIntent(sameIntent);
+assert.equal(reload.lease.document.documentRef, reacquired.documentRef);
+assert.equal(reload.delivered.at(-1)!.candidate.documentRef, reacquired.documentRef);
+loaders.set(3, "event-reload-loader"); event({ tabId: 3 }, "Page.frameNavigated", {});
+await until(() => frames.at(-1)!.body.documentRef !== reacquired.documentRef);
+await reload.lease.executeDomIntent(sameIntent);
+const reloaded = reload.lease.document;
+assert.notEqual(reloaded.documentRef, reacquired.documentRef); assert.equal(state.navigationCount, baselineNavigation);
+assert.equal(reload.delivered.at(-1)!.candidate.documentRef, reloaded.documentRef);
+for (const delivered of reload.delivered) assert.throws(() => decodeKnownGptRateLimitPreflightReply(
+  { ...delivered.candidate, documentRef: target.documentRef }, delivered.command, delivered.raw), /BROWSER_AUTH_TRANSCRIPT_INVALID/u);
+receiveClaim = () => undefined;
 const reloadedTarget = authority.resolve(String(reloaded.targetRef), String(reloaded.documentRef)), beforeNavigationClaims = frames.length;
 loaders.set(3, "unannounced-document");
 await assert.rejects(select("https://chatgpt.com/c/foreign-document", reloadedTarget), /BROWSER_DOCUMENT_INVALID/u);

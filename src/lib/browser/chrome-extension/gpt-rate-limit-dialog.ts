@@ -1,6 +1,7 @@
 import type { ExtensionDebuggerRuntime } from "./debugger-runtime.js";
 import type { ExtensionExactTarget } from "./exact-target-runtime.js";
 import { executeClickIntent } from "./dom-pointer-intent-runtime.js";
+import { readFixedDocument } from "./dom-fixed-document-read.js";
 import type { BrowserDomIntent } from "../exact-target/browser-dom-intent.js";
 import type { BrowserCommandPermit } from "../transport/command-permit.js";
 import {
@@ -14,6 +15,7 @@ import {
   KNOWN_GPT_RATE_LIMIT_TITLE,
   KNOWN_GPT_RATE_LIMIT_TITLE_HASH,
   knownGptRateLimitPreflightFactShapeValid,
+  knownGptRateLimitPreflightObservationInput,
   type KnownGptRateLimitPreflightFact,
 } from "../exact-target/browser-gpt-rate-limit-preflight.js";
 
@@ -133,56 +135,38 @@ const knownGptRateLimitTargetIdentity = async (
 });
 
 export const observeKnownGptRateLimitDialog = async (
-  runtime: ExtensionDebuggerRuntime,
-  target: ExtensionExactTarget,
-  exactCallIdentityHash: `sha256:${string}`,
+  runtime: ExtensionDebuggerRuntime, target: ExtensionExactTarget,
+  exactCallIdentityHash: `sha256:${string}`, assertCurrent: CurrentDocumentAssertion,
 ): Promise<KnownGptRateLimitPreflightFact> => {
+  const expectedMainFrameLoaderId = target.loaderId;
   const identity = await knownGptRateLimitTargetIdentity(target);
-  const document = record(await runtime.send(target.tabId, "DOM.getDocument", { depth: 0, pierce: true }));
-  const root = record(document.root);
-  if (!Number.isSafeInteger(root.nodeId)) throw new Error("BROWSER_DOM_READ_INVALID");
-  const resolved = record(await runtime.send(target.tabId, "DOM.resolveNode", { nodeId: root.nodeId }));
-  const objectId = record(resolved.object).objectId;
-  if (typeof objectId !== "string" || !objectId) throw new Error("BROWSER_DOM_READ_INVALID");
-  try {
-    const call = record(await runtime.send(target.tabId, "Runtime.callFunctionOn", {
-      objectId,
-      functionDeclaration: KNOWN_GPT_RATE_LIMIT_DETECTOR,
-      arguments: [{ value: {
-        dialogSelector: KNOWN_GPT_RATE_LIMIT_DIALOG_SELECTOR,
-        title: KNOWN_GPT_RATE_LIMIT_TITLE,
-        body: KNOWN_GPT_RATE_LIMIT_BODY,
-        ack: KNOWN_GPT_RATE_LIMIT_ACK,
-        dialogHash: KNOWN_GPT_RATE_LIMIT_DIALOG_HASH,
-        titleHash: KNOWN_GPT_RATE_LIMIT_TITLE_HASH,
-        bodyHash: KNOWN_GPT_RATE_LIMIT_BODY_HASH,
-        acknowledgementHash: KNOWN_GPT_RATE_LIMIT_ACK_HASH,
-        exactCallIdentityHash,
-        ...identity,
-      } }],
-      returnByValue: true,
-      awaitPromise: true,
-      silent: true,
-    }));
-    const result = record(record(call.result).value);
-    if (!knownGptRateLimitPreflightFactShapeValid(result)
-      || result.exactCallIdentityHash !== exactCallIdentityHash
-      || result.targetRefHash !== identity.targetRefHash
-      || result.documentRefHash !== identity.documentRefHash) {
-      throw new Error("BROWSER_DOM_READ_INVALID");
-    }
-    return Object.freeze(result);
-  } finally {
-    await runtime.send(target.tabId, "Runtime.releaseObject", { objectId });
-  }
+  return readFixedDocument({ runtime, target, expectedMainFrameLoaderId, assertCurrent,
+    stage: "rate-limit-preflight", script: KNOWN_GPT_RATE_LIMIT_DETECTOR,
+    argument: { dialogSelector: KNOWN_GPT_RATE_LIMIT_DIALOG_SELECTOR,
+      title: KNOWN_GPT_RATE_LIMIT_TITLE, body: KNOWN_GPT_RATE_LIMIT_BODY, ack: KNOWN_GPT_RATE_LIMIT_ACK,
+      dialogHash: KNOWN_GPT_RATE_LIMIT_DIALOG_HASH, titleHash: KNOWN_GPT_RATE_LIMIT_TITLE_HASH,
+      bodyHash: KNOWN_GPT_RATE_LIMIT_BODY_HASH, acknowledgementHash: KNOWN_GPT_RATE_LIMIT_ACK_HASH,
+      exactCallIdentityHash, ...identity },
+    decode: async (value) => {
+      const fact = record(value);
+      if (!knownGptRateLimitPreflightFactShapeValid(fact)
+        || fact.exactCallIdentityHash !== exactCallIdentityHash
+        || fact.targetRefHash !== identity.targetRefHash || fact.documentRefHash !== identity.documentRefHash
+        || fact.observationHash !== await sha256(JSON.stringify(knownGptRateLimitPreflightObservationInput(fact)))) {
+        throw new Error("BROWSER_DOM_READ_INVALID");
+      }
+      return Object.freeze(fact);
+    },
+  });
 };
 
 const readKnownGptRateLimitClearance = async (
   runtime: ExtensionDebuggerRuntime,
   target: ExtensionExactTarget,
   exactCallIdentityHash: `sha256:${string}`,
+  assertCurrent: CurrentDocumentAssertion,
 ): Promise<unknown> => {
-  const fact = await observeKnownGptRateLimitDialog(runtime, target, exactCallIdentityHash);
+  const fact = await observeKnownGptRateLimitDialog(runtime, target, exactCallIdentityHash, assertCurrent);
   if (fact.state === "exact_present") throw new Error("BROWSER_GPT_RATE_LIMIT_STILL_PRESENT");
   if (fact.state === "mismatch") return unrecognizedGptDialogReceipt(fact);
   return Object.freeze({
@@ -260,12 +244,12 @@ export const executeKnownGptRateLimitIntent = async (
 ): Promise<unknown> => {
   if (intent.kind === "readKnownGptRateLimitClearance") {
     assertCurrent();
-    const result = await readKnownGptRateLimitClearance(runtime, target, exactCallIdentityHash);
+    const result = await readKnownGptRateLimitClearance(runtime, target, exactCallIdentityHash, assertCurrent);
     assertCurrent();
     return result;
   }
   await assertRateLimitIdentity(target, intent);
-  const fact = await observeKnownGptRateLimitDialog(runtime, target, exactCallIdentityHash);
+  const fact = await observeKnownGptRateLimitDialog(runtime, target, exactCallIdentityHash, assertCurrent);
   if (fact.state === "mismatch") return unrecognizedGptDialogReceipt(fact);
   if (fact.state === "absent") return Object.freeze({ candidateCount: 0, identityRevalidated: true,
     mutationCount: 0, postconditionVerified: true, zeroActionSatisfied: true });

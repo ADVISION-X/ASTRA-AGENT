@@ -14,11 +14,16 @@ const FRAME_KINDS = new Set([
 export const BROWSER_DIAGNOSTIC_COMMAND_INTENT_KINDS: ReadonlySet<string> = new Set(["document", "observe", "readExactAssistantTurn", "inspect", "find", "readText",
     "readAttribute", "selectExactGptConversation", "click", "hover", "doubleClick", "keypress", "fill"]);
 
+export const BROWSER_DIAGNOSTIC_COMMAND_STAGES = ["payload", "command-shape", "command-admission",
+  "target-resolution", "registered-command", "rate-limit-preflight",
+  "exact-user-materialization", "exact-assistant-observation"] as const;
+export type BrowserDiagnosticCommandStage = (typeof BROWSER_DIAGNOSTIC_COMMAND_STAGES)[number];
+
 const CONTROLLED_VALUES: Readonly<Record<string, ReadonlySet<string>>> = {
   diagnosticSource: new Set(["extension-frame", "extension-runtime"]),
   runtimeEventType: new Set(["message-handler", "command-handler", "unhandledrejection", "worker-error",
     "liveness-pulse", "job-bound-target-acquisition", "debugger-detach", "tab-remove"]),
-  commandStage: new Set(["payload", "command-shape", "command-admission", "target-resolution", "registered-command"]),
+  commandStage: new Set(BROWSER_DIAGNOSTIC_COMMAND_STAGES),
   commandKind: new Set(["dom-intent", "observe", "screenshot", "file-input",
     "authenticated-media", "wait", "park-target"]),
   commandIntentKind: BROWSER_DIAGNOSTIC_COMMAND_INTENT_KINDS,

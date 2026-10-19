@@ -3,6 +3,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { createHmac } from "node:crypto";
 import { BrowserCommandActor, BrowserCommandTerminalReplyError } from "../../src/lib/browser/exact-target/browser-command-actor.js";
 import { BrowserMutationStore } from "../../src/lib/browser/exact-target/browser-mutation-store.js";
 import { BrowserCommandAdmissionBudget } from "../../src/lib/browser/transport/browser-command-admission-budget.js";
@@ -11,9 +12,15 @@ import { encodeBrowserAuthorityFrame, decodeBrowserAuthorityFrame, canonicalizeB
 import { encryptBrowserAuthorityFrame } from "../../src/lib/browser/transport/browser-authority-session-crypto.js";
 import { BROWSER_PROTOCOL_REVISION } from "../../src/lib/browser/protocol/generated/browser-protocol.generated.js";
 import { createClickCommand, permit } from "./local-browser-terminal-fixture.js";
-import { terminalFact, exactHash } from "./local-browser-mutation-store-support.js";
+import { terminalFact } from "./local-browser-mutation-store-support.js";
 
-import { parseBrowserAuthorityDiagnostic } from
+import { executeExtensionCommandReply } from "../../src/lib/browser/chrome-extension/extension-command-runtime.js";
+import { extensionCommandDiagnostic } from "../../src/lib/browser/chrome-extension/websocket-command-diagnostic.js";
+import { FixedDocumentReadFailure } from "../../src/lib/browser/chrome-extension/dom-fixed-document-read.js";
+import { setExtensionPermitAuthority, clearExtensionPermitAuthority } from "../../src/lib/browser/chrome-extension/command-permit-validator.js";
+import { browserCommandPermitMacPayload } from "../../src/lib/browser/transport/command-permit.js";
+import type { ExtensionTargetAuthority } from "../../src/lib/browser/chrome-extension/extension-target-authority.js";
+import { parseBrowserAuthorityDiagnostic, type BrowserDiagnosticCommandStage } from
   "../../src/lib/browser/transport/browser-authority-diagnostic.js";
 import { parseBrowserAuthorityTargetClaim } from
   "../../src/lib/browser/transport/browser-authority-frame-payload.js";
@@ -42,10 +49,37 @@ const authenticatedDiagnosticChannel = (onMutationReceipt: ConstructorParameters
   };
   return { channel, socket, sent, receive };
 };
-const commandDiagnostic = (requestSequence: number, reasonCode = "BROWSER_TARGET_INVALID", stage = "target-resolution") => ({
-  reasonCode, failedFrameKind: "COMMAND", failedFrameSequence: requestSequence,
-  diagnosticSource: "extension-runtime", runtimeEventType: "command-handler", commandStage: stage, encodedByteLength: 0,
-});
+const commandDiagnostic = (requestSequence: number, reasonCode = "BROWSER_TARGET_INVALID",
+  stage: BrowserDiagnosticCommandStage = "target-resolution") => extensionCommandDiagnostic({ reasonCode,
+  failedFrameSequence: requestSequence, commandStage: stage, commandKind: null, commandIntentKind: null, capabilityId: null });
+
+const failureCases = [
+  ["target-resolution", "BROWSER_TARGET_INVALID"],
+  ["rate-limit-preflight", "BROWSER_DOM_SCRIPT_FAILED"],
+  ["exact-user-materialization", "BROWSER_DOM_EXECUTION_FAILED"],
+  ["exact-assistant-observation", "BROWSER_DOM_SCRIPT_FAILED"],
+] as const;
+
+const producedFailure = async (candidate: ReturnType<typeof permit>, sequence: number, binding: `sha256:${string}`,
+  stage: (typeof failureCases)[number][0], code: (typeof failureCases)[number][1]) => {
+  const key = Buffer.alloc(32, 7), { commandFrameMac: _mac, ...unsigned } = candidate;
+  const signed = { ...candidate, commandFrameMac: `sha256:${createHmac("sha256", key)
+    .update(browserCommandPermitMacPayload(unsigned)).digest("hex")}` as `sha256:${string}` };
+  setExtensionPermitAuthority({ authorityRef: candidate.authorityRef, authorityEpoch: candidate.authorityEpoch,
+    certificateHash: candidate.certificateHash, channelSessionHash: candidate.channelSessionHash, commandPermitKey: key.toString("base64") });
+  try { return await executeExtensionCommandReply({
+  payload: { command: createClickCommand() }, permit: signed, requestSequence: sequence,
+  receiptBindingHash: binding, deadline: Date.now() + 10_000, assertCommandActive: () => undefined,
+  targetAuthority: { resolve: () => {
+    if (stage === "target-resolution") throw new Error(code);
+    return {};
+  }, executeRegisteredCommand: async () => {
+    if (stage === "target-resolution") throw new Error("UNREACHABLE");
+    throw new FixedDocumentReadFailure(code, stage, new Error("private native detail"));
+  } } as unknown as ExtensionTargetAuthority,
+  }); } finally { clearExtensionPermitAuthority(); }
+};
+
 const exerciseAuthenticatedDiagnosticReplies = async (): Promise<void> => {
   const wrongOrigin = { "wrong-frame": { failedFrameKind: "REPLY" },
     "wrong-source": { diagnosticSource: "extension-frame" }, "wrong-event": { runtimeEventType: "message-handler" } };
@@ -72,9 +106,9 @@ const exerciseAuthenticatedDiagnosticReplies = async (): Promise<void> => {
 const exerciseDiagnosticWalAndLogFailure = async (): Promise<void> => {
   const root = await mkdtemp(join(tmpdir(), "browser-diagnostic-settlement-"));
   try {
-    for (const logFailure of [false, true]) {
-      const directory = join(root, String(logFailure)), logDirectory = join(directory, "logs"), phases: string[] = [];
-      const store = new BrowserMutationStore(join(directory, "browser")), candidate = permit("diagnostic-" + logFailure);
+    for (const [stage, code] of failureCases) for (const logFailure of [false, true]) {
+      const directory = join(root, stage + logFailure), logDirectory = join(directory, "logs"), phases: string[] = [];
+      const store = new BrowserMutationStore(join(directory, "browser")), candidate = permit("diagnostic-" + stage + logFailure);
       store.verifyRuntimeTaskProvenance(null);
       const logger = createRuntimeLogger({ producer: "diagnostic-contract", owner: "browser-session", component: "exact-target",
         terminalEnabled: false, fileSink: { directoryPath: logDirectory } });
@@ -89,24 +123,26 @@ const exerciseDiagnosticWalAndLogFailure = async (): Promise<void> => {
         const request = decodeBrowserAuthorityFrame(frame);
         if (request.kind !== "COMMAND") return;
         const identity = store.readCommand(candidate.commandId)!.identity;
-        const fact = terminalFact(identity, { terminal: "rejected", mutationOutcome: "no", physicalInputCount: 0,
-          failureCode: "BROWSER_TARGET_INVALID", nativeCauseCode: "BROWSER_TARGET_INVALID",
-          resultHash: exactHash(canonicalizeBrowserAuthorityValue({ errorCode: "BROWSER_TARGET_INVALID" })) });
-        fixture.receive("DIAGNOSTIC", commandDiagnostic(request.sequence));
-        assert.deepEqual(phases, [], "diagnostic is not terminal evidence");
-        fixture.receive("REPLY", { requestSequence: request.sequence, permitSequence: candidate.sequence,
-          replyChannelToken: candidate.replyChannelToken, mutationReceipt: fact, errorCode: "BROWSER_TARGET_INVALID" });
+        const binding = terminalFact(identity).receiptBindingHash;
+        void producedFailure(candidate, request.sequence, binding, stage, code).then(reply => {
+          assert.equal(reply.body.errorCode, code);
+          assert.equal(reply.diagnostic?.commandStage, stage);
+          assert.equal(JSON.stringify(reply).includes("private native detail"), false);
+          fixture.receive("DIAGNOSTIC", reply.diagnostic!);
+          assert.deepEqual(phases, [], "diagnostic is not terminal evidence");
+          fixture.receive("REPLY", reply.body);
+        });
       };
       const actor = new BrowserCommandActor(new BrowserCommandAdmissionBudget(), fixture.channel, store,
         { assertCurrentAuthority: () => undefined }, logger);
       await assert.rejects(actor.execute(candidate, createClickCommand()), (error: unknown) => {
         assert(error instanceof Error);
-        assert.equal(error.message, "BROWSER_TARGET_INVALID");
+        assert.equal(error.message, code);
         if (logFailure) {
           assert(error instanceof AggregateError);
           assert(error.cause instanceof BrowserCommandTerminalReplyError);
           assert.deepEqual([error.cause.failureCode, error.cause.replyChannelToken, error.cause.permitSequence],
-            ["BROWSER_TARGET_INVALID", candidate.replyChannelToken, candidate.sequence]);
+            [code, candidate.replyChannelToken, candidate.sequence]);
           assert.equal((error.errors[0] as Error).message, "RUNTIME_LOG_SINK_WRITE_FAILED");
         }
         return true;
@@ -118,7 +154,7 @@ const exerciseDiagnosticWalAndLogFailure = async (): Promise<void> => {
       if (logFailure) assert.equal(logger.isWritable(), false);
       else {
         const events = readFileSync(logger.currentSegmentPath()!, "utf8").trim().split("\n").map(line => JSON.parse(line));
-        const diagnostic = events.filter(event => event.kind === "event" && event.code === "BROWSER_COMMAND_DIAGNOSTIC_TARGET_RESOLUTION");
+        const diagnostic = events.filter(event => event.kind === "event" && event.code === "BROWSER_COMMAND_DIAGNOSTIC_" + stage.toUpperCase().replaceAll("-", "_"));
         assert.equal(diagnostic.length, 1);
         assert.equal(diagnostic[0].typedIdentity.commandId, candidate.commandId);
         assert.equal(diagnostic[0].typedIdentity.attemptId, candidate.attemptId);

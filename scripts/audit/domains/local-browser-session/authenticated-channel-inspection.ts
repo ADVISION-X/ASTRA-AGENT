@@ -28,6 +28,15 @@ export const inspectAuthenticatedChannelGuards = (
     "Every authenticated command failure must emit a non-fatal redacted diagnostic with command-stage and capability identity.");
   requireIdentifiers(diagnostic, ["commandStage", "commandKind", "commandIntentKind", "capabilityId"], findings, lawId,
     "The Workbench authority socket must retain the redacted authenticated-command diagnostic fields.");
+  const producer = requireSource(context, findings, lawId, "src/lib/browser/chrome-extension/websocket-command-diagnostic.ts");
+  if (producer) requireIdentifiers(producer, ["BrowserDiagnosticCommandStage", "BROWSER_DIAGNOSTIC_COMMAND_INTENT_KINDS"],
+    findings, lawId, "The command producer must consume the parser's unique closed stage and intent sources.");
+  requireIdentifiers(commandRuntime, ["FixedDocumentReadFailure", "BrowserDiagnosticCommandStage"], findings, lawId,
+    "Registered-command refinement must use the fixed Document reader's typed failure.");
+  if (!commandRuntime.getFullText().includes('stage === "registered-command" && error instanceof FixedDocumentReadFailure')) {
+    findings.push(createLocalFinding({ checkId: "browser-authority/terminal-authority", lawId,
+      filePath: extensionCommandRuntimePath, message: "Only a typed fixed-read failure may refine registered-command." }));
+  }
   if (!stringLiterals(actor).includes("HEARTBEAT")) findings.push(createLocalFinding({
     checkId: "browser-authority/terminal-authority", lawId, filePath: sourcePaths[1],
     message: "The MV3 worker must send an authenticated HEARTBEAT liveness frame.",

@@ -189,7 +189,7 @@ export class ExtensionTargetAuthority {
       const assertCurrent = (): void => { assertReadback(); if (deadlineAt !== undefined && Date.now() >= deadlineAt) throw new Error("BROWSER_COMMAND_PERMIT_EXPIRED"); };
       assertCommandActive();
       if (!(command.kind === "dom-intent" && ["acknowledgeKnownGptRateLimit", "readKnownGptRateLimitClearance"].includes(command.intent.kind))) {
-        const preflight = await observeKnownGptRateLimitDialog(this.debuggerRuntime, target, exactCallIdentityHash); assertCommandActive();
+        const preflight = await observeKnownGptRateLimitDialog(this.debuggerRuntime, target, exactCallIdentityHash, assertCurrent); assertCommandActive();
         if (preflight.state === "exact_present") return knownGptRateLimitBlockerReceipt(preflight);
         if (preflight.state === "mismatch") return unrecognizedGptDialogReceipt(preflight);
         return knownGptRateLimitAbsentEnvelope(preflight, await this.executeRegisteredCommandBody(command, target, exactCallIdentityHash, assertCurrent, deadlineAt));

@@ -23,8 +23,9 @@ export const rateLimitDetectorCdpResult = (
   startedAt: number[],
 ) => {
   startedAt.push(performance.now());
-  const expected = ((parameters?.arguments as readonly Readonly<{ value: Record<string, unknown> }>[])?.[0]
-    ?.value ?? {});
+  const expression = String(parameters?.expression);
+  const start = expression.lastIndexOf(").call(document, ") + ").call(document, ".length;
+  const expected = JSON.parse(expression.slice(start, expression.indexOf(") }; }", start))) as Record<string, unknown>;
   const state = detectorState.state;
   const exact = state === "exact_present";
   const mismatch = state === "mismatch";
@@ -50,8 +51,8 @@ export const rateLimitDetectorCdpResult = (
     unsigned.dialogActionableCount, unsigned.acknowledgementButtonRawCount,
     unsigned.acknowledgementButtonEligibleCount,
     unsigned.acknowledgementButtonActionableCount];
-  return { result: { value: { ...unsigned,
-    observationHash: `sha256:${createHash("sha256").update(JSON.stringify(hashInput)).digest("hex")}` } } };
+  return { result: { value: { kind: "value", value: { ...unsigned,
+    observationHash: `sha256:${createHash("sha256").update(JSON.stringify(hashInput)).digest("hex")}` } } } };
 };
 
 class FakeNode {}

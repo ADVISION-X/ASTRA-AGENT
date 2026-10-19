@@ -56,53 +56,53 @@ export const successfulAssistantObservation = Object.freeze({
   assistantTurnId: "00000000-0000-4000-8000-000000000002",
   precedingUserTurnId: "00000000-0000-4000-8000-000000000001",
   generatingRaw: 0,
-  observedAt: exactAssistantObservedAt, pendingCause: null, nativeStage: "runtime-call-function-on",
+  observedAt: exactAssistantObservedAt, pendingCause: null, nativeStage: "runtime-evaluate",
 });
 export const exactConversationFixtureUrl = successfulAssistantObservation.currentUrl;
 
+type FixedReadFixtureOptions = Readonly<{
+  evaluate?: (expression: string) => Promise<unknown>;
+  response?: (phase: "scan" | "answer", expression: string, index: number) => unknown | Promise<unknown>;
+  releaseFailure?: Error;
+}>;
+
 export const exactAssistantRuntimeFor = (
   observation: Readonly<Record<string, unknown>>,
-  loaderIds: readonly string[] = ["loader-current", "loader-current"],
+  loaderIds: readonly string[] = ["loader-current"],
+  options: FixedReadFixtureOptions = {},
 ) => {
-  const methods: string[] = [];
-  let loaderRead = 0;
-  let functionSource = "";
-  let callCount = 0;
-  let releases = 0;
-  const runtime = { async send(
-    _tabId: number,
-    method: string,
-    parameters?: Readonly<Record<string, unknown>>,
-  ) {
+  const methods: string[] = [], expressions: string[] = [], released: string[] = [];
+  let loaderRead = 0, scanCalls = 0, answerCalls = 0;
+  const runtime = { async send(_tabId: number, method: string,
+    parameters?: Readonly<Record<string, unknown>>) {
     methods.push(method);
     if (method === "Page.getFrameTree") {
-      const loaderId = loaderIds[Math.min(loaderRead, loaderIds.length - 1)];
-      loaderRead += 1;
+      const loaderId = loaderIds[Math.min(loaderRead++, loaderIds.length - 1)];
       return { frameTree: { frame: { loaderId } } };
     }
-    if (method === "DOM.getDocument") return { root: { nodeId: 1 } };
-    if (method === "DOM.resolveNode") return { object: { objectId: "document-object" } };
-    if (method === "Runtime.callFunctionOn") {
-      callCount += 1;
-      functionSource = String(parameters?.functionDeclaration ?? "");
-      assert.equal(parameters?.objectId, "document-object");
-      if (functionSource.startsWith("function (spec)")) {
-        return { result: { value: { documentValid: true, containerFound: false, atTop: true,
-          ids: ["00000000-0000-4000-8000-000000000001"], scrollTop: 0, nextScrollTop: 0 } } };
-      }
-      assert.deepEqual((parameters?.arguments as readonly Readonly<{ value: unknown }>[])?.[0]?.value,
-        { kind: "readExactAssistantTurn", turnMarker: "fixture-marker",
-          observedUserTurnId: "00000000-0000-4000-8000-000000000001",
-          canonicalConversationUrl: "https://chatgpt.com/c/exact" });
-      assert.equal(parameters?.returnByValue, true);
-      assert.equal(parameters?.awaitPromise, true);
-      return { result: { value: observation } };
+    if (method === "Runtime.releaseObject") {
+      released.push(String(parameters?.objectId));
+      if (options.releaseFailure) throw options.releaseFailure;
+      return {};
     }
-    if (method === "Runtime.releaseObject") { releases += 1; return {}; }
-    throw new Error(`UNEXPECTED_EXACT_ASSISTANT_METHOD:${method}`);
+    assert.equal(method, "Runtime.evaluate", "fixed reads must not acquire Document handles or issue input");
+    assert.equal(parameters?.returnByValue, true);
+    assert.equal(parameters?.awaitPromise, true);
+    assert.equal(parameters?.silent, true);
+    const expression = String(parameters?.expression);
+    expressions.push(expression);
+    const phase = expression.includes("const pendingCause =") ? "answer" : "scan";
+    const index = phase === "scan" ? scanCalls++ : answerCalls++;
+    if (options.response) return await options.response(phase, expression, index);
+    if (options.evaluate) return { result: { value: await options.evaluate(expression) } };
+    const value = phase === "answer" ? observation : {
+      ids: [successfulAssistantObservation.precedingUserTurnId], containerFound: true,
+      atTop: false, scrollTop: 0, nextScrollTop: 0,
+    };
+    return { result: { value: { kind: "value", value } } };
   } } as ExtensionDebuggerRuntime;
-  return Object.freeze({ runtime, methods, functionSource: () => functionSource,
-    callCount: () => callCount, releases: () => releases });
+  return { runtime, methods, expressions, released,
+    callCount: () => expressions.length, scanCalls: () => scanCalls, answerCalls: () => answerCalls };
 };
 
 export const executeExactAssistantFixture = (
