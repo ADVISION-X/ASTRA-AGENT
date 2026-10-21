@@ -19,7 +19,6 @@ import { extensionCommandDiagnostic } from "../../src/lib/browser/chrome-extensi
 import { FixedDocumentReadFailure } from "../../src/lib/browser/chrome-extension/dom-fixed-document-read.js";
 import { setExtensionPermitAuthority, clearExtensionPermitAuthority } from "../../src/lib/browser/chrome-extension/command-permit-validator.js";
 import { browserCommandPermitMacPayload } from "../../src/lib/browser/transport/command-permit.js";
-import type { ExtensionTargetAuthority } from "../../src/lib/browser/chrome-extension/extension-target-authority.js";
 import { parseBrowserAuthorityDiagnostic, type BrowserDiagnosticCommandStage } from
   "../../src/lib/browser/transport/browser-authority-diagnostic.js";
 import { parseBrowserAuthorityTargetClaim } from
@@ -62,24 +61,30 @@ const failureCases = [
 
 const producedFailure = async (candidate: ReturnType<typeof permit>, sequence: number, binding: `sha256:${string}`,
   stage: (typeof failureCases)[number][0], code: (typeof failureCases)[number][1]) => {
-  const key = Buffer.alloc(32, 7), { commandFrameMac: _mac, ...unsigned } = candidate;
-  const signed = { ...candidate, commandFrameMac: `sha256:${createHmac("sha256", key)
-    .update(browserCommandPermitMacPayload(unsigned)).digest("hex")}` as `sha256:${string}` };
+  const key = Buffer.alloc(32, 7), { commandFrameMac: _originalMac, ...unsigned } = candidate;
+  const commandFrameMac = `sha256:${createHmac("sha256", key)
+    .update(browserCommandPermitMacPayload(unsigned)).digest("hex")}` as const;
   setExtensionPermitAuthority({ authorityRef: candidate.authorityRef, authorityEpoch: candidate.authorityEpoch,
-    certificateHash: candidate.certificateHash, channelSessionHash: candidate.channelSessionHash, commandPermitKey: key.toString("base64") });
-  try { return await executeExtensionCommandReply({
-  payload: { command: createClickCommand() }, permit: signed, requestSequence: sequence,
-  receiptBindingHash: binding, deadline: Date.now() + 10_000, assertCommandActive: () => undefined,
-  targetAuthority: { resolve: () => {
-    if (stage === "target-resolution") throw new Error(code);
-    return {};
-  }, executeRegisteredCommand: async () => {
-    if (stage === "target-resolution") throw new Error("UNREACHABLE");
-    throw new FixedDocumentReadFailure(code, stage, new Error("private native detail"));
-  } } as unknown as ExtensionTargetAuthority,
-  }); } finally { clearExtensionPermitAuthority(); }
+    certificateHash: candidate.certificateHash, channelSessionHash: candidate.channelSessionHash,
+    commandPermitKey: key.toString("base64") });
+  try {
+    return await executeExtensionCommandReply({ payload: { command: createClickCommand() },
+      permit: { ...candidate, commandFrameMac }, requestSequence: sequence, receiptBindingHash: binding,
+      deadline: Date.now() + 10_000, assertCommandActive: () => undefined,
+      targetAuthority: {
+        resolve: (targetRef, documentRef) => {
+          if (stage === "target-resolution") throw new Error(code);
+          return { targetRef, documentRef, tabId: 1, chromeTargetId: "diagnostic-fixture-target",
+            navigationEpoch: 0, jobRefHash: `sha256:${"d".repeat(64)}`, loaderId: "diagnostic-fixture-loader" };
+        },
+        executeRegisteredCommand: async () => {
+          if (stage === "target-resolution") throw new Error("UNREACHABLE");
+          throw new FixedDocumentReadFailure(code, stage, new Error("private native detail"));
+        },
+      },
+    });
+  } finally { clearExtensionPermitAuthority(); }
 };
-
 const exerciseAuthenticatedDiagnosticReplies = async (): Promise<void> => {
   const wrongOrigin = { "wrong-frame": { failedFrameKind: "REPLY" },
     "wrong-source": { diagnosticSource: "extension-frame" }, "wrong-event": { runtimeEventType: "message-handler" } };

@@ -44,7 +44,7 @@ import { producerModePassed, recordStaticCheck, staticClauses, staticEvidenceRef
 import { containsPageMutation, gptPrivateInfrastructureViolations } from "../../scripts/audit/domains/gpt/gpt-inspection-support.js";
 import { providerWaitReasonProjectionIsFrozen } from "../../scripts/audit/domains/gpt/gpt-frozen-attempt-inspection.js";
 import { browserMutationSchemaIsCurrent, browserMutationStoreStartupOrderIsCurrent } from "../../scripts/audit/domains/local-browser-session/browser-mutation-settlement-inspection.js";
-import { exactAssistantTurnReadIsAtomic, exactTextMatcherIsStrict } from "../../scripts/audit/domains/local-browser-session/dom-mechanical-facts-inspection.js";
+import { exactAssistantTurnReadIsAtomic, exactTextMatcherIsStrict, inspectDomMechanicalFacts } from "../../scripts/audit/domains/local-browser-session/dom-mechanical-facts-inspection.js";
 import { inspectSingleTransport } from "../../scripts/audit/domains/local-browser-session/transport-inspector.js";
 import { inspectProviderEffectAttemptGuard } from "../../scripts/audit/domains/local-browser-session/mutation-atomicity-inspection.js";
 import { inspectOpaqueAuthorityBoundary } from "../../scripts/audit/domains/local-browser-session/opaque-proof-inspection.js";
@@ -1115,15 +1115,12 @@ test("provider contracts reject malformed payloads before identity matching", ()
     () => validateProviderContractSpec(malformed, "ADVISION-X/xuanxue-web", lawDomains, () => true),
     (error: unknown) => error instanceof GovernanceError && error.code === "EXTERNAL_SURFACE_AUTHORITY_MISSING",
   );
-  const current = JSON.parse(readFileSync(
+  const providerDocument: unknown = JSON.parse(readFileSync(
     "docs/specs/agent-production-runtime/agent-route-capability-manifest.provider.spec.json", "utf8",
-  )) as unknown;
-  assert.doesNotThrow(() => validateProviderContractSpec(current, "ADVISION-X/AGENT",
-    new Map([
-      ["LAW-AGENT-PRODUCTION-RUNTIME-001-V76", "agent-production-runtime"],
-      ["LAW-AGENT-PRODUCTION-RUNTIME-003-V47", "agent-production-runtime"],
-    ]),
-    (path) => path === "src/lib/local-runtime/production/catalog.ts"));
+  ));
+  assert.doesNotThrow(() => validateProviderContractSpec(providerDocument, "ADVISION-X/AGENT",
+    new Map(buildRegistry().laws.map(law => [law.lawId, law.capabilityDomain])),
+    path => path === "src/lib/local-runtime/production/catalog.ts"));
 });
 
 test("hidden inspector errors, stale projections, and unsafe index states fail closed", () => {
@@ -1480,15 +1477,19 @@ const verifyBrowserBoundaryMutants = (
 };
 test("Browser reply inspection rejects mixed transport and permit identities", () => {
   const path = "src/lib/browser/transport/browser-authority-websocket.ts";
+  const commandSequence = "const active = this.active!;\n    const sequence = active.nextServerSequence;";
+  const commandAdvance = "this.active = { ...active, replies, nextServerSequence: sequence + 1 };";
+  const source = readFileSync(path, "utf8");
+  for (const anchor of [commandSequence, commandAdvance]) assert.equal(source.split(anchor).length, 2, anchor);
   verifyBrowserBoundaryMutants("LAW-LOCAL-BROWSER-SESSION-001-V4", inspectSingleTransport, [
     [path, "if (this.closed) { socket.close(1000); return; }", "if (this.closed) { return; }"],
     [path, "if (this.closed) { socket.close(1000); return; }", "if (false) { socket.close(1000); return; }"],
     [path, 'integerField(body, "requestSequence", 1)', 'integerField(body, "permitSequence", 1)'],
     [path, "reply = active?.replies.get(sequence)", "reply = active?.replies.get(1)"],
-    [path, "const sequence = active.nextServerSequence;", "const sequence = permit.sequence;"],
-    [path, "const sequence = active.nextServerSequence;", "const sequence = 1;"],
+    [path, commandSequence, "const active = this.active!;\n    const sequence = permit.sequence;"],
+    [path, commandSequence, "const active = this.active!;\n    const sequence = 1;"],
     [path, 'this.encryptedFrame(active, "COMMAND", sequence,', 'this.encryptedFrame(active, "COMMAND", permit.sequence,'],
-    [path, "nextServerSequence: sequence + 1", "nextServerSequence: sequence"],
+    [path, commandAdvance, "this.active = { ...active, replies, nextServerSequence: sequence };"],
     [path, "private acceptReply(socket: BrowserAuthoritySocket, body: Record<string, unknown>): void", "private async acceptReply(socket: BrowserAuthoritySocket, body: Record<string, unknown>): Promise<void>"],
     [path, "if (!this.acceptAuthenticatedControl(socket, frame, body)) this.acceptReply(socket, body);", "if (false) this.acceptReply(socket, body);"],
     [path, "else this.receiveAuthenticated(socket, frame);", "else void frame;"],
@@ -1653,38 +1654,55 @@ test("Browser inspectors require current WAL schema without startup migration an
     store.replace("ensureCurrentSchema(inspection);", "void inspection;"))), false);
 
   const exactPath = "src/lib/browser/chrome-extension/dom-exact-assistant-turn.ts";
-  const exact = readFileSync(exactPath, "utf8");
-  assert.equal(exactAssistantTurnReadIsAtomic(inspectSource(exactPath, exact)), true);
-  for (const mutant of [
-    exact.replace("${BROWSER_CANONICAL_SEMANTIC_TEXT_READER_SOURCE}", ""),
-    exact.replace("document.querySelectorAll(\"[data-turn-key]\")",
-      "document.querySelector(\"[data-turn-key]\")"),
-    exact.replace("browserCanonicalSemanticText(node)", 'node.textContent ?? ""'),
-    exact.replace("if (currentUrl !== expectedUrl || rawCount !== 1)",
-      "if (currentUrl !== expectedUrl || assistantIndex !== turns.length - 1 || rawCount !== 1)"),
-    exact.replace("if (currentUrl !== expectedUrl || rawCount !== 1)",
-      "if (currentUrl !== expectedUrl || composerRaw !== 1 || rawCount !== 1)"),
-    exact.replace("if (currentUrl !== expectedUrl || rawCount !== 1)",
-      "if (currentUrl !== expectedUrl || !node.getClientRects().length || rawCount !== 1)"),
-    exact.replace("if (currentUrl !== expectedUrl || rawCount !== 1)",
-      "if (currentUrl !== expectedUrl || !node.checkVisibility() || rawCount !== 1)"),
-    exact.replace("if (currentUrl !== expectedUrl || rawCount !== 1)",
-      "if (currentUrl !== expectedUrl || node.hidden || rawCount !== 1)"),
-    exact.replace("if (currentUrl !== expectedUrl || rawCount !== 1)",
-      "if (currentUrl !== expectedUrl || node.ariaHidden || rawCount !== 1)"),
-    exact.replace("if (currentUrl !== expectedUrl || rawCount !== 1)",
-      "if (currentUrl !== expectedUrl || node.inert || rawCount !== 1)"),
-    exact.replace("if (currentUrl !== expectedUrl || rawCount !== 1)",
-      "if (currentUrl !== expectedUrl || precedingPromptHash !== expectedPromptHash || rawCount !== 1)"),
-    exact.replace("if (currentUrl !== expectedUrl || rawCount !== 1)",
-      "if (currentUrl !== expectedUrl || thirdGate || rawCount !== 1)"),
-    exact.replace("if (currentUrl !== expectedUrl || rawCount !== 1)",
-      "if (currentUrl !== expectedUrl || !assistant?.querySelector('[data-chatgpt-selection-message-id]') || rawCount !== 1)"),
-    exact.replace("loaderAfter !== expectedMainFrameLoaderId", "loaderAfter === expectedMainFrameLoaderId"),
-    exact.replaceAll("exact-user-turn-unavailable", "generic-candidate-missing"),
-    exact.replaceAll("adjacent-assistant-missing", "generic-candidate-missing"),
-    `${exact}\nvoid queryCandidateSet;`,
-  ]) assert.equal(exactAssistantTurnReadIsAtomic(inspectSource(exactPath, mutant)), false);
+  const fixedPath = "src/lib/browser/chrome-extension/dom-fixed-document-read.ts";
+  const exact = readFileSync(exactPath, "utf8"), fixed = readFileSync(fixedPath, "utf8");
+  assert.equal(exactAssistantTurnReadIsAtomic(inspectSource(exactPath, exact), inspectSource(fixedPath, fixed)), true);
+  const nodeDeclaration = "const node = bodies[0];";
+  const mutations: Array<readonly [string, string, string]> = [
+    [exactPath, "${BROWSER_CANONICAL_SEMANTIC_TEXT_READER_SOURCE}", ""],
+    [exactPath, 'const matches = Array.from(document.querySelectorAll("[data-turn-key]"))',
+      'const matches = Array.from(document.querySelector("[data-turn-key]"))'],
+    [exactPath, "browserCanonicalSemanticText(node)", 'node.textContent ?? ""'],
+    [exactPath, "rawDomHtml: node ? node.outerHTML", "rawDomHtml: node ? node.innerHTML"],
+    [exactPath, "const currentUrl = browserExactUrl(spec.canonicalConversationUrl);",
+      "await Promise.resolve(); const currentUrl = browserExactUrl(spec.canonicalConversationUrl);"],
+    [exactPath, "matches.length === 1 && matches[0].id !== spec.observedUserTurnId", "false"],
+    [exactPath, "users.length !== 1", "false"],
+    [exactPath, 'matches[0].getAttribute("data-chatgpt-search-message-ids") !== id', "false"],
+    [exactPath, "units[units.indexOf(user) + 1]", "units[0]"],
+    [exactPath, 'if (assistants.length > 1) throw new Error("BROWSER_DOM_CANDIDATE_AMBIGUOUS")',
+      'if (false) throw new Error("BROWSER_DOM_CANDIDATE_AMBIGUOUS")'],
+    [fixedPath, 'input.runtime.send(input.target.tabId, "Runtime.evaluate",',
+      'input.runtime.send(input.target.tabId, "Runtime.callFunctionOn",'],
+    [fixedPath, "await assertPinnedDocument(input);\n    input.assertCurrent();", "input.assertCurrent();"],
+    [fixedPath, "executingNative = true;\n    await assertPinnedDocument(input);", "executingNative = true;"],
+    [fixedPath, "frame.loaderId !== binding.expectedMainFrameLoaderId", "frame.loaderId === binding.expectedMainFrameLoaderId"],
+    [fixedPath, "returnByValue: true", "returnByValue: false"],
+    [fixedPath, "awaitPromise: true", "awaitPromise: false"],
+    [fixedPath, "silent: true", "silent: false"],
+    [fixedPath, "return await decodeValue(call, input.decode)", "return decodeValue(call, input.decode)"],
+    [fixedPath, "await assertPinnedDocument(binding);\n    for (const objectId of references)", "for (const objectId of references)"],
+    [fixedPath, 'binding.assertCurrent();\n        await binding.runtime.send(binding.target.tabId, "Runtime.releaseObject",',
+      'await binding.runtime.send(binding.target.tabId, "Runtime.releaseObject",'],
+    [fixedPath, "new AggregateError(causes,", "new Error("],
+    [fixedPath, "exceptionDetails !== undefined || references.length > 0", "references.length > 0"],
+    ...["node.hidden", "node.inert", "node.getClientRects().length === 0", "!node.checkVisibility()",
+      'node.getAttribute("aria-hidden") === "true"', '!assistant.querySelector("[data-chatgpt-selection-message-id]")',
+    ].map(gate => [exactPath, nodeDeclaration,
+      `${nodeDeclaration} if (node && ${gate}) throw new Error("BROWSER_DOCUMENT_INVALID");`] as const),
+    [exactPath, nodeDeclaration, `${nodeDeclaration} const composerRaw = document.querySelectorAll("form[data-chatgpt-composer]").length;
+      if (composerRaw !== 1) throw new Error("BROWSER_DOCUMENT_INVALID");`],
+    [exactPath, nodeDeclaration, `${nodeDeclaration} const assistantIndex = units.indexOf(assistant);
+      if (assistantIndex !== units.length - 1) throw new Error("BROWSER_DOCUMENT_INVALID");`],
+    [exactPath, nodeDeclaration, `${nodeDeclaration} const expectedPromptHash = spec.expectedPromptHash;
+      if (expectedPromptHash !== precedingPromptHash) throw new Error("BROWSER_DOCUMENT_INVALID");`],
+    ...["exact-user-turn-unavailable", "adjacent-assistant-missing"].map(cause =>
+      [exactPath, exact, exact.replaceAll(cause, "generic-candidate-missing")] as const),
+  ];
+  for (const [path, original] of mutations) {
+    assert.equal((path === exactPath ? exact : fixed).split(original).length, 2, `unique current mutation: ${original}`);
+  }
+  verifyBrowserBoundaryMutants("LAW-LOCAL-BROWSER-SESSION-004-V57", inspectDomMechanicalFacts, mutations);
 });
 
 test("GPT001 native AST and contract routes reject text settlement and attachment selector drift under their own law", () => {

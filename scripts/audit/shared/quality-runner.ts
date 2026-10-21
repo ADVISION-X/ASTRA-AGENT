@@ -283,7 +283,8 @@ const executeProofCommand = async (
     lawId: law.lawId, evidenceMode: mode, proofRunId, candidate, proofKind: kind,
   }));
   assertCleanCandidate(candidate, `${script}:before`);
-  const timeoutMs = kind === "exam" ? 300_000 : 7_200_000;
+  const timeoutMs = kind === "dynamic" ? 7_200_000
+    : script === "acceptance:local-browser-terminal" ? 600_000 : 300_000;
   const token = sha(`${kind}:${script}`).slice(0, 12);
   const nativeReceiptDirectory = resolve(runDirectory, `${kind}-${token}-native-receipts`);
   mkdirSync(nativeReceiptDirectory, { recursive: false, mode: 0o700 });

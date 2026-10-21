@@ -5,7 +5,7 @@ import { binding, hash, releaseWireFixture } from "./browser-lane-fifo-support.j
 import type { ExtensionChromeApi } from "../../src/lib/browser/chrome-extension/extension-runtime-types.js";
 import type { ExtensionExactTargetRegistry } from "../../src/lib/browser/chrome-extension/exact-target-runtime.js";
 import { decodeBrowserAuthorityFrame } from "../../src/lib/browser/transport/browser-authority-frame-codec.js";
-import type { ExtensionTargetAuthority } from "../../src/lib/browser/chrome-extension/extension-target-authority.js";
+import { ExtensionTargetAuthority } from "../../src/lib/browser/chrome-extension/extension-target-authority.js";
 
 const controlledClock = async () => {
   const original = { now: Date.now, set: globalThis.setTimeout, clear: globalThis.clearTimeout,
@@ -59,7 +59,8 @@ const acquisitionFixture = async (chrome: ExtensionChromeApi, clock: Clock) => {
       return method === "Page.getFrameTree" ? { frameTree: { frame: { id: `frame-${tabId}`, loaderId: tab.loader, url: tab.url } } } : {};
     },
   } } as ExtensionChromeApi);
-  const authority = worker.authority as unknown as ExtensionTargetAuthority;
+  const authority: unknown = Reflect.get(worker.actor, "targetAuthority");
+  if (!(authority instanceof ExtensionTargetAuthority)) throw new Error("ACQUISITION_FIXTURE_AUTHORITY_INVALID");
   authority.start();
   const key = Buffer.from(await crypto.subtle.exportKey("raw", worker.session.clientToServerKey));
   const node = releaseWireFixture({ serverToClient: key, clientToServer: key, commandPermit: Buffer.alloc(32, 9) }, 2);

@@ -129,6 +129,21 @@
 - 顺序/验收：W1对应片区与W2同一候选完成；真实Node transport/AEAD/Actor/Authority/CreatedTarget与Supervisor admission串联，仅mock Chrome/native和时间叶端点，不能只mockrequestPreauthorizedTargetAcquisition返回成功。119.999/120/超界值来自同一真实边界，四mode来自封闭union；F1—F7分别对照独立预期。mutants至少击穿旧TTL、所有控制帧扩时、固定sleep、导航刷新D、删除原handler保护、删Node认领D核验、仅异步发送前核D七种错误实现，以及漏发cancel、错误job/sequence/key取消当前请求、复制record使guard看不到置位、取消即删在途handler/清槽、发送异步边界漏取消核验、claim失败残留bound活动绑定或误退新绑定；补证仍在同一现役inspector/fixture，原单Map和真实drain分母不减。
 - 失败：检查器旧假设与当前law冲突先核原义务，不修生产迁就错误检查；结构超限时在原fixture内合并等价断言/缩减重复，不加逃逸wrapper或豁免。
 
+### W2A：完整 READY 暴露的现役测试消费者失配
+
+- 输入/边界：绑定 `main@c56c8107ccd6ebef0dfc508994acb39f93726f9f` 的原生 READY FAIL、唯一逐法报告和 `/tmp/agent-acquisition-ready-20261021.log`。固定 J1/J2/J3 对以下五个具体对象均裁保留职责、违规成立、修；它们不是已证生产故障。主 Codex 按局部、根因明确、可直接充分验证定轻度；方案调查按标准闭合当前消费者与必要历史，不扩成产品或全仓重构。另一个 Browser Exam 组未完整收束的问题单独接证，不能用本单覆盖。
+- Owner/发现/停止边界：`code-purity` 普通治理测试的 `tests/governance/quality-contract.test.ts` 三个精确片区，以及 `local-browser-session` 两个验收夹具与一个不可分割的类型接缝。通过原生失败/AST finding、函数反向引用和 package/quality 路由交叉核验；真实 provider validator 从 active laws 取得 map，正式 Browser inspector 已传双文件，COMMAND send 的身份仍正确。到这些现役生产消费者停止：本单不改校验行为、Owner、法条、Website、schema、WAL、超时政策或 quality 编排。
+- 保留/删除/重建：①保留 provider 合成合法/畸形负例与真实 validator，删除当前正样本的手写旧 V47 map 片区，缺席后以现役 `buildRegistry().laws` 的 lawId/domain 唯一投影重建输入，不能从待验 spec 自证。②保留原 transport inspector、send、通用反例执行器及全部独立负例；删除三个有首命中歧义的 COMMAND sequence/递增反例行，缺席后在同数组以唯一 COMMAND 方法上下文重建，证明实际变异。③保留同用例 WAL/schema/startup 段、真实 exact/fixed 两模块和 inspector；删除旧单文件 atomic 测试段，缺席后按两份 SourceFile 验合法基线，并复用现有 `verifyBrowserBoundaryMutants` 与完整 `inspectDomMechanicalFacts` 在当前两文件职责位置施加真反例。必须覆盖 marker/邻接/唯一 assistant、完整语义与 DOM、同步同包、前后 loader pin、by-value、异常清理保主因、无 presentation/Prompt/composer 第三门与两类 pending；退休锚点和无消费的追加死声明不恢复，后者由原生 zombie 保护承接，两类 pending 的既有真实 DOM/decoder 验收继续保留。④删除 acquisition support 的双重断言，缺席后从真实 Actor 读取原 Authority 并以 `instanceof ExtensionTargetAuthority` 核实，原 wire/四模式矩阵原样。⑤删除 diagnostic `producedFailure` 的虚称完整类注入片区，缺席后按真实消费的 `resolve/executeRegisteredCommand` 构建有类型检查的故障输入；`extension-command-runtime.ts#executeExtensionCommandReply` 仅局部将参数类型表述为原类两方法的 `Pick`，必需方法及返回值仍严格检查，没有 optional、fallback、新接口或运行行为修改。四类失败、真实 AEAD/diagnostic/REPLY、WAL→ACK与日志失败保护保持。
+- 顺序/验收：法案及施工图已要求现役权威、精确身份、原子读取和禁止类型逃逸，无需为本单改法；本方案补齐后由主 Codex 两遍审查对应义务与落点，再退出设计施工。按上项逐片区删除→立即读盘核缺席→从当前合同重建，保留独立职责不搬移。先定向运行三项治理用例及原 diagnostic/acquisition 验收、typecheck，再主审两遍及只读实际差异复核；随后新候选重新 CHANGE→提交首推→完整 READY→第二推。不得删断言/扩大 excludes、弱化 scanner/validator、把 fixed 参数 optional 化或恢复旧生产结构迁就测试。
+- 结构/失败：三个测试片区复用已有文件及执行器，不增 runner/checker/依赖/持久化；两 support 保持文件与函数预算，类型 Pick 不新增生产抽象。原生其它失败仍独立保全、接回对应原庭；本单失败在同方案内继续，不抹原报告、不用旧候选 CHANGE 放行新候选，不自动回退。施工纪律与功能验证分别汇报。
+
+### W2B：原生 Browser Exam 完整调用条件
+
+- 输入/裁决：同一 `c56c8107` 的 CHANGE 已完整完成七文件组；READY 原捕获在300秒结束，三份golden receipt晚到，补充同命令/同300000ms工程观察 `/tmp/agent-terminal-call-observation-20261021.json` 为300023ms、status=null、SIGTERM。J1要求恢复调用匹配，J2/J3多数裁当前仅为调用条件问题、未证具体结构违规；三人均保留正确分母检查。J2提出未定位耗时不能单纯加时的反证，已由独立只读技术调查核实：rule-mutants约67秒AST、auto-pairing约226秒真实1.5/2.5秒门，加其它必要文件累计超过300秒；新增119/120秒矩阵使用受控时钟，无真实120秒sleep。主Codex据此保留原串行与全部用例，仅恢复这一个组的有限预算，不裁收集器/生产代码有错。
+- 唯一Owner/路径/动作：code-purity，`scripts/audit/shared/quality-runner.ts#executeProofCommand` 的原 `timeoutMs` 计算局部修改：仅 `kind=exam && script=acceptance:local-browser-terminal` 为600000ms，其余Exam300000ms、Dynamic7200000ms保持。相同变量继续同时进入原 `executeCaptured.timeout` 与 `GOVERNANCE_PROOF_TIMEOUT_MS`，不增加环境变量、配置表、wrapper、runner或proof路径。600秒是本轮有界工程余量，不冒称P99，不要求生产页面等待600秒，也不改变本案acquisition120秒。
+- 保留/删除/不做：保留原collector、串行七文件、所有真实安全门、失败传播、完整stdout/stderr、candidate/run/receipt绑定和五个required组合（002/golden、003/golden、004/golden、004/property、005/golden）。无删除或重建对象：这是已有调用配置的局部修正，不冒称片区重建；不改法案、Manifest、registry、测试分母或分母校验器，不拼接晚receipt，不改并发或子进程生命周期。
+- 顺序/验收/失败：本方案及法案/施工图对应关系先经主Codex两遍核对，再局部修改；属于现役预算恢复，无新结构留删问题。主审及只读技术复核该一个变量的真实消费者，随后同候选CHANGE→提交首推→完整READY，须真实完整退出0并由原binder接收五组合，失败继续保全接回。本次触及quality调用主链，待当前候选产生可读READY原生报告后按母本§79及冻结CI-FULL另取全新独立只读身份十项核销，之后第二推；不得用前三法官或普通代码审查抵扣。该配置不增加CPU并发或工作量；运行只开一轮原生质量，实际观察内存与负载，不人为七分钟截断。无自动回退、无需生产业务/数据库/Browser操作。
+
 ### W3：实际建设审查、同候选切换与业务验收
 
 - Owner/范围：主Codex负责当前main差异与原生质检；子智能体仅只读审查实际建设对本方案/法案/闭环Skill的差异，不并发写代码。无新代码、表、服务或治理对象。
@@ -141,7 +156,7 @@
 
 原生红线：文件≤500行，函数≤75行/7参数/8返回/5嵌套/16复杂度/10await；imports≤28/sources≤24/exports≤24；类成员保持现役预算。当前AST：Acquirer95行/6sources/6成员，两个方法14/33行；transport297行/10sources/27成员，sendControlFrame14行；Actor401行/15sources/30成员，接入49行/6await/6returns，原生metrics圈复杂度12/嵌套1；Authority258行/21sources/28成员，入口7行。不得再给Actor加成员；只用一个按action分流的局部maximum值、一个上界if和一个cancel分流，匹配置位交原operation模块的窄机械函数；接入方法复杂度预算12→15，原全局接收已拒过期/非法时间，不在此重复判断。transport原复杂度7、Acquirer等待方法6，action分流仍有余量；import扩展原generated import，不新增source或拆分Owner。Supervisor408行、30成员，原onTargetClaim15行：用一个pending局部值合并原两处初始claim拒绝，再在原注册前核action/job/D，不新增成员；state仅30行，原pending补同次D及acquire分支的原signal/退订回调。claim截止与取消guard仅在现有方法增加可选调用上下文参数，构造器callback转交，Actor/Authority成员数不变；sendEncrypted在原队列和加密边界直接校验，不另建sender/guard类。 Authority原acquireJobBoundChatGptTargetCycle为23行/复杂度8/嵌套3；原失败出口增加本次publishedTarget引用及bound精确退休、!bound在原discard成功后核null/本次对象/替换对象并精确退休registry，预计复杂度≤12、嵌套≤4，不加成员；原discard保持精确清理链并补同步fresh物理缺席证明及替换对象保护，禁止提前泛清active或依赖异步事件补删。
 
-现有fixture：lane-support378行/17sources，target-lifecycle324行/11sources，target-claim inspector295行；优先扩展各自既有entry与共享fixture，新增有区分力分支优先留在原文件；真实acquisition矩阵按W2用一个本域专用support承接以遵守500行和单函数预算，单函数按独立反例拆分≤75行，不复制一套actor。auto-pairing-support已有24sources，Delivery只用Map<number,{promise:Promise<void>}>测试所需最小投影，取消匹配逻辑只调用原生产parser/机械函数，不能复制为测试真相；原Promise快照改投影不增import来源。rule-mutants207行，内存反例复用原runner，不改共享governance检查。实施前重新测量，漂移影响可承载性即回本方案调整，不边堆边切。
+现有fixture：lane-support378行/17sources，target-lifecycle324行/11sources，target-claim inspector295行；优先扩展各自既有entry与共享fixture，新增有区分力分支优先留在原文件；真实acquisition矩阵按W2用一个本域专用support承接以遵守500行和单函数预算，单函数按独立反例拆分≤75行，不复制一套actor。auto-pairing-support已有24sources，Delivery只用Map<number,{promise:Promise<void>}>测试所需最小投影，取消匹配逻辑只调用原生产parser/机械函数，不能复制为测试真相；原Promise快照改投影不增import来源。rule-mutants207行，内存反例复用原runner；共享 governance 仅按 W2A 修复三个已裁现役测试消费者，并按 W2B 局部恢复 Browser Exam 的有限调用预算；不改检查器职责、分母、串行编排或裁决。实施前重新测量，漂移影响可承载性即回本方案调整，不边堆边切。
 
 | 单元 | 必须存在的当前原因、真实消费者、最短决定与退休对象 |
 | --- | --- |

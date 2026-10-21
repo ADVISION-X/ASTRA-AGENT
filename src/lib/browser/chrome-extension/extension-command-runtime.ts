@@ -49,7 +49,8 @@ export const executeRegisteredExtensionCommand = async (
 /** Constructs the original wire fact; claim disposal belongs after the worker fixes and sends it. */
 export const executeExtensionCommandReply = async (input: Readonly<{
   payload: Readonly<Record<string, unknown>>; permit: BrowserCommandPermit;
-  receiptBindingHash: `sha256:${string}` | null; targetAuthority: ExtensionTargetAuthority;
+  receiptBindingHash: `sha256:${string}` | null;
+  targetAuthority: Pick<ExtensionTargetAuthority, "resolve" | "executeRegisteredCommand">;
   assertCommandActive(): void; deadline: number; requestSequence: number;
 }>): Promise<Readonly<{ body: Record<string, unknown>; diagnostic: Record<string, unknown> | null }>> => {
   const { permit } = input;
