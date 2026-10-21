@@ -43,7 +43,7 @@ const assertMutationSlotHash = async (response: Record<string, unknown>, slot: R
   }
 };
 
-/** Delivery retains the original slot until ACK; target retirement consumes the delivered fact. */
+/** Delivery retains the fixed original fact until ACK, independently of the live Target. */
 export class ExtensionWebSocketActor {
   private readonly connection = { socket: null as WebSocket | null, state: "IDLE" as SocketState,
     commandReady: false, lastServerSequence: 0, session: null as AuthenticatedSession | null,
@@ -310,8 +310,11 @@ export class ExtensionWebSocketActor {
     try {
       if (reply.diagnostic) await this.sendEncrypted(socket, "DIAGNOSTIC", reply.diagnostic);
     } finally {
-      await this.sendEncrypted(socket, "REPLY", reply.body);
-      await this.targetAuthority.retireInvalidCommandTarget(reply.body, permit, typeof intentKind === "string" ? intentKind : null);
+      try {
+        await this.targetAuthority.retireInvalidCommandTarget(reply.body, permit, typeof intentKind === "string" ? intentKind : null);
+      } finally {
+        await this.sendEncrypted(socket, "REPLY", reply.body);
+      }
     }
   }
   private async flushMutationReceipt(): Promise<void> {

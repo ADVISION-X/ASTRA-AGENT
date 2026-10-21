@@ -71,7 +71,7 @@ const operation = async (fixture: Worker, body: Record<string, unknown>, sequenc
 
 
 const originalCommandDiagnostics = async (chrome: ExtensionChromeApi): Promise<void> => {
-  for (const diagnosticSendFails of [false, true]) {
+  for (const [diagnosticSendFails, retirementFails] of [[false, false], [true, false], [false, true]]) {
     const fixture = await workerFixture(chrome), candidate = permit("extension-diagnostic-" + diagnosticSendFails);
     const key = Buffer.alloc(32, 7), { commandFrameMac: _unused, ...unsigned } = candidate;
     const signed = { ...candidate, commandFrameMac: `sha256:${createHmac("sha256", key).update(browserCommandPermitMacPayload(unsigned)).digest("hex")}` };
@@ -81,8 +81,10 @@ const originalCommandDiagnostics = async (chrome: ExtensionChromeApi): Promise<v
     fixture.authority.resolve = () => { throw new Error("BROWSER_TARGET_INVALID"); };
     fixture.authority.retireInvalidCommandTarget = async () => {
       retirements += 1;
-      assert.equal(decodeBrowserAuthorityFrame(fixture.frames.at(-1)!).kind, "REPLY");
+      assert.equal(fixture.frames.some(value => decodeBrowserAuthorityFrame(value).kind === "REPLY"), false,
+        "the original Target retirement completes before final reply publication");
       assert.ok(fixture.delivery.mutationSlot?.fact, "terminal fact is retained before target retirement");
+      if (retirementFails) throw new Error("INJECTED_RETIREMENT_FAILURE");
     };
     const send = fixture.socket.send.bind(fixture.socket);
     Reflect.set(fixture.socket, "send", (value: unknown) => {
@@ -95,6 +97,7 @@ const originalCommandDiagnostics = async (chrome: ExtensionChromeApi): Promise<v
       const execution = fixture.invoke("executeCommand", fixture.socket, frame,
         { permit: signed, command, receiptBindingHash: `sha256:${"a".repeat(64)}` });
       if (diagnosticSendFails) await assert.rejects(execution, /INJECTED_DIAGNOSTIC_SEND_FAILURE/u);
+      else if (retirementFails) await assert.rejects(execution, /INJECTED_RETIREMENT_FAILURE/u);
       else await execution;
       assert.equal(retirements, 1, "a delivered reply retains its original target retirement even if diagnostic sending failed");
       assert.equal(sends, 2, "diagnostic failure cannot skip the original reply attempt");

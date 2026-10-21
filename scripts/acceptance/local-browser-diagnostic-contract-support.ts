@@ -27,26 +27,31 @@ import { BrowserAuthorityWebSocket } from
   "../../src/lib/browser/transport/browser-authority-websocket.js";
 
 
-const authenticatedDiagnosticChannel = (onMutationReceipt: ConstructorParameters<typeof BrowserAuthorityWebSocket>[0]["onMutationReceipt"]) => {
-  const key = Buffer.alloc(32, 7), sent: string[] = [];
-  const socket = { send: (frame: string) => { sent.push(frame); }, close: () => undefined };
+export const authenticatedDiagnosticChannel = (onMutationReceipt: ConstructorParameters<typeof BrowserAuthorityWebSocket>[0]["onMutationReceipt"],
+  input: Partial<Pick<ConstructorParameters<typeof BrowserAuthorityWebSocket>[0], "onTargetClaim" | "onTargetRevoke">>
+    & Readonly<{ key?: Buffer }> = {}) => {
+  const key = input.key ?? Buffer.alloc(32, 7), sent: string[] = [], revocations: string[] = [];
+  let closes = 0;
+  const socket = { send: (frame: string) => { sent.push(frame); }, close: () => { closes += 1; } };
   const channel = new BrowserAuthorityWebSocket({
     pairingSecret: "a".repeat(64), onPairingStarted: () => {}, onHeartbeat: () => {},
     onAuthenticated: () => { throw new Error("UNUSED_HANDSHAKE"); }, onMutationReceipt,
-    onTargetClaim: () => {}, onTargetRevoke: () => {}, onDiagnostic: () => {}, onRevoked: () => {},
+    onTargetClaim: input.onTargetClaim ?? (() => {}), onTargetRevoke: input.onTargetRevoke ?? (() => {}),
+    onDiagnostic: () => {}, onRevoked: code => { revocations.push(code); },
   });
   // Bind a known authenticated session; receive still verifies AEAD, sequence and the real closed payload parser.
   Reflect.set(channel, "active", { socket, keys: { clientToServer: key, serverToClient: key }, lastClientSequence: 1,
     nextServerSequence: 2, lastHeartbeatAt: Date.now(), replies: new Map() });
   let sequence = 1;
-  const receive = (kind: "DIAGNOSTIC" | "REPLY", body: Record<string, unknown>) => {
+  const receive = (kind: "DIAGNOSTIC" | "REPLY" | "MUTATION_RECEIPT", body: Record<string, unknown>) => {
     const header = { protocolVersion: BROWSER_PROTOCOL_REVISION, kind, epoch: 1, sequence: ++sequence,
       deadline: new Date(Date.now() + 10_000).toISOString() };
     const encrypted = encryptBrowserAuthorityFrame({ key, direction: "client-to-server", epoch: 1, sequence,
       aad: canonicalizeBrowserAuthorityValue(header), plaintext: canonicalizeBrowserAuthorityValue(body) });
     channel.receive(socket, encodeBrowserAuthorityFrame({ ...header, body: { encrypted } }));
   };
-  return { channel, socket, sent, receive };
+  return { channel, socket, sent, receive, revocations, closes: () => closes,
+    receiveEncoded: (frame: string) => channel.receive(socket, frame) };
 };
 const commandDiagnostic = (requestSequence: number, reasonCode = "BROWSER_TARGET_INVALID",
   stage: BrowserDiagnosticCommandStage = "target-resolution") => extensionCommandDiagnostic({ reasonCode,

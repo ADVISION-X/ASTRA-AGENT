@@ -1,4 +1,3 @@
-import { browserInteractionNativeCauseCode } from "../exact-target/browser-interaction-native-cause.js";
 import { requireGptWebPolicyForUrl } from "../exact-target/browser-site-policy-registry.js";
 import { ExtensionDebuggerRuntime, type ProviderInputState } from "./debugger-runtime.js";
 import type { ExtensionExactTarget } from "./exact-target-runtime.js";
@@ -12,12 +11,6 @@ type ActiveTargetState = Readonly<{ target: ExtensionExactTarget | null; loaderI
 
 const interactionFailure = (code: string): Error =>
   new Error("BROWSER_TARGET_NOT_INTERACTIVE", { cause: new Error(code) });
-const interactionRejectedReceipt = (error: unknown): Readonly<Record<string, unknown>> => Object.freeze({
-  candidateCount: 0, identityRevalidated: false, mutationCount: 0, postconditionVerified: false,
-  qualificationRejected: true, qualificationStage: "candidate-set",
-  failureCode: "BROWSER_TARGET_NOT_INTERACTIVE", nativeCauseCode: browserInteractionNativeCauseCode(error),
-});
-
 /** Publication qualifies one instant; this lease qualifies each physical interaction. */
 export class ExtensionInteractionReadiness {
   private readonly activeTabsByWindow = new Map<number, Readonly<{ generation: number; tabId: number }>>();
@@ -41,14 +34,8 @@ export class ExtensionInteractionReadiness {
     assertInput: () => void,
     mutationKind: string,
   ): Promise<unknown> {
-    let lease: InteractionLease;
-    try { assertInput(); lease = await this.ensureInteractionReady(target, assertInput); }
-    catch (error) {
-      if (error instanceof Error && error.message === "BROWSER_TARGET_NOT_INTERACTIVE") {
-        return interactionRejectedReceipt(error);
-      }
-      throw error;
-    }
+    assertInput();
+    const lease = await this.ensureInteractionReady(target, assertInput);
     const state: ProviderInputState = { started: false, physicalInputCount: 0, mutationKind };
     const assertReadback = (): void => {
       if (!state.started) assertInput();
@@ -60,9 +47,6 @@ export class ExtensionInteractionReadiness {
         () => this.debuggerRuntime.withPageReadGuard(assertReadback, () => execute(assertReadback)));
     } catch (error) {
       await this.debuggerRuntime.awaitPageReadPermission();
-      if (!state.started && error instanceof Error && error.message === "BROWSER_TARGET_NOT_INTERACTIVE") {
-        return interactionRejectedReceipt(error);
-      }
       throw Object.assign(error instanceof Error ? error : new Error("BROWSER_CAPABILITY_REJECTED"), {
         browserInputStarted: state.started, browserPhysicalInputCount: state.physicalInputCount,
       });

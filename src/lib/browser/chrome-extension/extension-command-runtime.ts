@@ -46,7 +46,7 @@ export const executeRegisteredExtensionCommand = async (
   }
 };
 
-/** Constructs the original wire fact; claim disposal belongs after the worker fixes and sends it. */
+/** Constructs the immutable wire fact; the worker owns exact Target retirement and final publication. */
 export const executeExtensionCommandReply = async (input: Readonly<{
   payload: Readonly<Record<string, unknown>>; permit: BrowserCommandPermit;
   receiptBindingHash: `sha256:${string}` | null;

@@ -164,12 +164,19 @@ for (const mode of ["origin", "away-back", "before-input", "discarded"] as const
   if (mode === "away-back") state.switchReadCountdown = 2;
   if (mode === "before-input") state.switchBeforeInput = true;
   if (mode === "discarded") discarded.add(3);
-  const result = await execute(click) as Record<string, unknown>; assert.equal(result.failureCode, "BROWSER_TARGET_NOT_INTERACTIVE"); assert.equal(result.mutationCount, 0);
-  if (mode === "origin") assert.equal(result.nativeCauseCode, "BROWSER_ORIGIN_REJECTED");
+  await assert.rejects(execute(click), (error: unknown) => {
+    assert(error instanceof Error); assert.equal(error.message, "BROWSER_TARGET_NOT_INTERACTIVE");
+    if (mode === "origin") assert.equal((error.cause as Error).message, "BROWSER_ORIGIN_REJECTED");
+    return true;
+  });
   assert.equal(inputs.length, before); discarded.delete(3); switchTab(3);
 }
 urls.set(3, "https://chatgpt.com/"); state.switchAfterInput = true; const beforeLateSwitch = inputs.length;
-await assert.rejects(execute(click), /BROWSER_TARGET_NOT_INTERACTIVE/u); assert.equal(inputs.length, beforeLateSwitch + 1); switchTab(3);
+await assert.rejects(execute(click), (error: unknown) => {
+  assert.match(String(error), /BROWSER_TARGET_NOT_INTERACTIVE/u);
+  assert.equal(Reflect.get(error as object, "browserInputStarted"), true);
+  assert.equal(Reflect.get(error as object, "browserPhysicalInputCount"), 0); return true;
+}); assert.equal(inputs.length, beforeLateSwitch + 1); switchTab(3);
 state.pointer = false;
 const select = (url: string, current = target) => execute({ kind: "dom-intent", intent: { kind: "selectExactGptConversation", canonicalConversationUrl: url } }, current, "lifecycle") as Promise<Record<string, unknown>>;
 urls.set(3, "https://chatgpt.com/c/sidebar-target?messageId=one#tail"); const baselineNavigation = state.navigationCount;
@@ -249,7 +256,7 @@ await exerciseClosedParkedTabRecovery({ authority, readNextCreatedTabId: () => s
 await exerciseClaimBroker({ hashes: rotation, activatedTabs: activated, removedTabs: removed });
 
 const compareAfterBarrier = async (): Promise<void> => {
-  for (const field of ["jobRefHash", "targetRef", "documentRef", "chromeTargetId", "tabId"] as const) {
+  for (const field of ["jobRefHash", "targetRef", "documentRef", "chromeTargetId", "tabId", "absent"] as const) {
     const fixture = Object.create(ExtensionTargetAuthority.prototype) as ExtensionTargetAuthority;
     const targets = Reflect.get(authority, "targets") as import("../../src/lib/browser/chrome-extension/exact-target-runtime.js").ExtensionExactTargetRegistry;
     const original = targets.claimOperatorTarget(100, await hashBrowserExtensionText("job-retire"), "loader", "chrome-original");
@@ -258,7 +265,9 @@ const compareAfterBarrier = async (): Promise<void> => {
       debuggerRuntime: { awaitPageReadPermission: () => barrier }, send: async () => { revocations += 1; } });
     const retiring = fixture.retireInvalidCommandTarget({ errorCode: "BROWSER_ORIGIN_REJECTED" }, { ...permit("retire"), jobId: "job-retire",
       targetRef: original.targetRef, documentRef: original.documentRef }, "click");
-    await Promise.resolve(); const current = { ...original, [field]: field === "tabId" ? 101 : field === "jobRefHash" ? `sha256:${"f".repeat(64)}` : "replacement" };
+    await Promise.resolve(); const current = field === "absent" ? null
+      : { ...original, [field]: field === "tabId" ? 101 : field === "jobRefHash" ? `sha256:${"f".repeat(64)}` : "replacement" };
+    if (field === "absent") targets.remove(original.targetRef);
     Reflect.set(fixture, "activeTarget", current); release(); await retiring;
     assert.equal(Reflect.get(fixture, "activeTarget"), current); assert.equal(revocations, 0); targets.remove(original.targetRef);
   }

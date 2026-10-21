@@ -132,17 +132,25 @@ const inspectReceiptDelivery = (s: Sources, findings: InspectorFinding[], lawId:
     ?.getDescendantsOfKind(SyntaxKind.TryStatement).find(block => block.getTryBlock().getDescendantsOfKind(SyntaxKind.CallExpression)
       .some(call => call.getExpression().getText() === "this.sendEncrypted"
         && call.getArguments()[1]?.asKind(SyntaxKind.StringLiteral)?.getLiteralValue() === "DIAGNOSTIC"));
-  const terminalCalls = delivery?.getFinallyBlock()?.getStatements().map(statement => statement.asKind(SyntaxKind.ExpressionStatement)
-    ?.getExpression().asKind(SyntaxKind.AwaitExpression)?.getExpression().asKind(SyntaxKind.CallExpression)) ?? [];
   const ack = method(s.worker, "ExtensionWebSocketActor", "acceptMutationAck");
+  const retirement = delivery?.getFinallyBlock()?.getStatements()[0]?.asKind(SyntaxKind.TryStatement);
+  const retireCall = retirement?.getTryBlock().getStatements()[0]?.asKind(SyntaxKind.ExpressionStatement)
+    ?.getExpression().asKind(SyntaxKind.AwaitExpression)?.getExpression().asKind(SyntaxKind.CallExpression);
+  const replyCall = retirement?.getFinallyBlock()?.getStatements()[0]?.asKind(SyntaxKind.ExpressionStatement)
+    ?.getExpression().asKind(SyntaxKind.AwaitExpression)?.getExpression().asKind(SyntaxKind.CallExpression);
   const ackShape = text(s.worker, "assertMutationAckShape");
   const slotHash = text(s.worker, "assertMutationSlotHash");
   const flush = method(s.worker, "ExtensionWebSocketActor", "flushMutationReceipt");
   check(order(execute, ["this.commandDelivery.mutationSlot =", "await executeExtensionCommandReply(", "slot.fact = fact",
-    'this.sendEncrypted(socket, "DIAGNOSTIC"', 'await this.sendEncrypted(socket, "REPLY", reply.body)', "retireInvalidCommandTarget("])
-    && senderReferences?.length === 2
-    && terminalCalls.map(call => call?.getExpression().getText()).join("\0") === "this.sendEncrypted\0this.targetAuthority.retireInvalidCommandTarget"
-    && JSON.stringify(terminalCalls[0]?.getArguments().map(argument => argument.asKind(SyntaxKind.StringLiteral)?.getLiteralValue() ?? argument.getText())) === JSON.stringify(["socket", "REPLY", "reply.body"])
+    'this.sendEncrypted(socket, "DIAGNOSTIC"', "await this.targetAuthority.retireInvalidCommandTarget(",
+    'await this.sendEncrypted(socket, "REPLY", reply.body)'])
+    && senderReferences?.length === 2 && delivery?.getCatchClause() === undefined && retirement?.getCatchClause() === undefined
+    && worker?.getMethod("executeCommand")?.getBody()?.asKind(SyntaxKind.Block)?.getStatements().at(-1) === delivery
+    && delivery?.getFinallyBlock()?.getStatements().length === 1 && retirement?.getTryBlock().getStatements().length === 1
+    && retirement?.getFinallyBlock()?.getStatements().length === 1
+    && retireCall?.getExpression().getText() === "this.targetAuthority.retireInvalidCommandTarget"
+    && replyCall?.getExpression().getText() === "this.sendEncrypted"
+    && JSON.stringify(replyCall?.getArguments().map(argument => argument.asKind(SyntaxKind.StringLiteral)?.getLiteralValue() ?? argument.getText())) === JSON.stringify(["socket", "REPLY", "reply.body"])
     && has(execute, ["slot?.commandId !== permit.commandId", "slot.receiptBindingHash !== receiptBindingHash",
       "socket !== this.connection.socket", "session.serverToClientKey", "Date.now() >= deadline"])
     && has(ackShape, ['"commandId|receiptBindingHash|receiptHash|type"', '"commandId|reasonCode|receiptBindingHash|rejectedFactHash|type"',

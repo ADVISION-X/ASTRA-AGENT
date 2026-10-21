@@ -16,6 +16,11 @@ import { inspectDomMechanicalFacts } from "../audit/domains/local-browser-sessio
 
 const hash = (digit: string): `sha256:${string}` => `sha256:${digit.repeat(64)}`;
 const TERMINAL_RULE_MUTANTS = [
+    ["src/lib/browser/chrome-extension/extension-interaction-readiness.ts", "    assertInput();\n    const lease = await this.ensureInteractionReady", '    if (Date.now() >= 0) return { failureCode: "BROWSER_TARGET_NOT_INTERACTIVE", mutationCount: 0 };\n    assertInput();\n    const lease = await this.ensureInteractionReady'],
+    ["src/lib/browser/chrome-extension/extension-interaction-readiness.ts", "browserInputStarted: state.started", "browserInputStarted: false"],
+    ["src/lib/browser/chrome-extension/extension-interaction-readiness.ts", "browserPhysicalInputCount: state.physicalInputCount", "browserPhysicalInputCount: 0"],
+    ["src/lib/browser/chrome-extension/websocket-actor.ts", "      } finally {\n        await this.sendEncrypted", "      } catch {\n        await this.sendEncrypted"],
+    ["src/lib/browser/chrome-extension/websocket-actor.ts", '        await this.sendEncrypted(socket, "REPLY", reply.body);', '        await this.sendEncrypted(socket, "REPLY", reply.body);\n        await this.targetAuthority.retireInvalidCommandTarget(reply.body, permit, null);'],
     ["src/lib/browser/chrome-extension/websocket-target-claim-awaiter.ts", "this.completion !== completion", "false"],
     ["src/lib/browser/chrome-extension/websocket-actor.ts", "assertPending(); context.assertCurrent()", "context.assertCurrent()"],
     ["src/lib/browser/chrome-extension/extension-target-authority.ts", "const after = await this.debuggerRuntime.readTargets();", "const after = [];"],
@@ -82,9 +87,8 @@ const TERMINAL_RULE_MUTANTS = [
     ["src/lib/browser/chrome-extension/websocket-actor.ts", "    if (receiptBindingHash !== null) {\n      const fact = reply.body.mutationReceipt", '    await this.sendEncrypted(socket, ("REPLY"), reply.body);\n    if (receiptBindingHash !== null) {\n      const fact = reply.body.mutationReceipt'],
     ["src/lib/browser/chrome-extension/websocket-actor.ts", "    if (receiptBindingHash !== null) {\n      const fact = reply.body.mutationReceipt", '    await (this.sendEncrypted)(socket, "REPLY", reply.body);\n    if (receiptBindingHash !== null) {\n      const fact = reply.body.mutationReceipt'],
     ["src/lib/browser/chrome-extension/websocket-actor.ts", "    if (receiptBindingHash !== null) {\n      const fact = reply.body.mutationReceipt", '    const replyKind = "REPLY"; await this.sendEncrypted(socket, replyKind, reply.body);\n    if (receiptBindingHash !== null) {\n      const fact = reply.body.mutationReceipt'],
-    ["src/lib/browser/chrome-extension/websocket-actor.ts", '} finally {\n      await this.sendEncrypted(socket, "REPLY", reply.body);', '} catch {\n      await this.sendEncrypted(socket, "REPLY", reply.body);'],
+    ["src/lib/browser/chrome-extension/websocket-actor.ts", '} finally {\n      try {', '} catch {\n      try {'],
     ["src/lib/browser/chrome-extension/websocket-actor.ts", 'await this.sendEncrypted(socket, "REPLY", reply.body);', 'if (false) await this.sendEncrypted(socket, "REPLY", reply.body);'],
-    ["src/lib/browser/chrome-extension/websocket-actor.ts", 'await this.sendEncrypted(socket, "REPLY", reply.body);', 'await this.targetAuthority.retireInvalidCommandTarget(reply.body, permit, null);\n      await this.sendEncrypted(socket, "REPLY", reply.body);'],
     ["src/lib/browser/transport/browser-authority-websocket.ts", "this.settleMutationReceipt(socket, parseBrowserMutationReceiptMessage(body))", "this.options.onHeartbeat()"],
     ["src/lib/browser/chrome-extension/websocket-actor.ts", "response.rejectedFactHash !== hash", "false"],
     ["src/lib/browser/chrome-extension/websocket-actor.ts", "this.commandDelivery.disconnectedDrain !== null)) return;", "false)) return;"],

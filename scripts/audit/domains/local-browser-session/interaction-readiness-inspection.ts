@@ -71,6 +71,20 @@ const inspectInteractionLease = (s: Sources, findings: InspectorFinding[], lawId
     "Every mutation and observation must qualify the exact Tab/current Document and synchronously reuse the one window activation-generation guard.");
 };
 
+const inspectMutationFailure = (s: Sources, findings: InspectorFinding[], lawId: string): void => {
+  const mutation = s.readiness.getClass("ExtensionInteractionReadiness")?.getMethod("executeMutation");
+  const returns = mutation?.getDescendantsOfKind(SyntaxKind.ReturnStatement) ?? [];
+  const success = returns[0]?.getExpression()?.asKind(SyntaxKind.AwaitExpression)?.getExpression().asKind(SyntaxKind.CallExpression);
+  const body = mutation?.getText() ?? "";
+  requireContract(s.readiness.getVariableDeclaration("interactionRejectedReceipt") === undefined
+    && returns.length === 1 && success?.getExpression().getText() === "this.debuggerRuntime.withProviderInputGuard"
+    && has(body, ["assertInput();", "const lease = await this.ensureInteractionReady(target, assertInput)",
+      "await this.debuggerRuntime.awaitPageReadPermission()", "throw Object.assign(error instanceof Error ? error",
+      "browserInputStarted: state.started", "browserPhysicalInputCount: state.physicalInputCount"]),
+  findings, lawId, paths.readiness,
+  "Preflight interaction refusal must throw through the original errorCode producer; partial input state must survive the original barrier.");
+};
+
 const inspectLogicalAccess = (s: Sources, findings: InspectorFinding[], lawId: string): void => {
   const owner = "ExtensionTargetAuthority", boundary = method(s.authority, owner, "executeRegisteredCommand");
   const send = method(s.runtime, "ExtensionDebuggerRuntime", "send");
@@ -147,6 +161,7 @@ export const inspectInteractionReadiness = (context: InspectorContext,
     sources[key as keyof Sources] = source;
   }
   inspectInteractionLease(sources, findings, lawId);
+  inspectMutationFailure(sources, findings, lawId);
   inspectLogicalAccess(sources, findings, lawId);
   inspectPhysicalInput(sources, findings, lawId);
   inspectRateLimitGate(sources, findings, lawId);
