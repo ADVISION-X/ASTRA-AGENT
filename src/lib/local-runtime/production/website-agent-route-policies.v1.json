@@ -1,7 +1,7 @@
 {
   "schema_version": "website-agent-route-policies.v1",
   "contract_id": "ai-acceptance.website-agent-task-result",
-  "contract_version": 21,
+  "contract_version": 22,
   "parameter_types": {
     "admitted_identity_catalog_hash": "sha256",
     "analysis_kind": "bazi_analysis_kind",
@@ -3683,6 +3683,440 @@
     },
     {
       "product_id": "payment_screenshot_observation",
+      "action_id": "quality_reflection",
+      "required_parameter_keys": [
+        "reflection_plan_id",
+        "reflection_contract_version",
+        "evidence_ref_catalog"
+      ],
+      "material_roles": [
+        {
+          "role": "subject_result",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        },
+        {
+          "role": "review_context",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        }
+      ],
+      "result_schema_version": "website-agent-review-output.v1",
+      "relation_kind": "review",
+      "result_contract": {
+        "schema_version": "website-agent-review-output-contract.v1",
+        "output_schema_version": "website-agent-review-output.v1",
+        "exact_top_level_fields": [
+          "decision",
+          "issues"
+        ],
+        "decision_values": [
+          "no_issue",
+          "issues"
+        ],
+        "exact_issue_fields": [
+          "category",
+          "target_type",
+          "target_ref",
+          "observation",
+          "evidence_refs",
+          "impact",
+          "confidence",
+          "suggested_inspection"
+        ],
+        "category_values": [
+          "source_text_possible_error",
+          "index_navigation_friction",
+          "missing_condition_or_exception",
+          "citation_locator_problem",
+          "prompt_ambiguity",
+          "missing_input",
+          "output_contract_friction",
+          "reasoning_depth_gap",
+          "safety_boundary_conflict",
+          "conversation_context_loss",
+          "provider_or_tooling_issue"
+        ],
+        "confidence_values": [
+          "low",
+          "medium",
+          "high"
+        ],
+        "invariants": [
+          "no_issue_requires_zero_issues",
+          "issues_requires_1_to_50_issues",
+          "every_issue_requires_at_least_one_evidence_ref"
+        ]
+      }
+    },
+    {
+      "product_id": "zeji_personal_selection",
+      "action_id": "produce",
+      "required_parameter_keys": [
+        "project_ref",
+        "context_package_ref",
+        "requirement_manifest_ref",
+        "requirement_manifest_hash",
+        "output_contract_ref"
+      ],
+      "material_roles": [
+        {
+          "role": "zeji_reading_guide",
+          "trust_class": "instruction",
+          "may_issue_instruction": true,
+          "media_types": [
+            "text/markdown"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        },
+        {
+          "role": "ready_corpus_archive",
+          "trust_class": "classical_source_data",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/zip"
+          ],
+          "storage_class": "shared_static",
+          "owner_scope_policy": "forbidden",
+          "repeatable": true
+        },
+        {
+          "role": "zeji_input_bundle",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/zip"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required",
+          "repeatable": true
+        }
+      ],
+      "result_schema_version": "zeji-personal-selection-report.v1",
+      "relation_kind": "primary",
+      "result_contract": {
+        "schema_version": "zeji-personal-selection-report-contract.v1",
+        "output_schema_version": "zeji-personal-selection-report.v1",
+        "json_schema": {
+          "type": "object",
+          "required": [
+            "schema_version",
+            "requirement_manifest_ref",
+            "requirement_manifest_hash",
+            "decision",
+            "research_markdown",
+            "recommendations",
+            "day_coverage",
+            "citations",
+            "uncertainties",
+            "limitations"
+          ],
+          "properties": {
+            "schema_version": {
+              "type": "string",
+              "enum": [
+                "zeji-personal-selection-report.v1"
+              ]
+            },
+            "requirement_manifest_ref": {
+              "type": "string",
+              "minLength": 1
+            },
+            "requirement_manifest_hash": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            "decision": {
+              "type": "string",
+              "enum": [
+                "recommended",
+                "conditional",
+                "no_suitable_candidate"
+              ]
+            },
+            "research_markdown": {
+              "type": "string",
+              "minLength": 1
+            },
+            "recommendations": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "recommendation_ref",
+                  "selection_kind",
+                  "date",
+                  "event_cells",
+                  "condition_pointers",
+                  "professional_markdown",
+                  "reader_explanation_markdown",
+                  "execution_window_markdown"
+                ],
+                "properties": {
+                  "recommendation_ref": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "selection_kind": {
+                    "type": "string",
+                    "enum": [
+                      "preferred",
+                      "alternative",
+                      "equal"
+                    ]
+                  },
+                  "date": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "event_cells": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "source_domain_hash",
+                        "source_cell_ref"
+                      ],
+                      "properties": {
+                        "source_domain_hash": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "source_cell_ref": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      },
+                      "additionalProperties": true
+                    }
+                  },
+                  "condition_pointers": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "professional_markdown": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "reader_explanation_markdown": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "execution_window_markdown": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "additionalProperties": true
+              }
+            },
+            "day_coverage": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "required": [
+                  "date",
+                  "status",
+                  "reason_markdown"
+                ],
+                "properties": {
+                  "date": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "researched",
+                      "limited"
+                    ]
+                  },
+                  "reason_markdown": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "additionalProperties": true
+              }
+            },
+            "citations": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "citation_id",
+                  "book_id",
+                  "book_version_ref",
+                  "source_locator",
+                  "quote",
+                  "evidence_role"
+                ],
+                "properties": {
+                  "citation_id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "book_id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "book_version_ref": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "source_locator": {
+                    "type": "object",
+                    "required": [
+                      "line_start",
+                      "line_end"
+                    ],
+                    "properties": {
+                      "line_start": {
+                        "type": "integer",
+                        "minimum": 1
+                      },
+                      "line_end": {
+                        "type": "integer",
+                        "minimum": 1
+                      }
+                    },
+                    "additionalProperties": true
+                  },
+                  "quote": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "evidence_role": {
+                    "type": "string",
+                    "enum": [
+                      "support",
+                      "counterevidence",
+                      "context"
+                    ]
+                  }
+                },
+                "additionalProperties": true
+              }
+            },
+            "uncertainties": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "limitations": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "additionalProperties": true
+        },
+        "locked_fields": [
+          "requirement_manifest_ref",
+          "requirement_manifest_hash"
+        ],
+        "unknown_field_policy": "preserve"
+      }
+    },
+    {
+      "product_id": "zeji_personal_selection",
+      "action_id": "accuracy_challenge",
+      "required_parameter_keys": [
+        "challenge_id",
+        "question_text"
+      ],
+      "material_roles": [
+        {
+          "role": "subject_result",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        },
+        {
+          "role": "review_context",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        }
+      ],
+      "result_schema_version": "website-agent-review-output.v1",
+      "relation_kind": "review",
+      "result_contract": {
+        "schema_version": "website-agent-review-output-contract.v1",
+        "output_schema_version": "website-agent-review-output.v1",
+        "exact_top_level_fields": [
+          "decision",
+          "issues"
+        ],
+        "decision_values": [
+          "no_issue",
+          "issues"
+        ],
+        "exact_issue_fields": [
+          "category",
+          "target_type",
+          "target_ref",
+          "observation",
+          "evidence_refs",
+          "impact",
+          "confidence",
+          "suggested_inspection"
+        ],
+        "category_values": [
+          "source_text_possible_error",
+          "index_navigation_friction",
+          "missing_condition_or_exception",
+          "citation_locator_problem",
+          "prompt_ambiguity",
+          "missing_input",
+          "output_contract_friction",
+          "reasoning_depth_gap",
+          "safety_boundary_conflict",
+          "conversation_context_loss",
+          "provider_or_tooling_issue"
+        ],
+        "confidence_values": [
+          "low",
+          "medium",
+          "high"
+        ],
+        "invariants": [
+          "no_issue_requires_zero_issues",
+          "issues_requires_1_to_50_issues",
+          "every_issue_requires_at_least_one_evidence_ref"
+        ]
+      }
+    },
+    {
+      "product_id": "zeji_personal_selection",
       "action_id": "quality_reflection",
       "required_parameter_keys": [
         "reflection_plan_id",

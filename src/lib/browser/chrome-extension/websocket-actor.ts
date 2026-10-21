@@ -3,16 +3,16 @@ import { browserMutationTerminalFactShapeValid } from "../exact-target/browser-o
 import { executeExtensionCommandReply, readExtensionCommandPayload } from "./extension-command-runtime.js";
 import { clearExtensionPermitAuthority, setExtensionPermitAuthority } from "./command-permit-validator.js";
 import { readExtensionChromeApi, type ExtensionChromeApi } from "./extension-runtime-types.js";
-import { ExtensionTargetAuthority } from "./extension-target-authority.js";
+import { ExtensionTargetAuthority, type TargetClaimSendContext } from "./extension-target-authority.js";
 import { ExtensionHeartbeat } from "./extension-heartbeat.js";
 import { PairingCompletionGate } from "./pairing-completion-gate.js";
 import { PairingAutoBootstrap } from "./pairing-auto-bootstrap.js";
-import { BROWSER_COMMAND_DEFAULT_DEADLINE_MS, BROWSER_PROTOCOL_REVISION } from "../protocol/generated/browser-protocol.generated.js";
+import { BROWSER_COMMAND_DEFAULT_DEADLINE_MS, BROWSER_TARGET_ACQUISITION_MAX_WAIT_MS, BROWSER_PROTOCOL_REVISION } from "../protocol/generated/browser-protocol.generated.js";
 import { asRecord, base64Url, browserCommandErrorCode as errorCode, decrypt, encrypt, hexSecret,
   hashBrowserExtensionText, pairingErrorCode, publicSigningJwk } from "./websocket-actor-crypto.js";
 import { extensionFrameDiagnostic, extensionRuntimeDiagnostic } from "./websocket-actor-diagnostics.js";
 import { acceptTargetClaimAcknowledgement, TargetClaimAwaiter } from "./websocket-target-claim-awaiter.js";
-import { targetOperationFrom } from "./websocket-target-operation.js";
+import { targetOperationFrom, cancelPendingTargetAcquisition, type PendingTargetHandler } from "./websocket-target-operation.js";
 import { answerPairChallenge, readServerReadyPermit, verifyServerAuthenticated,
   type AuthenticatedSession, type PendingPairing } from "./websocket-pairing-proof.js";
 
@@ -54,17 +54,18 @@ export class ExtensionWebSocketActor {
   private readonly heartbeat: ExtensionHeartbeat;
   private readonly autoBootstrap: PairingAutoBootstrap;
   private readonly commandDelivery = {
-    pendingCommandHandlers: new Set<Promise<void>>(), pendingTargetHandlers: new Set<Promise<void>>(), commandAdmissionSuspended: false,
+    pendingCommandHandlers: new Set<Promise<void>>(), pendingTargetHandlers: new Map<number, PendingTargetHandler>(), commandAdmissionSuspended: false,
     mutationSlot: null as { jobId: string; commandId: string; receiptBindingHash: `sha256:${string}`; fact: unknown } | null,
     sendTail: Promise.resolve([] as PromiseSettledResult<void>[]), receiveTail: Promise.resolve() as Promise<void>,
     disconnectedDrain: null as Promise<void> | null,
   };
   public constructor(private readonly chromeApi: ExtensionChromeApi) {
-    this.targetAuthority = new ExtensionTargetAuthority(chromeApi, (kind, body) => this.sendTargetFrame(kind, body),
+    this.targetAuthority = new ExtensionTargetAuthority(chromeApi, (kind, body, context) => this.sendTargetFrame(kind, body, context),
       input => this.reportTargetFailure(input), async () => {
         this.commandDelivery.commandAdmissionSuspended = true;
         const drain = this.commandDelivery.disconnectedDrain;
-        await Promise.allSettled([...this.commandDelivery.pendingCommandHandlers, ...this.commandDelivery.pendingTargetHandlers]);
+        await Promise.allSettled([...this.commandDelivery.pendingCommandHandlers,
+          ...Array.from(this.commandDelivery.pendingTargetHandlers.values(), record => record.promise)]);
         if (drain !== null) await drain;
       });
     this.heartbeat = new ExtensionHeartbeat(chromeApi, async socket => {
@@ -215,6 +216,7 @@ export class ExtensionWebSocketActor {
       || this.commandDelivery.pendingTargetHandlers.size > 0 || this.commandDelivery.disconnectedDrain !== null)) return;
     this.commandDelivery.mutationSlot = null;
   }
+
   private async acceptTargetAcquire(socket: WebSocket, frame: BrowserAuthorityFrame): Promise<void> {
     const session = this.connection.session;
     if (!session || socket !== this.connection.socket || !this.connection.commandReady || frame.epoch !== AUTH_EPOCH) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
@@ -225,6 +227,11 @@ export class ExtensionWebSocketActor {
     if (!currentSession()) return;
     this.acceptServerSequence(frame);
     const operation = targetOperationFrom(request), deadline = Date.parse(frame.deadline);
+    const maximum = operation.action === "acquire" ? BROWSER_TARGET_ACQUISITION_MAX_WAIT_MS : BROWSER_COMMAND_DEFAULT_DEADLINE_MS;
+    if (deadline > Date.now() + maximum) throw new Error("BROWSER_COMMAND_PERMIT_EXPIRED");
+    if (operation.action === "cancel-acquisition") {
+      cancelPendingTargetAcquisition(this.commandDelivery.pendingTargetHandlers, operation, session); return;
+    }
     if (this.commandDelivery.pendingTargetHandlers.size > 0 || this.commandDelivery.disconnectedDrain !== null) {
       this.reportRuntimeFailure(new Error("BROWSER_BACKPRESSURE"), "job-bound-target-acquisition", frame.sequence, { jobRefHash: operation.jobRefHash }); return;
     }
@@ -232,6 +239,8 @@ export class ExtensionWebSocketActor {
       || this.commandDelivery.mutationSlot !== null || this.commandDelivery.pendingCommandHandlers.size > 0)) {
       this.reportRuntimeFailure(new Error("BROWSER_COMMAND_ADMISSION_SUSPENDED"), "job-bound-target-acquisition", frame.sequence, { jobRefHash: operation.jobRefHash }); return;
     }
+    const state = { action: operation.action, jobRefHash: operation.jobRefHash,
+      serverToClientKey: session.serverToClientKey, clientToServerKey: session.clientToServerKey, cancelled: false };
     const handler = (async (): Promise<void> => {
       if (operation.action === "release") {
         this.commandDelivery.commandAdmissionSuspended = true;
@@ -244,14 +253,15 @@ export class ExtensionWebSocketActor {
         return;
       }
       await this.targetAuthority.acquireJobBoundChatGptTarget(operation.targetMode, operation.jobRefHash, operation.parentConversationUrl, () => {
+        if (state.cancelled) throw new Error("BROWSER_WAIT_ABORTED");
         if (this.commandDelivery.commandAdmissionSuspended) throw new Error("BROWSER_COMMAND_ADMISSION_SUSPENDED");
         if (!currentSession() || !this.connection.commandReady) throw new Error("BROWSER_EXTENSION_CHANNEL_UNAVAILABLE");
-        if (Date.now() >= deadline) throw new Error("BROWSER_COMMAND_PERMIT_EXPIRED");
+        if (Date.now() >= deadline) throw new Error("BROWSER_TARGET_ACQUISITION_TIMEOUT");
       }, deadline);
     })();
-    this.commandDelivery.pendingTargetHandlers.add(handler);
+    this.commandDelivery.pendingTargetHandlers.set(frame.sequence, Object.assign(state, { promise: handler }));
     const retire = async (failed: boolean, error?: unknown): Promise<void> => {
-      this.commandDelivery.pendingTargetHandlers.delete(handler);
+      this.commandDelivery.pendingTargetHandlers.delete(frame.sequence);
       if (!currentSession()) return;
       if (this.connection.commandReady && this.commandDelivery.pendingTargetHandlers.size === 0
         && this.commandDelivery.pendingCommandHandlers.size === 0 && this.commandDelivery.disconnectedDrain === null) {
@@ -264,6 +274,7 @@ export class ExtensionWebSocketActor {
       if (currentSession()) this.reportRuntimeFailure(error, "job-bound-target-acquisition", frame.sequence, { jobRefHash: operation.jobRefHash });
     });
   }
+
   private async acceptCommand(socket: WebSocket, frame: BrowserAuthorityFrame): Promise<void> {
     if (this.commandDelivery.commandAdmissionSuspended || this.commandDelivery.mutationSlot !== null || this.commandDelivery.pendingCommandHandlers.size > 0) throw new Error("BROWSER_COMMAND_ADMISSION_SUSPENDED");
     const session = this.connection.session;
@@ -317,7 +328,8 @@ export class ExtensionWebSocketActor {
       if (socket === this.connection.socket && this.connection.session?.clientToServerKey === key) this.close(errorCode(error)); throw error;
     }
   }
-  private async sendTargetFrame(kind: "TARGET_CLAIM" | "TARGET_REVOKE", body: Record<string, unknown>): Promise<void> {
+
+  private async sendTargetFrame(kind: "TARGET_CLAIM" | "TARGET_REVOKE", body: Record<string, unknown>, context?: TargetClaimSendContext): Promise<void> {
     if (!this.connection.socket || !this.connection.session || this.connection.state !== "CONNECTED" || !this.connection.commandReady) {
       if (kind === "TARGET_REVOKE") return;
       throw new Error("BROWSER_EXTENSION_CHANNEL_UNAVAILABLE");
@@ -327,28 +339,42 @@ export class ExtensionWebSocketActor {
     const documentRef = typeof body.documentRef === "string" ? body.documentRef : null;
     const jobRefHash = typeof body.jobRefHash === "string" && /^sha256:[a-f0-9]{64}$/u.test(body.jobRefHash) ? body.jobRefHash as `sha256:${string}` : null;
     if (!targetRef || !documentRef || !jobRefHash) throw new Error("BROWSER_TARGET_INVALID");
-    return this.targetClaims.begin({ targetRef, documentRef, jobRefHash, send: () => this.sendEncrypted(this.connection.socket, kind, body) });
+    return this.targetClaims.begin({ targetRef, documentRef, jobRefHash,
+      send: assertPending => this.sendEncrypted(this.connection.socket, kind, body, context ? {
+        deadlineAt: context.deadlineAt,
+        assertCurrent: () => { assertPending(); context.assertCurrent(); },
+      } : undefined) });
   }
-  private sendEncrypted(socket: WebSocket | null, kind: "HEARTBEAT" | "REPLY" | "TARGET_CLAIM" | "TARGET_REVOKE" | "DIAGNOSTIC" | "REVOKE" | "MUTATION_RECEIPT", body: Record<string, unknown>): Promise<void> {
+
+  private sendEncrypted(socket: WebSocket | null,
+    kind: "HEARTBEAT" | "REPLY" | "TARGET_CLAIM" | "TARGET_REVOKE" | "DIAGNOSTIC" | "REVOKE" | "MUTATION_RECEIPT",
+    body: Record<string, unknown>, context?: TargetClaimSendContext): Promise<void> {
     const session = this.connection.session;
     const send = this.commandDelivery.sendTail.then(async () => {
       if (!socket || socket !== this.connection.socket || socket.readyState !== WebSocket.OPEN || !session || this.connection.state !== "CONNECTED"
         || this.connection.session?.clientToServerKey !== session.clientToServerKey) throw new Error("BROWSER_EXTENSION_CHANNEL_UNAVAILABLE");
+      context?.assertCurrent();
+      const deadlineAt = Math.min(Date.now() + BROWSER_COMMAND_DEFAULT_DEADLINE_MS, context?.deadlineAt ?? Infinity);
+      if (context && Date.now() >= context.deadlineAt) throw new Error("BROWSER_TARGET_ACQUISITION_TIMEOUT");
       const sequence = this.connection.session.nextClientSequence;
       this.connection.session = { ...this.connection.session, nextClientSequence: sequence + 1 };
       const header = { protocolVersion: BROWSER_PROTOCOL_REVISION, kind, epoch: AUTH_EPOCH, sequence,
-        deadline: new Date(Date.now() + BROWSER_COMMAND_DEFAULT_DEADLINE_MS).toISOString() };
+        deadline: new Date(deadlineAt).toISOString() };
       const encrypted = await encrypt(session.clientToServerKey, "client-to-server", header, body);
       if (socket !== this.connection.socket || this.connection.session?.clientToServerKey !== session.clientToServerKey) throw new Error("BROWSER_EXTENSION_CHANNEL_UNAVAILABLE");
+      context?.assertCurrent();
+      if (context && Date.now() >= context.deadlineAt) throw new Error("BROWSER_TARGET_ACQUISITION_TIMEOUT");
       socket.send(encodeBrowserAuthorityFrame({ ...header, body: { encrypted } }));
     });
     this.commandDelivery.sendTail = Promise.allSettled([send]); return send;
   }
+
   private drainDisconnectedHandlers(): Promise<void> {
     if (this.commandDelivery.disconnectedDrain !== null) return this.commandDelivery.disconnectedDrain;
     this.commandDelivery.commandAdmissionSuspended = true;
     const drain = (async () => {
-      await Promise.allSettled([...this.commandDelivery.pendingCommandHandlers, ...this.commandDelivery.pendingTargetHandlers]);
+      await Promise.allSettled([...this.commandDelivery.pendingCommandHandlers,
+        ...Array.from(this.commandDelivery.pendingTargetHandlers.values(), record => record.promise)]);
       await this.targetAuthority.releaseActiveTarget(false);
       if (this.commandDelivery.pendingTargetHandlers.size === 0) this.commandDelivery.commandAdmissionSuspended = false;
       await this.flushMutationReceipt();

@@ -1,218 +1,164 @@
-# AGENT 浏览器重复超时、释放暂停残留与提交回执失配完整实现方案
+# GPT 页面按就绪放行与取得目标最长等待完整实现方案
 
-状态：可施工（仅方案内部设计准入，不代表已获本轮施工授权）。日期：2026-10-12（Asia/Dubai）。需求 Owner：AGENT / local-browser-session。
-沿用唯一方案路径，替换前轮施工正文并保留已落地不变量；不建立竞争方案。
+状态：可施工（用户已授权施工；当前代码建设及验收进行中）。日期：2026-10-21（Asia/Dubai）。需求 Owner：AGENT / local-browser-session。
+沿用本文件作为唯一方案，替换已落地的前轮施工正文，保留其仍适用不变量；不新增竞争方案。
 
-## 1. 目标、终点与授权
+## 1. 本轮目标、授权与终点
 
-本轮修复设计覆盖四个已证伪的直接缺陷：A1 旧 Target handler 未退出时重复接入并积压，及失败诊断的请求归属断链；A2 release 失败退出后遗留接入暂停；R1 迟到释放成功回执无请求关联，撤掉整个连接或错完成新释放；S1 exact-outgoing 后置回执两端判据不一致。目标为故障调用有限退出、真实旧操作结束后原链接回、兄弟任务不受遗留暂停或旧回执连坐、原提交事实可合法记账。
+用户原始要求：“这个位置我的想法是不设置时间门槛，但是设置一个最长比如120秒的的硬兜底……具体你激活闭环SKILL去论证。”设计裁决：取得 GPT 页面按当前真实就绪事实立即放行，不设置必须等待十五秒、二十秒或一百二十秒的最低时长；为一次已出队并准备发出的 Target acquisition 设置最多 120,000ms 的上限。120 秒是有界容错政策，现有十五秒以上目测和三次二十秒失败支持移除过短耦合，但不足以声称 120 秒是实测 P99 或保证所有页面成功。
 
-本轮交付仅方案文档 CHANGE，只在本地 main 更新本文件。没有法案、Blueprint、代码、数据库、Chrome、扩展或生产写入；不删单、不重启、不提交/推送、不执行 READY/RELEASE。未来施工须另有覆盖§6精确路径的授权，旧授权、前轮子审及旧 READY 不替代本轮授权或验收。
+本轮用户已明确授权按本方案在main建设并执行CI-FULL，目标等级为AGENT READY：本方案、Browser Blueprint、登记的Browser生产片区与原质检消费者可施工；CHANGE通过后提交/首推、完整READY及第二推。Website仅只读核源，本案不改产品、数据库、运行服务或Chrome，不删单、不重启、不执行Provider输入；RELEASE另行授权。
 
-尚未查明事故中每笔 Target 超时的最初 Chrome 原因。真实 native 一直不返回时，仍为 Browser Owner 管理的结果未知：业务等待有限失败，保留原操作/事实，不增加扩展 Target handler；当前真实物理动作仍必须串行。本方案没有自动强杀、同 build 重载、诊断断连或通用取消链，不声称永久 native 卡死已根治。
+需求直接终点：同一授权 job 的当前 system Target 以现役完整加载/物理身份/current Document 证明取得合法 Browser lease，原 GPT Child 可以继续；未就绪不得输入 Prompt 或提交。业务终点仍为 Product 结果→Runtime durable stage/原 Outbox→Website 领域幂等入库/admission→Runtime completed。页面取得、普通测试、READY 和业务完成分别报告。
 
-权威业务终点仍是 Product 结果→Runtime durable result/terminal Outbox→Website 领域事务及 admission readback→Runtime local completed。N=3 是 Website 业务容量；一条 Browser 物理 FIFO/lane不变。三个 Tab、GPT出字、HTTP 200、普通测试或旧质量证据均不是业务完成。
+## 2. 已证事实、首个断裂与前轮连续性
 
-## 2. 当前证据与第一直接断裂
+证据：附件 `/Users/nexgen/.codex/attachments/9192314f-59cc-4be0-b7fa-e9abec007eae/已粘贴的文本.txt`；原日志 `.grasseye-local/runtime-logs/agent/30da4ba1-0743-4f85-9578-3bdc12e793a0-0001.jsonl`，本案固定取证窗口 2026-10-21T17:26:18Z—17:30:39Z。静态事实来自下列现役源码，不把目测加载时间写成测量结论。
 
-输入附件：/Users/nexgen/.codex/attachments/1891d578-4ec0-464a-a0b3-75c0a4d0e5e7/已粘贴的文本.txt。
-原日志：.grasseye-local/runtime-logs/agent/eec017d8-7396-4084-9444-487e5959fa65-0001.jsonl；固定取证截止2026-10-12T17:59:37.676Z。原窗口按唯一失败Child span/event identity去重为12次Target超时、6个job，附件截止更早，不能混用分母或按多层传播计数。这批为localization_static_catalog / zh-HK，不能称为十四种专业产品。
-
-| GAP | 第一直接断裂与应有事实 | 本轮可声称的证据 |
-| --- | --- | --- |
-| A1 | websocket-actor.ts#acceptTargetAcquire（218–258）不检查现役pendingTargetHandlers，Node caller超时后又发请求，扩展继续把handler塞进原logical queue；应仅拒绝新请求自身，不增加真实旧handler后的Target等待。迟到拒绝还必须归属原会话和原请求，不能连坐后续合法请求 | 真实Actor/Authority/DebuggerRuntime，模拟Chrome tabs.create延迟返回：3个认证请求→pendingTargetHandlers=3、真实create=1；真实退出和原清理后handlers=0、CONNECTED、close=0，下一请求create=2。证明放大链，不证明生产首因。子审补证：真实transport的release wire sequence=9、pending.requestSequence缺席，旧sequence=8诊断错拒新release；真实旧Actor handler失败通过新key发送旧job/sequence=2，原Node Acquirer错拒同job/sequence=2的新acquire |
-| A2 | 同方法release成功解除暂停，失败仅删handler/report，留下commandAdmissionSuspended=true；应在真实退出且没有其他当前暂停责任时退休本次暂停 | 真实扩展release入口、原releaseJobBoundTarget，已登记精确bound Target，模拟getTargets拒绝后两个handler集合均空、slot=null、CONNECTED；下一合法acquire仍被ADMISSION_SUSPENDED拒绝。确定代码缺陷，尚无该分支的生产触发证明 |
-| R1 | 原releaseOutcome只有job/target/outcome；Authority晚成功仍用当前会话发送，Supervisor无matching pending时throw，同job新release时却可错resolve。应保留真实物理退休，但只有当前原请求能完成等待 | 真实Supervisor→原WebSocket/AEAD/parser三例：无pending旧成功→close=1；兄弟pending→close=1且兄弟被reject；同job新pending→错误resolve=1。原release无caller deadline/session绑定，真实调用图可到这些分支；未把该反例归因给某笔生产job |
-| S1 | dom-mutation-postcondition.ts#exactOutgoingTurnVerified检查hash+canonical URL，browser-observation-receipt.ts#exactOutgoingPostconditionVerified只检查hash；首页同包生产者拒绝、接收者要求成功→AUTH_INVALID；应一致判为合法后置失败并保留已知点击 | 真实verifyClickPostcondition→原packet binding→原decoder：首页/两query合格/hash正确稳定复现拒收，canonical包成功。job045ec3a6、command23da3f77于17:16:21.194Z有AUTH_INVALID/dispatched/count=1，但无历史DOM包，不能断言该次就是S1 |
-
-S1另有下级权威冲突：Browser Blueprint第27行豁免exact-outgoing query索引原因；现役LAW-LOCAL-BROWSER-SESSION-004-V57对observation query失配没有该豁免。按冻结说明书§4.2修下级：query失配一律首个Q<i>原因；全部query合格但exact hash/locator不完整才用既有非索引MISSING。不修改active law。
-
-子审定位的两个关联断裂已由主Codex真实代码反例复核：requestPreauthorizedTargetRelease丢掉原sendControlFrame返回序号，Acquirer的可选dispatch返回值因此漏登记release序号；旧Target失败回调直接调用reportRuntimeFailure，在回调时捕获新socket/key，把旧诊断重新加密进新会话。均为A1/A2的原请求归属链，纳入原位重构，不增协议字段、状态或Node第二接收链。两个反例只mock Chrome/native/WebSocket叶端点，未改生产代码。
-
-R1是对子审成功分支追查的必要补全，不能靠上述失败诊断修正关闭。三字段成功回执不足以区分同job旧business释放和新admin释放；发送前deadline检查挡不住已发出的迟交付；挪用client frame sequence会破坏现役AEAD单调序号。因此仅此成功控制回执新增必填原requestSequence，唯一Browser协议10→11；不是新增恢复状态、历史请求账本或第二通道。LAW006的三字段限定仍原样约束TARGET_ACQUIRE请求；响应原数值序号不携敏感内容，LAW001/005的单协议/同端切换保持。
-
-6f16c621于17:35:57.062Z的reasoning后置失败有count=1/confirmed/MISSING，但无失败DOM包，不改selector或延长等待。较早run的canceled_by_user没有操作者身份，不证明扩展冲突；126/123秒外层耗时不证明电脑负载首因。后来正常取得回答的ADJACENT_ASSISTANT_MISSING属于现役pending，不另立修复单。
-
-官方接口核验：[tabs.create](https://developer.chrome.com/docs/extensions/reference/api/tabs#method-create)与[debugger.sendCommand](https://developer.chrome.com/docs/extensions/reference/api/debugger#method-sendCommand)参数未声明通用AbortSignal。只能推断未发现直接可用的通用取消接口，不能据此授权强制重启或断言所有平台行为。
-
-## 3. 四维对齐及前轮连续性
-
-主Codex本轮已完整读取AGENT两份active law各两遍、闭环Skill全文两遍，截断段补齐；frozen-spec-index与本仓母本适用全文章节已核。39条active law仍为原生分母，以下专项映射不缩减分母。回归筛查命中反复迭代，使用深度：真实AEAD入口→handler/native→claim/revoke/diagnostic→Node pending→GPT失败→Runtime/Website恢复边界，并反查receipt producer→strict verifier→WAL/ACK。仅查此图和必要Git历史。
-
-| 维度 | 现役权威、落点与裁决 |
+| 事实/对象 | 精确位置与结论 |
 | --- | --- |
-| 法案 | LAW-CODE-PURITY-001-V6、LAW-CODE-PURITY-002-V2、LAW-CODE-PURITY-003-V3；LAW-CAPABILITY-GOVERNANCE-001-V19；LAW-ARCHITECTURE-BOUNDARY-001-V18、LAW-ARCHITECTURE-BOUNDARY-002-V2；LAW-AGENT-PRODUCTION-RUNTIME-001-V76、LAW-AGENT-PRODUCTION-RUNTIME-005-V43；LAW-GPT-001-V65、LAW-GPT-002-V32；LAW-LOCAL-BROWSER-SESSION-001-V4、LAW-LOCAL-BROWSER-SESSION-002-V6、LAW-LOCAL-BROWSER-SESSION-003-V46、LAW-LOCAL-BROWSER-SESSION-004-V57、LAW-LOCAL-BROWSER-SESSION-005-V6、LAW-LOCAL-BROWSER-SESSION-006-V46；LAW-RUNTIME-LOG-SPINE-001-V7、LAW-RUNTIME-LOG-SPINE-002-V4、LAW-RUNTIME-LOG-SPINE-003-V6。当前native串行、唯一Owner/WAL/FIFO、effect禁重放、Website唯一恢复、closed wire、日志仅诊断保持，无active law修改 |
-| Blueprint | Browser V56接入/退出、exact豁免及第86/90行单协议/释放回执片区需先重构；GPT V69所消费submit同包locator/失败事实对齐。Runtime WEBSITE-AGENT-V6、Log V3、质量evidence ownership直接复用；不新增第三submit门 |
-| 实现 | 原ExtensionWebSocketActor拥有接入/handler暂停责任，原Authority/DebuggerRuntime拥有物理动作/guard；原Acquirer/Coordinator拥有caller/FIFO。现役browser-observation-receipt.ts承载后置机械决定，实际严格同义消费者为扩展verifyClickPostcondition与Node observationPostconditionEvidenceValid |
-| 质检 | package.json唯一quality:check；Browser原target-claim/dom-mechanical inspector与acceptance、原mutation/WAL verifier。不新增checker、verdict或存储 |
+| job `aiprod_39bdd2ba-88ae-4a25-baba-4e5386c6ab42` | fresh-chat 三次分别 20,253.84 / 20,628.81 / 20,201.86ms，均 BROWSER_TARGET_ACQUISITION_TIMEOUT；不是菜单 DOM 缺席错误 |
+| 兄弟 job `aiprod_25902401-1b2a-46a4-920b-ddbdcc77dbf9` | 同三轮在前一超时后立即报 BROWSER_BACKPRESSURE；后来 17:29:32.623Z—17:29:39.038Z 约 6.415 秒成功开页，17:30:38.581Z submit Child 成功。后两项不证明业务最终入库 |
+| 第一个直接断裂 | `runtime-state.ts#leaseBudget` 给普通 command_ttl_ms≤20,000；`production-browser-lifecycle.ts#acquireBrowserLease` 暴露 commandTtlMs；`browser-target-acquirer.ts#ensureAvailableTarget` 将加载取得 Target 的预算也取该 commandTtlMs。页面生命周期被普通命令期限提前截断 |
+| 第二个直接限制 | 同文件 `awaitTargetOperation` 又用普通 BROWSER_COMMAND_DEFAULT_DEADLINE_MS=30,000 截断；`browser-authority-websocket.ts#sendControlFrame` 对所有控制帧统一限制未来 30 秒。只把第一处改成 120 秒不能成立 |
+| 已有等待与清理 | `extension-created-target.ts#waitForCreatedTarget/consumeTabUpdateAfterBarrier` 已按 tabs.onUpdated 唤醒并 fresh readTab，status 非 complete 就等待；超时由原 timer 唤醒，创建失败进入精确孤儿清理。不是缺少另一套等待引擎 |
+| 截止点接缝 | 原pending没有deadlineAt，Supervisor#onTargetClaim只核pending存在/job后先注册，resolvePending只清timer；定时回调未调度时不能证明严格D。扩展claim经sendTail/加密后又给新30秒frame，原发送前assert不能覆盖异步延迟。要实现§4硬边界，必须在原pending与原认领收发链承接同D |
+| 已发取得操作的撤权缺口 | Coordinator出队停止queued abort监控，active Acquirer不监听signal；Runtime控制意图仅abort本地signal，扩展guard只核session/READY/D。加载后可继续尚未发出的导航，Node最后才拒绝lease。直接拉长窗口会放大该缺口，必须纳入W1C，而不是声称Provider submit为零就已覆盖全部动作 |
+| 认领失败的活动绑定接缝 | Authority#claimActiveTarget先置activeTarget再await发送；acquisition catch仅为新建候选discard。复用bound Target时，新增异步发送guard若因截止/取消拒绝，会留下未成功认领的activeTarget，后续acquire与普通release均可被拒。须精确退休本次绑定，保留bound registry/Tab，不能仅验证零输入 |
+| 不能归因的部分 | 现有日志没有当次关页前 Chrome status、每段真实耗时，不能断言页面加载慢是唯一首因；不能据此改 selector、认定机器负载或扩展冲突。永久不返回的 native 仍未获通用安全取消证明 |
 
-前轮commit 2a8e08d47的G1/B1已在现役HEAD落地，保持，不重做：
-- GPT waitForProviderObservation/parkActive的新lease引用、旧park一次移交且失败退休、reacquire/selection经原facade重入同atomic identity；文本/图片、限流first cause与零提交读回不变。
-- Coordinator全部queued acquire/release到期/abort有限退出；原动态remainingMs、唯一wake timer、队列上限10、公平性。queued到期不取消active/native；release仍排队30秒→静默40秒→dispatch30秒。
-- 前轮L1请求全寿命/stage stop-and-join、C2逐job cleanup隔离、日志原span/4096有界去重和durable-fact后ACK继续。
-- 前轮E1初始Target超时未确诊，扩展接入未改；Node-only反例未覆盖真实扩展积压及release失败暂停。本轮补已证实分支，不宣称此前全部回退。
-- 普通Q<i>机制保留，exact-outgoing下级旧豁免按当前上级义务删除。旧方案子审只对应当时G1/B1，不作本轮放行。
+回归信号命中反复超时及同片区近期重构，采用深度、有限实现图。commit `2a8e08d47` 已有队列到期/释放预算分相；`9421b4154` 已有真实 Target handler 背压、请求序号关联与自身暂停退休，当前代码仍在。前轮 A1/A2/R1/S1 的对应实现是保留对象，不重新作为待建缺陷，也不引用旧子审/READY 为本轮放行。新 GAP 是加载取得 Target 的期限来源；先前“首个 Chrome 原因未知”的边界继续成立。
 
-反向调用补核：dom-pointer-intent-runtime.ts#prepareClick在exact-outgoing存在时先进入prepareExactOutgoingClick，不进入ordinary observationPointerAction的zero-action路径；页内coherent candidate的预点击计数判定用于原子候选准备，与点击后/Node回执验证的时间和输出不同，保留而不合并。W3不删预提交prompt/附件门，也不把普通零动作路径扩大为submit确认。
+## 3. 权威、影响范围与停止边界
 
-## 4. 唯一主链与合同handoff
+权威：本仓冻结说明书 §4、§22、§24—25、§35—38、§41—44、§46—47；基础法案 LAW-CODE-PURITY-001-V6 / 002-V2 / 003-V3；功能法案 LAW-LOCAL-BROWSER-SESSION-001-V4 / 003-V46 / 004-V57 / 005-V6 / 006-V46，及 LAW-GPT-002-V32、LAW-AGENT-PRODUCTION-RUNTIME-001-V76 的当前权限/恢复边界。原 Owner Manifest、Browser V56 Blueprint 和协议 revision12 为现役来源。
 
-A1/A2只重建现役接入/退出责任；R1只补原释放成功的请求关联；S1只在同一coherent packet上决定后置事实。业务恢复、新attempt/revision/risk仍由Website.ai-acceptance签发，不加AGENT恢复循环。
+本轮不需要降低 active law、改变 Owner 或修改冻结说明书。Browser Blueprint 第17行原文为“不扩大native期限”，不等于active law把acquisition固定为20秒；未来代码前须补明本案acquisition独立上限、原在途native不得假取消，以及第92行真实handler背压对精确撤回通知的唯一窄分流；release、普通 mutation、1.5秒访问节拍、2.5秒动作读回、40秒静默、70—90秒 Provider observation 保持。法案没有要求所有取得 Target 都只能20秒；不能反过来放大全部普通命令 deadline 来迁就加载。
 
-| handoff | 合同与唯一决定 |
+影响范围交叉来源：①现役 BrowserTargetLeaseWait 封闭 union 与 Coordinator 注册穷尽四种 acquisition 模式；②从公开 acquireJobBoundTargetLease→GPT lifecycle→Runtime lease getter 反查真实调用；③从 protocol schema/generator→加密 transport→Actor→Authority→Chrome event→claim admission 正反查全部期限；④现有事故 span 和原生 inspector/Exam 反查保护对象。四来源无未解释旁路，所有生产 acquisition 均通过同一 Acquirer/Actor；直接 Authority 调用仅为现役验收夹具，不增加生产入口。
+
+| 对象/消费者 | 决定、理由与验收映射 |
 | --- | --- |
-| Node→Extension | 当前Browser protocol10；目标唯一11由原schema→原generator生成，当前AEAD连接/递增sequence、同absolute deadline。acquire exact action/targetMode/jobRefHash，authorized-continuation才有parentConversationUrl；release exact action/jobRefHash/releaseAuthority三字段不变。unknown fields拒收；无取消/重启/进度载荷 |
-| 普通Target拒绝→Node | 复用DIAGNOSTIC：extension-runtime、job-bound-target-acquisition、failedFrameSequence、jobRefHash、既有code。目标实现：原transport的acquire/release均返回原frame sequence，Acquirer在同一同步dispatch中登记原requestSequence，只有匹配当前pending的job/sequence才消费有请求引用的诊断；旧Actor handler只有捕获socket/双向key仍属当前会话才报告旧请求诊断。背压BROWSER_BACKPRESSURE、其他原接入拒绝BROWSER_COMMAND_ADMISSION_SUSPENDED；合法拒绝不抛入onMessage的REVOKE/close，畸形/认证错仍fail-close。当前release尚未满足此目标，不把应建合同写成现役事实 |
-| 释放成功→Node | revision11仅TARGET_REVOKE.releaseOutcome分支闭集targetRef/jobRefHash/releaseOutcome/requestSequence，原requestSequence safe integer≥1；普通revoke仍targetRef/documentRef/jobRefHash三字段，禁止加序号。Actor在原tracked handler内消费Authority真实物理结果，按捕获原会话发送原请求序号；Node只有pending.action=release且job/sequence同时相等才resolve。迟到released非null只调用原broker精确targetRef+job退休，迟到absent/null无精确旧claim身份必须零claim动作；两者不完成新pending、不purge、不清槽/WAL、不撤连接。非法shape/cipher/sequence原fail-close |
-| 后置回执→Node | 原dom-observation.v2的同包currentUrl/queries/observedAt/target-document hashes/revision hash；扩展与Node共用一个机械决定。Node原header/binding/hash strict、canonical bytes、unknown-field闭集保持；其当前header未核清洗URL，W3复用并迁移原sanitizeCurrentUrl至receipt Owner供原Extension decoder与后置决定共用。包合法性保持原opaque segment规则；CONFIRMED locator另用原canonical规则，不混成一个门 |
-| terminal→WAL/ACK | 原command/exact-call/receiptBindingHash及immutable WAL identity；合法失败也strict verifier→terminal CAS/readback→ACK。旧count/unknown不造零输入；无完整submit证明不造CONFIRMED locator。坏/null只原dispose/disposed |
-| GPT→Runtime→Website | 原Child/effect/source/attempt/lease/fence；Target或新attempt不授重发effect。task-result18/control45无字段或版本delta；旧已输入/未知只同effect有限零提交读回，必要风险输入仅Website新grant |
-| 业务终点 | 本事故staticCatalog由原business-result-consumer#staticCatalog在同事务finalizeConsumptionWithClient+writeStaticCatalogAdmission/writeStaticCurrentLocale，以精确result_payload_hash/business_consumption_hash及适用current entries核权威存储；Runtime reconcileBusinessAdmission读回后才local completed |
+| fresh | 首次建页、已有本 job Target 的 fresh 复位均用同一 acquisition 上限；同一个绝对截止点，不因导航重新计时；F1/F2/F3 |
+| bound-observation | 当前本 job live Target 的激活与核验同上；缺席仍原 typed failure，不抢操作者页；F1/F4 |
+| confirmed-readback | 当前授权下取得当前 Target；原 Provider 观察资格/locator/effect 不变；正常同 URL 零导航，缺 Target 按原链创建；F1/F4/F6 |
+| authorized-continuation | 精确父 job/本地 completed attempt/product step 的唯一 WAL locator、当前 job 独占新 Target、一条精确导航均保留；F1/F4/F6 |
+| Runtime/GPT 普通命令与 Website | `remainingMs()` 继续承载当前可用执行预算；commandTtlMs/command_ttl_ms 只保留普通命令消费者。本案不改字段、跨仓版本、业务结果、failure code、attempt、N 或恢复裁决；F5/F6/F8 |
+| 其它页面导航 | 已取得 Target 后的普通 typed `selectExactGptConversation`、frame-navigation publication、Target claim ACK 仍原命令/认证期限；它们不是正在创建页面的加载等待，非本案扩时对象；F5 |
+| 物理通道与结果交付 | 当前 acquisition 等待仍占唯一 lane/真实 handler；Runtime 续租/heartbeat/结果 Outbox 是原独立异步链，不改其 Owner/契约。结果签收存储无变化，跨 Owner 输出仍原 Browser lease 或原 typed failure；F6/F8 |
 
-caller超时只结束等待；Node readState=idle表示本地lane调用占用，不是Chrome native退出证明，不得据此并行输入。扩展现役handler/drain与原DebuggerRuntime guard继续承担当前物理安全；接入fence不读取历史DISPATCHED，也不增加状态真相。
+按上述身份、返回类型、原错误码和副作用不变的 handoff，在 Website 业务消费边界停止施工扩展；未来实际业务 readback 仍须取得。不能以“网站不改”省略续租、失败回接和最终 admission 验收。九类产品、翻译与其它合法 Product 间接消费同一 facade，不逐产品复制加载政策或更改专业 Skill。
 
-## 5. 有限分母和连坐验收
+## 4. 唯一目标链与期限语义
 
-| 分支 | Owner、终态/readback、恢复接回与验收 |
+唯一主链：当前 Website grant→Runtime durable accept→Product/GPT 原调用→唯一 Coordinator FIFO/原静默门→Browser Acquirer 签本次 acquisition 的截止点→原 AEAD TARGET_ACQUIRE→原 Extension 事件等待 complete/身份核验→原 TARGET_CLAIM admission/lease→原 Child。关闭上限仅终止调用等待，不签业务完成或新 attempt。
+
+1. **唯一数值源**：在现役 `browser-protocol.schema.json.commandAdmission` 增加 `targetAcquisitionMaxWaitMs:120000`，普通 `defaultDeadlineMs:30000` 不改；现役 generator 仅新增导出 `BROWSER_TARGET_ACQUISITION_MAX_WAIT_MS`。配置改变随同唯一 Browser revision12→13，一次切换、拒绝旧协议；不增加frame、数据库、环境变量或用户开关；原acquire/release body不改，仅第9项增加cancel-acquisition这一严格三字段控制分支，未来施工授权须明确包含该分支及原signal的active监听。
+2. **起点**：仍 queued 的等待、Provider observation eligibility 与40秒提交静默遵守原预算；真正出队、静默完成、重核当前资格后，在原 Acquirer 即将 dispatch 时建立 D=`Date.now()+min(120000, waiter.remainingMs())`。`remainingMs()<1` 仍原 V6_DEADLINE_BUDGET_EXHAUSTED，零 dispatch。120秒不包含前述排队/静默，不是全 job SLA。
+3. **解除错误耦合**：`ensureAvailableTarget` 不再读取 binding.commandTtlMs 决定 acquisition；`awaitTargetOperation` 按 action 选 acquisition 的120秒上限或 release的原30秒上限。普通 Browser COMMAND 仍 `min(普通30秒上限, permit.commandTtlMs)`，生产普通 TTL仍≤20秒；不修改 Runtime/GPT 的 TTL 提供者或公共 wait 合同。
+4. **同一绝对截止点**：transport仅当 kind=TARGET_ACQUIRE 且已知原 body.action=acquire 时允许≤120秒未来 deadline；其它控制请求，包括同 frame kind 的 release，仍≤30秒。Actor 解密、严格序号/形状通过后按同一 action 上限重核，非法 deadline 沿原拒绝/认证失败路径，未调用 Chrome。Authority 接受原 D，内部缺省调用也引用同一 acquisition 常量。建页、complete事件、激活、attach、必要导航和 Node claim admission不重置 D、不各送120秒、不刷新为后续租约。原 PendingJobBoundTargetAcquisition 同次保存进程内deadlineAt；其原action判别联合中，acquire同时借用原signal并保存退订回调，release无此监听。Supervisor#onTargetClaim对初始claim在workspace/registry副作用前核pending.action=acquire、job匹配、原signal未abort且now<D，过期沿原失败关闭，不能只靠timer回调。
+   acquisition的claimActiveTarget把原D通过原TargetFrameSender→Actor构造器callback→sendTargetFrame→sendEncrypted的可选内部调用上下文传递（仅原D与原assertCurrent回调）；仅该CLAIM路径在sendTail取得执行权及encrypt完成、真实socket.send之前重核原assertCurrent和D，该CLAIM frame.deadline取min(now+原30秒,D)。普通navigation-publication claim的参数缺席仍原30秒，TARGET_REVOKE/清理不携此参数，避免截止后阻塞清理。wire body/claim字段零新增，原session/key/sequence核验保留；没有新pending表或新认领回执。
+   同一claimActiveTarget原第三个assertCurrent参数替换为上述可选上下文，原普通navigation调用仍缺席。活动绑定退休放在原acquireJobBoundChatGptTargetCycle失败出口：try前仅保存本次publishedTarget可空引用，在原登记/advance位置填入该引用，再调用原claimActiveTarget；仅bound分支且publishedTarget非空、this.activeTarget仍严格等于该引用时，无新增await地比较/调用原clearActiveTarget，随后原TARGET_REVOKE发送该不可变target的精确job/targetRef/documentRef，沿原默认期限，不带失效guard。禁止先await再泛读current的parkActiveTarget；对象已变化或为空不动其它绑定，bound的registry/物理Tab保持。!bound分支不提前clearActiveTarget，先沿原discard精确detach/removeExactCandidate；原discard出口须等待删除后的fresh readTab与readTargets，二者证明该tab及Chrome id缺席后才算物理收尾。当前原discard只有删除前身份与动作后barrier，不能当作缺席证明，故同一既有方法片区必须删除/缺席后重建：原cycle将本次publishedTarget不可变引用传入原discard；删除前捕获原registry，核其仍为本次publishedTarget且Chrome id匹配。若registry已替换而active仍严格等于本次publishedTarget，仅clear/revoke该旧active；替换的registry/active/物理页不动，原失败聚合。保留原精确revoke/detach/close顺序，收集全部失败；删除/读回不成功时只在原tab与job registry均空且无替换记录时恢复该原record，保留未知，绝不恢复active claim或重放输入。readTab须返回不存在（拒绝）且fresh readTargets成功并无原tab/Chrome id；readTargets失败或页面仍在均BROWSER_TARGET_CLEANUP_FAILED，不能靠异步事件或API成功冒充物理证明。还须覆盖registry登记后、claimActiveTarget首句guard即失败而activeTarget尚为空的边界：在同一cycle catch的discard成功返回后，读取原registry当前同job记录；为null则已退休，为本次publishedTarget同一对象则原targets.remove精确删除，若是其它对象则BROWSER_TARGET_CLEANUP_IDENTITY_MISMATCH，绝不删除替换记录。原active路径的releaseActiveTarget已删除时此步为空操作；没有新Target或第二清理器。这样不依赖异步onRemoved/Detach补删，新建registry确定缺席；实际Tab关闭证明仍由原discard承担，registry删除不冒充物理完成。该逻辑退休不证明native退出。清理成功重抛主失败，revoke/discard失败保留主失败并按原BROWSER_TARGET_CLEANUP_FAILED聚合，不吞错或伪造认领/释放成功。
+5. **授权更短时取更短**：当前已签执行预算或既有 probe deadline不足120秒，只能使用其剩余预算。合法续租可以影响出队前的实时 remainingMs，但不能刷新已发请求D；120秒不是绕过当前 lease/fence、abort、session 或授权撤回的许可。当前active acquisition的撤回按下述第9项承接，不能只依赖serveAcquire返回后检查signal。
+6. **就绪即继续**：直接复用 ExtensionCreatedTarget 的事件等待。complete不是成功的唯一条件；仍核 exact tab/Chrome target、未discard、必要attached、当前合法 frame/Document/URL与原activation guard。页面已complete且身份成立时立即走原链，保留必要1.5/2.5秒门，不 sleep120秒、不加最低加载时长、不加后台DOM轮询、不把DOMContentLoaded/出现输入框替代完整现役资格。具体控件就绪仍由原 Child 合同负责，不把它并成 acquisition 第三门。反查 `production-call-preparation.ts#acquireProductionBrowserCall` 证实取得Browser先于Child执行；prepare-clean的timeoutMs只由 `observation.ts#timeoutInput` 验输入、handler没有包住acquisition的第二timer，不需要放大其≤60秒输入上限。
+7. **独立期限不误并**：TargetClaimAwaiter 的原30秒是页面已合格、进入 claim 发布时启动的认证ACK回路，不是建页加载门；普通已取得Target的导航/命令也不是 acquisition。原30秒timer、accept/fail与普通claim语义保留，不扩大到120秒，验收须证明慢加载阶段不会提前启动这30秒ACK计时。施工审查已证其begin在sendTail前计时，原sender在completion失败后仍可能发送；只在原begin→send callback补一个同步assertPending（核this.completion仍是本次completion），Actor仅对acquisition把它与原D/assertCurrent合入同一内部上下文，两个发送异步边界均核；ACK超时/失败后未发CLAIM增量为零。普通navigation-publication不携该上下文，原ACK期限不变；不新增completion表、取消控制帧或timer。Node原 onTargetClaim接纳时 resolve caller、扩展原ACK退休handler的先后保持，不引入第二完成回执。
+8. **失败不假退出**：D 到期仍 BROWSER_TARGET_ACQUISITION_TIMEOUT，沿原精确清理/孤儿管理；session/身份/权限错误仍可在120秒前立即失败。caller退出不等真实 native、cleanup 或handler退出；真实在途未退时新请求仍只能原有限背压，不能删该保护或并行操作。晚诊断/释放回执继续按原job/sequence/session只处理自己。
+
+9. **精确撤回同一次acquisition**：复用现役TARGET_ACQUIRE控制帧，协议13增加唯一action=cancel-acquisition，body严格仅action/jobRefHash/requestSequence；requestSequence指原acquire的服务器序号，safe integer≥1。不是新frame/transport、业务cancel或恢复授权。原Acquirer出队后的active阶段为原signal登记一次abort listener；queued abort仍只原队列Owner。发送前已abort则零acquire；已dispatch后abort只在原pending仍同一对象/authority/job/sequence且now<D时发一次cancel；now>=D不再发通知，交原到期出口。cancel控制帧deadline=min(D,now+普通30秒)，不能延长D。Node不以cancel发送成功解除pending/lane或宣称native停止；真实原handler退出后原DIAGNOSTIC仍引用原acquire序号，以BROWSER_WAIT_ABORTED拒绝原等待；永久native未退仍等原D有限退出并保留未知。原resolve/reject/timeout/撤连接负责清同一active listener。cancel发送失败走原transport失败/typed拒绝，不能吞错、重试或伪造退出。
+   Node原dispatch返回requestSequence后的pending补值改为同一对象原位登记，不沿用`{...pending,requestSequence}`替换身份；否则listener的精确对象比较会失效。监听在同步dispatch/序号登记后、无新增await地注册，并立即复核signal.aborted以接住发送期间撤回；一旦撤回仅处理一次，后续终态按原stop回调退订。发送前的signal检查仍保留；release无此监听，零新增取消状态库。
+   Extension把原pendingTargetHandlers从Set<Promise>原位替换为唯一Map<requestSequence, record>，record只含原promise、action/jobRefHash、捕获原双向session key引用和cancelled布尔；它仍是唯一真实handler集合，不新增registry/队列。先建立原请求state供guard捕获，再启动原handler Promise，随后用Object.assign给同一state附promise并登记Map；不能展开复制state，否则cancel置位与guard读的会是两份对象。Map登记仍在原handler启动后、无新增await的位置，保留release在加入自身前捕获旧handler快照的顺序。合法cancel在严格decrypt/sequence/shape后、普通背压判据前进入：仅原请求序号、同job、同双key、action=acquire匹配才置cancelled=true；不调用Authority，不增handler，不清槽/WAL，不解除暂停、不关闭兄弟Target、不产生新成功回执。合法迟到/跨job/新会话不匹配cancel只消费当前sequence，状态/输入增量为零，不能撤新请求；畸形/认证错沿原fail-close。release仍原排空，不能被cancel分支撤掉。
+   原acquisition assertCurrent新增cancelled检查；它已在每次create/activate/Page.navigate等native前、等待后和claim前执行，并随上项内部上下文在异步claim发送前再核。取消被扩展接纳后，尚未dispatch的后续页面动作/claim增量为零；已发native无法撤销则保留真实结果，退出后仅原exact cleanup的只读身份核验/必要精确关页可继续，不重放输入。Node本地abort到扩展接收通知之间有传输窗口，不能承诺跨进程零延迟取消；Node从abort起不授新lease/Provider输入，未送达时仍受原D/session保护并如实保留未知。原pending.D/signal在claim接收端独立核验，不因通知丢失接纳已撤回请求。
+   BROWSER_WAIT_ABORTED复用Coordinator现役code；原extensionRuntimeDiagnostic/browserCommandErrorCode→parseBrowserAuthorityDiagnostic→Acquirer.rejectPending→browserExecutionFailure已分别允许BROWSER_*形状并保留原code、job和原请求序号。此处DIAGNOSTIC不经过COMMAND错误枚举，不为该链新增browser-errors.json条目或错误别名；F6用真实编解码及原拒绝入口证实接回，聚合cleanup失败另保留原因链。
+
+不新增 timer：Node/Extension 各端现有同请求等待 timer 只消费同一个D，是两端等待责任，不是两份120秒政策。原 ACK timer、orphan 有限重查、FIFO wake及heartbeat各自原职责保持，无新等待状态库、缓存、调度器或生命周期器。
+
+## 5. 连坐分析、收益和有限验收分母
+
+预期收益：原20/30秒错误加载截断消失；加载与其必要准备在当前授权内于120秒内完成时可继续；快页面不增加固定等待。已证实收益目前为零，未建设的新行为不能引用旧成功宣称已验证。
+
+代价/边界：慢页面占用唯一物理lane的时长可能从20秒增加到120秒，兄弟调用会排队；本方案不承诺N=3时三页同时输入，也不保证120秒内一定加载好。永久native未返回仍为原Owner管理的未知，不能靠改上限保证自动恢复。120秒到期后的精确清理若仍在途，下一请求可短暂背压；这与历史handler退出后遗留暂停不同，后者已被前轮修复。延迟网络交付导致claim到达时D已过，仍沿原claim/认证失败关闭，不能保证任何超时都不撤当前authority；本案不建立迟到claim接纳或第二状态协议；只补既有控制通道同请求的撤回事实，不把该事实作为物理退出证明。若用户将目标改成加载期间兄弟零等待，需要先重开涉及真实物理并发的独立设计，不能暗添第二lane或页面池。
+
+| 编号/真实分支 | Owner、输出/回接及可证伪验收 |
 | --- | --- |
-| 无旧handler/drain，合法acquire | 原Actor接一个handler→原Authority claim/ACK→Node lease→原GPT/Runtime；A1正向 |
-| 旧Target handler或drain未退，新acquire/release | Actor在鉴权/shape/sequence后仅返回新请求精确背压；handler/Authority调用数不增长，旧slot/claim/drain不变、close=0。Node有限失败，Website下一动作；A1 |
-| acquire native迟到返回/拒绝、加载超时、claim ACK失败 | 原deadline/session guard阻止不合格输入，原exact cleanup/orphan管理继续，真实handler退出才退休；同会话late diagnostic按job/sequence不拒兄弟或同job的新pending；原失败/配对/FIFO接回；A1 |
-| 同会话旧release诊断迟到，新release已dispatch | transport返回原sequence→Acquirer登记原字段；同job但旧sequence不等则忽略旧诊断，新pending保持至自己的真实终态/期限。当前帧的失败照常有限退出；A1序号反例 |
-| native一直不返回 | Browser保留唯一真实handler/未知事实，Target backlog不增长；caller与queued waiter有限退出。真正退出后原清理/FIFO接回；无自动强杀出口，不计永久native恢复成效；A1 |
-| release成功 | 原物理释放/缺席证明→releaseOutcome→Node resolve；Actor退休本次暂停、原flush其他合法fact；A2 |
-| caller已timeout，原release随后真成功并迟交付 | R1原请求序号不匹配：非null仅按原targetRef+job精确退休旧claim；null不得按同job无参清新claim；兄弟/同job新pending均保留，close=0、resolve=0、WAL/槽不由迟到包清除。原Website下一轮当前授权release重新取得自己的物理缺席证明才收尾 |
-| 原release真成功时已换会话 | 原physical registry退休和仅admin精确清原同job槽保持；Actor旧handler不发成功控制包到新key，原completion/drain退休，不误删新Target；新会话由原当前授权release fresh证明缺席，不伪造旧控制成功。immutable terminal补交仍允许当前认证连接；R1 |
-| release拒绝/清理失败已真正返回 | 原失败diagnostic、不补releaseOutcome、不清slot/WAL；自己退出且无其他当前责任后退休本次暂停，新job可进入原门，Website原链处理失败job；A2 |
-| 旧回调与换连接、drain、新handler重叠 | 仅删自己handler，不解新责任暂停，不清新槽、不误删其他Target；旧socket或任一捕获方向key不同即不发旧请求diagnostic，包含同job/同numeric sequence的新会话碰撞。原drain/新handler完成接回；A2竞争反例 |
-| website-admin-deletion | 原exact absence→Runtime abort→lane→加入自身前快照排空→同job park/物理缺席证明→仅同job清槽→revoke→WAL/Runtime purge。真实旧Target忙只背压、失败保槽/WAL；原授权下一轮接回；A1/A2防误伤 |
-| packet shape/identity/hash/cause伪造，或未清洗/非法URL | 原verifier AUTH_INVALID，真实已知/未知输入保持，原fact/dispose及Website恢复；URL有效性先按原清洗规则，不解释opaque segment内部格式；S1负向 |
-| 任一query计数失配 | 首个mismatch index与closed C，exact也使用Q<i>；Node同包重算一致才接受失败terminal，后续query/hash/URL不覆盖首因；S1 |
-| 全query合格、exact hash不等或clean URL缺canonical locator | 首页以及按原清洗规则合法但未满足原canonical locator的opaque路径，均postcondition=false/MISSING；合法后置失败而非AUTH错误、不补locator、不再点击。原decoder真实计数/结果分类保持，Website按原effect恢复；S1 |
-| 全query合格、exact hash相等、canonical URL | 同一判定true；完整原submitRecoveryPayload/Child合同成立才CONFIRMED；原结果交付与业务readback；S1正向 |
-| abort/lease/fence失效、已知限流、unknown dialog、Outbox已有完整结果 | 原guard关闭当前危险动作，原完整结果优先交付、effect有限零输入读回、Website必要grant。旧事故不成兄弟永久门；原G1/B1/Runtime验收保持 |
+| F1 快页与慢页 | 原Acquirer/Actor/CreatedTarget：四种模式均验收；独立时间夹具令完整加载及必要身份/导航资格分别在6、25、45、119秒收敛，D前完成即取得原lease，零固定120秒睡眠。25秒击穿旧20秒，45秒击穿旧30秒；至少有一例生产binding.commandTtlMs=20秒而剩余授权>120秒。119秒仅到complete而尚需导航/2.5秒读回时不承诺成功，必须服从同D |
+| F2 永不complete/边界 | 使用真实Node Acquirer→真实encrypted frame/Actor→CreatedTarget，mock Chrome叶端点和时钟，不mock被测方法；119,999ms仍无额外早失败，D及D之后不得新输入/成功claim，原超时/精确cleanup。延迟执行Node timeout回调、先交付同job合法claim时，Supervisor在registry/workspace前按pending.D拒收且不ACK成功；扩展sendTail等待及encrypt等待分别跨D时，真实CLAIM send为0，原cleanup可继续。本次已置入activeTarget的claim失败：bound页仅精确退休本次活动绑定，registry/Tab保留；新建页不提前clear，原discard及同catch的精确registry退休完成后确实缺席且物理清理有读回；覆盖刚登记registry、尚未置activeTarget时guard跨D/abort，以及记录已被替换不得误删；覆盖对象已变化不误退、主失败与revoke/discard失败聚合，并验证handler真实退出后下一合法job可取得目标。ACK timer先于120秒D到期而sender仍在sendTail/encrypt时，原completion guard拒绝发送，Node不得接纳；关页API假成功、关闭后readTargets/readTab失败均不伪造缺席并保留原资源registry。已发CLAIM迟交付过期仍原fail-close；native不返回另断言未知，不伪造物理完成 |
+| F3 无效身份/早失败 | discarded、目标物理缺席、foreign origin/Document、当前会话/严格序号错误、超120秒/NaN/过期deadline：原code失败关闭，非加载原因不硬等120秒；零Provider submit、零操作者Tab触碰 |
+| F4 不重置/不扩权 | continuation精确导航、bound fresh复位、confirmed缺页重建均共享同D；跳转不重新发120秒；同job最多一system Target，跨job zero reuse；当前locator/effect与parent身份分母不减 |
+| F5 普通能力隔离 | 普通生产COMMAND仍20秒TTL/30秒协议上限，release queued30秒→静默40秒→dispatch30秒；普通导航/claim ACK保原期限。acquisition>30秒合法，但release/其它控制帧携>30秒拒绝；ACK计时在合格页面发claim后才起，不在开始加载时起 |
+| F6 队列/授权/恢复 | 原queued到期/abort有限退出；active时queued不抢占，真实旧native未退仍单handler/单lane；remaining=50秒时总上限50秒，出队前续租可更新remaining、发出后续租不刷新D。控制意图与续租失败触发原signal后，Node不授新lease/Provider输入；原active listener只发一次精确cancel，扩展接收后下一create/activate/navigate/claim发送被原guard拒绝。覆盖撤回在loading、已发native未返回、sendTail等待、加密等待四处，断言无新物理输入；允许原读取/精确关页清理。bound/新建claim失败分别按F2退休/清理，不留未接纳活动占用；真实DIAGNOSTIC编解码及原拒绝入口完整接回BROWSER_WAIT_ABORTED/job/原序号。通知迟到/跨job/同序号新会话、传输失败与native不返回均不伪造退出，不清兄弟槽或WAL；resolve/reject/timeout/断连的active listener均退订。通知未达窗口如实说明，Website现役授权再检查接回，不新建retry |
+| F7 前轮不变量 | 重用既有A1/A2/R1/S1验收：请求序号/原会话关联，成功/失败handler退休自身暂停，迟到absent零误删，合法失败fact正常WAL/ACK，Provider effect不重发，历史DISPATCHED不成为全局门，1.5/2.5/40/70—90秒门不减 |
+| F8 业务/连坐动态实证 | 未来另获真实操作授权后，选一张确实加载超过旧上限但小于120秒的合法job及同窗口两个兄弟job；关联candidate/当前attempt/日志/授予与续租、真实页面事件、原失败或结果身份，最终查Website适用领域存储与admission、Runtime completed。N仍Website裁决。静态/合成Exam不能替代此项；无自然慢页时明确缺少慢页生产证明，不擅自改生产网络或虚称通过 |
 
-有限闭环含Owner管理的未知；无遗漏不等于未知首因已查明。四个GAP代码反例、生产实际归因、业务完成分别验证。原acquire的claim ACK失败/配对fail-close继续按原身份链处理，不把释放结果的被动退休扩大为任意Target claim拒错豁免。
+每项均是现役Owner的成功、拒绝、失败、取消或受控未知；没有新增持久化分支。F8尚未执行，不把删除旧工单作为恢复验收，也不重放已有Provider输入。
 
-## 6. 原子工单与顺序
+## 6. 原子施工工单与严格顺序
 
-未来精确授权后先W0并完成主Codex两轮权威/Blueprint审查，无finding才W1/W2/W3/W4。W1/W2/W4在同一候选共同关闭Target整条因果链，不单端交付。主Codex唯一写手，子智能体只审。每批准片区实际delete→确认旧定义/判据ABSENT→同路径唯一rebuild；禁止覆盖写、别名、兼容壳、第二链路。
+共享纪律：未来授权后只在当前本地main施工。每个批准的退休方法片区须先物理删除→即时核验旧定义/旧引用缺席→按本方案合同同路径重建；不得把旧片区存到内存/临时文件后加工回写，禁止换名、转发、兼容壳或第二链。独立保留模块直接复用，不因同文件而整删。过程证据在当前任务实际工具记录取得，不新增台账。发现新消费者/漂移/未授权改动，先停受影响动作并回补唯一方案，不能边猜边建。
 
-### W0：Blueprint对齐（代码前门）
+### W0：Browser Blueprint 先对齐
 
-允许仅Browser的LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md中Target接入/handler暂停退出、第27行后置判据、第86/90行单协议切换/释放请求回执；GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md中submit消费同包失败/真实计数/locator语义。路径见§10。
+- 做什么/Owner/路径：local-browser-session，仅 `docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md` 的接入预算、handler接入/退出及单协议切换片区；第17行以§4的独立acquisition上限替换“不扩大native期限”的笼统限制，同时明确禁止假取消已发native、D不刷新及release/普通命令边界；第92行只为精确cancel通知增加无handler/无物理输入的控制分流；认领失败仅退休本次exact活动绑定、保留bound页/原registry，新建候选仍原精确discard。目标协议13，同请求cancel事实与物理退出分别证明。
+- 保留/不做：法案全部保持，Blueprint其它Owner/拓扑/回执/WAL及Provider保护原样；不改GPT/Website Blueprint，不手写registry。前轮A1/A2/R1/S1仍由现役实现承担。
+- 顺序/验收：代码前主Codex两遍审查本图对active law、当前用户目标及本方案；有具体冲突立即停止代码。无finding只表示设计对齐，不用98%评分代替闭合。
+- 失败：未获对应Blueprint精确授权或与现役源头冲突时停本工单，保全原代码/数据；不以改法案迁就设计。
 
-物理删除对应旧片区后重构：query mismatch不豁免exact；真实旧handler/drain忙只局部拒绝新Target请求；acquire/release原请求序号完整交付；旧handler不得向新会话发送旧请求失败或成功控制；release失败退出退休自身暂停；清理失败不证明释放。单Browser协议11的releaseOutcome必填原requestSequence，只匹配原请求才完成等待，迟到null不清新claim。后置包先复用原URL清洗规则判合法，再独立判断canonical locator；不缩窄opaque segment。原两项submit条件、四targetMode、限流、Owner、Website45/18不改。无需修active law、冻结说明书、registry/Manifest。两个Blueprint对齐且两轮主审无finding才进代码，不用98%自评分冒充条款闭合。
+### W1：原Owner取得Target预算与单端防截断
 
-### W1：Target接入有限拒绝
+- 做什么：local-browser-session，闭合一个不可拆交付的 acquisition 时间合同。仅以下片区：`src/lib/browser/protocol/browser-protocol.schema.json` 的revision/commandAdmission；原 `generate-browser-protocol.mjs` 的对应投影，生成 `generated/browser-protocol.generated.ts`；`infrastructure/browser-target-acquirer.ts#ensureAvailableTarget/#awaitTargetOperation`；`infrastructure/browser-infrastructure-state.ts#PendingJobBoundTargetAcquisition` 增加deadlineAt；`infrastructure/browser-infrastructure-supervisor.ts#onTargetClaim` 初始claim截止核验；`transport/browser-authority-websocket.ts#sendControlFrame`；`chrome-extension/websocket-actor.ts#acceptTargetAcquire` 的接入deadline核验及构造器callback/#sendTargetFrame/#sendEncrypted的CLAIM截止传递片区；`chrome-extension/extension-target-authority.ts#TargetFrameSender/#acquireJobBoundChatGptTarget/#acquireJobBoundChatGptTargetCycle/#claimActiveTarget` 的截止来源与传递片区。以上路径均以 `src/lib/browser/` 为根。
+- 删除/重建：原Acquirer两个方法、transport统一30秒判据、Supervisor只靠pending存在的初始claim判据、Actor接入及claim异步发送判据、Authority缺省/claim截止与claim失败活动绑定出口、原discardJobOwnedTarget及TargetClaimAwaiter#begin片区，按共享纪律删除/缺席核验后重建§4。Authority#acquireJobBoundChatGptTargetCycle原失败出口以本次publishedTarget引用只退休bound exact活动绑定；!bound先沿原discard，不能提前clear；在同一catch补上登记后、活动绑定前guard失败的registry精确退休：discard成功后null无动作、同本次publishedTarget则remove、其它对象拒绝，原close读回保持。claimActiveTarget仅传递可选上下文，不承担泛化cleanup；不新增方法/通用生命周期层，保留普通navigation-publication职责，禁止无条件clear/park或伪造物理关闭。原pending类型增加一个同次deadlineAt、现有callback参数传递、schema/generator为必要局部修改，生成物只由原generator产生；不把整个文件的成熟独立职责冒称重建。
+- 保留/不做：Node原pending的身份字段/requestSequence/原timer/resolve/reject职责复用，截止点及active signal监听退休按W1C承接；Actor原会话/背压/drain/暂停退休及Authority物理guard保留，原handler容器及取消判据按W1C原位改造，不新增Actor成员。`ExtensionCreatedTarget`、`DebuggerRuntime`、Coordinator/FIFO、Runtime/GPT lease getter及普通COMMAND send不修改。前两者已有事件等待/安全核验职责；TargetClaimAwaiter仅原begin的sender合同承接同次completion guard，ACK timer/accept/fail保持，Authority#discardJobOwnedTarget按§4补同步物理读回和原registry保全；这些均属原认领/清理输出不可分割的消费者。保留原事件等待与独立ACK职责，因为删除会失去真实加载与确认；不把它们复制为新等待器。
+- 顺序/输出：W0完成后先唯一数值源/generator，再同候选原pending/Acquirer→wire→Actor→Authority→CLAIM发送→Supervisor admission，W1C的同请求撤回必须同候选接通；仍使用原frame deadline和原lease/failure输出。原数值/接口在同候选原位替换，禁止一端先运行或dual-read旧协议。
+- 验收：F1—F6及F7，不仅测常量；逐项核普通TTL未变、所有acquisition模式和传输上限、deadline不重置、不越当前授权、原handler真实退出。未闭合不得部分发布。
+- 失败：原typed错误/未知及cleanup接回，任何新生成/结构错误先停；没有自动回退授权，不恢复退休骨架、不抹WAL/旧结果。
 
-Owner：local-browser-session / 原Actor及其Node transport/Acquirer消费者。src/lib/browser/chrome-extension/websocket-actor.ts#acceptTargetAcquire接入片区依赖W0，与W2同完整方法delete/ABSENT后一次重建；不可分割地纳入src/lib/browser/transport/browser-authority-websocket.ts#requestPreauthorizedTargetRelease和src/lib/browser/infrastructure/browser-target-acquirer.ts#awaitTargetOperation。后两者原定义delete/ABSENT后重建：release直接return原sendControlFrame的number；dispatch返回合同由number|void收敛为number，同步返回后必登记既有requestSequence。acquire原返回、absolute deadline、原字段/超时/resolve/reject及全连接撤权语义保持；不新建state或接收Owner。
+### W1C：只撤回当前acquisition的尚未发出动作
 
-顺序：鉴权/decrypt→当前socket/key重验→严格sequence消费→strict targetOperationFrom→读现役pendingTargetHandlers/disconnectedDrain；真实未退出责任存在则精确BROWSER_BACKPRESSURE diagnostic并return。acquire/release均不构造第二Target handler、不调用Authority、不变旧slot/claim/WAL。普通acquire的原暂停/slot/pendingCommandHandlers拒绝也原code diagnostic/return，不进入全连接撤权。非法帧仍原认证fail-close，不能降级背压。
+- 当前GAP/Owner/输出：local-browser-session。修§2已证active abort脱节；权威输入为Runtime原signal与原acquire的job/sequence/双key，输出仅同请求禁止后续dispatch的事实及原handler真实失败，不决定attempt、业务取消或完成。
+- 精确路径：`browser-target-acquirer.ts#TargetWaiter/#awaitTargetOperation/#resolvePending/#rejectPending`的原pending/active listener；`browser-infrastructure-state.ts#PendingJobBoundTargetAcquisition`的action判别分支；`browser-infrastructure-supervisor.ts#onTargetClaim`的signal拒收；`browser-authority-websocket.ts`新增唯一窄方法requestPreauthorizedTargetAcquisitionCancellation；`websocket-target-operation.ts#TargetOperation/#targetOperationFrom`增加严格cancel分支、同文件局部parseCancellation与机械cancelPendingTargetAcquisition及原handler record类型；`websocket-actor.ts#commandDelivery/#acceptTargetAcquire`、构造器原drain快照、`drainDisconnectedHandlers`及原claim sender上下文；前三个基础设施文件分别位于`src/lib/browser/infrastructure/`、transport文件位于`src/lib/browser/transport/`，后三者位于`src/lib/browser/chrome-extension/`。
+- 保留/删除/重建：保留原Target集合单一性、真实Promise及session来源、物理guard/精确cleanup、诊断原序号和失败退休；删除Set-only容器形状与无法识别本次请求的active guard片区，缺席核验后在同路径构建单Map及原guard消费取消事实。所有原`.add`/Promise快照消费改成`.set(sequence,record)`/`Array.from(map.values(),r=>r.promise)`；原size/delete按sequence，不能await record或提前删Map。callback参数与signal类型是必要局部修改；不新增第二索引、flag服务、timer、持久化、Chrome listener、进程重载或公共Product API。
+- 工序/接口：按§4.9落地；W1/W1C同方法共享片区合并为一次delete→缺席→一次重建，不能先建半套再打补丁。仅同request取消通知可以在pending非空时进控制分流；原acquire/release背压保持。原cancel字段闭集与单协议13先在原parser/generator来源对齐，Node signal listener、Extension guard/claim发送及本次失败活动绑定退休同候选完成。取消事实不能替代真实handler退出或bound物理关闭证明。
+- 结构落点：Actor已有30成员，不加方法；精确Map匹配/置位是现役websocket-target-operation.ts新增的一项窄机械函数，供Actor调用，避免在原接入方法塞入多维匹配越过复杂度16；该文件名称已有operation职责、仅此真实消费者，无新file/controller。transport27→28成员可承载一个发送方法；Acquirer不增加类成员。handler record借用捕获双key引用，不以可变session对象地址作身份，原session发送时会重建对象。
+- 验收/拒绝：F2/F6/F7全部覆盖；Node补序号不得换pending对象，撤回恰在同步dispatch内与登记后各一例均仅发送一次，终态退订；原auto-pairing-support的Delivery测试投影及三个原pending快照只同步Map的promise投影，不复制生产匹配规则，不新增import来源（原文件sources已24）。target-lifecycle夹具消费相同Map投影；时间与wire原件驱动取消，不能直接替被测guard返回失败。合法过期/不匹配cancel无新终态；伪造/unknown字段原fail-close；失败或未知不提供重放资格。未闭合即停止W1整候选交付。
+- 不做/失败回接：不取消已经发出的Chrome native、不放开其它job并行、不把取消发送当drain/ACK，不给普通COMMAND通用取消。已撤回job沿Runtime原typed failure/Website原下一授权接回，原effect/结果/Outbox保持；无回退授权不得恢复旧容器/混协议。
 
-release保留合法排空pendingCommandHandlers的责任和加入自身前快照、捕获旧drain防自等待；不是把合法release的旧command drain删掉。不得增加本地retry。完成片区由W2承担。
+### W2：原质检保护正确合同
 
-验收：真实Node Acquirer/Coordinator/transport与真实Actor/Authority、仅mock Chrome/native/WebSocket端点；3job请求在旧native延迟/非返回时Target handler=1、nativecreate=1；两个后来请求各有限失败、close=0、旧slot/claim/WAL不变；旧操作真退出/原cleanup后下一合法请求进入。覆盖late diagnostic跨job/sequence，以及同job的旧release序号不拒新release；当前匹配的失败正常退出，acquire/release实际wire sequence必须等于各自pending字段。signal、release排空、claim/fact ACK及heartbeat不断。失败保持真实操作/事实，不reset计数、改N/延时或重载遮盖。
+- Owner/路径：local-browser-session。仅 `scripts/audit/domains/local-browser-session/target-claim-inspection.ts#inspectAdmission/#inspectAcquisitionWire/#inspectNavigation/#inspectPhysicalReleaseProof` 的旧cap/claim参数/handler容器断言；`scripts/acceptance/browser-lane-fifo-support.ts#runBrowserLaneTargetClaimAcceptance` 调用同文件新加入的独立预算反例函数；`scripts/acceptance/local-browser-target-lifecycle-support.ts#exerciseAuthenticatedTargetIsolation` 调用直接关联的 `local-browser-acquisition-wait-support.ts` 中真实Actor慢加载反例函数（原fixture文件已324行，完整时钟/加密/Chrome矩阵超过500行法定上限，因此拆为一个专用验收support；不新增runner或生产抽象；本域现役Manifest同步登记该唯一新增support的primary ownership）；`scripts/acceptance/local-browser-rule-mutants.acceptance.ts` 的直接反例；`local-browser-auto-pairing-support.ts#Delivery`及现有三个pending handler快照按W1C同步唯一Map的promise投影。原 `browser-lane-fifo.acceptance.ts:50` 的唯一直接Acquirer夹具仅补原AbortController.signal必需实参，不改成optional/fallback；同文件第150行和 `local-browser-auto-pairing.acceptance.ts:28` 已分别调用这两个export，入口runner保持复用，不添加新runner；原workerFixture与releaseWireFixture同样直接复用，后者仅暴露原Supervisor/Issuer并接回原onTargetClaim，不复制admission。Coordinator原waiter已含signal，是另一个且唯一生产直接消费者，不改其调度。
+- 删除/修改：先删除强制所有Target操作使用普通30秒cap的断言；在同一inspector内重建对唯一常量、action分流、普通期限保持、原pending.D、claim截止内部参数流及Supervisor注册前核验的AST/contract证据；inspectNavigation原三参数claim调用断言随实际同D上下文传递替换，保留导航/身份/先后义务。inspectPhysicalReleaseProof原`.add(handler)`形状证据改成原release Promise被单Map记录、发送仍位于该被跟踪handler内部的等价证明，保留物理close/readback/revoke关联义务，不删除保护。既有顺序/身份/背压/退出断言保留；测试原位扩展F1—F7。原 `browser-mutation-settlement-inspection.ts` 的2.5秒读回和真实event等待保护保持，不为通过而删。
+- 必要性/不做：现有反例只验证短deadline、释放分相和退出，无法区分“acquisition错误继续用20/30秒”“所有命令被放大120秒”“120秒固定睡眠”，所以增强原能力；不新增checker、法条、snapshot、mock生产路径或全Product样本。时间边界用原有受控时钟，禁止验收真的串行sleep120秒。
+- 顺序/验收：W1对应片区与W2同一候选完成；真实Node transport/AEAD/Actor/Authority/CreatedTarget与Supervisor admission串联，仅mock Chrome/native和时间叶端点，不能只mockrequestPreauthorizedTargetAcquisition返回成功。119.999/120/超界值来自同一真实边界，四mode来自封闭union；F1—F7分别对照独立预期。mutants至少击穿旧TTL、所有控制帧扩时、固定sleep、导航刷新D、删除原handler保护、删Node认领D核验、仅异步发送前核D七种错误实现，以及漏发cancel、错误job/sequence/key取消当前请求、复制record使guard看不到置位、取消即删在途handler/清槽、发送异步边界漏取消核验、claim失败残留bound活动绑定或误退新绑定；补证仍在同一现役inspector/fixture，原单Map和真实drain分母不减。
+- 失败：检查器旧假设与当前law冲突先核原义务，不修生产迁就错误检查；结构超限时在原fixture内合并等价断言/缩减重复，不加逃逸wrapper或豁免。
 
-### W2：Target handler退出退休自身暂停
+### W3：实际建设审查、同候选切换与业务验收
 
-Owner同W1；仅同方法完成片区。物理删除release success-only解除、failed-only-delete及acquire重复退出分支，与W1同候选重建一个方法内完成closure，不增加类成员、状态或生命周期器。
+- Owner/范围：主Codex负责当前main差异与原生质检；子智能体仅只读审查实际建设对本方案/法案/闭环Skill的差异，不并发写代码。无新代码、表、服务或治理对象。
+- 顺序：主Codex代码两遍自检→重要接缝及最终实际建设子审明确放行→冻结 `$ci-full-governance` 的原生 CHANGE→获授权clean commit/首推→完整READY/再次推送。唯一质量入口 `npm run quality:check`；本轮已进入获授权施工；这些步骤必须分别取得原生证据。RELEASE另有明确要求才执行。
+- 切换：复用现役browser build/release identity/startup同步机制；新Node与同build Extension唯一protocol13同时生效、旧12退出。先停新claim，已有结果/receipt交付继续，等真实handler/native退出才停旧worker；历史未知WAL保留，不以清零冒充drain。没有运行启停授权不做切换；native不返回则报告未知阻断，不强杀/重载/取消。
+- 验收：先F1—F7与原生质量，再按另获真实取证授权完成F8。实际启用后读回build/protocol/Browser authority、相同job/attempt/结果hash与最终admission，不能以静态产物或两个Tab在动替代。每仓只自己的质量裁决，本案不修改Website也不运行其READY。
+- 失败/汇报：不覆盖其它Codex已有dirty改动；不得reset/stash/分支制造clean候选。代码失败、原生quality失败、物理未知、缺动态证据分别报告。回退若另获授权只可整体同候选Node/Extension，WAL/原数据/既有结果保留，不混新旧协议。最终逐对象列真正重建、经论证保留、局部修改、删除退役、失败回退、尚未完成；功能质量不能代替删除→缺席→新建的过程证据。
 
-只对已settled原handler删自身：socket/捕获双向session key仍同一、commandReady、pendingTargetHandlers/pendingCommandHandlers为空、disconnectedDrain=null才退休本次commandAdmissionSuspended。它退休接入暂停，不宣称所有Chrome native退出；原native barrier与逐次input guard继续约束。老回调不解新连接/其他handler/drain责任。
+## 7. 结构承载与删除反事实
 
-成功业务输出不改、原flush继续。失败如实保留code/slot/registry；发送原job/failedFrameSequence diagnostic前必须重验捕获socket和双向key仍同会话且ready，旧回调不调用会捕获新会话的reportRuntimeFailure。同会话原诊断发送与原flush补交其他合法fact继续；换会话只退休自身handler，原单槽经当前会话原heartbeat/flush补交原fact。原sendEncrypted内部捕获会话的后续await重验保持；无新epoch字段或诊断缓存。发送失败原transport路径，不吞错、不撤已记账事实、不等待自身/ACK。解除暂停不授风险输入。
+原生红线：文件≤500行，函数≤75行/7参数/8返回/5嵌套/16复杂度/10await；imports≤28/sources≤24/exports≤24；类成员保持现役预算。当前AST：Acquirer95行/6sources/6成员，两个方法14/33行；transport297行/10sources/27成员，sendControlFrame14行；Actor401行/15sources/30成员，接入49行/6await/6returns，原生metrics圈复杂度12/嵌套1；Authority258行/21sources/28成员，入口7行。不得再给Actor加成员；只用一个按action分流的局部maximum值、一个上界if和一个cancel分流，匹配置位交原operation模块的窄机械函数；接入方法复杂度预算12→15，原全局接收已拒过期/非法时间，不在此重复判断。transport原复杂度7、Acquirer等待方法6，action分流仍有余量；import扩展原generated import，不新增source或拆分Owner。Supervisor408行、30成员，原onTargetClaim15行：用一个pending局部值合并原两处初始claim拒绝，再在原注册前核action/job/D，不新增成员；state仅30行，原pending补同次D及acquire分支的原signal/退订回调。claim截止与取消guard仅在现有方法增加可选调用上下文参数，构造器callback转交，Actor/Authority成员数不变；sendEncrypted在原队列和加密边界直接校验，不另建sender/guard类。 Authority原acquireJobBoundChatGptTargetCycle为23行/复杂度8/嵌套3；原失败出口增加本次publishedTarget引用及bound精确退休、!bound在原discard成功后核null/本次对象/替换对象并精确退休registry，预计复杂度≤12、嵌套≤4，不加成员；原discard保持精确清理链并补同步fresh物理缺席证明及替换对象保护，禁止提前泛清active或依赖异步事件补删。
 
-验收：实际release getTargets拒绝、remove/absence失败、失败保槽、新旧socket/key、drain/新handler竞争、同一handler一次退休。真实Actor旧acquire/release失败→新key原transport decoder→原Acquirer，构造同job且numeric sequence相等；旧回调不发送到新会话，新pending不被错拒，同会话当前失败仍正确记账。无其他责任时下一正常acquire可进入；真实native未退仍零额外输入；失败不能清同job槽/WAL或伪报释放/完成。失败job沿原Runtime/Website当前授权接回。
+现有fixture：lane-support378行/17sources，target-lifecycle324行/11sources，target-claim inspector295行；优先扩展各自既有entry与共享fixture，新增有区分力分支优先留在原文件；真实acquisition矩阵按W2用一个本域专用support承接以遵守500行和单函数预算，单函数按独立反例拆分≤75行，不复制一套actor。auto-pairing-support已有24sources，Delivery只用Map<number,{promise:Promise<void>}>测试所需最小投影，取消匹配逻辑只调用原生产parser/机械函数，不能复制为测试真相；原Promise快照改投影不增import来源。rule-mutants207行，内存反例复用原runner，不改共享governance检查。实施前重新测量，漂移影响可承载性即回本方案调整，不边堆边切。
 
-### W3：同包后置事实一个机械决定
-
-Owner：local-browser-session / browser-observation-receipt.ts。仅该文件coherentRowResult/exactOutgoingPostconditionVerified/observationPostconditionEvidenceValid及dom-mutation-postcondition.ts的exactOutgoingTurnVerified/waitForObservation；直接关联dom-coherent-observation.ts的sanitizeCurrentUrl/固定segment上限及其decodeObservationCall调用/import。将原清洗函数和原上限原位迁移至receipt Owner，Extension decoder直接复用，旧定义ABSENT；serialized页内location.href采集剥离query/fragment属于另一输入边界，保持现役行为，不误并或误删。
-
-物理删除重复exact规则与exact覆盖首因分支，ABSENT后重建。现役receipt文件承载一个局部机械决定，两个现役严格同义消费者直接使用。输入原postClickObservation、可选preClickExactOutgoingTurn、同一个raw/bound coherent packet；Node header/binding/hash原strict校验继续，扩展不调用未bind header校验；无Node-only依赖或新跨域validator。
-
-唯一顺序：
-1. 已有shape/identity/hash不合法仍拒绝；同一原sanitizeCurrentUrl必须返回与包currentUrl逐字相等，protocol=https、固定origin、无credentials/query/fragment、pathname仅`/`或`/c/<opaque segment>`（非空且≤原256上限），缺失/非法整包拒收。原清洗函数抛BROWSER_DOM_READ_INVALID时，Node evidence verifier须映射为invalid，由原接收边界产生AUTH_INVALID，不能裸抛绕过该边界；Extension decoder保原DOM_READ_INVALID。不得解释opaque内部格式；此处不使用canonical locator regex，不能把非法包算合法pending。
-2. query按合同顺序，首个eligible失配产生原closed Q<i>__C；exact无豁免，0..19和原原因集合不扩张。
-3. query全合格，未要求exact则原ordinary成功；要求exact时首query原match prompt hash相等且同包currentUrl经原requireCanonicalGptConversationUrl等于自身才成功。
-4. query全合格、包合法但hash/locator不成立为false/MISSING，含合法首页或未满足canonical规则的合法opaque路径；非法/未清洗URL已在第1步整包拒收。合法后置失败不AUTH、不推零输入、不再点submit。
-5. Node比较postconditionVerified/nativeCause与同一决定；原clicked、mutationCount、identityRevalidated、binding、revision hash、submitRecoveryPayload其他严格校验继续。
-
-普通1.5秒、动作2.5秒、submit静默40秒、Provider70–90秒、两段瞬态确认、单匹配后置/known limit不改，不新增Child第三门。已输入缺locator走原effect/Website有限恢复，不补点击或第二GPT回合。
-
-验收：真实producer→bind→decoder→原fact/WAL/CAS/ACK链，用独立外部期望表，不由新函数生成期望。覆盖首页/canonical/合法opaque路径/hash不等、query0/后续首错及多错优先级、multi-match。非法URL分为只篡改URL破坏原revision/hash、以及用正确重新绑定hash但携http/foreign origin/credentials/query/fragment/非法pathname的整包，两类均拒，并断言Node准确AUTH_INVALID、Extension decoder原DOM_READ_INVALID；合法首页/opaque只缺locator则合法后置失败。伪cause/hash/header、普通20个index与closed原因拒伪造保留，失败原strict fail-close，不宽正则/旧规则fallback，不把未知补零。
-
-### W4：原释放成功按原请求收口
-
-Owner仍local-browser-session。仅原extension-target-release.ts#releaseJobBoundTarget/ReleaseContext、extension-target-authority.ts#releaseJobBoundChatGptTarget、Actor同一acceptTargetAcquire的release执行/发送片区、browser-authority-frame-payload.ts#BrowserAuthorityTargetRevoke/#parseBrowserAuthorityTargetRevoke、browser-infrastructure-supervisor.ts#onTargetRevoke；以及原browser-protocol.schema.json的revision=11与原generator生成browser-protocol.generated.ts。上述旧定义/回调发送分支delete→ABSENT→同路径重构，生成物只能原generate-browser-protocol.mjs生成，不手写；errors.json版号是错误目录自身，原样保持。
-
-物理helper在原三条真实终点返回typed targetRef/jobRefHash/releaseOutcome：两个absent仍null，一次released仍精确bound targetRef；原readTargets/removeTab/readTab/readTargets、registry身份重验、失败throw/restore保持。删除context.sendRevoke的输出副作用，由原Authority await该结果→原onReleased（仅获admin且精确槽身份才清）→返回原typed结果。Actor的原tracked Promise<void>覆盖整个native/physical proof、onReleased、同捕获socket+双向key下sendEncrypted(TARGET_REVOKE,{...真实结果,requestSequence:frame.sequence})；不以Promise<result>强转或提前settled wrapper藏真实在途。换会话不发送旧成功，但原已证明退休不还原、不伪失败事实。
-
-parser对release分支严格四字段和safe integer≥1，缺序号/旧三字段/未知字段拒收；普通documentRef revoke仍原三字段。Supervisor匹配pending.action/job/requestSequence后走原精确claim退休、fence校验和resolve；不匹配时只有非null结果可调用原broker.revokeOperatorTargetClaim({targetRef,jobRefHash})，原broker已只匹配才退；迟到absent不得调用无参revoke，任何迟到结果不得清槽/WAL或解决新pending。无需新pending字段、历史请求账本、receipt缓存或恢复Owner；pending先建立再同步dispatch，原requestSequence仍可选作初始化，不给缺序号的回执匹配资格。没有历史账本就不声称能识别所有格式合法但不匹配的正整数是伪造还是迟到，只限定其动作/结算权为零或原精确claim退休。原WebSocket认证、deadline、monotonic client sequence和全局非法帧fail-close不放宽。
-
-验收在真实Actor/Authority/physical helper→原encrypted frame/strict parser→真实Supervisor/Acquirer完成：①当前匹配成功；②caller超时后用新鲜回执deadline迟交付，无pending/兄弟pending/同job新pending均close=0且不resolve；③旧business释放对新admin释放不能授purge或清槽；④新同job不同Target+late absent零claim动作，late released只退休精确旧claim；⑤换key旧成功不发，新会话原fresh release可证明absence接回；⑥失败保槽/registry、管理员原精确清槽先于自己成功回执、跨job/操作者Tab零触碰；⑦缺/零/负/小数/非安全整数/未知字段/不等nonce/坏cipher及旧protocol10全部原fail-close。物理结果不能由timeout/连接断开编造。
-
-## 7. 结构预算、质检与分层完成
-
-原生AST现值：Actor393行/15imports/15sources/类成员30，已到上限；acceptTargetAcquire41行/2params/2returns/1await/nest1/complexity11。禁止加Actor成员或helper成员，W1/W2用原方法/局部closure，类仍30；每函数≤75行/7params/8returns/10await/nest5/complexity16，文件≤500、imports≤28/sources≤24。
-
-dom-mutation-postcondition303行/9imports/8sources/10exports，waitForObservation55行/6params/3await/nest3/complexity9，删除12行重复exact helper再承载。receipt302行/6imports/6sources/15exports，coherentRowResult21行/complexity14、exact13行/complexity8、verifier21行/complexity12；不把新判定堆进complexity14函数，原Owner删除重构局部决定，每函数同红线、exports≤24，不新建文件。
-
-新增关联片区实测：transport297行/10imports/10sources/27类成员，release4行/3params/complexity2；Acquirer95行/6imports/6sources/6成员，awaitTargetOperation33行/4params/complexity6。仅原返回/dispatch登记链重构，不增成员。dom-coherent-observation485行/7imports/7sources，原sanitizeCurrentUrl13行/complexity14/nest1迁出后缩减；receipt新增原函数/常量导出仍≤24，清洗/判定各函数独立守原预算。
-
-R1原值：Supervisor407行/23imports/23sources/类成员30，onTargetRevoke24行/complexity9/nest3；禁止新增成员，原方法内匹配/被动精确退休即可。Authority257行/21imports/21sources/28成员，release9行/complexity1；physical helper35行/3sources，release25行/complexity11；frame-payload93行/8sources/13exports，parseTargetRevoke14行/complexity10/nest2。typed物理结果直接复用原合同类型投影，不另建spec；只原位返回/消费，原结构红线不减。
-
-未来直接质检修改仅原路径：
-- scripts/acceptance/local-browser-target-lifecycle-support.ts（230行）/local-browser-auto-pairing.acceptance.ts：真实认证Actor接入/退出及原Node consumer反例，只mock叶端点，不mock被测方法。原local-browser-auto-pairing-support.ts（371行、24sources已满）复用并导出原workerFixture给上述consumer，不再添import来源；原withdrawalRaces/authorizedWithdrawal消费新背压及typed结果，保原admin精确排空/清槽/失败保槽分母，不用假Authority方法替代根因验收。新反例落target-lifecycle-support守500行/24sources/函数预算。原agent-production-runtime-business-admission.acceptance-support.ts（481行）只同步现役release叶stub返回序号，保留管理员删除全量断言。
-- 原browser-lane-fifo-support.ts（314行、9sources）的releaseThroughWire/delayedRevocation/intentionalClose同步物理返回结果和releaseOutcome四字段；原release dispatch fixture已return1，保持。生命周期closeRotatedTargets/continuation/closed-tab recovery保留跨job轮转/精确Tab不误删；当前回执匹配正例及合法迟到的零动作负例替换原throw断言，shape伪造/失败restore/readback/absence不减。
-- local-browser-dom-coherent-click-support.ts（178行）/local-browser-mutation-receipt-support.ts（111行）/local-browser-terminal-contract.acceptance.ts：S1真实producer/consumer与原WAL-ACK，独立期望。
-- scripts/audit/domains/local-browser-session/target-claim-inspection.ts#inspectAcquisitionWire/#inspectWire/#inspectRelease/#inspectPhysicalReleaseProof：删除旧字符串/发送节点判定形态，原位证明fence顺序/本次handler退休/原socket-key诊断及成功归属、acquire/release原sequence登记与释放成功四字段/parser/匹配消费。原三条真实物理输出从context.sendRevoke节点改核真实typed返回→Authority onReleased→Actor tracked发送，保两条null absent/一次exact released、失败throw/restore、fresh物理readback先后；不可因改返回形式让断言空转。
-- 同现役dom-mechanical-facts-inspection.ts#inspectPostconditionEvidence/#inspectCoherentRuntime：证明两后置消费者同判定、Extension decoder从原receipt Owner import/call原清洗函数及其原卫生门/上限；页内producer物理丢弃query/fragment断言保留，不只删迁走token或降分母。原rule-mutants覆盖漏gate、盲清暂停、并行native、丢release序号、旧session诊断/成功、新admin错resolve、迟到null清新claim、URL伪造、只查函数名的反例，原旧sendRevoke token按唯一新物理返回链重建。必要新增反例仅落原local-browser-rule-mutants.acceptance.ts。
-
-保留原G1/B1/FIFO、logical priority/native barrier、跨job Target轮转、管理员exact释放、自等待/断线drain、ACK丢失重投/dispose、日志失败仍ACK、索引20×原因、限流、文本/图片marker读取。原检查器/law/evidence分母不能删减，原质量Owner/入口不扩张。
-
-当前只有设计反例，不宣称修复代码Exam已通过。建设后主Codex两轮实际diff自检→实际建设与方案/法案/Skill差异子审放行→唯一quality:check CHANGE；经授权clean commit/推送→READY/再次推送，按冻结ci-full-governance，不改Skill、不并行多套质量链。RELEASE/Dynamic Proof另需明确要求，方案子审不替建设子审。
-
-生产成效另获运行取证授权后：故障job和两个兄弟job各查Website admission/适用领域存储/Runtime completed；原结果先交、原effect有界零提交读回、必要Website风险grant顺序保持。永久native未知继续记未知，不能把背压换码当业务成功；无首因证明不能宣布全部Target超时根治。
-
-## 8. 删除反事实与切换
-
-| 单元、Owner/真实消费者 | 必需GAP、删除具体失败、更短裁决及旧路退出 |
+| 单元 | 必须存在的当前原因、真实消费者、最短决定与退休对象 |
 | --- | --- |
-| 原Actor handler集合/暂停；Node请求与drain消费接入/失败事实 | A1/A2删除会积压或遗留暂停。复用原集合/flag，删无真实责任的暂停；W1/W2旧方法/两套退休分支delete→ABSENT→rebuild，不加状态 |
-| 原DebuggerRuntime logical cycle/native guard/barrier；Authority消费物理许可 | 删除会在真实在途动作后读/输入，原反例可证。直接复用，不加watchdog/reset计数 |
-| 原Node pending/Coordinator FIFO；GPT和claim/revoke消费lease/typed失败 | 删除丢身份/期限/公平性。原transport与Acquirer序号登记断链按W1原定义delete→ABSENT→rebuild，扩展接入关闭A1积压；不加物理租约真相/第二队列或历史DISPATCHED门 |
-| 原receipt Owner的一次机械决定/原URL清洗；扩展/Node消费者 | 删任一消费无法产生/验证事实，留两份决定重现S1。复用原Owner比新模块更短，W3退休producer重复helper及consumer hash-only语义，原sanitize函数迁入同Owner、旧定义退出，不增第二清洗规则 |
-| 原physical release结果/Actor发送/strict parser/原Supervisor消费者 | 删除实际物理结果或关联不能合法证明释放；保三字段旧response会错resolve新admin或撤兄弟连接。仅加原requestSequence比重用deadline或新增历史账本更短；W4旧发送/解析/匹配片区delete→ABSENT→唯一重建，单协议11，零第二状态/存储 |
-| 原WAL/slot/ACK/dispose及Website恢复；各原Owner输出effect/receipt/grant | 删除会丢未知并重放；直接复用，背压或解除暂停不能清旧事实，零新store/retry/恢复Owner |
-| 原Blueprint/inspector/acceptance；施工者/唯一quality消费 | 本轮冲突与反例需改对应片区，删验收失去四个GAP及成熟不变量证明；更新原对象，零新治理文件/registry/Manifest/checker/verdict |
+| 唯一acquisition上限/原generator投影 | 普通命令与加载耗时语义不同；Acquirer/transport/Actor/Authority真实消费。删掉独立上限会恢复20/30秒截断，或必须放大所有命令；选择在原schema增加一个字段/原投影，退休acquisition对普通TTL/cap的依赖 |
+| 原事件等待/就绪identity/guard/清理 | 负责真实complete与exact当前目标；原Authority消费。删掉会对loading/串页动作、遗留本job物理资源；直接复用，零新等待层，不删后复制 |
+| 原FIFO/pending/handler/session/seq/ACK | 分别承担当前物理串行、请求归属和可信确认；删掉重现积压/晚回执连坐。保留原职责；pending补同次D/原signal并退订active监听，handler原位单Map绑定当前取消事实；不用第二store。无D会迟到认领，无精确取消链会在撤回后继续未来导航。cancel只复用同通道/原请求，无handler已退出证明；120秒或cancel均不能清槽/假退出，A1/A2/R1安全不变量仍须验收 |
+| 原命令20/30秒与Provider保护 | 原COMMAND/release/claim ACK及GPT真实消费者各自需要有界授权与节拍；不能用总扩时替代。保留，新增政策只用于acquire |
+| 原inspector/fixture/mutants | 原质量入口消费当前law及反例；删掉失去期限隔离/串行保护，旧cap断言又保护错误耦合。原位替换该断言，保留全部有效保护，不新建第二checker/verdict |
+| 新等待引擎、DOM轮询、最低加载时间、页面池、第二lane、自动强杀、第二恢复队列、UI参数、数据迁移 | 本案没有不可替代的消费者/必要性，全部从目标方案排除；当前不存在则不创建，不把排除写成已物理删除生产对象 |
 
-未通过必要性/安全证明的native进度协议、诊断缓存、新枚举/状态库、自动断连/重载/强杀、第二恢复队列、延时放大、全Product重做均从目标方案删除。
+## 8. 当前候选、审计与执行者重绑定
 
-切换只AGENT Node+唯一Extension固定artifact，目标唯一wire11（旧10物理退出），Website45/18/DB不变，无双仓施工。原schema→原generator派生唯一protocol revision/hash，原candidate生成唯一releaseBuildId；实际启用另获原启动/停止授权，先停新claim、继续结果/receipt交付、证明旧真实handler/native退出，再旧worker退出/Node与同build Extension一起启用，无fallback或兼容桥。原startup policyHashes/build releaseRecord/hash消费者直接复用，不扩写生成机制。历史未知WAL不要求清零；native未退不能虚报drained，不自行强杀。回退仅完整已核Node/Extension候选，不撤事实/复活fence或混新旧模块；不接纳旧10或单端旧response。
+AGENT realpath=/Users/nexgen/Documents/AGENT；branch=main；HEAD=86b0873b0b3638e1ebef1ca2058f7c977bc8b907；tracking=origin/main。本文件原为clean，原正文SHA256=7ff3963f43cff71616f6793a01f55e6ee1b00661f386d88f512d4708ba9ea162。已有他人overlay含功能法案/Website Blueprint/route specs、catalog/mediator/route质检与Zeji材料，以及既有派单优先级方案；全部保留，不纳本次文档编辑或未来提交授权。开工时Browser生产/质检目标均clean；下述56源hash仅是设计/开工基线，不是当前已施工候选的质量证据。
 
-## 9. 三轮主审、子审与执行者重绑定
+Scoped source由下列现役文件原字节绑定；本方案自身排除，文档hash另行读回。算法：路径按UTF-8 bytes排序，连接path+NUL+内容SHA256hex+LF，再SHA256。未来执行先重核HEAD、相关overlay、同一scope hash；相关变化只重算受影响结论，发现未授权用户改动就停相应施工。Skill正文按当前实读，不以旧已读摘要代替；闭环Skill全文本轮已分段完整取得两遍。
 
-本轮三轮主审和两位子审已完成；可施工仅是设计准入，未来执行授权及实际建设验收仍按§1/§6/§7。三轮主审分别核：①authority/Owner/授权与下级冲突；②有限分支/失败时序/跨job连坐；③前轮连续性、删除反事实、结构预算、可取得验收与candidate drift。三轮无finding才启动子审，子智能体只读对比当前方案、源头、法案和完整双遍闭环Skill；未明确放行不得结束方案建设。
-
-主审第1轮已核active39条及全部显式lawId、下级exact豁免冲突、原Owner/wire10/45/18、冻结非Skill施工授权门。修正法案缩写为完整identity，补入直接rule-mutants/submit consumer及反向pointer/coherent准备调用的candidate范围；没有法案弱化或施工越权。
-
-主审第2轮按§5逐分支反向攻击：真实native未退不假释放；晚诊断跨job/sequence不误拒；release失败保槽/registry、旧回调不解除新drain；管理员快照在自身加入前；S1首query原因不被hash/URL覆盖、合法失败保真实计数/原ACK、非法包不放宽；已CONFIRMED同effect零重发。分母各有原Owner/终态/回接，不新增永久native自动恢复声明。
-
-初稿主审第3轮核前轮G1/B1已落地符号与防回归验收、预点击/点击后判定的不同职责、Actor30成员红线与各函数预算、同包唯一决定的两个消费者、原Static/Exam落点/删除反事实、业务终点及未来授权/切换门；初稿绑定为47+7文件。该轮结论不是后续补全候选的放行。
-
-子审发现的release序号丢失、旧session失败诊断、迟到释放成功的连坐，主Codex已用真实原类/认证解码反例逐项复核，分别纳入W1/W2/W4；原URL清洗与canonical locator职责混用的风险纳入W3，不缩窄合法opaque包。原物理typed返回→Authority→Actor完整tracked发送、成功四字段/唯一11、现役fixture/inspector的直接消费及原分母均纳入本方案，不留口头补丁。
-
-补全稿主审第1轮重新匹配冻结说明书§24/25/37/38/81–83/B.3，核19个显式现役lawId、LAW006请求三字段与响应序号的不同责任、单协议/同候选、原类型主权及URL合法性，未发现需修改active law或冻结规范。第2轮反向核W1–W4的失败与成功会话归属、真实handler退休、同job/跨job/新管理员请求、迟到null零claim动作、非法包准确原因、永久native未知及原effect/Website接回，未发现新增连坐或虚假物理完成。第3轮全文核原检查器/fixtures/质量分母、Actor与Supervisor各30成员预算、原sanitize唯一迁移、物理删除/ABSENT验收及前轮连续性；独立重算55+7文件hash与§10相等，两仓scope均无overlay、19个lawId均在现役源头、三份Skill hash未变，本方案独占AGENT差异且diff check无错误。补全稿三轮主审完成。
-
-本轮子审audit_plan_law_target_20261012与audit_plan_closure_target_20261012均全文读回同一补全稿，独立核55+7绑定并明确“方案放行”，无未闭合finding；共同审查稿SHA256=5d3b98a9cd209a274897a411e75395d6be5bae334f728883604748d33c88b6cf。放行后本段及状态只记录审计结果，不改变目标合同或施工动作。子审只做只读审查；结论仅设计准入，不替代代码建设、CHANGE、READY或生产证明。
-
-未来执行Codex重新核§10 HEAD/overlay/hash及现役Skill，确认专项授权；W0两轮主审无finding才代码，各批准片区实际delete→ABSENT→唯一rebuild，重要步骤子审只审；代码后两轮主检及实际建设子审放行才CI-FULL。不把本轮设计授权/审查升格为施工或READY/生产完成。
-
-## 10. Scoped source candidate
-
-算法：路径按UTF-8 bytes排序，连接path+NUL+内容SHA256hex+LF，再SHA256；本方案自身排除，文档hash交付另报。AGENT初始全工作区clean；Website有他人无关overlay，以下只读scope clean，原样保留，不纳入AGENT提交。相关漂移只重核受影响片区。
-
-AGENT realpath=/Users/nexgen/Documents/AGENT；main；HEAD=bd04fb6a903e4514472d81e629334738c80dd14b；tracking=origin/main；55文件source hash=5ccacc27b5caf69b9a6711b2326d47fb4bd85b2843686971ced6d3fdaffc3e8a。
+56文件source SHA256=773ebfbe72b7b4c2629534c8b212686189d33ba5764b3803d40c7cb1132f34bd。
 
 ```text
 AGENTS.md
@@ -221,67 +167,59 @@ AGENTS.md
 docs/governance/法案系统建设说明书-冻结定稿版.md
 docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md
 docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md
-docs/blueprints/runtime-log-spine/RUNTIME-LOG-SPINE-V2-BLUEPRINT.md
 docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md
-docs/blueprints/code-purity/QUALITY-EVIDENCE-OWNERSHIP-V1-BLUEPRINT.md
-src/lib/browser/chrome-extension/websocket-actor.ts
-src/lib/browser/chrome-extension/extension-target-authority.ts
-src/lib/browser/chrome-extension/extension-target-acquisition.ts
-src/lib/browser/chrome-extension/extension-target-release.ts
-src/lib/browser/chrome-extension/extension-created-target.ts
-src/lib/browser/chrome-extension/debugger-runtime.ts
-src/lib/browser/chrome-extension/dom-mutation-postcondition.ts
-src/lib/browser/chrome-extension/dom-pointer-intent-runtime.ts
-src/lib/browser/chrome-extension/dom-coherent-candidate.ts
-src/lib/browser/chrome-extension/dom-coherent-candidate-readback.ts
-src/lib/browser/chrome-extension/dom-coherent-observation.ts
-src/lib/browser/chrome-extension/extension-command-runtime.ts
-src/lib/browser/chrome-extension/websocket-actor-diagnostics.ts
-src/lib/browser/chrome-extension/websocket-target-claim-awaiter.ts
-src/lib/browser/exact-target/browser-observation-receipt.ts
-src/lib/browser/exact-target/browser-mutation-receipt.ts
-src/lib/browser/exact-target/browser-interaction-native-cause.ts
-src/lib/browser/exact-target/browser-site-policy-registry.ts
-src/lib/browser/infrastructure/browser-target-acquirer.ts
-src/lib/browser/infrastructure/browser-infrastructure-state.ts
-src/lib/browser/infrastructure/browser-authority-broker.ts
+scripts/audit/domains/local-browser-session/manifest.json
+scripts/audit/domains/code-purity/manifest.json
+package.json
+src/lib/local-runtime/production/runtime-state.ts
+src/lib/local-runtime/production/runtime-execution-heartbeat.ts
+src/lib/local-runtime/production/executor.ts
+src/capabilities/gpt/production-browser-lifecycle.ts
+src/lib/browser/exact-target/browser-target-lease.ts
 src/lib/browser/infrastructure/browser-lane-coordinator.ts
+src/lib/browser/infrastructure/browser-target-acquirer.ts
 src/lib/browser/infrastructure/browser-infrastructure-supervisor.ts
 src/lib/browser/transport/browser-authority-websocket.ts
-src/lib/browser/transport/browser-authority-frame-payload.ts
-src/lib/browser/transport/browser-authority-diagnostic.ts
+src/lib/browser/transport/browser-authority-frame-codec.ts
+src/lib/browser/chrome-extension/websocket-actor.ts
+src/lib/browser/chrome-extension/websocket-target-operation.ts
+src/lib/browser/chrome-extension/websocket-target-claim-awaiter.ts
+src/lib/browser/chrome-extension/extension-target-authority.ts
+src/lib/browser/chrome-extension/extension-target-acquisition.ts
+src/lib/browser/chrome-extension/extension-created-target.ts
+src/lib/browser/chrome-extension/extension-target-release.ts
+src/lib/browser/chrome-extension/extension-interaction-readiness.ts
+src/lib/browser/chrome-extension/debugger-runtime.ts
+src/lib/browser/chrome-extension/chatgpt-page-access-gate.ts
 src/lib/browser/protocol/browser-protocol.schema.json
 src/lib/browser/protocol/generate-browser-protocol.mjs
 src/lib/browser/protocol/generated/browser-protocol.generated.ts
-src/lib/local-runtime/production/runtime-business-admission.ts
-src/capabilities/gpt/production-browser-lifecycle.ts
-src/capabilities/gpt/children/submit_exact_gpt_turn_once/handler.ts
+scripts/audit/domains/local-browser-session/target-claim-inspection.ts
+scripts/audit/domains/local-browser-session/browser-mutation-settlement-inspection.ts
+scripts/acceptance/browser-lane-fifo-support.ts
+scripts/acceptance/browser-lane-fifo.acceptance.ts
 scripts/acceptance/local-browser-target-lifecycle-support.ts
-scripts/acceptance/local-browser-auto-pairing.acceptance.ts
 scripts/acceptance/local-browser-auto-pairing-support.ts
-scripts/acceptance/agent-production-runtime-business-admission.acceptance-support.ts
-scripts/acceptance/local-browser-dom-coherent-click-support.ts
-scripts/acceptance/local-browser-mutation-receipt-support.ts
+scripts/acceptance/local-browser-auto-pairing.acceptance.ts
 scripts/acceptance/local-browser-terminal-contract.acceptance.ts
 scripts/acceptance/local-browser-rule-mutants.acceptance.ts
-scripts/acceptance/browser-lane-fifo-support.ts
-scripts/audit/domains/local-browser-session/manifest.json
-scripts/audit/domains/local-browser-session/target-claim-inspection.ts
-scripts/audit/domains/local-browser-session/dom-mechanical-facts-inspection.ts
-scripts/audit/domains/code-purity/components/structural-metrics.ts
-package.json
+scripts/acceptance/browser-extension-build.acceptance.ts
+scripts/acceptance/browser-extension-release-identity.acceptance.ts
+src/capabilities/gpt/production-call-preparation.ts
+src/capabilities/gpt/production-child-tools.ts
+src/capabilities/gpt/children/prepare_clean_gpt_chat/observation.ts
+src/capabilities/gpt/children/prepare_clean_gpt_chat/handler.ts
+src/lib/browser/infrastructure/browser-infrastructure-state.ts
+scripts/acceptance/agent-production-runtime-business-admission.acceptance-support.ts
+src/lib/browser/chrome-extension/websocket-actor-crypto.ts
+src/lib/browser/chrome-extension/websocket-actor-diagnostics.ts
+src/lib/browser/transport/browser-authority-diagnostic.ts
+src/lib/browser/browser-failure.ts
+src/lib/browser/protocol/browser-errors.json
+src/lib/browser/chrome-extension/exact-target-runtime.ts
 ```
 
-Website仅只读合同/终点边界：realpath=/Users/nexgen/Documents/xuanxue-web；main；HEAD=8b34a80db29e6f65a92ecbb47d676be41491fa58；tracking=origin/main；7文件source hash=0a1aca5f4e547ea5660b026e4385b6181e5f3eb7c83a45eac2370c28da705453。网站侧其他工作形成新commit，7文件bytes未变，重新绑定HEAD；零Website规范/实现/质量写入，不宣称Website READY。
+本轮主Codex已完成三轮方案自审；实际只读子审发现的截止认领、active撤权、bound活动绑定退休、新建registry确定退休及质检消费者遗漏，均已回补到本轮唯一正文。技术审查者曾接触早期主审自评，其意见只作为技术复核，不冒称盲审；另一全新独立审查者在不含该自评的材料上独立取证，并对后续受影响修订逐次复核。两者最终均对施工正文SHA256=6afa35b8e697d3e2888ab0815ca233fc6dc7c3f3186dc1036b56c0895a3664dd明确放行，56源文件绑定未变；本次收尾仅更新状态和本审查记录，不改变§1—7施工合同。旧候选的放行不适用。上述为施工前设计阶段记录：当时只完成方案设计，没有实现测试、原生CHANGE/READY或生产业务证明；设计准入、施工授权、唯一原生质量裁决与业务终点分别取得，不使用百分比评分或第二质量PASS。
 
-```text
-docs/specs/ai-acceptance/website-agent-task-result.provider.spec.json
-docs/specs/ai-acceptance/xuanxue-ai-production-v6.contract.spec.json
-services/api/src/ai-production/job-terminal-repository.ts
-services/api/src/ai-production/business-result-consumer.ts
-services/api/src/ai-production/business-result-domain-dispatch.ts
-services/api/src/localization/localization-static-catalog-consumer.ts
-services/api/src/localization/localization-static-current.ts
-```
 
-设计指令来源：/Users/nexgen/.codex/skills/closed-loop-implementation-design/SKILL.md SHA256=db5ce193cdc32b1c3b0fbd25f8961a354572966dd9a7c01658d0fd5b79e3b1b2；/Users/nexgen/.codex/skills/frozen-spec-index/SKILL.md SHA256=1ad041234e0a514ab2bca3ad11d4abc787985ff2952fc442aff3477fc12c6694；/Users/nexgen/Documents/AGENT/.agents/skills/agent-flow-boundary-gatekeeper/SKILL.md SHA256=baa2458a5f1ec2fc22308afbc3cebf88461db0547411f99145b481d90a317a68。输入附件SHA256=9f03f54c29b42666a110b07e9ebd7b65b2f1068ebfbb8a98a4375861f476fbbb。
+当前施工进度（2026-10-21）：已在main完成W0/W1/W1C/W2实际建设，保留原事件等待、普通命令及release/ACK期限、唯一FIFO/lane/WAL/Outbox。主Codex在代码前完成法案/施工图两遍自审，删除原方法片区后立即用磁盘AST读回缺席再重构；重要接缝子审发现的ACK计时早于sender出队与关闭无同步缺席证明两处已证缺陷已在原begin/discard出口闭合。专用support只由原auto-pairing验收入口调用且已在本域Manifest登记；实际Node Acquirer/AEAD/Actor/Authority/CreatedTarget/Supervisor链受控时钟矩阵、typecheck与FIFO验收已exit0，mutants及原生质量必须以当前候选最终原件为准。该进度不是READY或生产成功，未启动/停止运行系统、未接触用户Chrome、未删除工单、未动Website业务代码，F8自然生产验收尚未执行。原方案设计放行不充当本轮代码放行；最终主审、独立代码审查、CHANGE、clean提交/首推、READY及再次推送均由当前施工链各自记录。

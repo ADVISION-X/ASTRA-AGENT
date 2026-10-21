@@ -17,6 +17,7 @@ export const BROWSER_ARTIFACT_CHUNK_MAX_BYTES = ${protocol.transport.artifactChu
 export const BROWSER_COMMAND_MAX_QUEUED = ${protocol.commandAdmission.maxQueuedCommands} as const;
 export const BROWSER_COMMAND_MAX_IN_FLIGHT = ${protocol.commandAdmission.maxInFlightCommandsPerTarget} as const;
 export const BROWSER_COMMAND_DEFAULT_DEADLINE_MS = ${protocol.commandAdmission.defaultDeadlineMs} as const;
+export const BROWSER_TARGET_ACQUISITION_MAX_WAIT_MS = ${protocol.commandAdmission.targetAcquisitionMaxWaitMs} as const;
 export const BROWSER_HEARTBEAT_MS = ${protocol.liveness.heartbeatMs} as const;
 export const BROWSER_MISSED_HEARTBEAT_TOLERANCE_MS = ${protocol.liveness.missedHeartbeatToleranceMs} as const;
 export const BROWSER_PROTOCOL_SCHEMA_SHA256 = "sha256:${digest}" as const;

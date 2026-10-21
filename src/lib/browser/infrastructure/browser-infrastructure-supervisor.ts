@@ -164,10 +164,9 @@ export class BrowserInfrastructureSupervisor {
   private onTargetClaim(input: BrowserAuthorityTargetClaim): void {
     requireGptWebClaimOrigin(input.claimOrigin);
     const initialClaim = this.broker.currentOperatorTargetStatus() === "absent";
-    if (initialClaim && !this.state.pendingJobBoundTargetAcquisition) throw new Error("BROWSER_TARGET_INVALID");
-    if (initialClaim && this.state.pendingJobBoundTargetAcquisition?.jobRefHash !== input.jobRefHash) {
-      throw new Error("BROWSER_TARGET_INVALID");
-    }
+    const pending = this.state.pendingJobBoundTargetAcquisition;
+    if (initialClaim && (!pending || pending.action !== "acquire" || pending.jobRefHash !== input.jobRefHash
+      || pending.signal.aborted || Date.now() >= pending.deadlineAt)) throw new Error("BROWSER_TARGET_INVALID");
     const mutations = this.state.mutationState;
     if (!mutations) throw new Error("BROWSER_MUTATION_STATE_UNAVAILABLE");
     mutations.assertRuntimeTaskProvenance();

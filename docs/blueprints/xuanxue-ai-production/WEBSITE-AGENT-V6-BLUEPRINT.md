@@ -22,7 +22,7 @@ blocked实例在真实停机时由原Store关闭入口只读核未完成任务/O
   "lawIds": [
     "LAW-AGENT-PRODUCTION-RUNTIME-001-V76",
     "LAW-AGENT-PRODUCTION-RUNTIME-002-V12",
-    "LAW-AGENT-PRODUCTION-RUNTIME-003-V47",
+    "LAW-AGENT-PRODUCTION-RUNTIME-003-V48",
     "LAW-AGENT-PRODUCTION-RUNTIME-004-V45",
     "LAW-AGENT-PRODUCTION-RUNTIME-005-V43",
     "LAW-AGENT-PRODUCTION-RUNTIME-006-V47",
@@ -131,7 +131,7 @@ Runtime 对外只发布 Agent Route Capability Manifest。它从 Mediator 取得
 
 Product、GPT、Browser、Forensics、Runtime Log、App Shell、Startup、Website 继续由各自 active law、blueprint、spec 与唯一 Manifest primary Owner 守住文件及接口边界。Runtime 文档只记录上表接口边，不复制其业务流程、DOM、模型策略、Provider 操作或发布裁决。
 
-generated image 沿 task-result v21 的原链运输。GPT 取得的已鉴权原始 Provider bytes 先由 Forensics 按原字节/hash封存并读回；Product 只作 EXIF 方向应用及去 metadata WebP 编码，保留方向应用后的原宽高。Runtime 不解码图片，只校验 WebP、hash/bytes、整数宽高并运输现役 V6 receipt。Website staging 独立解码宽高并绑定同一 result payload；任何层不得 resize/crop/pad 或设尺寸、比例、总像素拒收门，原图不上传，V6 receipt 不增加宽高字段，也不新增图片链。
+generated image 沿 task-result v22 的原链运输。GPT 取得的已鉴权原始 Provider bytes 先由 Forensics 按原字节/hash封存并读回；Product 只作 EXIF 方向应用及去 metadata WebP 编码，保留方向应用后的原宽高。Runtime 不解码图片，只校验 WebP、hash/bytes、整数宽高并运输现役 V6 receipt。Website staging 独立解码宽高并绑定同一 result payload；任何层不得 resize/crop/pad 或设尺寸、比例、总像素拒收门，原图不上传，V6 receipt 不增加宽高字段，也不新增图片链。
 
 
 GPT 页面 selector 的语义冻结只属于 GPT Child，Browser 只机械执行 typed query，Runtime 只消费 Child terminal。mutation 前是否自动选中精确 system Tab、激活后的 Target/Document 重验、输入前 activation generation 与 `BROWSER_TARGET_NOT_INTERACTIVE` 结算都只属于 Browser Authority；Runtime 不接收 tabId、不调用激活/窗口聚焦、不读取 Browser 私有状态，也不建立第二 precondition、WAL、恢复或重试。该变更不得进入 Runtime 配置、Manifest 字段或跨仓合同；Website 任务、Outbox、artifact receipt 与 business admission receipt 主链保持不变。
@@ -215,7 +215,7 @@ Runtime 自身代码保持 production 目录内的直接模块关系。不得新
 Website ai-acceptance 是唯一 provider。AGENT 三份 spec 的现役身份为：
 
 - Agent Route Capability Manifest provider：version 4；只发布 current session 支持的 `product_id + action_id + task_contract_version + result_contract_version`；Product Profile、Skill、Prompt、Flow、实现名称、版本和 hash 均不得对外发布或参与任务身份；
-- Website Agent Task Result consumer dependency：version 21；精确消费 Website 唯一 provider 的40路由、43参数类型和40结果合同。任务与结果 envelope 仍为1，图片及本地化沿原运输合同；旧18版本及旧联合起名生产路由无活动 reader、alias 或兼容分支。公开格式从 route.result_contract 原样投影到对应 Product Prompt，Product 不保存第二份业务输出 Schema。
+- Website Agent Task Result consumer dependency：version 22；精确消费 Website 唯一 provider 的43路由、43参数类型和43结果合同。任务与结果 envelope 仍为1，图片及本地化沿原运输合同；旧18版本及旧联合起名生产路由无活动 reader、alias 或兼容分支。公开格式从 route.result_contract 原样投影到对应 Product Prompt，Product 不保存第二份业务输出 Schema。
 - Xuanxue AI Production V6 consumer dependency：version 45。保留 v39 的 `same_accepted_attempt` grant 语义，永久停止只消费 Website exact job absence，包含管理员未完成 Work Order 清除与获授权的隐私未完成质量反思清除。false 是 fresh attempt，true 必须同时命中 AGENT 本地同 attempt durable authority，否则在 Product 与任何 Website 写入前失败关闭。v45 切换须逐 job 在原 Website 行锁保全旧 accepted attempt、first fact、结果/Outbox/Browser 来源 manifest 与旧 session/fence，禁止把未完成 attempt 当清空条件；旧 session supersede 后，其旧 claim receipt 失去动作授权，新 session 只经 v45 同一 claim 的已鉴权 `source_evidence[]` 对账并取得原 attempt 的当前 lease/fence 或旧结果交付授权。旧 session/receipt 只作历史证据，不提供旧版兼容写入或第二撤权路径。Website 的`ai_production_devices.max_in_flight`仍是当前N的唯一持久Owner并唯一持有限流cohort；Runtime不保存或配置当前N/权威cohort。心跳只报告去重本地在途数，claim请求只按合同安全上限、本地in-flight和executor可用量提出，Website在设备事实行锁内收紧最终grant。Browser action capacity始终为1；Runtime只消费Website当前授权、有限`retry_not_before`、三个next action、typed effect outcome、provider_cooldown receipt与admission receipt。 v45 grant 校验中 `result_revision>0` 可由真实领域 `prior_result_rejection` 或同一 Website claim/event 的 exact `delivery_priority_replay_grant` 支撑；当前 grant 来源互斥：真实领域 rejection 对应 `prior_result_rejection`，风险 replay 对应 exact 风险 grant 且 `prior_result_rejection=null`；旧 rejection 只留原 Website job events，不下发为本轮 Product 修正指令。Product 风险 revision 从原入口执行；已完成的旧调用只按来源 seal 复用原 submit/checkpoint 产物，新的 revision promptHash 可变化，耗尽调用才用当前 prompt 与风险 grant fresh 输入；Website claim 与 provider cooldown notice 复用同一原 job revision reader。
 - Website 在 V6 v45 内部对 fresh grant 使用固定五阶容量递补并拥有唯一 product_id 映射：先按现役 N 扣除在途取得 fresh 剩余名额，再按 claimable fresh job 的阶级由高到低、同阶 `created_at,job_id` 填充；高阶足以填满剩余名额时低阶不得领取，高阶不足时下一阶使用空闲名额。Website 先用 SQL 排除稳定不合格项，recovery 与 fresh 各最多复核32个已锁候选；只有锁后资格并发漂移耗尽预算时当前 receipt 可欠填并由下一次 claim 重试。已在途 job 只按现役容量计入在途数，当前不可领取的高阶 job 不额外冻结空位。该规则不增加 V6 wire 字段或 AGENT 调度职责；Runtime 仍只请求有界容量并机械执行 Website 已签 grant，不保存 tier、不按等待时间提升任务，也不拒绝已 durable accept 的 attempt 恢复、同 effect 读回、Outbox 交付或 admission 收尾。每个 job 仍独占自己的 Tab，Browser 物理动作 lane 仍为 1；GPT 等待不占用 Browser lane。
 - v45 风险 revision 的 target-local 重新准备：既有 `delivery_priority_replay_grant` 精确绑定当前同accepted attempt和原已签source，Website以ACTIVE_ATTEMPT重授原grant；Browser独立证当前attempt输入zero、前后完整历史未漂移且walHistoryVerified；历史unresolved只保留事实，不作同grant当前回接门，旧possible effects逐一由现役acceptedSourceSettlements/historicalEffectsSettled核call/Child/WAL/anchor和已签血缘。首因failure_core中scope/Child/outcome缺失只属不可变诊断，不能夺去上述事实核验成立的当前授权；完整provider zero失败仍须原provenZeroInputCallMatches指定调用证明。Browser再以当前fence/Target重做准备且守原指定call风险输入上限；Provider一旦有本轮输入或未知则只按同effect零提交读回。此分支不签新attempt、不复制grant、不增加事件、恢复状态或第二历史来源。failure_core不回填，release_descriptor只按原lease授权重绑。
@@ -232,16 +232,18 @@ Website ai-acceptance 是唯一 provider。AGENT 三份 spec 的现役身份为�
 
 Website Naming 接纳由原 coordinator 的 A 领域真实提交→B 商业与最终 admission 同事务闭合；AGENT 只消费既有 generic consumer_ref/outcome receipt，不运输 Naming business_object_ref 或 Bazi/review 扩展字段。A 成功 B 未闭合仍占业务席位；原 task/attempt/payload 重交付或读回，不能重做 Product、创建第二 Outbox 或自裁 completed。其他三十八条 route 的原领域 receipt 和完成边界保持。
 
-task-result21无桥切换由两仓原Owner先停止40路由新claim及新增研究sender，保留原结果交付和零输入读回；全部旧在途job/attempt/live lease/staged/Outbox、可能发生的Provider effect及领域/商业pending须收束。不能排空即停止切换，保留历史及未决事实，不删单或伪零。随后停止durable writer、确认零在途事务并取得获准exact backup，再安装双方匹配完整候选并启用新session epoch，不重enrollment。无数据库迁移、历史任务转换、旧parser、双读写或桥；已有新effect/结果事实后禁止以单仓或DB回滚抹去事实。
+task-result22无桥切换由两仓原Owner先停止40路由新claim及新增研究sender，保留原结果交付和零输入读回；全部旧在途job/attempt/live lease/staged/Outbox、可能发生的Provider effect及领域/商业pending须收束。不能排空即停止切换，保留历史及未决事实，不删单或伪零。随后停止durable writer、确认零在途事务并取得获准exact backup，再安装双方匹配完整候选并启用新session epoch，不重enrollment。无数据库迁移、历史任务转换、旧parser、双读写或桥；已有新effect/结果事实后禁止以单仓或DB回滚抹去事实。
 
+
+良辰吉日由独立zeji-personal-selection Product按自身Skill研究；produce为fresh，原accuracy_challenge/quality_reflection只作finding。原五类parameter不新增；一份受控zeji_reading_guide在前，ready_corpus_archive及zeji_input_bundle两个repeatable组各至少一份且顺序连续，material_id为source_task_id:role:part（part从0连续），ordinal全局连续；旧非repeatable角色仍严格一份。原64附件技术上限整体失败关闭，不裁书、日、时域或条件。资料生成、实际读取和研究完成分别核实。原Provider输出合同完整投影，未知专业字段保留；PDF仍归Website。
 
 consumer dependency 的 contract body 只能包含 contractId、version、providerRepo。普通启动只校验本仓最小 dependency，不读取未绑定 Website 工作树；跨仓 participant commit 只属于 RELEASE 证据。
 
 唯一 route projection generator 必须机械得到并逐项校验：
 
-- 40 routes；
+- 43 routes；
 - 43 parameter types；
-- 40 result contracts；
+- 43 result contracts；
 - 0 条 reservation route；
 - 每条 route 的 parameters、materials、relations、result_contract 与 Website provider 语义完全一致。
 
@@ -344,8 +346,8 @@ CHANGE、READY、RELEASE 是不同候选阶段。Runtime 的静态或动态 PASS
 每次候选都必须重新证明：
 
 1. 八条 Runtime law、稳定 blueprintId、三份 active contractRef 与 Runtime 唯一 Manifest 的 lawIds 相互一致；Architecture Boundary law 与 Manifest 独立保持其现役一一对应；越界 `ownedPaths` 只在同一候选的一次原子修改中归位，并立即证明无无主、无重叠、无 Runtime manifest-owner-drift。
-2. task-result provider/dependency/projection精确为21，V6为45、capability为4、task/result envelope为1；40条route的参数键、材料role/media/trust/owner/顺序/基数、relation及result_contract逐项核对，未知、缺失、额外、重复、错序或错身份失败关闭。九专业使用完整冻结资料，商业零八字；图片原链、三种admission receipt、原effect/WAL、限流和来源seal/rejection/risk授权全部保持原合同。
-3. route projection为40 routes、43 parameter types、40 result contracts；reservation、bazi_private_base_input、result_contract.private_base及旧联合起名活动route均为零。
+2. task-result provider/dependency/projection精确为22，V6为45、capability为4、task/result envelope为1；43条route的参数键、材料role/media/trust/owner/顺序/基数、relation及result_contract逐项核对，未知、缺失、额外、重复、错序或错身份失败关闭。九专业使用完整冻结资料，商业零八字；图片原链、三种admission receipt、原effect/WAL、限流和来源seal/rejection/risk授权全部保持原合同。
+3. route projection为43 routes、43 parameter types、43 result contracts；reservation、bazi_private_base_input、result_contract.private_base及旧联合起名活动route均为零。
 4. base、Bazi primary、review admission receipt 的互斥字段与完整 canonical hash 全部闭合，未闭合时本地 completed 增量为零。
 5. credential 失败类别分别得到稳定脱敏 typed code，且 claim/Provider mutation 增量为零。
 6. Runtime-owned source 对 Product Plugin 的 direct/re-export/dynamic/side-effect import 为零；Product source 对 Runtime 私有 production module 的 import 为零；唯一 architecture-owned Catalog 与 Runtime Manifest publisher 只以冻结纯数据 route snapshot 连接，provider v4 Route Capability Manifest 只含 product/action 与 task/result contract version，跨仓及持久身份的 Product Plugin 名称、版本、Skill hash 字段为零。

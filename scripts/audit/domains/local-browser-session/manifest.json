@@ -25,6 +25,7 @@
     "scripts/acceptance/browser-extension-release-identity.acceptance.ts",
     "scripts/acceptance/browser-lane-fifo-support.ts",
     "scripts/acceptance/browser-lane-fifo.acceptance.ts",
+    "scripts/acceptance/local-browser-acquisition-wait-support.ts",
     "scripts/acceptance/local-browser-artifact-and-lock.acceptance-support.ts",
     "scripts/acceptance/local-browser-authenticated-media-support.ts",
     "scripts/acceptance/local-browser-auto-pairing-support.ts",

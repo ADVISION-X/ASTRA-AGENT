@@ -179,3 +179,13 @@ AGENT 只机械执行 Website 已签 grant：
 5. 最后才运行 Website 原生 `npm run quality:check -- CHANGE`。READY 只有在用户要求且能形成不混入无关改动的 clean commit 时执行；READY 不等于 RELEASE。
 
 “完成建设”只表示当前候选已通过规定的静态、Exam 和集成证据。真实生产跑满 N 仍需部署后以同一 claim receipt、设备 N、数据库在途数与实际多 Tab 运行记录证明；不得把本地测试或 HTTP 200 冒充生产完成。
+
+## 9. 2026-10-20 领取500的实证与用户清理决定
+
+真实API角色、BEGIN READ ONLY内调用当前selector（仅观察时去除行锁、不签grant）复现：旧奇门 `aiprod_0a35f874-b827-4650-a3a8-1daa114b2de8` 的两材料仍是 `qimen-archives.v2`，当前唯一registry要求v3。strict recipe抛ZodError，导致整批claim事务回滚，前面两张正常catalog recovery也无法领取。两份用户日志同trace的claim500／website.v6-request失败／nativeCause=ZODERROR与该栈一致。Website提交718447498将builder从v2升级v3。不得由此推论DOM故障或所有其它500同因。
+
+用户随后明确“旧的工单直接删除，不要用生产代码迁就旧工单”。据此撤销本节原拟材料SQL投影与逐job异常重构；本轮写入的4个生产文件、1个测试文件及Blueprint增补已逐hunk回退，经scoped diff确认无剩余差异。这是按用户新指令回退，不能计作重建完成或修复通过；既有GPT回答读取的独立建设及原CI失败记录保留。
+
+本次只按现役Website删除Owner核准精确旧工单及原业务关系，执行已有清除流程并读回缺席，不修改active law、材料reader、历史hash或兼容旧builder。完成工单、已入库结果及其原资产闭包必须保护；新任务沿当前唯一合同产生。本节不创建删除器、迁移、第二队列或历史恢复机制。删除范围以当前旧合同身份与实际关联证明，不以任意创建日期或“全部failed”推断。未读回删除成功前不得报告已清除，也不以一条成功HTTP响应代替claim receipt/grant与真实运行。
+
+执行读回：当前registry不兼容的未完成运输任务查询只发现上述1张奇门；其原Qimen task与Commercial履约关联均缺席，无result、terminal、staged、业务接纳、活动lease、cooldown成员或受保护派生结果。使用原API角色和原材料/结果保护检查，单事务在原unfinished purge门内按精确job/request hash删除这一孤儿，提交后确认job及其4类直接子记录缺席，两张合法catalog保留。未修改schema/触发器/角色或删除共享Blob。随后原AGENT进程自动领取：2026-10-19T21:59:10.029Z `cloud.claim succeeded`，原request `aipclaim_994871dd-1c9e-4811-b239-b698d3c20473`；Website持久receipt `aipclaim_5306cff0-d6ed-4695-8e75-86c801cd23c9` 的 `LEASE_GRANTED` 有2张catalog，ID为 `aiprod_0b2740cf-0b2e-4a0e-8223-a8dbfa2a447c`、`aiprod_c82d5db5-6b8c-43d1-8f3a-e421312da685`，与AGENT日志及DB当前attempt/lease一致。本次证明该旧单造成的claim500解除与两张原任务获准回接，不代表它们已领域入库，也不改变原GPT专项READY失败尚待收尾的事实。

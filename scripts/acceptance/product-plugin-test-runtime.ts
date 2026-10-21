@@ -73,7 +73,8 @@ export const buildProductTask = (
     business_context_hash: FIXTURE_HASH,
     parameters: { ...fixture.parameters },
     material_refs: route.material_roles.map((material, ordinal) => ({
-      material_id: `material:${ordinal}`,
+      material_id: material.repeatable === true
+        ? `source:${route.product_id}:${route.action_id}:${material.role}:0` : `material:${ordinal}`,
       ordinal,
       role: material.role,
       display_name: `material-${ordinal}.${material.media_types[0] === "application/zip" ? "zip" : "json"}`,

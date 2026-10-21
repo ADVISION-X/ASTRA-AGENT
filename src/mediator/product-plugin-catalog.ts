@@ -12,6 +12,7 @@ import { paymentScreenshotObservationPlugin } from "../plugins/payment-screensho
 import { publicKnowledgeArticlePipelinePlugin } from "../plugins/public-knowledge-article-pipeline/index.js";
 import { qimenProfessionalAnswerPlugin } from "../plugins/qimen-professional-answer/index.js";
 import { qimenReportFollowupPlugin } from "../plugins/qimen-report-followup/index.js";
+import { zejiPersonalSelectionPlugin } from "../plugins/zeji-personal-selection/index.js";
 import {
   hashCanonical,
   sha256,
@@ -36,6 +37,7 @@ export const productionPluginCatalog = Object.freeze([
   publicKnowledgeArticlePipelinePlugin,
   localizationProductionPlugin,
   paymentScreenshotObservationPlugin,
+  zejiPersonalSelectionPlugin,
 ] as const satisfies readonly ProductPlugin[]);
 
 export interface ProductRouteCatalogEntry {
@@ -97,6 +99,6 @@ export const dispatchProductPlugin = (
   }));
 };
 
-if (productionPluginCatalog.length !== 12 || skillBytes.size !== 12 || routeCatalog.size !== 40) {
+if (productionPluginCatalog.length !== 13 || skillBytes.size !== 13 || routeCatalog.size !== 43) {
   throw new Error("PLUGIN_CATALOG_DENOMINATOR_INVALID");
 }

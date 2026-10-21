@@ -24,7 +24,7 @@ function exact(input: Record<string, unknown>, keys: readonly string[]): void {
 const artifact = object(projection);
 exact(artifact, ["schema_version", "contract_id", "contract_version", "parameter_types", "routes"]);
 if (artifact.schema_version !== "website-agent-route-policies.v1" || artifact.contract_id !== "ai-acceptance.website-agent-task-result"
-  || artifact.contract_version !== 21 || !Array.isArray(artifact.routes) || artifact.routes.length !== 40) {
+  || artifact.contract_version !== 22 || !Array.isArray(artifact.routes) || artifact.routes.length !== 43) {
   throw new Error("WEBSITE_AGENT_ROUTE_POLICY_PROVIDER_INVALID");
 }
 const parameters = object(artifact.parameter_types);
@@ -57,8 +57,10 @@ for (const raw of artifact.routes) {
   }
   for (const rawMaterial of route.material_roles) {
     const material = object(rawMaterial);
-    exact(material, ["role", "trust_class", "may_issue_instruction", "media_types", "storage_class", "owner_scope_policy"]);
-    if (typeof material.role !== "string" || !material.role.trim() || typeof material.may_issue_instruction !== "boolean"
+    exact(material, ["role", "trust_class", "may_issue_instruction", "media_types", "storage_class", "owner_scope_policy",
+      ...(Object.hasOwn(material, "repeatable") ? ["repeatable"] : [])]);
+    if ((Object.hasOwn(material, "repeatable") && material.repeatable !== true)
+      || typeof material.role !== "string" || !material.role.trim() || typeof material.may_issue_instruction !== "boolean"
       || !Array.isArray(material.media_types) || !material.media_types.length
       || !material.media_types.every((type) => typeof type === "string" && type.trim())
       || !["instruction", "locked_fact", "nonbinding_prior_interpretation", "user_provided_data", "classical_source_data", "transport_evidence"].includes(String(material.trust_class))
@@ -69,10 +71,10 @@ for (const raw of artifact.routes) {
     }
   }
 }
-if (identities.size !== 40 || Object.keys(parameters).length !== 43 || contracts !== 40 || used.size !== 43
+if (identities.size !== 43 || Object.keys(parameters).length !== 43 || contracts !== 43 || used.size !== 43
   || Object.keys(parameters).some((key) => !used.has(key))) throw new Error("WEBSITE_AGENT_ROUTE_POLICY_PROVIDER_DENOMINATOR_INVALID");
 // The consumer receives the provider's exact bytes, including order and result contracts.
 const pending = `${destination}.tmp-${process.pid}`;
 await writeFile(pending, bytes, { mode: 0o644 });
 await rename(pending, destination);
-process.stdout.write("WEBSITE_AGENT_ROUTE_POLICY_PROJECTION_SYNCED 40/43/40\n");
+process.stdout.write("WEBSITE_AGENT_ROUTE_POLICY_PROJECTION_SYNCED 43/43/43\n");

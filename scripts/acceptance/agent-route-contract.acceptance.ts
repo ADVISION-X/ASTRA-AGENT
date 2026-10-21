@@ -8,11 +8,11 @@ import { task as runtimeTask } from "./agent-production-runtime-fixtures.js";
 
 const projection = JSON.parse(await readFile(new URL(
   "../../src/lib/local-runtime/production/website-agent-route-policies.v1.json", import.meta.url), "utf8"));
-assert.equal(projection.contract_version, 21);
-assert.equal(projection.routes.length, 40);
+assert.equal(projection.contract_version, 22);
+assert.equal(projection.routes.length, 43);
 assert.equal(Object.keys(projection.parameter_types).length, 43);
-assert.equal(projection.routes.filter((route: Record<string, unknown>) => route.result_contract !== undefined).length, 40);
-assert.equal(productionRoutePolicies.length, 40);
+assert.equal(projection.routes.filter((route: Record<string, unknown>) => route.result_contract !== undefined).length, 43);
+assert.equal(productionRoutePolicies.length, 43);
 
 const seen = new Set<string>();
 for (const route of productionRoutePolicies) {
@@ -56,7 +56,33 @@ for (const route of productionRoutePolicies) {
       parent_result_ref: "result:wrong", parent_result_hash: FIXTURE_HASH_B }), /AGENT_ROUTE_RELATION_KIND_INVALID/u);
   }
 }
-assert.equal(seen.size, 40);
+assert.equal(seen.size, 43);
+for (const route of productionRoutePolicies.filter(route => route.material_roles.some(role => role.repeatable))) {
+  const base = buildProductTask(route, { parameters: Object.fromEntries(route.required_parameter_keys.map(key => [key, "authorized"])) });
+  const grouped = (counts: readonly number[]) => {
+    let group = 0;
+    const material_refs = route.material_roles.flatMap((role, index) => Array.from({
+      length: role.repeatable ? counts[group++]! : 1,
+    }, (_, part) => ({ ...base.material_refs[index]!,
+      material_id: role.repeatable ? `${base.source_task_id}:${role.role}:${part}` : base.material_refs[index]!.material_id,
+      display_name: `group-${index}-part-${part}`,
+    }))).map((entry, ordinal) => ({ ...entry, ordinal }));
+    return { ...base, material_refs };
+  };
+  for (const counts of [[1, 1], [2, 3], [31, 32]]) assert.doesNotThrow(() => assertProductionTaskRoutePolicy(grouped(counts)));
+  for (const counts of [[0, 1], [1, 0], [32, 32]]) assert.throws(() => assertProductionTaskRoutePolicy(grouped(counts)));
+  const full = grouped([2, 3]);
+  for (const replacement of [{ material_id: "foreign-task:role:0" }, { material_id: `${base.source_task_id}:${full.material_refs[1]!.role}:1` },
+    { ordinal: 99 }, { owner_scope_hash: FIXTURE_HASH_B }, { trust_class: "instruction" as const }, { may_issue_instruction: true }]) {
+    assert.throws(() => assertProductionTaskRoutePolicy({ ...full, material_refs: full.material_refs.map((entry, index) =>
+      index === 1 ? { ...entry, ...replacement } : entry) }));
+  }
+  const interleaved = [...full.material_refs];
+  [interleaved[2], interleaved[3]] = [interleaved[3]!, interleaved[2]!];
+  assert.throws(() => assertProductionTaskRoutePolicy({ ...full,
+    material_refs: interleaved.map((entry, ordinal) => ({ ...entry, ordinal })) }));
+  assert.throws(() => assertProductionTaskRoutePolicy({ ...full, parent_task_ref: "foreign" }));
+}
 const observation = { schema_version: "xuanxue-ai-worker-observation.v6", observed_at: new Date().toISOString(),
   claim_exclusion_counts: [{ reason_code: "NO_UNFINISHED_V6_DEMAND", count: 1 }], nearest_retry_not_before: null,
   scope_total: 0, scope_truncated: false, jobs: [] };
@@ -70,9 +96,9 @@ const unresolvedJob = { job_id: "job:unresolved", product_id: "public_knowledge_
 assert.doesNotThrow(() => WorkerObservationV6Schema.parse({ ...observation, scope_total: 1, jobs: [unresolvedJob] }));
 assert.throws(() => WorkerObservationV6Schema.parse({ ...observation, scope_total: 1, jobs: [{ ...unresolvedJob, next_action_at: null }] }));
 for (const evidenceMode of ["exam.golden", "exam.property"] as const) {
-  emitQualityProofObservation({ lawId: "LAW-AGENT-PRODUCTION-RUNTIME-003-V47", evidenceMode,
+  emitQualityProofObservation({ lawId: "LAW-AGENT-PRODUCTION-RUNTIME-003-V48", evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "forbidden:3", "summary"],
     locator: `acceptance:agent-production-runtime:route-contract:${evidenceMode}`,
-    observedValue: "Current v21 projection and all forty routes accepted exact keys/materials/relations, rejected missing/extra wire authority, and retained Website-owned opaque parameter values; generated image transport is additionally exercised by the Runtime acceptance." });
+    observedValue: "Current v22 projection and all forty-three routes accepted exact keys/materials/relations, rejected missing/extra wire authority, and retained Website-owned opaque parameter values; generated image transport is additionally exercised by the Runtime acceptance." });
 }
-process.stdout.write("[ACCEPTANCE][agent-route-contract] v21 40/43/40/0\n");
+process.stdout.write("[ACCEPTANCE][agent-route-contract] v22 43/43/43/0\n");

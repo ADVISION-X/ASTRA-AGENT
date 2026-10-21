@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "grasseye.browser.authority.websocket.v1",
-  "revision": 12,
+  "revision": 13,
   "transport": {
     "kind": "single-authenticated-loopback-websocket",
     "path": "/browser-authority/v1",
@@ -27,7 +27,8 @@
   "commandAdmission": {
     "maxQueuedCommands": 64,
     "maxInFlightCommandsPerTarget": 1,
-    "defaultDeadlineMs": 30000
+    "defaultDeadlineMs": 30000,
+    "targetAcquisitionMaxWaitMs": 120000
   },
   "frameKinds": [
     "PAIR_HELLO",

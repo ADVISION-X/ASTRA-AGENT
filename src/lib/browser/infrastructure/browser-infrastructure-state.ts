@@ -3,13 +3,15 @@ import type { BrowserSessionWorkspace } from "../exact-target/browser-session-wo
 
 export type PendingJobBoundTargetAcquisition = Readonly<{
   authorityEpoch: number;
-  action: "acquire" | "release";
+  deadlineAt: number;
   jobRefHash: `sha256:${string}`;
   requestSequence?: number;
   resolve(): void;
   reject(error: Error): void;
   timeout: ReturnType<typeof setTimeout>;
-}>;
+}> & (Readonly<{ action: "release" }> | Readonly<{
+  action: "acquire"; signal: AbortSignal; stopAbortMonitor(): void;
+}>);
 
 export type BrowserInfrastructureState = {
   mutationState: BrowserMutationStore | null;

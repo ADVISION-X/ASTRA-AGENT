@@ -5,7 +5,7 @@
       "lawIds": [
         "LAW-AGENT-PRODUCTION-RUNTIME-001-V76",
         "LAW-AGENT-PRODUCTION-RUNTIME-002-V12",
-        "LAW-AGENT-PRODUCTION-RUNTIME-003-V47",
+        "LAW-AGENT-PRODUCTION-RUNTIME-003-V48",
         "LAW-AGENT-PRODUCTION-RUNTIME-004-V45",
         "LAW-AGENT-PRODUCTION-RUNTIME-005-V43",
         "LAW-AGENT-PRODUCTION-RUNTIME-006-V47",
@@ -310,6 +310,7 @@
         "scripts/acceptance/browser-extension-release-identity.acceptance.ts",
         "scripts/acceptance/browser-lane-fifo-support.ts",
         "scripts/acceptance/browser-lane-fifo.acceptance.ts",
+        "scripts/acceptance/local-browser-acquisition-wait-support.ts",
         "scripts/acceptance/local-browser-artifact-and-lock.acceptance-support.ts",
         "scripts/acceptance/local-browser-authenticated-media-support.ts",
         "scripts/acceptance/local-browser-auto-pairing-support.ts",
@@ -572,11 +573,11 @@
       "excludes": [],
       "forbidden": [
         "不得发生：Website ai-acceptance 之外出现第二 task-result、V6 transport、route policy 或 Route Capability Manifest provider，或 AGENT dependency 复制 provider bytes、authorityArtifact、commit、hash、generator 或字段定义；consumer dependency 只能发布 contractId、version、providerRepo 三字段，普通 Runtime 启动不得读取未绑定 Website 工作树。",
-        "不得发生：唯一 projection generator 未精确消费 Website task-result v21 的 40 routes、43 parameter types 与 40 result contracts，或未知、缺失、额外、重复、顺序漂移、material/relation/result_contract 语义不等仍被接受；BZ05 是独立全盘研究，BZ03/BZ04 显式运输 consultation_root_ref 与 direct parent relation，三者均 fresh；商业命名只支持 naming_commercial，不保留旧联合起名生产路由；文章翻译五语按 Website 已签 provider_continuation 的 direct parent 运输，固定 catalog 同 cohort 首任务 parent triple 全空、后继携已接纳 direct parent；Runtime 只能机械运输 relationKind 与 parent triple，不得按 locale/action 推导。bazi_private_base_input 与 result_contract.private_base 恒为零，不得手写第二支持表或保留 reservation、alias、fallback、bridge、shadow、兼容投影。",
+        "不得发生：唯一 projection generator 未精确消费 Website task-result v22 的 43 routes、43 parameter types 与 43 result contracts，或未知、缺失、额外、重复、顺序漂移、material/relation/result_contract 语义不等仍被接受；BZ05 是独立全盘研究，BZ03/BZ04 显式运输 consultation_root_ref 与 direct parent relation，三者均 fresh；商业命名只支持 naming_commercial，不保留旧联合起名生产路由；文章翻译五语按 Website 已签 provider_continuation 的 direct parent 运输，固定 catalog 同 cohort 首任务 parent triple 全空、后继携已接纳 direct parent；Runtime 只能机械运输 relationKind 与 parent triple，不得按 locale/action 推导。bazi_private_base_input 与 result_contract.private_base 恒为零，择日produce沿原五类parameter为fresh，读取指引一份及原典/本案两个各至少一份的有序repeatable组；part身份按source_task_id:role:part从0连续、全局ordinal连续，媒体/信任/owner逐项保持且原总64上限整体失败关闭不裁剪；旧40路由语义不变。不得手写第二支持表或保留 reservation、alias、fallback、bridge、shadow、兼容投影。",
         "不得发生：Runtime 对 Website 签发前已裁定的业务参数值另立枚举、白名单、Product package/version、Bazi reusable candidate、localization resource kind 或 action-name 语义，或用 routeProducesGeneratedImage、手写 Product/Action 表、硬编码 primary 数量再次裁决业务。Runtime 只校验 authenticated transport、wire/schema/hash、当前 contract/projection/control version 与 route/key/material/relation/result-contract 机械一致性；task、grant、result、artifact、terminal、attempt、session、credential、Manifest 与 Browser effect 的 plugin_id、plugin_version、expected_plugin_id、expected_plugin_version 字段数恒为零，内部实现身份不得成为跨仓身份、领取门或持久任务绑定。",
-        "不得发生：Runtime 为 generated image 设置固定宽高、范围、长宽比、总像素、resize、crop 或其它几何门禁，上传 Provider 原图或原图身份字段，或在 V6 uploaded receipt 接受、返回、比较 width/height 或未知字段。Runtime 只运输 task-result v21 中 Product 已生成的无 metadata WebP、sha256、bytes 与实际解码整数 width/height；上传端只接 WebP bytes、hash、bytes、media type，receipt 严格限定 schema_version、artifact_id、role、object_ref、sha256、byte_length、media_type、state、receipt_hash。"
+        "不得发生：Runtime 为 generated image 设置固定宽高、范围、长宽比、总像素、resize、crop 或其它几何门禁，上传 Provider 原图或原图身份字段，或在 V6 uploaded receipt 接受、返回、比较 width/height 或未知字段。Runtime 只运输 task-result v22 中 Product 已生成的无 metadata WebP、sha256、bytes 与实际解码整数 width/height；上传端只接 WebP bytes、hash、bytes、media type，receipt 严格限定 schema_version、artifact_id、role、object_ref、sha256、byte_length、media_type、state、receipt_hash。"
       ],
-      "lawId": "LAW-AGENT-PRODUCTION-RUNTIME-003-V47",
+      "lawId": "LAW-AGENT-PRODUCTION-RUNTIME-003-V48",
       "schemaVersion": 2,
       "source": {
         "lineEnd": 140,
@@ -584,8 +585,8 @@
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
-      "summary": "必须只消费 Website ai-acceptance 的唯一 task-result v21、V6 与 route policy，由原唯一 generator 精确投影 40 routes、43 parameter types、40 result contracts；商业命名独立，八字 fresh 与原 direct-parent 关系保持；generated image 只机械运输无 metadata WebP、实际解码宽高及 hash，不设几何门禁。",
-      "supersedesLawId": "LAW-AGENT-PRODUCTION-RUNTIME-003-V46",
+      "summary": "必须只消费 Website ai-acceptance 的唯一 task-result v22、V6 与 route policy，由原唯一 generator 精确投影 43 routes、43 parameter types、43 result contracts；商业命名独立，八字 fresh 与原 direct-parent 关系保持；generated image 只机械运输无 metadata WebP、实际解码宽高及 hash，不设几何门禁。",
+      "supersedesLawId": "LAW-AGENT-PRODUCTION-RUNTIME-003-V47",
       "tier": "P0"
     },
     {
@@ -603,7 +604,7 @@
       ],
       "dependsOnLawIds": [
         "LAW-AGENT-PRODUCTION-RUNTIME-001-V76",
-        "LAW-AGENT-PRODUCTION-RUNTIME-003-V47"
+        "LAW-AGENT-PRODUCTION-RUNTIME-003-V48"
       ],
       "enforcementMode": "composite",
       "evidenceModes": [
@@ -738,7 +739,7 @@
       "dependsOnLawIds": [
         "LAW-AGENT-PRODUCTION-RUNTIME-001-V76",
         "LAW-AGENT-PRODUCTION-RUNTIME-002-V12",
-        "LAW-AGENT-PRODUCTION-RUNTIME-003-V47",
+        "LAW-AGENT-PRODUCTION-RUNTIME-003-V48",
         "LAW-AGENT-PRODUCTION-RUNTIME-004-V45",
         "LAW-AGENT-PRODUCTION-RUNTIME-005-V43",
         "LAW-AGENT-PRODUCTION-RUNTIME-006-V47"
@@ -782,7 +783,7 @@
       "dependsOnLawIds": [
         "LAW-AGENT-PRODUCTION-RUNTIME-001-V76",
         "LAW-AGENT-PRODUCTION-RUNTIME-002-V12",
-        "LAW-AGENT-PRODUCTION-RUNTIME-003-V47",
+        "LAW-AGENT-PRODUCTION-RUNTIME-003-V48",
         "LAW-AGENT-PRODUCTION-RUNTIME-004-V45",
         "LAW-AGENT-PRODUCTION-RUNTIME-005-V43",
         "LAW-AGENT-PRODUCTION-RUNTIME-006-V47",

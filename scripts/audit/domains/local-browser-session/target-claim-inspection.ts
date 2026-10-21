@@ -16,6 +16,9 @@ const paths = {
   acquisition: "src/lib/browser/chrome-extension/extension-target-acquisition.ts",
   release: "src/lib/browser/chrome-extension/extension-target-release.ts",
   evidence: "src/lib/browser/exact-target/browser-mutation-evidence.ts",
+  state: "src/lib/browser/infrastructure/browser-infrastructure-state.ts",
+  operation: "src/lib/browser/chrome-extension/websocket-target-operation.ts",
+  protocol: "src/lib/browser/protocol/generated/browser-protocol.generated.ts",
 } as const;
 type Sources = Record<keyof typeof paths, SourceFile>;
 const body = (source: SourceFile, owner: string, method: string): string =>
@@ -74,14 +77,15 @@ const inspectAcquisitionWire = (sources: Sources, findings: InspectorFinding[], 
 
   requireContract(transportAcquire?.getParameters().at(-1)?.getName() === "deadlineAt"
     && !deadlineMutated && targetSend?.getArguments().at(-1)?.getText() === "deadlineAt"
-    && control.includes("!Number.isFinite(deadlineAt) || deadlineAt <= Date.now()")
-    && control.includes("new Date(deadlineAt).toISOString()"), findings, lawId, paths.channel,
-  "Acquisition carries the same absolute deadline through the authenticated encrypted frame.");
+    && includesAll(control, ['kind === "TARGET_ACQUIRE" && body.action === "acquire"',
+      "BROWSER_TARGET_ACQUISITION_MAX_WAIT_MS : BROWSER_COMMAND_DEFAULT_DEADLINE_MS",
+      "!Number.isFinite(deadlineAt) || deadlineAt <= now || deadlineAt > now + maximum", "new Date(deadlineAt).toISOString()"]),
+  findings, lawId, paths.channel, "Only acquisition may use the dedicated maximum; every control frame carries the original finite absolute deadline.");
   const ready = body(sources.worker, "ExtensionWebSocketActor", "acceptPairingFrame");
   const acquire = body(sources.worker, "ExtensionWebSocketActor", "acceptTargetAcquire");
   requireContract(ordered(acquire, ["await decrypt(", "this.acceptServerSequence(frame)", "targetOperationFrom(request)",
     "pendingTargetHandlers.size > 0 || this.commandDelivery.disconnectedDrain !== null", 'new Error("BROWSER_BACKPRESSURE")',
-    "const handler =", "pendingTargetHandlers.add(handler)"])
+    "const handler =", "pendingTargetHandlers.set(frame.sequence, Object.assign(state, { promise: handler }))"])
     && includesAll(acquire, ["this.connection.session?.serverToClientKey === session.serverToClientKey",
       "this.connection.session?.clientToServerKey === session.clientToServerKey",
       "if (!currentSession()) return", "pendingCommandHandlers.size === 0", "disconnectedDrain === null",
@@ -90,13 +94,70 @@ const inspectAcquisitionWire = (sources: Sources, findings: InspectorFinding[], 
   findings, lawId, paths.worker, "Authenticated target backpressure is local; handler retirement and diagnostics must preserve the captured session and actual drain responsibility.");
   requireContract(ordered(ready, ["readServerReadyPermit(", "this.connection.commandReady = true"])
     && !ready.includes("acquireJobBoundChatGptTarget")
-    && ordered(acquire, ["await decrypt(", "this.targetAuthority.acquireJobBoundChatGptTarget(", "pendingTargetHandlers.add(handler)"])
-    && includesAll(acquire, ["!this.connection.commandReady", "pendingTargetHandlers.delete(handler)", "Date.parse(frame.deadline)"])
+    && ordered(acquire, ["await decrypt(", "this.targetAuthority.acquireJobBoundChatGptTarget(", "pendingTargetHandlers.set(frame.sequence, Object.assign(state, { promise: handler }))"])
+    && includesAll(acquire, ["!this.connection.commandReady", "pendingTargetHandlers.delete(frame.sequence)", "Date.parse(frame.deadline)"])
     && includesAll(sources.awaiter.getText(), ["TargetClaimAwaiter", "begin(", "accept(", "fail("])
     && includesAll(sources.worker.getText(), ["sendTargetFrame", "acceptTargetClaimAcknowledgement"])
     && stringLiterals(sources.worker).includes("job-bound-target-acquisition")
     && !/GRASSEYE_CLAIM_ACTIVE_TARGET|claimActiveTarget/u.test(sources.worker.getText()),
   findings, lawId, paths.worker, "READY must leave Target absent; authenticated acquisition must use the frame deadline and await the encrypted claim acknowledgement.");
+};
+
+const inspectAcquisitionDeadline = (s: Sources, findings: InspectorFinding[], lawId: string): void => {
+  const admit = body(s.supervisor, "BrowserInfrastructureSupervisor", "onTargetClaim");
+  const wait = body(s.acquirer, "BrowserTargetAcquirer", "awaitTargetOperation");
+  const actor = body(s.worker, "ExtensionWebSocketActor", "acceptTargetAcquire");
+  const send = body(s.worker, "ExtensionWebSocketActor", "sendEncrypted");
+  const cycle = body(s.authority, "ExtensionTargetAuthority", "acquireJobBoundChatGptTargetCycle");
+  const cancellation = declaration(s.operation, "cancelPendingTargetAcquisition");
+  requireContract(includesAll(s.protocol.getText(), ["BROWSER_TARGET_ACQUISITION_MAX_WAIT_MS = 120000 as const",
+    "BROWSER_COMMAND_DEFAULT_DEADLINE_MS = 30000 as const"])
+    && includesAll(s.state.getText(), ["deadlineAt: number", 'action: "acquire"; signal: AbortSignal; stopAbortMonitor(): void'])
+    && ordered(admit, ['pending.action !== "acquire"', "pending.signal.aborted", "Date.now() >= pending.deadlineAt", "this.establishClaimBoundWorkspace()"]),
+  findings, lawId, paths.supervisor, "An initial claim must reject expired or withdrawn acquisition before workspace/registry side effects, independently of timer scheduling.");
+  requireContract(includesAll(wait, ["pendingJobBoundTargetAcquisition !== pending", "current.authority.authorityEpoch !== pending.authorityEpoch",
+    "Date.now() >= deadlineAt", "requestPreauthorizedTargetAcquisitionCancellation", "cancelDispatched = true",
+    'signal?.removeEventListener("abort", cancel)', 'this.rejectPending("BROWSER_TARGET_ACQUISITION_TIMEOUT")'])
+    && ordered(wait, ["const sequence = dispatch(deadlineAt)", "Object.assign(pending, { requestSequence: sequence })",
+      'pending.signal.addEventListener("abort", cancel, { once: true })', "if (pending.signal.aborted) cancel()"])
+    && ["resolvePending", "rejectPending"].every(name => body(s.acquirer, "BrowserTargetAcquirer", name).includes("pending.stopAbortMonitor()")),
+  findings, lawId, paths.acquirer, "Active cancellation must retain the same pending object, notify once and retire its original listener on every terminal path.");
+  requireContract(ordered(actor, ["this.acceptServerSequence(frame)", "targetOperationFrom(request)", 'operation.action === "cancel-acquisition"',
+    "cancelPendingTargetAcquisition(", "pendingTargetHandlers.size > 0", "const state =", "const handler =", "Object.assign(state, { promise: handler })"])
+    && includesAll(actor, ['operation.action === "acquire" ? BROWSER_TARGET_ACQUISITION_MAX_WAIT_MS : BROWSER_COMMAND_DEFAULT_DEADLINE_MS',
+      "deadline > Date.now() + maximum", 'if (state.cancelled) throw new Error("BROWSER_WAIT_ABORTED")'])
+    && includesAll(cancellation, ['handler?.action !== "acquire"', "handler.jobRefHash !== request.jobRefHash",
+      "handler.serverToClientKey !== session.serverToClientKey", "handler.clientToServerKey !== session.clientToServerKey", "handler.cancelled = true"])
+    && !/handlers\.(?:delete|clear)|commandAdmissionSuspended|mutationSlot/u.test(cancellation)
+    && includesAll(declaration(s.operation, "parseCancellation"), ['["action", "jobRefHash", "requestSequence"]',
+      "Number.isSafeInteger(request.requestSequence)", "request.requestSequence as number) < 1"]),
+  findings, lawId, paths.worker, "The only cancellation branch marks the same handler after strict shape/session/request matching; it cannot replace physical drain.");
+  requireContract(ordered(send, ["sendTail.then(", "context?.assertCurrent()", "Math.min(Date.now() + BROWSER_COMMAND_DEFAULT_DEADLINE_MS, context?.deadlineAt ?? Infinity)",
+    "await encrypt(", "context?.assertCurrent()", "Date.now() >= context.deadlineAt", "socket.send("])
+    && includesAll(body(s.worker, "ExtensionWebSocketActor", "sendTargetFrame"), ["send: assertPending =>", "context ? {",
+      "deadlineAt: context.deadlineAt", "assertPending(); context.assertCurrent()", "} : undefined)"])
+    && includesAll(body(s.awaiter, "TargetClaimAwaiter", "begin"), ["this.completion !== completion",
+      'throw new Error("BROWSER_AUTHENTICATION_INCOMPLETE")', "input.send(assertPending)", "BROWSER_COMMAND_DEFAULT_DEADLINE_MS"])
+    && s.worker.getText().includes("(kind, body, context) => this.sendTargetFrame(kind, body, context)")
+    && body(s.authority, "ExtensionTargetAuthority", "claimActiveTarget").includes("}), context)"),
+  findings, lawId, paths.worker, "Acquisition claim context must survive queue and encryption boundaries; ordinary publication/revoke retain their own deadline.");
+  requireContract(ordered(cycle, ["let publishedTarget:", "publishedTarget =", "claimActiveTarget(publishedTarget, frame.url, { deadlineAt, assertCurrent })"])
+    && ordered(cycle, ["if (bound)", "publishedTarget && this.activeTarget === publishedTarget", "this.clearActiveTarget()", 'this.send("TARGET_REVOKE"'])
+    && ordered(cycle, ["await this.discardJobOwnedTarget(candidate, publishedTarget)", "this.targets.findByJobRefHash(jobRefHash)",
+      "registered !== publishedTarget", "this.targets.remove(registered.targetRef)"])
+    && cycle.includes('new AggregateError([error, cleanupError], "BROWSER_TARGET_CLEANUP_FAILED")'),
+  findings, lawId, paths.authority, "Bound claim failure retires only its own active binding; newly created targets retain exact physical cleanup and deterministic registry retirement.");
+  inspectAcquisitionDiscard(s, findings, lawId);
+};
+const inspectAcquisitionDiscard = (s: Sources, findings: InspectorFinding[], lawId: string): void => {
+  const discard = body(s.authority, "ExtensionTargetAuthority", "discardJobOwnedTarget");
+  requireContract(ordered(discard, ["findByTabId(candidate.tabId)", "registered !== publishedTarget",
+    "await this.createdTarget.removeExactCandidate(candidate)", "await this.debuggerRuntime.readTab(candidate.tabId)",
+    "await this.debuggerRuntime.readTargets()", "!tabAbsent || after.some(", "if (errors.length)", "this.targets.restore(registered)"])
+    && includesAll(discard, ["target.tabId === candidate.tabId || target.id === candidate.id",
+      "!this.targets.findByTabId(registered.tabId)", "!this.targets.findByJobRefHash(registered.jobRefHash)",
+      "this.activeTarget === publishedTarget", "registered !== publishedTarget", "this.clearActiveTarget()"]),
+  findings, lawId, paths.authority, "Acquisition discard must read back physical absence and preserve unknown exact resources without deleting replacement records.");
 };
 
 const inspectAdmission = (s: Sources, findings: InspectorFinding[], lawId: string): void => {
@@ -115,12 +176,14 @@ const inspectAdmission = (s: Sources, findings: InspectorFinding[], lawId: strin
   findings, lawId, paths.runtime, "The one production Tab creation path must create and select the system-owned Tab.");
   const acquire = body(s.acquirer, "BrowserTargetAcquirer", "ensureAvailableTarget");
   const operation = body(s.acquirer, "BrowserTargetAcquirer", "awaitTargetOperation");
-  requireContract(includesAll(acquire, ["waiter.remainingMs()", "requestPreauthorizedTargetAcquisition(", "deadlineAt"])
-    && ordered(operation, ["const deadlineAt = Date.now() + Math.min(budgetMs, BROWSER_COMMAND_DEFAULT_DEADLINE_MS)",
-      "pendingJobBoundTargetAcquisition =", "dispatch(deadlineAt)"])
-    && !s.lease.getText().includes("requestKind")
-    && s.lane.getText().includes('requestKind: wait.targetMode === "confirmed-readback"'),
-  findings, lawId, paths.acquirer, "One queued operation must bind the absolute deadline before dispatch; lease request classification stays private to the one lane.");
+  requireContract(includesAll(acquire, ["waiter.remainingMs()", "BROWSER_TARGET_ACQUISITION_MAX_WAIT_MS", "requestPreauthorizedTargetAcquisition(", "waiter.signal"])
+    && !acquire.includes("binding.commandTtlMs")
+    && !acquire.includes("setTimeout(")
+    && ordered(operation, ['action === "acquire" ? BROWSER_TARGET_ACQUISITION_MAX_WAIT_MS : BROWSER_COMMAND_DEFAULT_DEADLINE_MS',
+      "const deadlineAt = Date.now() + Math.min(budgetMs, maximum)", "pendingJobBoundTargetAcquisition = pending", "dispatch(deadlineAt)"])
+    && !s.lease.getText().includes("requestKind") && s.lane.getText().includes('requestKind: wait.targetMode === "confirmed-readback"'),
+  findings, lawId, paths.acquirer, "Loading consumes remaining authorization and the independent maximum; queue classification and ordinary command TTL stay private and unchanged.");
+  inspectAcquisitionDeadline(s, findings, lawId);
   requireContract(includesAll(s.supervisor.getText(), ["shouldRestoreBrowserHostVisibility",
     'reasonCode === "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE"', '"peer_close", "tcp_close", "tcp_error"',
     'this.issuer.current().kind === "PRESENT"', "if (restoreBrowserHost) void (async () => {", "await this.options.restoreBrowserHostVisibility?.()",
@@ -136,7 +199,7 @@ const inspectNavigation = (s: Sources, findings: InspectorFinding[], lawId: stri
   const consume = body(s.created, "ExtensionCreatedTarget", "consumeTabUpdateAfterBarrier");
   const selection = body(s.authority, "ExtensionTargetAuthority", "executeConversationSelection");
   requireContract(ordered(acquire, ["await preflightTargetAcquisition(", "await this.qualifyBoundTarget(preflight.bound, targetMode, assertCurrent)",
-    "createProductionCandidate(deadlineAt, assertCurrent)", "await this.qualifyCandidateNavigation(candidate, bound, targetMode, preflight.continuationUrl, assertCurrent, deadlineAt)", "claimActiveTarget(target, frame.url, assertCurrent)"])
+    "createProductionCandidate(deadlineAt, assertCurrent)", "await this.qualifyCandidateNavigation(candidate, bound, targetMode, preflight.continuationUrl, assertCurrent, deadlineAt)", "claimActiveTarget(publishedTarget, frame.url, { deadlineAt, assertCurrent })"])
     && includesAll(s.acquisition.getText(), ["findByJobRefHash(input.jobRefHash)", "input.activeTarget", "input.createdTarget.isPending()"])
     && includesAll(body(s.authority, "ExtensionTargetAuthority", "qualifyBoundTarget"), ["await this.debuggerRuntime.readTargets()", "target.tabId === bound.tabId", "target.id === bound.chromeTargetId", 'targetMode === "bound-observation"'])
     && acquire.includes("advanceDocument(")
@@ -221,7 +284,7 @@ const inspectPhysicalReleaseProof = (s: Sources, context: InspectorContext, find
   const receiver = body(s.supervisor, "BrowserInfrastructureSupervisor", "onTargetRevoke");
   requireContract(!release.includes("sendRevoke") && ordered(actor, ["const handler = (async (): Promise<void>",
     "const result = await this.targetAuthority.releaseJobBoundChatGptTarget", 'if (currentSession()) await this.sendEncrypted(socket, "TARGET_REVOKE", { ...result, requestSequence: frame.sequence })',
-    "pendingTargetHandlers.add(handler)"])
+    "pendingTargetHandlers.set(frame.sequence, Object.assign(state, { promise: handler }))"])
     && includesAll(receiver, ["pending.action", "pending.jobRefHash", "pending.requestSequence !== input.requestSequence",
       'if (input.targetRef !== null) this.broker.revokeOperatorTargetClaim({ targetRef: input.targetRef, jobRefHash: input.jobRefHash });\n        return;']),
   findings, lawId, paths.worker, "A typed physical result is sent inside the original tracked handler; unmatched release can only retire an exact non-null claim.");

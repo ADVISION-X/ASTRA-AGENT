@@ -12,7 +12,7 @@ import { authorityRecord, canonicalBrowserAuthorityPlaintext, parseBrowserComman
   parseBrowserMutationReceiptMessage, encryptedFrameBody, integerField, parseBrowserAuthorityTargetClaim,
   parseBrowserAuthorityTargetRevoke, parseCanonicalPlaintext, stringField,
   type BrowserAuthorityTargetClaim, type BrowserAuthorityTargetRevoke } from "./browser-authority-frame-payload.js";
-import { BROWSER_COMMAND_DEFAULT_DEADLINE_MS, BROWSER_MISSED_HEARTBEAT_TOLERANCE_MS,
+import { BROWSER_COMMAND_DEFAULT_DEADLINE_MS, BROWSER_TARGET_ACQUISITION_MAX_WAIT_MS, BROWSER_MISSED_HEARTBEAT_TOLERANCE_MS,
   BROWSER_PROTOCOL_REVISION } from "../protocol/generated/browser-protocol.generated.js";
 import { parseBrowserAuthorityDiagnostic } from "./browser-authority-diagnostic.js";
 
@@ -55,6 +55,35 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
     this.pairingSecret = options.pairingSecret ?? this.createPairingSecret();
   }
   public readOperatorPairingSecret(): string | null { return this.closed || this.active ? null : this.pairingSecret; }
+
+  public requestPreauthorizedTargetAcquisitionCancellation(jobRefHash: `sha256:${string}`,
+    requestSequence: number, deadlineAt: number): number {
+    if (!Number.isSafeInteger(requestSequence) || requestSequence < 1) throw new Error("BROWSER_TARGET_INVALID");
+    return this.sendControlFrame(this.active?.socket ?? null, "TARGET_ACQUIRE",
+      { action: "cancel-acquisition", jobRefHash, requestSequence }, deadlineAt);
+  }
+
+  private sendControlFrame(socket: BrowserAuthoritySocket | null,
+    kind: "TARGET_CLAIM" | "MUTATION_RECEIPT" | "TARGET_ACQUIRE", body: Record<string, unknown>,
+    deadlineAt = Date.now() + BROWSER_COMMAND_DEFAULT_DEADLINE_MS): number {
+    this.assertLive();
+    const active = this.active, now = Date.now();
+    if (!active || active.socket !== socket) throw new Error("BROWSER_LIVENESS_EXPIRED");
+    const maximum = kind === "TARGET_ACQUIRE" && body.action === "acquire"
+      ? BROWSER_TARGET_ACQUISITION_MAX_WAIT_MS : BROWSER_COMMAND_DEFAULT_DEADLINE_MS;
+    if (!Number.isFinite(deadlineAt) || deadlineAt <= now || deadlineAt > now + maximum) {
+      throw new Error("BROWSER_COMMAND_PERMIT_EXPIRED");
+    }
+    const sequence = active.nextServerSequence;
+    const frame = this.encryptedFrame(active, kind, sequence, new Date(deadlineAt).toISOString(), body);
+    this.active = { ...active, nextServerSequence: sequence + 1 };
+    try { active.socket.send(encodeBrowserAuthorityFrame(frame)); }
+    catch (cause) {
+      this.revoke(active.socket, "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE", cause);
+      throw new Error("BROWSER_EXTENSION_CHANNEL_UNAVAILABLE", { cause });
+    }
+    return sequence;
+  }
 
   public close(reasonCode: string): void {
     this.closed = true;
@@ -255,20 +284,7 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
     return { ...header, body: { encrypted: encryptBrowserAuthorityFrame({ key: active.keys.serverToClient,
       direction: "server-to-client", epoch: AUTH_EPOCH, sequence, aad: aadForFrame(header), plaintext: canonicalBrowserAuthorityPlaintext(body) }) } };
   }
-  private sendControlFrame(socket: BrowserAuthoritySocket | null, kind: "TARGET_CLAIM" | "MUTATION_RECEIPT" | "TARGET_ACQUIRE",
-    body: Record<string, unknown>, deadlineAt = Date.now() + BROWSER_COMMAND_DEFAULT_DEADLINE_MS): number {
-    this.assertLive();
-    const active = this.active;
-    if (!active || active.socket !== socket) throw new Error("BROWSER_LIVENESS_EXPIRED");
-    if (!Number.isFinite(deadlineAt) || deadlineAt <= Date.now()
-      || deadlineAt > Date.now() + BROWSER_COMMAND_DEFAULT_DEADLINE_MS) throw new Error("BROWSER_COMMAND_PERMIT_EXPIRED");
-    const sequence = active.nextServerSequence;
-    const frame = this.encryptedFrame(active, kind, sequence, new Date(deadlineAt).toISOString(), body);
-    this.active = { ...active, nextServerSequence: sequence + 1 };
-    try { socket!.send(encodeBrowserAuthorityFrame(frame)); }
-    catch (error) { this.revoke(active.socket, "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE", error); throw new Error("BROWSER_EXTENSION_CHANNEL_UNAVAILABLE", { cause: error }); }
-    return sequence;
-  }
+
   private removeReply(sequence: number): void {
     const active = this.active, reply = active?.replies.get(sequence);
     if (!active || !reply) return;

@@ -90,6 +90,7 @@ export interface ProductionRoutePolicy {
     media_types: readonly string[];
     storage_class: ProductMaterial["storage_class"];
     owner_scope_policy: "required" | "forbidden";
+    repeatable?: boolean;
   }>[];
   readonly result_schema_version: string;
   readonly result_contract?: Readonly<Record<string, unknown>> | undefined;

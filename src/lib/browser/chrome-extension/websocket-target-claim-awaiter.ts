@@ -18,7 +18,7 @@ export class TargetClaimAwaiter {
     targetRef: string;
     documentRef: string;
     jobRefHash: `sha256:${string}`;
-    send(): Promise<void>;
+    send(assertPending: () => void): Promise<void>;
   }): Promise<void> {
     if (this.completion) throw new Error("BROWSER_PAIRING_IN_PROGRESS");
     return new Promise<void>((resolve, reject) => {
@@ -27,7 +27,10 @@ export class TargetClaimAwaiter {
       }, BROWSER_COMMAND_DEFAULT_DEADLINE_MS);
       const completion = { ...input, resolve, reject, timeout };
       this.completion = completion;
-      void input.send().catch((error: unknown) => {
+      const assertPending = (): void => {
+        if (this.completion !== completion) throw new Error("BROWSER_AUTHENTICATION_INCOMPLETE");
+      };
+      void input.send(assertPending).catch((error: unknown) => {
         if (this.completion === completion) this.fail(browserCommandErrorCode(error));
       });
     });

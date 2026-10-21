@@ -146,7 +146,7 @@ export const releaseWireFixture = (keys = { serverToClient: Buffer.alloc(32, 7),
   const socket = { send: (_value: string) => undefined, close: () => { closes += 1; } };
   const transport = new BrowserAuthorityWebSocket({ pairingSecret: null, onPairingStarted: () => undefined, onHeartbeat: () => undefined,
     onAuthenticated: () => { throw new Error("ALREADY_AUTHENTICATED"); }, onMutationReceipt: () => { throw new Error("NO_MUTATION"); },
-    onTargetClaim: () => { throw new Error("NO_CLAIM"); }, onTargetRevoke: input => Reflect.get(supervisor, "onTargetRevoke").call(supervisor, input),
+    onTargetClaim: input => Reflect.get(supervisor, "onTargetClaim").call(supervisor, input), onTargetRevoke: input => Reflect.get(supervisor, "onTargetRevoke").call(supervisor, input),
     onDiagnostic: (code, refs) => { if (refs.runtimeEventType === "job-bound-target-acquisition") acquirer.rejectPending(code, refs); }, onRevoked: () => undefined });
   Reflect.set(transport, "active", { socket, keys, lastClientSequence: 0, nextServerSequence, lastHeartbeatAt: Date.now(), replies: new Map() });
   const acquirer = new BrowserTargetAcquirer(() => broker, transport, issuer, state as never);
@@ -158,7 +158,7 @@ export const releaseWireFixture = (keys = { serverToClient: Buffer.alloc(32, 7),
       sequence: header.sequence, aad: canonicalizeBrowserAuthorityValue(header), plaintext: canonicalizeBrowserAuthorityValue(body) });
     transport.receive(socket, encodeBrowserAuthorityFrame({ ...header, body: { encrypted: corrupt ? { ...encrypted, nonce: "bad" } : encrypted } }));
   };
-  return { broker, state, acquirer, transport, deliver, receive: (value: string) => transport.receive(socket, value), closes: () => closes };
+  return { broker, state, acquirer, transport, supervisor, issuer, deliver, receive: (value: string) => transport.receive(socket, value), closes: () => closes };
 };
 const authenticatedReleaseCorrelation = async (): Promise<void> => {
   const old = { targetRef: "old-target", jobRefHash: hash("a"), releaseOutcome: "released", requestSequence: 9 };

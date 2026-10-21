@@ -41,7 +41,7 @@ const chromeFixture = () => {
   return { chrome, startup: () => startup(), updated: (...args: Parameters<typeof updated>) => updated(...args),
     alarm: (...args: Parameters<typeof alarm>) => alarm(...args), reloads: () => reloads, configuration: () => alarmConfiguration };
 };
-type Delivery = { pendingCommandHandlers: Set<Promise<void>>; pendingTargetHandlers: Set<Promise<void>>; commandAdmissionSuspended: boolean;
+type Delivery = { pendingCommandHandlers: Set<Promise<void>>; pendingTargetHandlers: Map<number, { promise: Promise<void> }>; commandAdmissionSuspended: boolean;
   mutationSlot: { jobId: string; commandId: string; receiptBindingHash: string; fact: unknown } | null };
 export const workerFixture = async (chrome: ExtensionChromeApi) => {
   Reflect.set(globalThis, "__GRASSEYE_RELEASE_BUILD_ID__", "build-receipt-acceptance");
@@ -271,7 +271,7 @@ const authorizedWithdrawal = async (chrome: ExtensionChromeApi): Promise<void> =
     await operation(fixture, { action: "release", jobRefHash: mode === "other" ? await hashBrowserExtensionText("unrelated") : job,
       releaseAuthority: mode === "ordinary" ? "business-admitted" : "website-admin-deletion" });
     assert.equal(fixture.delivery.commandAdmissionSuspended, true); assert.equal(removals, 0);
-    const handlers = [...fixture.delivery.pendingTargetHandlers]; finish(); const outcomes = await Promise.allSettled(handlers); await nextTick();
+    const handlers = Array.from(fixture.delivery.pendingTargetHandlers.values(), record => record.promise); finish(); const outcomes = await Promise.allSettled(handlers); await nextTick();
     assert.equal(fixture.delivery.pendingTargetHandlers.size, 0);
     if (mode === "failed") { assert.equal(outcomes[0]?.status, "rejected"); assert.equal(fixture.delivery.mutationSlot?.fact, fact); assert.equal(registry.findByJobRefHash(job), bound); }
     else { assert.equal(outcomes[0]?.status, "fulfilled", String(outcomes[0])); assert.equal(fixture.delivery.mutationSlot === null, mode === "admin"); assert.equal(removals, mode === "other" ? 0 : 1); }
@@ -287,7 +287,7 @@ const withdrawalRaces = async (chrome: ExtensionChromeApi): Promise<void> => {
   const command = new Promise<void>(resolve => { finishCommand = resolve; }); fixture.delivery.pendingCommandHandlers.add(command);
   void command.then(() => fixture.delivery.pendingCommandHandlers.delete(command));
   await operation(fixture, { action: "release", jobRefHash: job, releaseAuthority: "website-admin-deletion" }, 3);
-  assert.doesNotThrow(guard); assert.equal(fixture.delivery.pendingTargetHandlers.size, 1); const handlers = [...fixture.delivery.pendingTargetHandlers]; finishAcquire(); await nextTick();
+  assert.doesNotThrow(guard); assert.equal(fixture.delivery.pendingTargetHandlers.size, 1); const handlers = Array.from(fixture.delivery.pendingTargetHandlers.values(), record => record.promise); finishAcquire(); await nextTick();
   assert.equal(fixture.delivery.commandAdmissionSuspended, false); finishCommand(); await Promise.all(handlers);
   await assert.rejects(operation(fixture, { action: "release", jobRefHash: job }, 4), /BROWSER_AUTH_TRANSCRIPT_INVALID/u);
   await reconnectedWithdrawal(chrome, job);
@@ -331,7 +331,7 @@ const reconnectedWithdrawal = async (chrome: ExtensionChromeApi, job: `sha256:${
     assert.equal(old.delivery.pendingTargetHandlers.size, 0, "old drain rejects new release without creating a handler"); finish(); await nextTick(); assert.equal(old.delivery.commandAdmissionSuspended, true);
     finishRead(); await drain; const deliveredBeforeRelease = old.frames.length;
     await operation(old, { action: "release", jobRefHash: sameJob ? job : other, releaseAuthority: "website-admin-deletion" }, 3);
-    const releases = [...old.delivery.pendingTargetHandlers];
+    const releases = Array.from(old.delivery.pendingTargetHandlers.values(), record => record.promise);
     if (sameJob) { await started; assert.equal(old.delivery.commandAdmissionSuspended, true); assert.equal(old.delivery.mutationSlot?.fact, fact); finishRemove(); }
     await verifyWithdrawalDrain(old, releases, sameJob);
     await old.invoke("flushMutationReceipt");

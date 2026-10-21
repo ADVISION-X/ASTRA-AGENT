@@ -272,7 +272,7 @@ export const AgentRouteCapabilityManifestSchema = z.object({
     action_id: ProductionActionIdSchema,
     task_contract_version: z.literal(TASK_CONTRACT_VERSION),
     result_contract_version: z.literal(RESULT_CONTRACT_VERSION),
-  }).strict()).length(40),
+  }).strict()).length(43),
 }).strict().superRefine((manifest, context) => {
   if (hashCanonical(manifest.routes) !== manifest.route_hash) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "AGENT_CAPABILITY_MANIFEST_HASH_MISMATCH" });
@@ -281,7 +281,7 @@ export const AgentRouteCapabilityManifestSchema = z.object({
   if (new Set(routes).size !== routes.length) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "AGENT_CAPABILITY_MANIFEST_IDENTITY_DUPLICATE" });
   }
-  if (manifest.routes.length !== 40) {
+  if (manifest.routes.length !== 43) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "AGENT_CAPABILITY_ROUTE_DENOMINATOR_INVALID" });
   }
 });

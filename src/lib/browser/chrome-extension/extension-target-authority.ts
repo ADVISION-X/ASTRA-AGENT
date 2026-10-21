@@ -1,7 +1,7 @@
 import type { BrowserTargetReleaseAuthority } from "../exact-target/browser-target-lease.js";
 import type { BrowserGovernedCommand } from "../exact-target/browser-command-actor.js";
 import type { BrowserCommandPermit } from "../transport/command-permit.js";
-import { BROWSER_COMMAND_DEFAULT_DEADLINE_MS } from "../protocol/generated/browser-protocol.generated.js";
+import { BROWSER_COMMAND_DEFAULT_DEADLINE_MS, BROWSER_TARGET_ACQUISITION_MAX_WAIT_MS } from "../protocol/generated/browser-protocol.generated.js";
 import { GPT_WEB_START_URL, gptWebClaimOriginForUrl, requireCanonicalGptConversationUrl, requireGptWebPolicyForUrl } from "../exact-target/browser-site-policy-registry.js";
 import { ExtensionDebuggerRuntime } from "./debugger-runtime.js";
 import type { RegisteredExtensionCommand } from "./command-registry.js";
@@ -19,7 +19,8 @@ import { ChatGptPageAccessGate } from "./chatgpt-page-access-gate.js";
 import { knownGptRateLimitAbsentEnvelope, knownGptRateLimitBlockerReceipt, observeKnownGptRateLimitDialog, unrecognizedGptDialogReceipt } from "./gpt-rate-limit-dialog.js";
 import { browserMutationTerminalFactShapeValid } from "../exact-target/browser-observation-receipt.js";
 import { hashBrowserExtensionText } from "./websocket-actor-crypto.js";
-type TargetFrameSender = (kind: "TARGET_CLAIM" | "TARGET_REVOKE", body: Record<string, unknown>) => Promise<void>;
+export type TargetClaimSendContext = Readonly<{ deadlineAt: number; assertCurrent(): void }>;
+type TargetFrameSender = (kind: "TARGET_CLAIM" | "TARGET_REVOKE", body: Record<string, unknown>, context?: TargetClaimSendContext) => Promise<void>;
 
 export class ExtensionTargetAuthority {
   private readonly targets = new ExtensionExactTargetRegistry();
@@ -77,36 +78,58 @@ export class ExtensionTargetAuthority {
       }
     });
   }
+
   public async acquireJobBoundChatGptTarget(targetMode: TargetAcquisitionMode, jobRefHash: `sha256:${string}`,
-    parentConversationUrl: string | undefined, assertInput: () => void, deadlineAt = Date.now() + BROWSER_COMMAND_DEFAULT_DEADLINE_MS): Promise<void> {
-    const assertCurrent = (): void => { assertInput(); if (Date.now() >= deadlineAt) throw new Error("BROWSER_TARGET_ACQUISITION_TIMEOUT"); };
-    await this.debuggerRuntime.withLogicalPageAccess(() => this.pageAccessGate.enter(), () => this.debuggerRuntime.withProviderInputGuard(
-      { started: false, physicalInputCount: 0, mutationKind: "target-acquisition" }, assertCurrent,
-      () => this.acquireJobBoundChatGptTargetCycle(targetMode, jobRefHash, parentConversationUrl, assertCurrent, deadlineAt)));
+    parentConversationUrl: string | undefined, assertInput: () => void,
+    deadlineAt = Date.now() + BROWSER_TARGET_ACQUISITION_MAX_WAIT_MS): Promise<void> {
+    const assertCurrent = (): void => {
+      assertInput();
+      if (Date.now() >= deadlineAt) throw new Error("BROWSER_TARGET_ACQUISITION_TIMEOUT");
+    };
+    await this.debuggerRuntime.withLogicalPageAccess(() => this.pageAccessGate.enter(), () =>
+      this.debuggerRuntime.withProviderInputGuard({ started: false, physicalInputCount: 0, mutationKind: "target-acquisition" },
+        assertCurrent, () => this.acquireJobBoundChatGptTargetCycle(targetMode, jobRefHash, parentConversationUrl, assertCurrent, deadlineAt)));
   }
+
   private async acquireJobBoundChatGptTargetCycle(targetMode: TargetAcquisitionMode, jobRefHash: `sha256:${string}`,
     parentConversationUrl: string | undefined, assertCurrent: () => void, deadlineAt: number): Promise<void> {
     assertCurrent();
     const preflight = await preflightTargetAcquisition({ targetMode, jobRefHash, parentConversationUrl,
-      createdTarget: this.createdTarget, targets: this.targets, activeTarget: this.activeTarget });
+      targets: this.targets, createdTarget: this.createdTarget, activeTarget: this.activeTarget });
     assertCurrent();
     const bound = await this.qualifyBoundTarget(preflight.bound, targetMode, assertCurrent);
-    const candidate: ExtensionDebugTarget = bound ? { tabId: bound.tabId, id: bound.chromeTargetId, attached: true, type: "page", title: "", url: "" }
+    const candidate: ExtensionDebugTarget = bound
+      ? { id: bound.chromeTargetId, tabId: bound.tabId, attached: true, type: "page", title: "", url: "" }
       : await this.createdTarget.createProductionCandidate(deadlineAt, assertCurrent);
     if (candidate.tabId === undefined) throw new Error("BROWSER_TARGET_INVALID");
+    let publishedTarget: ExtensionExactTarget | null = null;
     try {
       const frame = await this.qualifyCandidateNavigation(candidate, bound, targetMode, preflight.continuationUrl, assertCurrent, deadlineAt);
       assertCurrent();
-      const target = bound ? frame.loaderId === bound.loaderId ? bound : this.targets.advanceDocument(bound.targetRef, frame.loaderId)
+      publishedTarget = bound ? frame.loaderId === bound.loaderId ? bound : this.targets.advanceDocument(bound.targetRef, frame.loaderId)
         : this.targets.claimOperatorTarget(candidate.tabId, jobRefHash, frame.loaderId, candidate.id);
-      await this.claimActiveTarget(target, frame.url, assertCurrent);
+      await this.claimActiveTarget(publishedTarget, frame.url, { deadlineAt, assertCurrent });
     } catch (error) {
-      if (!bound) {
-        try { await this.discardJobOwnedTarget(candidate); } catch (cleanupError) { throw new AggregateError([error, cleanupError], "BROWSER_TARGET_CLEANUP_FAILED"); }
-      }
+      try {
+        if (bound) {
+          if (publishedTarget && this.activeTarget === publishedTarget) {
+            this.clearActiveTarget();
+            await this.send("TARGET_REVOKE", { targetRef: publishedTarget.targetRef,
+              documentRef: publishedTarget.documentRef, jobRefHash: publishedTarget.jobRefHash });
+          }
+        } else {
+          await this.discardJobOwnedTarget(candidate, publishedTarget);
+          const registered = this.targets.findByJobRefHash(jobRefHash);
+          if (registered) {
+            if (registered !== publishedTarget) throw new Error("BROWSER_TARGET_CLEANUP_IDENTITY_MISMATCH");
+            this.targets.remove(registered.targetRef);
+          }
+        }
+      } catch (cleanupError) { throw new AggregateError([error, cleanupError], "BROWSER_TARGET_CLEANUP_FAILED"); }
       throw error;
     }
   }
+
   private async qualifyCandidateNavigation(candidate: ExtensionDebugTarget, bound: ExtensionExactTarget | null,
     targetMode: TargetAcquisitionMode, continuationUrl: string | undefined, assertCurrent: () => void,
     deadlineAt: number): Promise<ExtensionMainFrame> {
@@ -242,16 +265,38 @@ export class ExtensionTargetAuthority {
     if (loaderId === current.loaderId) return current;
     const next = this.targets.advanceDocument(current.targetRef, loaderId); await this.claimActiveTarget(next, url); return next;
   }
-  private async claimActiveTarget(target: ExtensionExactTarget, url: string, assertCurrent: () => void = () => undefined): Promise<void> {
-    assertCurrent(); this.activeTarget = target;
-    await this.send("TARGET_CLAIM", this.targets.describeOperatorClaim(target, { claimOrigin: gptWebClaimOriginForUrl(url) }));
+
+  private async claimActiveTarget(target: ExtensionExactTarget, url: string, context?: TargetClaimSendContext): Promise<void> {
+    context?.assertCurrent();
+    this.activeTarget = target;
+    await this.send("TARGET_CLAIM", this.targets.describeOperatorClaim(target, { claimOrigin: gptWebClaimOriginForUrl(url) }), context);
   }
-  private async discardJobOwnedTarget(candidate: ExtensionDebugTarget): Promise<void> {
+
+  private async discardJobOwnedTarget(candidate: ExtensionDebugTarget, publishedTarget: ExtensionExactTarget | null): Promise<void> {
     if (candidate.tabId === undefined) throw new Error("BROWSER_TARGET_CLEANUP_IDENTITY_MISMATCH");
-    const errors: unknown[] = [];
-    if (this.activeTarget?.tabId === candidate.tabId) await this.releaseActiveTarget().catch(error => { errors.push(error); });
-    else await this.debuggerRuntime.detach(candidate.tabId).catch(error => { errors.push(error); });
+    const registered = this.targets.findByTabId(candidate.tabId), errors: unknown[] = [];
+    if (publishedTarget && this.activeTarget === publishedTarget) {
+      if (registered === publishedTarget) await this.releaseActiveTarget().catch(error => { errors.push(error); });
+      else {
+        this.clearActiveTarget();
+        await this.send("TARGET_REVOKE", { targetRef: publishedTarget.targetRef, documentRef: publishedTarget.documentRef,
+          jobRefHash: publishedTarget.jobRefHash }).catch(error => { errors.push(error); });
+      }
+    }
+    if ((registered && registered !== publishedTarget) || this.activeTarget?.tabId === candidate.tabId) {
+      throw new AggregateError([...errors, new Error("BROWSER_TARGET_CLEANUP_IDENTITY_MISMATCH")], "BROWSER_TARGET_CLEANUP_FAILED");
+    }
+    await this.debuggerRuntime.detach(candidate.tabId).catch(error => { errors.push(error); });
     await this.createdTarget.removeExactCandidate(candidate).catch(error => { errors.push(error); });
-    if (errors.length) throw new AggregateError(errors, "BROWSER_TARGET_CLEANUP_FAILED");
+    try {
+      let tabAbsent = false;
+      try { await this.debuggerRuntime.readTab(candidate.tabId); } catch { tabAbsent = true; }
+      const after = await this.debuggerRuntime.readTargets();
+      if (!tabAbsent || after.some(target => target.tabId === candidate.tabId || target.id === candidate.id)) throw new Error("BROWSER_TARGET_CLEANUP_FAILED");
+    } catch (error) { errors.push(error); }
+    if (errors.length) {
+      if (registered && !this.targets.findByTabId(registered.tabId) && !this.targets.findByJobRefHash(registered.jobRefHash)) this.targets.restore(registered);
+      throw new AggregateError(errors, "BROWSER_TARGET_CLEANUP_FAILED");
+    }
   }
 }
