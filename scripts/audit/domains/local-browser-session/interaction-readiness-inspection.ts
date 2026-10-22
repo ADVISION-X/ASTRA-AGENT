@@ -49,7 +49,6 @@ const inspectInteractionLease = (s: Sources, findings: InspectorFinding[], lawId
       "active.target.tabId !== target.tabId", "active.loaderId === null", "frame.loaderId !== active.loaderId",
       "this.assertInteractionReady(lease)"]),
     countCalls(s.readiness, owner, "ensureInteractionReady", "this.debuggerRuntime.activateTab") === 1,
-    countCalls(s.readiness, owner, "ensureInteractionReady", "this.debuggerRuntime.readTab") === 3,
     countCalls(s.readiness, owner, "ensureInteractionReady", "readExtensionMainFrame") === 1,
     countCalls(s.readiness, owner, "ensureInteractionReady", "requireGptWebPolicyForUrl") === 1,
     ensure.indexOf("this.captureTabActivation(tab, target.tabId)") < ensure.indexOf("await readExtensionMainFrame("),

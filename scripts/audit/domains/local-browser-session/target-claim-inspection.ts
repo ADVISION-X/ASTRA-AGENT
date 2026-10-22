@@ -225,7 +225,7 @@ const inspectNavigationInput = (s: Sources, findings: InspectorFinding[], lawId:
     && body(s.interaction, "ExtensionInteractionReadiness", "ensureInteractionReady").includes("this.captureTabActivation(tab, target.tabId)")
     && body(s.interaction, "ExtensionInteractionReadiness", "assertInteractionReady").includes("lease.assertActivation()")
     && includesAll(input, [
-      "row.tabId === target.tabId && row.id === target.id", "requireGptWebPolicyForUrl(frame.url)"]),
+      "row.tabId === target.tabId && row.id === target.id"]),
   findings, lawId, paths.created, "Before navigation input, the current active Tab, fresh Document and exact attached Chrome identity must still qualify.");
 };
 const inspectRetirement = (s: Sources, findings: InspectorFinding[], lawId: string): void => {

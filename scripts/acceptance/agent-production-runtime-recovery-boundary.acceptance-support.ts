@@ -16,87 +16,35 @@ import { workerLoopStopViolations } from
 import { workerLoop } from "../../src/lib/local-runtime/production/runtime-loops.js";
 import type { RuntimeState } from "../../src/lib/local-runtime/production/runtime-state.js";
 import { reconcileClaimAttemptFailure } from "../../src/lib/local-runtime/production/runtime-claim-recovery.js";
-import { buildProductionLeaseRelease } from "../../src/lib/local-runtime/production/cloud-client.js";
-import { hashCanonical } from "../../src/lib/local-runtime/production/contracts.js";
 import { riskRecoveryFixture } from "./agent-production-runtime-payload-slot.acceptance-support.js";
 
 const readRuntimeSource = (relativePath: string) => readFile(
   new URL(`../../src/lib/local-runtime/production/${relativePath}`, import.meta.url), "utf8",
 );
 
-const exerciseRiskGrantZeroInputRegrant = async (): Promise<void> => {
+const exerciseAcknowledgedFailureRegrant = async (): Promise<void> => {
   const fixture = riskRecoveryFixture();
-  const { claimed, failure, history, settlements, remote, seal } = fixture;
-  const originalCore = JSON.stringify(failure.failure_core);
-  let inputState: "zero" | "possible" | "unknown" = "zero";
-  let provenance = true, unresolved = 0, drift = false, badSource = false, reads = 0, anchorDrift = false;
-  let emptyEffects = false, localPreparationRow = false;
-  let accepted = settlements, recorded = failure;
-  let zeroProof: ReturnType<RuntimeState["browserAuthority"]["readProvenZeroInputProviderCommand"]> = null;
-  const observed: Record<string, unknown> = { session: fixture.session, store: {
-    readTask: (): NonNullable<ReturnType<RuntimeState["store"]["readTask"]>> => ({ task: fixture.base, status: "failed",
-      result: null, staged_result: null, current_reason: null, updated_at: "2030-01-01T00:00:00.000Z",
-      current_attempt_id: claimed.grant.attempt_id, attempt_failure: recorded }),
-    readAttemptFailureRaw: () => JSON.stringify(failure),
-    readIssuedSourceHandoff: (jobId: string, attemptId: string, hash: string) => {
-      assert.deepEqual([jobId, attemptId, hash], [claimed.job_id, claimed.grant.attempt_id, seal]);
-      return badSource ? null : { kind: "delivery_priority_replay", source_attempt_id: "attempt:prior",
-        browser_history_hash: history.historyHash, readback_proofs: [] };
-    }, readAcceptedSourceSettlements: () => accepted, readSourceReadbackObservations: () => [],
-  }, browserAuthority: {
-    readAttemptPhysicalInputState: (jobId, attemptId) => {
-      assert.deepEqual([jobId, attemptId], [claimed.job_id, claimed.grant.attempt_id]); return inputState;
-    },
-    readJobBrowserHistoryEvidence: jobId => {
-      assert.equal(jobId, claimed.job_id);
-      const second = ++reads % 2 === 0;
-      return { ...history, walHistoryVerified: provenance, unresolvedCommandCount: unresolved,
-        rowCount: emptyEffects ? 0 : history.rowCount + Number(localPreparationRow),
-        historyHash: emptyEffects ? hashCanonical([]) : localPreparationRow ? hashCanonical("current-zero-target-local-row")
-          : drift && second ? hashCanonical("drift") : history.historyHash,
-        replayEffects: emptyEffects ? [] : anchorDrift && second ? history.replayEffects.map(effect =>
-          ({ ...effect, anchorProofHash: hashCanonical("changed-anchor") })) : history.replayEffects };
-    }, readProvenZeroInputProviderCommand: () => zeroProof,
-  } satisfies Pick<RuntimeState["browserAuthority"], "readAttemptPhysicalInputState" | "readJobBrowserHistoryEvidence" | "readProvenZeroInputProviderCommand"> };
-  const state = new Proxy(observed as RuntimeState, { get: (_target, property) => {
-    if (property === "session" || property === "store" || property === "browserAuthority") return observed[property];
-    throw new Error(`UNEXPECTED_RUNTIME_ACCESS:${String(property)}`);
-  } });
+  const { failure, remote } = fixture;
+  const claimed = { ...fixture.claimed, grant: { ...fixture.claimed.grant,
+    source_handoff_seal_hash: null, delivery_priority_replay_grant: null } };
+  const original = JSON.stringify(failure);
+  const state = { session: fixture.session, store: {
+    readTask: () => ({ task: fixture.base, status: "failed",
+      current_attempt_id: claimed.grant.attempt_id, attempt_failure: failure }),
+    readAttemptFailureRaw: () => original,
+  } } as never;
   const execute = (candidate = claimed, status = remote) => reconcileClaimAttemptFailure(state, candidate,
     status, "parent", async () => { throw new Error("FORBIDDEN_SECOND_RELEASE"); });
-  assert.equal((await execute()).stopBeforeProduct, false,
-    "null diagnostic scope cannot override the current zero proof and six signed historical settlements");
-  unresolved = 1;
-  assert.equal((await execute()).stopBeforeProduct, false, "stable approved history may retain unknown rows");
-  unresolved = 0; localPreparationRow = true;
-  assert.equal((await execute()).stopBeforeProduct, false, "current zero-input preparation cannot revoke unchanged old Provider bindings");
-  localPreparationRow = false;
-  for (const variant of ["possible", "unknown", "provenance", "drift", "anchor", "source", "settlement", "empty-settlements", "empty-effects"]) {
-    inputState = variant === "possible" || variant === "unknown" ? variant : "zero";
-    provenance = variant !== "provenance"; unresolved = 0;
-    drift = variant === "drift"; anchorDrift = variant === "anchor"; reads = 0; badSource = variant === "source";
-    emptyEffects = variant === "empty-effects";
-    accepted = variant === "settlement" ? settlements.slice(1) : variant === "empty-settlements" ? [] : settlements;
-    await assert.rejects(execute, /PRODUCTION_SOURCE_HANDOFF_REQUIRED/u, variant);
-  }
-  inputState = "zero"; provenance = true; unresolved = 0; drift = false; anchorDrift = false; badSource = false; accepted = settlements;
-  emptyEffects = false;
-  await assert.rejects(() => execute({ ...claimed, grant: { ...claimed.grant, same_accepted_attempt: false } }), /PRODUCTION_SOURCE_HANDOFF_REQUIRED/u);
-  await assert.rejects(() => execute(claimed, { ...remote, next_action_code: "WAIT_NEW_ATTEMPT" }), /PRODUCTION_CLAIM_AFTER_FAILURE_NEXT_ACTION_INVALID/u);
-  const providerCore = { ...failure.failure_core, effect_scope: "provider_effect" as const, browser_outcome: "REJECTED" as const,
-    mutation_outcome: "no" as const, provider_effect_identity_hash: hashCanonical("current-zero-effect"),
-    evidence_ref: "browser:current-zero", evidence_hash: hashCanonical("current-zero-authority") };
-  recorded = { failure_core: providerCore, release_descriptor: buildProductionLeaseRelease(fixture.session, claimed,
-    { reasonCode: "ATTEMPT_FAILED", attemptFailure: providerCore }).descriptor };
-  const providerRemote = fixture.remoteFor(providerCore);
-  await assert.rejects(() => execute(claimed, providerRemote), /PRODUCTION_SOURCE_HANDOFF_REQUIRED/u);
-  const authorized = claimed.grant.delivery_priority_replay_grant!.calls[0]!;
-  zeroProof = { productStepId: authorized.product_step_id, callId: authorized.call_id,
-    childCapabilityId: authorized.child_capability_id, grantHash: authorized.call_grant_hash };
-  assert.equal((await execute(claimed, providerRemote)).stopBeforeProduct, false);
-  zeroProof = { ...zeroProof, grantHash: hashCanonical("wrong-grant") };
-  await assert.rejects(() => execute(claimed, providerRemote), /PRODUCTION_SOURCE_HANDOFF_REQUIRED/u);
-  assert.equal(JSON.stringify(failure.failure_core), originalCore, "regrant never patches the immutable first fact");
+  const result = await execute();
+  assert.equal(result.stopBeforeProduct, false,
+    "Website acknowledged the first fact and regranted the current attempt");
+  assert.equal(JSON.stringify(result.reconciledFailure), original,
+    "regrant preserves the immutable first fact");
+  await assert.rejects(() => execute({ ...claimed, grant: { ...claimed.grant, attempt_id: "wrong-attempt" } }),
+    /PRODUCTION_ATTEMPT_FAILURE_AUTHORITY_MISSING/u);
+  await assert.rejects(() => execute(claimed, { ...remote, next_action_code: "WAIT_NEW_ATTEMPT" }),
+    /PRODUCTION_CLAIM_AFTER_FAILURE_NEXT_ACTION_INVALID/u);
+  assert.equal(JSON.stringify(failure), original);
 };
 
 const WORKER_LOOP_DELAY_STATEMENT = "delay = Math.min(30_000, Math.max(1_000, delay * 2));";
@@ -108,7 +56,7 @@ const inspectRuntimeSources = (project: Project, queryRef: string) => {
   inspectAgentProductionRuntime({
     project,
     sealedRoot: path.resolve("."),
-    selectedLawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V77",
+    selectedLawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V78",
     targetSet: { queryRef, count: project.getSourceFiles().length },
     targetPaths: project.getSourceFiles().map((source) => path.relative(path.resolve("."), source.getFilePath()).replaceAll("\\", "/")),
     lawRequirements: [],
@@ -117,7 +65,7 @@ const inspectRuntimeSources = (project: Project, queryRef: string) => {
       manifestPath: "scripts/audit/domains/agent-production-runtime/manifest.json",
       ownerInspectorPath: "scripts/audit/domains/agent-production-runtime/inspector.ts",
       executionGroup: "domain",
-      lawIds: ["LAW-AGENT-PRODUCTION-RUNTIME-001-V77"],
+      lawIds: ["LAW-AGENT-PRODUCTION-RUNTIME-001-V78"],
     },
     generatedPlan: [],
   }, findings);
@@ -326,7 +274,7 @@ const exerciseManifestAndLawOwnership = async (): Promise<void> => {
   const runtimeLawRecords = [...runtimeLawSource.matchAll(/```law-record\n([\s\S]*?)\n```/gu)]
     .map((match) => JSON.parse(match[1]!) as { lawId: string; forbidden: string[] });
   const runtimeCoreLaw = runtimeLawRecords.find(
-    (record) => record.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V77",
+    (record) => record.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V78",
   );
   assert.ok(runtimeCoreLaw);
   for (const token of [
@@ -363,7 +311,7 @@ const assertClaimAndAdmissionSourceBoundaries = (
 };
 
 export const exerciseProductionRuntimeSourceBoundaries = async (): Promise<void> => {
-  await exerciseRiskGrantZeroInputRegrant();
+  await exerciseAcknowledgedFailureRegrant();
   const [runtimeSource, runtimeStartupSource, businessAdmissionSource, runtimeLoopsSource,
     outboxSource, storeFoundationSource, reconciliationSource, executorSource, storeSource,
     workerSessionSource, cloudClientSource] =

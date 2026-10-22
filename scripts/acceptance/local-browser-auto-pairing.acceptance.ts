@@ -27,13 +27,14 @@ import { BROWSER_PROTOCOL_REVISION } from "../../src/lib/browser/protocol/genera
 const chrome = await exerciseAutomaticPairing(); await verifyKnownGptRateLimitDetector();
 await exerciseAuthenticatedTargetIsolation(chrome);
 const state = { nextId: 3, activeId: 99, navigationCount: 0, physicalTargetsReads: 0, pointer: false,
-  holdNavigation: false, frameNavigationDuringNavigate: false, switchBeforeInput: false, switchAfterInput: false,
+  frameNavigationDuringNavigate: false, switchBeforeInput: false, switchAfterInput: false,
   switchReadCountdown: 0, switchDuringTargets: null as "away" | "away-back" | null, attachFailure: null as number | null, removeFailure: null as number | null,
   created: null as Readonly<{ active: true; url: string }> | null, pointerResult: { x: 5, y: 5 } as unknown,
   detector: { state: "absent" } as Readonly<Record<string, unknown>>, runtime: null as ((expression: string) => Promise<unknown>) | null };
 const attached: number[] = [], detached: number[] = [], activated: number[] = [], removed: number[] = [], inputs: string[] = [], methods: string[] = [], detectorStarts: number[] = [];
 const chromeIdentities = new Map<number, string>();
-const discarded = new Set<number>(), lostDebugger = new Set<number>(), urls = new Map<number, string>(), loaders = new Map<number, string>(), statuses = new Map<number, "loading" | "complete">();
+const initialFrames = new Set<number>();
+const discarded = new Set<number>(), lostDebugger = new Set<number>(), urls = new Map<number, string>(), loaders = new Map<number, string>();
 const frames: { kind: "TARGET_CLAIM" | "TARGET_REVOKE"; body: Record<string, unknown> }[] = [], failures: Record<string, unknown>[] = [], failureOrder: string[] = [];
 let receiveClaim = (_kind: "TARGET_CLAIM" | "TARGET_REVOKE", _body: Record<string, unknown>): void => undefined;
 let event: Parameters<ExtensionChromeApi["debugger"]["onEvent"]["addListener"]>[0] = () => undefined;
@@ -42,9 +43,9 @@ let activation: Parameters<ExtensionChromeApi["tabs"]["onActivated"]["addListene
 let update: Parameters<ExtensionChromeApi["tabs"]["onUpdated"]["addListener"]>[0] = () => undefined;
 let removal: (id: number) => void = () => undefined;
 const switchTab = (id: number): void => { state.activeId = id; activation({ tabId: id, windowId: 1 }); };
-const tabUpdated: typeof update = (id, changes, tab) => { if (changes.status === "loading" || changes.status === "complete") statuses.set(id, changes.status); update(id, changes, tab); };
+const tabUpdated: typeof update = (id, changes, tab) => { update(id, changes, tab); };
 const tabValue = (id: number) => ({ active: id === state.activeId, discarded: discarded.has(id), id,
-  status: statuses.get(id) ?? "complete", title: "ChatGPT", windowId: 1 });
+  title: "ChatGPT", windowId: 1 });
 const simulateDomReadAndInput = async (_tabId: number, method: string, parameters?: Readonly<Record<string, unknown>>): Promise<unknown> => {
       if (method === "Runtime.evaluate" && String(parameters?.expression).includes("known-gpt-rate-limit-preflight.v2"))
         return rateLimitDetectorCdpResult(parameters, state.detector, detectorStarts);
@@ -72,21 +73,20 @@ const targetChrome: ExtensionChromeApi = { runtime: chrome.runtime, alarms: chro
         state.switchDuringTargets = null; switchTab(99); if (mode === "away-back") switchTab(original); }
       return Array.from({ length: state.nextId - 3 }, (_, index) => index + 3)
       .filter(id => !removed.includes(id)).map(id => ({ id: chromeIdentities.get(id) ?? `chrome-target-${id}`, tabId: id, attached: attached.includes(id) && !lostDebugger.has(id),
-        title: "ChatGPT", type: "page" as const, url: urls.get(id) ?? "https://chatgpt.com/" })); },
+        title: "ChatGPT", type: "page" as const, url: urls.get(id)! })); },
     sendCommand: async ({ tabId }, method, parameters) => {
       methods.push(method);
-      if (method === "Page.getNavigationHistory") return { currentIndex: 0, entries: [{ id: 1, url: urls.get(tabId) ?? "https://chatgpt.com/", title: "ChatGPT" }] };
+      if (method === "Page.getNavigationHistory") return { currentIndex: 0, entries: [{ id: 1, url: urls.get(tabId), title: "ChatGPT" }] };
       if (method === "Page.navigate") {
-        state.navigationCount += 1; urls.set(tabId, String(parameters?.url)); loaders.set(tabId, `loader-${tabId}-navigation-${state.navigationCount}`); statuses.set(tabId, "loading");
+        state.navigationCount += 1; urls.set(tabId, String(parameters?.url)); loaders.set(tabId, `loader-${tabId}-navigation-${state.navigationCount}`);
         if (state.frameNavigationDuringNavigate) { state.frameNavigationDuringNavigate = false; event({ tabId }, "Page.frameNavigated"); }
-        if (!state.holdNavigation) setTimeout(() => tabUpdated(tabId, { status: "complete" }, { id: tabId, url: urls.get(tabId)! }), 1);
         return { loaderId: loaders.get(tabId) };
       }
-      if (method === "Page.getFrameTree") return { frameTree: { frame: { loaderId: loaders.get(tabId) ?? `loader-${tabId}`, url: urls.get(tabId) ?? "https://chatgpt.com/" } } };
+      if (method === "Page.getFrameTree") return { frameTree: { frame: { loaderId: loaders.get(tabId) ?? `loader-${tabId}`, url: initialFrames.delete(tabId) ? "about:blank" : urls.get(tabId) } } };
       return simulateDomReadAndInput(tabId, method, parameters);
     }, onDetach: { addListener: callback => { detach = (target, reason) => { lostDebugger.add(target.tabId); callback(target, reason); }; } },
     onEvent: { addListener: callback => { event = callback; } } },
-  tabs: { create: async input => { state.created = input; const id = state.nextId++; statuses.set(id, "loading"); switchTab(id); return { id }; },
+  tabs: { create: async input => { state.created = input; const id = state.nextId++; urls.set(id, input.url); initialFrames.add(id); switchTab(id); return { id }; },
     get: async id => { if (removed.includes(id)) throw new Error("TAB_ABSENT"); if (state.switchReadCountdown > 0 && --state.switchReadCountdown === 0) { switchTab(99); switchTab(id); } return tabValue(id); },
     remove: async id => { if (state.removeFailure === id) { state.removeFailure = null; throw new Error("REMOVE_UNPROVEN"); } removed.push(id); removal(id); },
     update: async id => { activated.push(id); switchTab(id); return tabValue(id); },
@@ -215,10 +215,10 @@ for (const mode of ["away", "away-back"] as const) {
   await assert.rejects(select("https://chatgpt.com/c/inactive-during-qualification", reloadedTarget), /BROWSER_TARGET_NOT_INTERACTIVE/u);
   assert.equal(state.navigationCount, baselineNavigation); assert.equal(frames.length, beforeNavigationClaims); switchTab(3);
 }
-state.holdNavigation = true; state.frameNavigationDuringNavigate = true;
+state.frameNavigationDuringNavigate = true;
 const selecting = select("https://chatgpt.com/c/sidebar-next", reloadedTarget); await until(() => state.navigationCount === baselineNavigation + 1);
 tabUpdated(99, { status: "complete" }, { id: 99, url: "https://chatgpt.com/" }); await Promise.resolve(); assert.equal(frames.length, beforeNavigationClaims);
-tabUpdated(3, { status: "complete" }, { id: 3, url: urls.get(3)! }); const selected = await selecting; state.holdNavigation = false;
+tabUpdated(3, { status: "complete" }, { id: 3, url: urls.get(3)! }); const selected = await selecting;
 assert.deepEqual(frames.slice(beforeNavigationClaims).map(frame => frame.kind), ["TARGET_CLAIM"]); assert.notEqual(selected.documentRef, reloadedTarget.documentRef);
 const selectedTarget = authority.resolve(String(selected.targetRef), String(selected.documentRef)); await select("https://chatgpt.com/c/sidebar-absent", selectedTarget);
 assert.equal(state.navigationCount, baselineNavigation + 2); assert.equal(inputs.length, beforeLateSwitch + 1);
@@ -240,11 +240,14 @@ assert.equal(state.nextId, 5); assert.equal(state.activeId, 4); detach({ tabId: 
 assert.equal(failures.at(-1)?.reasonCode, "BROWSER_DEVTOOLS_CONFLICT"); assert.equal(failures.at(-1)?.nativeCauseCode, "CHROME_DEBUGGER_CANCELED_BY_USER");
 for (const bad of ["origin", "debugger"] as const) {
   const id = state.nextId; if (bad === "debugger") state.attachFailure = id;
-  const attempt = authority.acquireJobBoundChatGptTarget("fresh", job, undefined, () => { assert.match(job, /^sha256:[a-f0-9]{64}$/u); }); await waitForCreatedTab(id);
+  const claimsBefore = frames.filter(frame => frame.kind === "TARGET_CLAIM").length, inputsBefore = inputs.length;
+  const attempt = authority.acquireJobBoundChatGptTarget(bad === "origin" ? "confirmed-readback" : "fresh", job, undefined, () => { assert.match(job, /^sha256:[a-f0-9]{64}$/u); }); await waitForCreatedTab(id);
   if (bad === "origin") urls.set(id, "https://example.com/");
-  tabUpdated(id, { status: "complete" }, { id, url: urls.get(id) ?? "https://chatgpt.com/" });
+  tabUpdated(id, { status: "complete" }, { id, url: urls.get(id)! });
   await assert.rejects(attempt, new RegExp(bad === "origin" ? "BROWSER_ORIGIN_REJECTED" : "BROWSER_DEVTOOLS_CONFLICT", "u"));
   assert.ok(removed.includes(id)); state.attachFailure = null;
+  assert.equal(frames.filter(frame => frame.kind === "TARGET_CLAIM").length, claimsBefore);
+  assert.equal(inputs.length, inputsBefore);
 }
 const rotation = await exerciseTargetRotation({ authority, waitForCreatedTab, targetTabUpdated: tabUpdated, targetFrames: frames,
   debuggerMethods: methods, activatedTabs: activated, removedTabs: removed, setRemoveFailureTabId: value => { state.removeFailure = value; } });

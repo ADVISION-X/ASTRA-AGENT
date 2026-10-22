@@ -12,7 +12,6 @@ export type ExtensionTab = Readonly<{
   active?: boolean;
   discarded?: boolean;
   id?: number;
-  status?: "loading" | "complete";
   title?: string;
   url?: string;
   windowId?: number;

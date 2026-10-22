@@ -1,7 +1,7 @@
 import { executionFailure, executionFailureMetadata } from "../../execution-failure.js";
 import { hashCanonical } from "./contracts.js";
 import { buildProductionLeaseRelease } from "./cloud-client.js";
-import { classifyAttemptFailure, type AttemptFailureFirstFact } from "./terminal-failure.js";
+import { type AttemptFailureFirstFact } from "./terminal-failure.js";
 import { attemptFailureAuthorityConflict, firstFact, postFailureAndReadback,
   releaseReceiptMatches, remoteFailureMatches } from "./runtime-attempt-failure-readback.js";
 import { historicalEffectsSettled, sourceReadbackProofs } from "./runtime-source-readback-proofs.js";
@@ -167,11 +167,5 @@ export const reconcileClaimAttemptFailure = async (
   if (canResumeRiskGrantAfterZeroInputFailure(state, job, effective)) return reconciled;
   const sourceReadbacks = changedRiskSourceReadbacks(state, job);
   if (sourceReadbacks) return Object.freeze({ ...reconciled, readbackOnlyCalls: sourceReadbacks });
-  const disposition = classifyAttemptFailure(effective.failure_core);
-  if (disposition === "fail_closed") throw executionFailure("failed", "PRODUCTION_SOURCE_HANDOFF_REQUIRED");
-  const sameAttempt = local!.current_attempt_id === job.grant.attempt_id;
-  if ((disposition === "same_attempt_provider_readback") !== sameAttempt) {
-    throw executionFailure("failed", "PRODUCTION_CLAIM_AFTER_FAILURE_IDENTITY_INVALID");
-  }
   return reconciled;
 };

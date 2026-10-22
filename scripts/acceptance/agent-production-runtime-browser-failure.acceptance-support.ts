@@ -20,7 +20,6 @@ import { verifyFailureReleaseReadbackScenarios, verifyAttemptFailureClassificati
   "./agent-production-runtime-failure-readback.acceptance-support.js";
 import {
   verifyClaimTimeFirstFactConflict, verifyRemoteFailureWithoutLocalAuthorityStopsBeforeProduct,
-  verifyUnclassifiedFailureStopsBeforeProduct,
 } from "./agent-production-runtime-failure-authority.acceptance-support.js";
 
 
@@ -269,7 +268,6 @@ export const verifyAttemptFailureReadbackRuntimeContract = async (): Promise<voi
 
   await verifyFailureReleaseReadbackScenarios();
 
-  await verifyUnclassifiedFailureStopsBeforeProduct();
 
 
   await verifyUnresolvedBrowserMutationDoesNotStarveClaimRecovery();

@@ -98,7 +98,7 @@ await verifyKnownGptRateLimitRuntimeContract();
 await verifyAttemptFailureReadbackRuntimeContract();
 await exerciseProductionRuntimeSourceBoundaries();
 for (const evidenceMode of ["exam.property", "exam.state-machine"] as const) {
-  emitQualityProofObservation({ lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V77", evidenceMode,
+  emitQualityProofObservation({ lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V78", evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "forbidden:3", "forbidden:5", "summary"],
     locator: `acceptance:agent-production-runtime:runtime-authority:${evidenceMode}`,
     observedValue: "Original durable ledger, immutable failure readback, same-attempt delivery, bounded lease renewal, session rotation and pending Website admission exercised without a second lifecycle." });

@@ -1,4 +1,4 @@
-import { GPT_WEB_START_URL, requireGptWebPolicyForUrl } from "../exact-target/browser-site-policy-registry.js";
+import { GPT_WEB_START_URL } from "../exact-target/browser-site-policy-registry.js";
 import { ExtensionInteractionReadiness } from "./extension-interaction-readiness.js";
 import { ExtensionDebuggerRuntime } from "./debugger-runtime.js";
 import type { ExtensionDebugTarget } from "./extension-runtime-types.js";
@@ -71,7 +71,6 @@ export class ExtensionCreatedTarget {
     const tab = await this.debuggerRuntime.readTab(target.tabId!);
     const assertActivation = this.interactionReadiness.captureTabActivation(tab, target.tabId!);
     const frame = await readExtensionMainFrame(this.debuggerRuntime, target.tabId!);
-    requireGptWebPolicyForUrl(frame.url);
     const physical = (await this.debuggerRuntime.readTargets()).filter(row => row.tabId === target.tabId && row.id === target.id && row.type === "page");
     if (physical.length !== 1 || !physical[0]!.attached) throw new Error("BROWSER_TARGET_INVALID");
     assertCurrent();

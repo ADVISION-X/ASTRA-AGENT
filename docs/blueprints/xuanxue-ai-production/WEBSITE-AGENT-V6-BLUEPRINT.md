@@ -20,7 +20,7 @@ blocked实例在真实停机时由原Store关闭入口只读核未完成任务/O
   "status": "active",
   "owner": "agent-production-runtime",
   "lawIds": [
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V77",
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V78",
     "LAW-AGENT-PRODUCTION-RUNTIME-002-V12",
     "LAW-AGENT-PRODUCTION-RUNTIME-003-V48",
     "LAW-AGENT-PRODUCTION-RUNTIME-004-V45",
@@ -48,9 +48,9 @@ blocked实例在真实停机时由原Store关闭入口只读核未完成任务/O
     {"contractRef":null,"from":{"domain":"startup-entrypoint","repo":"local"},"to":{"domain":"agent-production-runtime","repo":"local"}}
   ],
   "prohibitedDependencyEdges": [
-    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V77","to":{"domain":"app-shell-ui","repo":"local"}},
-    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V77","to":{"domain":"local-app-shell","repo":"local"}},
-    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V77","to":{"domain":"startup-entrypoint","repo":"local"}}
+    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V78","to":{"domain":"app-shell-ui","repo":"local"}},
+    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V78","to":{"domain":"local-app-shell","repo":"local"}},
+    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V78","to":{"domain":"startup-entrypoint","repo":"local"}}
   ]
 }
 ```
@@ -290,7 +290,7 @@ Website 签发 attempt + lease + fence
 -> Website 领域事务入库并签发 admission receipt，才 completed
 ```
 
-执行失败后 Runtime 只报告 typed outcome 与可核的原 Owner 证据，Website 唯一裁决：存在机械有效结果则继续原身份交付；无结果且全历史零输入则同 job 新 attempt；已可能输入则旧 effect 零 submit 读回；原答案有界核验不可得且Browser 已核完整 WAL effect 历史及现役有界 exact readback 或 typed unaddressable后才签指定调用的新 revision 风险授权。坏/缺/矛盾 failure fact 不再终止需求，当前危险动作失败关闭且有限再检查。Website 明确拒绝结果时仍按唯一 rejection receipt 签新 revision。
+执行失败后 Runtime 先核原 first fact/release；Website 已确认并签当前 ACTIVE_ATTEMPT 时按原 CAS durable accept，不再以本地失败分类重复否决，原 Browser WAL/当前 grant 仍唯一裁决现实输入。Website 唯一裁决：存在机械有效结果则继续原身份交付；无结果且全历史零输入则同 job 新 attempt；已可能输入则旧 effect 零 submit 读回；原答案有界核验不可得且Browser 已核完整 WAL effect 历史及现役有界 exact readback 或 typed unaddressable后才签指定调用的新 revision 风险授权。坏/缺/矛盾 failure fact 不再终止需求，当前危险动作失败关闭且有限再检查。Website 明确拒绝结果时仍按唯一 rejection receipt 签新 revision。
 
 Browser provider effect identity 不含 Product Plugin 或 `attempt_id`，固定由 `job_id + result_revision + product_step_id + call_id + child_id + request_hash + payload_hash` 组成。AGENT 内部实现、attempt、进程、lease、fence、Target、Document 变化不得制造新 effect；同一 identity 的 physical dispatch 总数至多一。每次 mutation 与 Website 写请求仍校验当前 fence，旧 fence 的 Provider、结果及其他业务 mutation 迟到写请求全部拒绝；原 `provider_cooldown` 事故通知只按原身份交付事实，不恢复旧执行权。
 

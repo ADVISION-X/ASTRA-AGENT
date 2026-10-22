@@ -10,7 +10,7 @@ import {
   failureCode,
   typedExecutionFailure,
 } from "../../execution-failure.js";
-import { classifyAttemptFailure, serializeTerminalFailureTransport } from "./terminal-failure.js";
+import { serializeTerminalFailureTransport } from "./terminal-failure.js";
 import {
   requireRuntimeLogWrite,
   runtimeLogCauseEventId,
@@ -131,11 +131,6 @@ export const reconcilePendingAttemptFailures = async (state: RuntimeState): Prom
       }
       if (remote.next_action_code !== "ACTIVE_ATTEMPT") {
         throw executionFailure("failed", "PRODUCTION_ATTEMPT_FAILURE_NEXT_ACTION_MISMATCH");
-      }
-      const disposition = classifyAttemptFailure(failure.failure_core);
-      if (disposition !== "same_attempt_provider_readback") {
-        state.store.setCurrentReason(task.task.job_id, "SOURCE_HANDOFF_RECONCILIATION_PENDING");
-        continue;
       }
     } catch (error) {
       if (!websiteJobAbsent(error)) {
