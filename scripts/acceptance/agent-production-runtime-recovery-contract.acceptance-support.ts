@@ -1,6 +1,6 @@
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 import { mkdir } from "node:fs/promises";
-import { exerciseFirstTerminalBeforeProducerCleanup } from "./agent-production-runtime-failure-transport.acceptance-support.js";
+import { exerciseFirstTerminalBeforeProducerCleanup, exerciseSettledTerminalLedgerClosure } from "./agent-production-runtime-failure-transport.acceptance-support.js";
 import path from "node:path";
 import Database from "better-sqlite3";
 
@@ -323,6 +323,7 @@ export const verifyOutboxRegrantFenceAndReadbackProof = async (
   await exerciseAdmittedOutboxLateWrites(store, providerEffectHash);
   await exerciseFirstTerminalBeforeProducerCleanup(store);
   await exerciseCleanupFailureIsolation();
+  await exerciseSettledTerminalLedgerClosure(store);
 };
 
 /** Real SQLite: each original late writer must preserve pending/settled cleanup authority. */

@@ -11,6 +11,7 @@
   "ownedPaths": [
     "docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md",
     "docs/specs/agent-production-runtime/**",
+    "docs/项目方案/旧交付记录账本误阻断-完整实现方案.md",
     "scripts/acceptance/agent-production-runtime-browser-failure-store.acceptance-support.ts",
     "scripts/acceptance/agent-production-runtime-browser-failure.acceptance-support.ts",
     "scripts/acceptance/agent-production-runtime-business-admission.acceptance-support.ts",

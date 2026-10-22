@@ -308,11 +308,17 @@ const exerciseManifestAndLawOwnership = async (): Promise<void> => {
   ]), ["src/mediator/agent-production-route.ts", "src/plugins/**"]);
   assert.deepEqual(runtimeManifestOwnershipDrift([
     "docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md",
+    "docs/项目方案/旧交付记录账本误阻断-完整实现方案.md",
     "docs/specs/agent-production-runtime/**",
     "scripts/acceptance/agent-production-runtime.acceptance.ts",
     "scripts/audit/domains/agent-production-runtime/**",
     "src/lib/local-runtime/production/**",
   ]), []);
+  assert.deepEqual(runtimeManifestOwnershipDrift([
+    "docs/项目方案/相邻产品-完整实现方案.md",
+    "docs/项目方案/AGENT原attempt无失败事实恢复-完整实现方案.md",
+  ]), ["docs/项目方案/相邻产品-完整实现方案.md", "docs/项目方案/AGENT原attempt无失败事实恢复-完整实现方案.md"],
+  "the current Runtime plan must not grant ownership over other or historical schemes");
 
   const runtimeLawSource = await readFile(
     new URL("../../.github/instructions/agent-rules/功能法案.md", import.meta.url), "utf8",

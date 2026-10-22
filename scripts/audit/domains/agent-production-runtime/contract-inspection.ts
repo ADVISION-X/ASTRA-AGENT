@@ -301,6 +301,7 @@ const inspectProviderGenerator = (context: InspectorContext, findings: Inspector
 export const runtimeManifestOwnershipDrift = (paths: readonly string[]): string[] => paths.filter((path) =>
   !(path === "docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md"
     || path.startsWith("docs/specs/agent-production-runtime/")
+    || path === "docs/项目方案/旧交付记录账本误阻断-完整实现方案.md"
     || path.startsWith("scripts/audit/domains/agent-production-runtime/")
     || path.startsWith("scripts/acceptance/agent-production-runtime")
     || path === "scripts/acceptance/agent-route-contract.acceptance.ts"
