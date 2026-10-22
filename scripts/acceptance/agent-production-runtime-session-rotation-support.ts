@@ -256,7 +256,7 @@ const createSessionFetch = (
   if (url.endsWith("/internal/ai-production/v6/sessions/open")) return successfulJsonResponse({
     session: {
       device_id: "device:atomic-claim", worker_session_id: "worker-session:atomic-claim",
-      worker_session_epoch: 1, control_contract_version: 45, attestation_seq: 0,
+      worker_session_epoch: 1, control_contract_version: 46, attestation_seq: 0,
     },
     session_credential: credentialFor(1),
   });
@@ -365,7 +365,7 @@ const exerciseHeartbeatAfterClaim = async (
   state: RotationState,
   signals: RotationSignals,
 ): Promise<void> => {
-  const inFlightClaim = claimProductionTasks(session, 1, "claim:before-rotation");
+  const inFlightClaim = claimProductionTasks(session, 6, "claim:before-rotation");
   await signals.claimTwoEntered.promise;
   const heartbeatAfterClaim = session.heartbeat();
   await new Promise<void>((resolve) => { setImmediate(resolve); });
@@ -442,7 +442,7 @@ export const exerciseHeartbeatResponseLossRecovery = async (): Promise<void> => 
       opens += 1;
       return successfulJsonResponse({
         session: { device_id: "device:atomic-claim", worker_session_id: "worker-session:atomic-claim",
-          worker_session_epoch: 1, control_contract_version: 45, attestation_seq: serverSequence },
+          worker_session_epoch: 1, control_contract_version: 46, attestation_seq: serverSequence },
         session_credential: credentialFor(serverGeneration),
       });
     }

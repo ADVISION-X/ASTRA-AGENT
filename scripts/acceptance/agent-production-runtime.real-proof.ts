@@ -172,7 +172,7 @@ void String.raw`
             "expected": true
           },
           {
-            "path": "/facts/dynamic_resize_3_4_3_verified",
+            "path": "/facts/dynamic_resize_3_6_3_verified",
             "operator": "equals",
             "expected": true
           }

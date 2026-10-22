@@ -26,7 +26,7 @@ const primary = task({ jobId: "job:runtime-wire", productId: "payment_screenshot
     owner_scope_hash: HASH_B, trust_class: "user_provided_data", may_issue_instruction: false }],
   extra: { parameters: { observation_schema_version: "payment-screenshot-observation-v1" } } });
 assert.equal(hashCanonical(agentRouteCapabilityManifest.routes), productionCatalogHash);
-await assert.rejects(claimProductionTasks({} as never, 5), /V6_CLAIM_LIMIT_INVALID/u);
+await assert.rejects(claimProductionTasks({} as never, 7), /V6_CLAIM_LIMIT_INVALID/u);
 assert.equal(authorizeWebsiteAgentTask(primary).task, primary);
 assert.throws(() => WebsiteAgentTaskSchema.parse({ ...primary, plugin_id: "implementation:forbidden" }));
 assert.throws(() => WebsiteAgentTaskSchema.parse({ ...primary, material_refs: primary.material_refs.map((material) =>
@@ -65,6 +65,23 @@ const noDemand = { schema_version: "xuanxue-ai-claim-batch-receipt.v6", claim_ba
 assert.deepEqual(ClaimBatchReceiptSchema.parse(noDemand).reason_codes, noDemand.reason_codes);
 for (const reason_codes of [[], ["GLOBAL_QUEUE_EMPTY_OR_INELIGIBLE"], ["NO_UNFINISHED_V6_DEMAND", "NO_UNFINISHED_V6_DEMAND"],
   [...noDemand.reason_codes].reverse()]) assert.throws(() => ClaimBatchReceiptSchema.parse({ ...noDemand, reason_codes }));
+const sixTasks = Array.from({ length: 6 }, (_, index) =>
+  claimTask({ ...primary, job_id: `job:capacity-six:${index}` }));
+const sixSession = {
+  workerSessionId: "worker:1", workerSessionEpoch: 1, controlContractVersion: 46,
+  async requestClaim(requestId: string, limit: number) {
+    assert.equal(limit, 6);
+    return { ...noDemand, request_id: requestId, outcome: "LEASE_GRANTED", jobs: sixTasks, reason_codes: [] };
+  },
+};
+assert.equal((await claimProductionTasks(sixSession as never, 6, "claim:six")).jobs.length, 6);
+for (const jobs of [[...sixTasks, sixTasks[0]], [...sixTasks.slice(0, 5), sixTasks[0]]]) {
+  await assert.rejects(claimProductionTasks({ ...sixSession,
+    requestClaim: async (requestId: string) => ({ ...noDemand, request_id: requestId,
+      outcome: "LEASE_GRANTED", jobs, reason_codes: [] }),
+  } as never, 6, "claim:six-invalid"),
+  (error: unknown) => typedExecutionFailure(error)?.code === "V6_CLAIM_BATCH_INVALID");
+}
 const rejection = { receipt_hash: HASH_A, rejected_result_payload_hash: HASH_B,
   reason_codes: ["LOCALIZATION_STRUCTURE_CHANGED"], validation_failure: { native_error_code: "LOCALIZATION_STRUCTURE_CHANGED",
     json_pointer: "/excluded_scope/segments" } };

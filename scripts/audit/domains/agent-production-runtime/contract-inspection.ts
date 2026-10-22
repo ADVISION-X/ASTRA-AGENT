@@ -8,7 +8,7 @@ import { producerClaimRoutesFor } from "../../shared/proof-observation.js";
 export const LAWS = {
   core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V78",
   credential: "LAW-AGENT-PRODUCTION-RUNTIME-002-V12",
-  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V48",
+  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V49",
   admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V45",
   database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V43",
   storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V47",
@@ -234,7 +234,7 @@ const inspectAdmission = (context: InspectorContext, findings: InspectorFinding[
 const inspectDependencies = (context: InspectorContext, findings: InspectorFinding[]): void => {
   for (const [name, id, version] of [
     ["website-agent-task-result", "ai-acceptance.website-agent-task-result", 22],
-    ["xuanxue-ai-production-v6", "ai-acceptance.xuanxue-ai-production-v6", 45],
+    ["xuanxue-ai-production-v6", "ai-acceptance.xuanxue-ai-production-v6", 46],
   ] as const) {
     const path = `docs/specs/agent-production-runtime/${name}.dependency.spec.json`;
     const dependency = JSON.parse(read(context, path)) as { contract: Record<string, unknown>; lawIds: string[] };

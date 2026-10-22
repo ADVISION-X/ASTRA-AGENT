@@ -96,7 +96,7 @@ const unresolvedJob = { job_id: "job:unresolved", product_id: "public_knowledge_
 assert.doesNotThrow(() => WorkerObservationV6Schema.parse({ ...observation, scope_total: 1, jobs: [unresolvedJob] }));
 assert.throws(() => WorkerObservationV6Schema.parse({ ...observation, scope_total: 1, jobs: [{ ...unresolvedJob, next_action_at: null }] }));
 for (const evidenceMode of ["exam.golden", "exam.property"] as const) {
-  emitQualityProofObservation({ lawId: "LAW-AGENT-PRODUCTION-RUNTIME-003-V48", evidenceMode,
+  emitQualityProofObservation({ lawId: "LAW-AGENT-PRODUCTION-RUNTIME-003-V49", evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "forbidden:3", "summary"],
     locator: `acceptance:agent-production-runtime:route-contract:${evidenceMode}`,
     observedValue: "Current v22 projection and all forty-three routes accepted exact keys/materials/relations, rejected missing/extra wire authority, and retained Website-owned opaque parameter values; generated image transport is additionally exercised by the Runtime acceptance." });

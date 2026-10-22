@@ -4,7 +4,7 @@ scheme_id: N_TAB_EXCLUSIVE_ROTATION
 scheme_name: N 标签工单独占轮巡模式／快速获取成果
 status: 代码施工完成，质量结果以原生裁决为准
 created_at: 2026-09-13
-updated_at: 2026-10-08
+updated_at: 2026-10-23
 implementation_status: IMPLEMENTED_PENDING_NATIVE_QUALITY
 test_status: FOCUSED_CHECKS_PASS_NATIVE_PENDING
 release_status: NOT_RELEASED
@@ -14,7 +14,7 @@ release_status: NOT_RELEASED
 
 ## 0. 文档身份与当前裁决
 
-本轮主题：**快速获取成果与同工单恢复交付**。第22节为唯一当前授权方案，第1—21节保持历史。读取对象提前释放已由当前源码复现；保留未证明可安全替代的提交全文校验。本轮先法案/施工图对齐与两轮主Codex审查，再按D01/A01/C01片区删除重构。生产恢复与质量等级分别核真，不把方案授权或隔离复现当作业务完成。
+本轮主题：**动态业务容量上限扩展至6**。第23节为本轮容量升级的唯一方案；第22节恢复与交付不变量继续保留，第1—22节的执行记录只证明各自原候选。本轮只做同一容量合同的局部修改，不重复第22节的片区重建；生产配置、真实运行和原生质量分别核真。最新授权范围以第23.6节为准。
 
 ## 1. 模式定义
 
@@ -1993,3 +1993,69 @@ G01直接关联的src/capabilities/gpt/acceptance/gpt-production-browser-mismatc
 首轮原生CHANGE实际返回CHANGE_PASS并提交main ba15b253098159b4602a0ab314d824d7c26cf802；该clean候选READY实际返回READY_FAIL，39条中LAW-CODE-PURITY-001-V6报告执行函数圈复杂度17超过16和本轮测试as unknown as。尚未推送。此前审查不能替代该原生失败，也不继续沿用为修复后候选放行。主Codex只局部修正新建承载：删除执行器外层确认Child判断，合并到现役唯一限流策略的直接guard，确认动作不递归、其它调用路径不变，不新增helper或wrapper；新fixture改用当前类型/ControlIntent schema和原有有界Proxy取证模式，明确只允许session/store/browserAuthority，越界访问直接失败，同时强类型核完整Browser历史、同job/attempt以及合法WAIT_NEW_ATTEMPT反例。旧双重断言与never状态强转已物理退出，所有反例保留；此处如实属于重建后局部修正，不再次冒称全文件重建。
 
 修复主自检第1轮核当前真实AST指标：executeOne复杂度16、限流策略9，文件/函数均在原预算内；第2轮核调用语义、确认Child不递归、原effect不改、typed历史缺失字段不再被断言隐藏、空历史和未知仍拒绝。补后typecheck、GPT整组、Runtime验收与diff-check通过，不修改预算、checker、法案、Browser、Website或冻结Skill。新的audit-only独立审查复读ba15及当前三路径修复差异，逐项核24/24义务并放行，无未关闭finding；明确有界Proxy仅为受限测试消费，缺失历史字段、非法协议状态不再被断言隐藏，施工分类保持五文件真正重建/九组保留/其余局部修改。原生CHANGE→clean commit→READY仍须对修复后候选重新执行；质量结果仍只认当前唯一报告，不把本段作为CI临时鉴权报告或第二verdict。审查时Website HEAD为ec5a907fc001333b0b1703fa4355a9dba5b4def1且有他项dirty，相关法案/AI施工图/route provider/claim authority/Localization consumer相对原锚未漂移，Website真实接纳仍待生产读回。
+
+
+## 23. 动态业务容量上限扩展至6
+
+### 23.1 目标、授权与当前事实
+
+2026-10-23授权人批准把当前N=3调整至6，并明确要求法案、施工图、生产代码和质检同步。本节替代第5.1节首版安全上限4的当前适用范围；旧建设记录仅作历史。本轮为CHANGE，不借此宣布READY、RELEASE或生产已安全运行N=6。方案状态：可施工；真实切换受23.5门控制。
+
+唯一当前N Owner仍为Website.ai-acceptance的ai_production_devices.max_in_flight。协议支持上限由Website唯一V6 Manifest定义；AGENT只实现同版本支持上限，不存当前N。新设备仍从1启动。Browser物理动作始终至多1，观察计划70—90秒、实际最小间隔70秒、提交后保护和每job独占Tab保持。
+
+绑定：AGENT=/Users/nexgen/Documents/AGENT，main，HEAD fd058b6bbc4eb45a67d52a4578ab316c4877b600，tracking origin/main；Website=/Users/nexgen/Documents/xuanxue-web，main，HEAD de845421e0fa2ec03ec7d2775d2193554a1a8001，tracking origin/main。两仓既有dirty overlay全部保留，尤其AGENT已在建设的Runtime-001-V78和Website法案/择日/业务接收变更。写入前重新核对相关正文，漂移则重绑定受影响项，不reset、stash、清理或提交他项。
+
+前轮只读数据库证据：活动设备aipdev_709b550b2decd50644df15ed15cfaf12，N=3、level=0、baseline=null、cohort为空；实际baseline/state/cohort约束仍封顶4，max_in_flight列本身1..64。当前V6=45，两仓代码上限4。实施前后必须按同device重读，不将历史读回当当前证明。
+
+### 23.2 四维映射、实现与保留裁决
+
+| 对象 | 当前断点与处理 | 唯一Owner、消费者与验收 |
+|---|---|---|
+| Website功能法案AI-ACCEPTANCE-003 | V11升级V12，明确支持上限6、六job限流集合及版本切换；其它动态N/降容/完成语义不改 | ai-acceptance；Manifest/spec/检查器/Exam精确引用 |
+| AGENT功能法案PRODUCTION-RUNTIME-003 | V48升级V49，明确V6.46容量支持6；001-V78的他项恢复修改保留 | agent-production-runtime；dependency/运输校验与相关声明引用 |
+| Website V6 provider | manifest max_business_in_flight=6、control_contract_version=46，原provider spec同步version46；hash vector重算原条目 | ai-acceptance；v6-contract各claim/attestation/batch/source数组自动使用原导出常量 |
+| AGENT V6 consumer | dependency只保留contractId/version/providerRepo并升46；control-contract-dependency.ts支持上限6 | agent-production-runtime；executor.availableCapacity、cloud-client和runtime-loops直接复用 |
+| 限流处理与回执 | provider-cooldown-repository.ts的currentN/baseline/cohort及provider-cooldown-receipt.ts的N检查引用现有合同常量 | ai-acceptance；原notice→device同锁事务→原receipt→claim policy；六job完整、七job拒绝 |
+| 数据库 | 新增0199_ai_production_business_capacity_six.sql，仅替换baseline/cohort/state三约束的4为6；保留8192字节、level0..6及原数据 | ai-acceptance；原migration runner登记Owner、Manifest路径与原账本；旧0137/0139迁移不改 |
+| 后台设备容量 | AiAcceptanceViews.tsx原按钮扩展1..6，沿用controller/handler/device-auth原权限、step-up、CAS、audit/readback | ai-acceptance；管理范围外、过期会话、处罚中、旧值不匹配按原链拒绝 |
+| 施工图与动态证明 | Website SYSTEM/AI图、AGENT Runtime/Browser图更新当前范围及合同；原resize证明扩到3→6→3，保留N1/N2/N3回归 | 各原Owner独立证据；不复制跨域proof或旧N4冒充N6 |
+
+发现依据交叉覆盖：1实际Manifest/路由/Owner枚举；2容量符号、字段及反向引用；3设备和pg_constraint只读事实；4现役方案与必要Git历史。前轮ONE BY ONE→动态N、限流排空与恢复链已真实落地；本轮仅扩大同一上限，不恢复旧共享Tab/URL切换或增加lane。Product Prompt、模型、领域结果、WAL identity及任务关系不因容量变化而改变，故在这些已核实合同边界停止扩查。
+
+删除反事实：原device容量接口、去重计数、限流状态、CAS、receipt校验、原native质量入口分别保护超领、重放与未入库提前释放，全部直接保留。旧上限4的现役判断由6替换；旧迁移是已执行的历史事实，不能改写或删除。无应退休文件、服务、接口、表、列、队列、恢复状态、兼容桥或第二Owner；新增仅前向迁移，原因是现库三个约束不能由改应用代码改变。原8192字节预算、处罚阶梯5/10/15/20/25/30/30及稳定6小时条件不随N扩张。
+
+### 23.3 有限分母与原子工单
+
+共同进入身份为相同contractId、V6.46、exact device/job/attempt/fence/result hash；最终业务终点仍为所属领域入库和business admission receipt。以下工单均为现有Owner内局部修改，无片区删除重构、文件重建或数据删除；未列对象不改。
+
+1. W1／Website规范合同：先改AI-ACCEPTANCE-003和原provider、相关引用/AI施工图/hash vector，再同步原Static/Exam。输出一份版本46合同和支持范围6；不改变路由、task/result合同版本、Browser字段或第二配置。失败保留当前文件及原始业务事实，停止依赖实施，不回写旧版正文。
+2. W2／Website容量处理：原限流repository/receipt引用合同常量，原后台按钮支持6；原device-auth、claim、selection、worker-session的通用合同消费者保留。验收1/6可用，0/7拒绝；六job集合无截断、限流6→5、重复incident不二次降容、六小时恢复baseline6、处罚中手动调N仍拒绝；旧领域与权限拒绝路径保持。失败回原typed错误，不新增fallback。
+3. W3／Website存储：新增0199及原runner Owner登记、Manifest精确路径、法案appliesTo；迁移同事务只ALTER三个现役约束，保存所有设备/工单/WAL/Outbox/receipt；不在普通启动迁移，不重跑或改写旧SQL。验收实际约束允许baseline/cohort6并拒绝7，迁移哈希与Owner沿原账本可回读。数据库未执行时明确报告待执行，代码测试不能替代数据库事实。
+4. A1／AGENT消费：原dependency46、capacity常量6、Runtime-003及相关引用、Runtime/Browser施工图、既有验收与real-proof声明同步。保留当前001-V78及他项全部字节；executor/runtime/cloud-client现有引用自动承接。验收六job可接受、七job请求/批次拒绝、active与pending按job去重、满N旧attempt恢复不新增seat、缩回3仍保留六个原执行；Browser并发仍1。失败停止新动作并保留当前grant、WAL、staged result和Outbox。
+
+### 23.4 功能质量、施工纪律与原生入口
+
+复用两仓各自npm run quality:check CHANGE及audit:build/audit:projection:check；所有pnpm、tsx、build、Exam、audit前在同命令环境验证Node>=24。law-amendment与同合同高影响标志仅映射授权人本次明确授权，不据标志认领其他任务。共享dirty候选的其它失败或漂移如实列明，禁止改无关法条/放宽checker凑通过。
+
+优先扩充原ai-production-v6-contract.test.ts、AGENT原Runtime验收，覆盖claim/request/attestation/batch/source边界、六job限流回执、CAS3→6、6→3不杀在途及新迁移约束。旧0137/0139历史断言保留，同时检查0199的有效最终约束。现役检查器验证新cap6与旧历史迁移共存，不删原保护。必要原生类型/专业验收按实际差异运行；不新建平行测试框架或PASS报告。
+
+施工纪律单独核：已有改动保留；只有列明对象局部修改；旧数字判断与遗漏引用查零；generated registry只经各仓唯一builder生成，不手写generated；无新增运行结构或兼容路径。功能质量单独核实际输入/拒绝分支与原native输出。最终按局部修改、保留、新增前向迁移、尚未完成分别报告，无真正重建、无删除退役、无失败回退时直接说明。
+
+### 23.5 切换、动态证据与停止
+
+两仓先完成CHANGE，相关native检查成功后才准备运行切换。新旧版本不并行写：用原draining停止新领、让原accepted执行/未知输入/结果交付沿原链收束；精确读回Website持久在途集合、AGENT active+pending、Outbox和Browser lane/WAL，不能用清lease或删job假排空。已有会话关闭/supersede后，迁移约束，再协调Website46与AGENT46开新session，版本不等立即失败关闭；长期设备凭据不变。任何不能安全收束的项保持原运行事实并停止切换。没有新旧版reader、dual-write、迁移开关或第二恢复链。
+
+本轮CHANGE不宣称已取得RELEASE；现有共享dirty与必要参与仓clean commit、真实N6证据未闭合时不切生产N。正式支持上限安全证明使用真实Chrome/GPT的六独占Tab、单lane、原70—90秒节拍、无Provider warning、同effect零重复submit、六任务领域admission及存储读回，另核3→6→3的扩缩容和重启/Tab丢失恢复；每域仍独立producer proof，旧N3/N4报告不能冒充。最后经原管理员capacity接口以最新expected值将指定device置6并回读；响应不明先读同device与原audit，不盲重试。处罚level>0仍按原接口拒绝，不能绕过baseline。
+
+失败不自动回退数据库或业务事实；可以停止尚未发生的新输入。任何已发生/未知effect只按原WAL与Website授权恢复，迁移部分不明先查原账本与pg_constraint，配置不明先读同device。不得回滚已接纳结果、抹旧unknown或重做Provider。生产切换、Dynamic Proof、实际N=6、READY/RELEASE状态必须凭本轮真实证据另记，不预写通过。
+
+
+### 23.6 最新范围收敛与数据库执行事实
+
+授权人随后明确要求网站继续生产索引、本任务只管AGENT；停止后续Website代码修改及原生质量，不再要求暂停索引。此前Website已落盘的本轮N相关改动保留现场，不擅自回滚、不提交或认领其它改动。授权人另明确要求确认并实际执行数据库迁移，故数据库0199执行是精确例外，并非恢复Website整仓施工或发布范围。
+
+AGENT施工基线已重新绑定main fd058b6bbc4eb45a67d52a4578ab316c4877b600；该他项提交的Runtime-001-V78、Browser当前合同与原恢复语义全部保留。本轮只升级Runtime-003-V49及直接引用、V6.46消费和支持上限6。责任域肃清方案属于其它任务，不编辑或提交。
+
+0199已先在真实PostgreSQL临时表验证六job/baseline6合法、七job/baseline7拒绝、原降至1再恢复6与原字节预算；临时事务回滚。执行前只读盘点原账本：仅0199待执行，所有已执行SQL哈希无漂移。2026-10-23 00:57:25 Asia/Dubai通过原npm run db:migrate:commercial -- --through=0199_ai_production_business_capacity_six.sql执行，原runner仅应用0199；同事务账本Owner=ai-acceptance，migration_hash=sha256:da50117621fcaae7cd1c9a841556640d1122f975444dbd8864c060fe35ce1fd5。随后原--verify全量通过，201份commercial迁移，head=0199；pg_constraint三项均回读为6，实际设备仍N3/level0。没有通过手工SQL绕过账本，也没有改古籍或业务结果。该迁移不再是待执行启动阻断。
+
+Website已执行的V6 Exam为87通过、0失败、7跳过，不能冒充跳过的数据库用例或N6 Provider proof。Website原生CHANGE先遇授权环境名不匹配，正确使用该仓GOVERNANCE_LAW_AMENDMENT_AUTHORIZED后因生产索引写入导致CANDIDATE_DRIFT；不将其记为通过。AGENT第一轮原生CHANGE已运行相关类型、Runtime、GPT、Browser等验收，但期间他项责任域方案变化导致CANDIDATE_DRIFT，结果失效，须在最终本轮差异稳定后重跑。实际N及运行合同切换仍不宣称已完成；当前设备N由Website唯一管理，本任务不增AGENT本地N配置或绕过合同版本门。

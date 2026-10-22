@@ -5,7 +5,7 @@
       "lawIds": [
         "LAW-AGENT-PRODUCTION-RUNTIME-001-V78",
         "LAW-AGENT-PRODUCTION-RUNTIME-002-V12",
-        "LAW-AGENT-PRODUCTION-RUNTIME-003-V48",
+        "LAW-AGENT-PRODUCTION-RUNTIME-003-V49",
         "LAW-AGENT-PRODUCTION-RUNTIME-004-V45",
         "LAW-AGENT-PRODUCTION-RUNTIME-005-V43",
         "LAW-AGENT-PRODUCTION-RUNTIME-006-V47",
@@ -551,6 +551,7 @@
         "scripts/startup/lib/production-contract-preflight.ts",
         "src/lib/local-runtime/production/cloud-client.ts",
         "src/lib/local-runtime/production/contracts.ts",
+        "src/lib/local-runtime/production/control-contract-dependency.ts",
         "src/lib/local-runtime/production/route-policy.ts",
         "src/lib/local-runtime/production/transport-protocol.ts",
         "src/lib/local-runtime/production/website-agent-route-policies.v1.json"
@@ -576,21 +577,21 @@
       ],
       "excludes": [],
       "forbidden": [
-        "不得发生：Website ai-acceptance 之外出现第二 task-result、V6 transport、route policy 或 Route Capability Manifest provider，或 AGENT dependency 复制 provider bytes、authorityArtifact、commit、hash、generator 或字段定义；consumer dependency 只能发布 contractId、version、providerRepo 三字段，普通 Runtime 启动不得读取未绑定 Website 工作树。",
+        "不得发生：Website ai-acceptance 之外出现第二 task-result、V6 transport、route policy 或 Route Capability Manifest provider，或 AGENT dependency 复制 provider bytes、authorityArtifact、commit、hash、generator 或字段定义；consumer dependency 只能发布 contractId、version、providerRepo 三字段，普通 Runtime 启动不得读取未绑定 Website 工作树。 V6.46协议业务容量支持上限为6，Runtime领取、批次校验与executor容量必须一致支持1..6，超过6失败关闭；该支持上限不得成为当前设备N的第二来源。",
         "不得发生：唯一 projection generator 未精确消费 Website task-result v22 的 43 routes、43 parameter types 与 43 result contracts，或未知、缺失、额外、重复、顺序漂移、material/relation/result_contract 语义不等仍被接受；BZ05 是独立全盘研究，BZ03/BZ04 显式运输 consultation_root_ref 与 direct parent relation，三者均 fresh；商业命名只支持 naming_commercial，不保留旧联合起名生产路由；文章翻译五语按 Website 已签 provider_continuation 的 direct parent 运输，固定 catalog 同 cohort 首任务 parent triple 全空、后继携已接纳 direct parent；Runtime 只能机械运输 relationKind 与 parent triple，不得按 locale/action 推导。bazi_private_base_input 与 result_contract.private_base 恒为零，择日produce沿原五类parameter为fresh，读取指引一份及原典/本案两个各至少一份的有序repeatable组；part身份按source_task_id:role:part从0连续、全局ordinal连续，媒体/信任/owner逐项保持且原总64上限整体失败关闭不裁剪；旧40路由语义不变。不得手写第二支持表或保留 reservation、alias、fallback、bridge、shadow、兼容投影。",
         "不得发生：Runtime 对 Website 签发前已裁定的业务参数值另立枚举、白名单、Product package/version、Bazi reusable candidate、localization resource kind 或 action-name 语义，或用 routeProducesGeneratedImage、手写 Product/Action 表、硬编码 primary 数量再次裁决业务。Runtime 只校验 authenticated transport、wire/schema/hash、当前 contract/projection/control version 与 route/key/material/relation/result-contract 机械一致性；task、grant、result、artifact、terminal、attempt、session、credential、Manifest 与 Browser effect 的 plugin_id、plugin_version、expected_plugin_id、expected_plugin_version 字段数恒为零，内部实现身份不得成为跨仓身份、领取门或持久任务绑定。",
         "不得发生：Runtime 为 generated image 设置固定宽高、范围、长宽比、总像素、resize、crop 或其它几何门禁，上传 Provider 原图或原图身份字段，或在 V6 uploaded receipt 接受、返回、比较 width/height 或未知字段。Runtime 只运输 task-result v22 中 Product 已生成的无 metadata WebP、sha256、bytes 与实际解码整数 width/height；上传端只接 WebP bytes、hash、bytes、media type，receipt 严格限定 schema_version、artifact_id、role、object_ref、sha256、byte_length、media_type、state、receipt_hash。"
       ],
-      "lawId": "LAW-AGENT-PRODUCTION-RUNTIME-003-V48",
+      "lawId": "LAW-AGENT-PRODUCTION-RUNTIME-003-V49",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 140,
+        "lineEnd": 150,
         "lineStart": 107,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
-      "summary": "必须只消费 Website ai-acceptance 的唯一 task-result v22、V6 与 route policy，由原唯一 generator 精确投影 43 routes、43 parameter types、43 result contracts；商业命名独立，八字 fresh 与原 direct-parent 关系保持；generated image 只机械运输无 metadata WebP、实际解码宽高及 hash，不设几何门禁。",
-      "supersedesLawId": "LAW-AGENT-PRODUCTION-RUNTIME-003-V47",
+      "summary": "必须只消费 Website ai-acceptance 的唯一 task-result v22、V6 与 route policy，由原唯一 generator 精确投影 43 routes、43 parameter types、43 result contracts；商业命名独立，八字 fresh 与原 direct-parent 关系保持；generated image 只机械运输无 metadata WebP、实际解码宽高及 hash，不设几何门禁。 V6.46容量支持上限为6，当前设备N仍只属于Website。",
+      "supersedesLawId": "LAW-AGENT-PRODUCTION-RUNTIME-003-V48",
       "tier": "P0"
     },
     {
@@ -608,7 +609,7 @@
       ],
       "dependsOnLawIds": [
         "LAW-AGENT-PRODUCTION-RUNTIME-001-V78",
-        "LAW-AGENT-PRODUCTION-RUNTIME-003-V48"
+        "LAW-AGENT-PRODUCTION-RUNTIME-003-V49"
       ],
       "enforcementMode": "composite",
       "evidenceModes": [
@@ -628,8 +629,8 @@
       "lawId": "LAW-AGENT-PRODUCTION-RUNTIME-004-V45",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 180,
-        "lineStart": 142,
+        "lineEnd": 190,
+        "lineStart": 152,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -676,8 +677,8 @@
       "lawId": "LAW-AGENT-PRODUCTION-RUNTIME-005-V43",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 225,
-        "lineStart": 182,
+        "lineEnd": 235,
+        "lineStart": 192,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -723,8 +724,8 @@
       "lawId": "LAW-AGENT-PRODUCTION-RUNTIME-006-V47",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 269,
-        "lineStart": 227,
+        "lineEnd": 279,
+        "lineStart": 237,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -743,7 +744,7 @@
       "dependsOnLawIds": [
         "LAW-AGENT-PRODUCTION-RUNTIME-001-V78",
         "LAW-AGENT-PRODUCTION-RUNTIME-002-V12",
-        "LAW-AGENT-PRODUCTION-RUNTIME-003-V48",
+        "LAW-AGENT-PRODUCTION-RUNTIME-003-V49",
         "LAW-AGENT-PRODUCTION-RUNTIME-004-V45",
         "LAW-AGENT-PRODUCTION-RUNTIME-005-V43",
         "LAW-AGENT-PRODUCTION-RUNTIME-006-V47"
@@ -765,8 +766,8 @@
       "lawId": "LAW-AGENT-PRODUCTION-RUNTIME-007-V47",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 308,
-        "lineStart": 271,
+        "lineEnd": 318,
+        "lineStart": 281,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -787,7 +788,7 @@
       "dependsOnLawIds": [
         "LAW-AGENT-PRODUCTION-RUNTIME-001-V78",
         "LAW-AGENT-PRODUCTION-RUNTIME-002-V12",
-        "LAW-AGENT-PRODUCTION-RUNTIME-003-V48",
+        "LAW-AGENT-PRODUCTION-RUNTIME-003-V49",
         "LAW-AGENT-PRODUCTION-RUNTIME-004-V45",
         "LAW-AGENT-PRODUCTION-RUNTIME-005-V43",
         "LAW-AGENT-PRODUCTION-RUNTIME-006-V47",
@@ -813,8 +814,8 @@
       "lawId": "LAW-AGENT-PRODUCTION-RUNTIME-008-V48",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 353,
-        "lineStart": 310,
+        "lineEnd": 363,
+        "lineStart": 320,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -852,8 +853,8 @@
       "lawId": "LAW-APP-SHELL-UI-001-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 392,
-        "lineStart": 356,
+        "lineEnd": 402,
+        "lineStart": 366,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -884,8 +885,8 @@
       "lawId": "LAW-APP-SHELL-UI-002-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 423,
-        "lineStart": 394,
+        "lineEnd": 433,
+        "lineStart": 404,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -918,8 +919,8 @@
       "lawId": "LAW-APP-SHELL-UI-003-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 456,
-        "lineStart": 425,
+        "lineEnd": 466,
+        "lineStart": 435,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -966,8 +967,8 @@
       "lawId": "LAW-ARCHITECTURE-BOUNDARY-001-V18",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 505,
-        "lineStart": 460,
+        "lineEnd": 515,
+        "lineStart": 470,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -994,8 +995,8 @@
       "lawId": "LAW-ARCHITECTURE-BOUNDARY-002-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 532,
-        "lineStart": 507,
+        "lineEnd": 542,
+        "lineStart": 517,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1040,8 +1041,8 @@
       "lawId": "LAW-CAPABILITY-GOVERNANCE-001-V19",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 579,
-        "lineStart": 536,
+        "lineEnd": 589,
+        "lineStart": 546,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1083,8 +1084,8 @@
       "lawId": "LAW-CAPABILITY-GOVERNANCE-002-V5",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 621,
-        "lineStart": 581,
+        "lineEnd": 631,
+        "lineStart": 591,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1243,8 +1244,8 @@
       "lawId": "LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V7",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 653,
-        "lineStart": 625,
+        "lineEnd": 663,
+        "lineStart": 635,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1273,8 +1274,8 @@
       "lawId": "LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V7",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 682,
-        "lineStart": 655,
+        "lineEnd": 692,
+        "lineStart": 665,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1302,8 +1303,8 @@
       "lawId": "LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V6",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 710,
-        "lineStart": 684,
+        "lineEnd": 720,
+        "lineStart": 694,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1358,8 +1359,8 @@
       "lawId": "LAW-GPT-001-V65",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 765,
-        "lineStart": 714,
+        "lineEnd": 775,
+        "lineStart": 724,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1409,8 +1410,8 @@
       "lawId": "LAW-GPT-002-V32",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 813,
-        "lineStart": 767,
+        "lineEnd": 823,
+        "lineStart": 777,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1451,8 +1452,8 @@
       "lawId": "LAW-LOCAL-APP-SHELL-001-V6",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 856,
-        "lineStart": 817,
+        "lineEnd": 866,
+        "lineStart": 827,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1482,8 +1483,8 @@
       "lawId": "LAW-LOCAL-APP-SHELL-002-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 886,
-        "lineStart": 858,
+        "lineEnd": 896,
+        "lineStart": 868,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1516,8 +1517,8 @@
       "lawId": "LAW-LOCAL-APP-SHELL-003-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 919,
-        "lineStart": 888,
+        "lineEnd": 929,
+        "lineStart": 898,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1556,8 +1557,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-001-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 958,
-        "lineStart": 923,
+        "lineEnd": 968,
+        "lineStart": 933,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1599,8 +1600,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-002-V6",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1000,
-        "lineStart": 960,
+        "lineEnd": 1010,
+        "lineStart": 970,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1648,8 +1649,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-003-V47",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1046,
-        "lineStart": 1002,
+        "lineEnd": 1056,
+        "lineStart": 1012,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1706,8 +1707,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-004-V58",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1101,
-        "lineStart": 1048,
+        "lineEnd": 1111,
+        "lineStart": 1058,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1742,8 +1743,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-005-V6",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1136,
-        "lineStart": 1103,
+        "lineEnd": 1146,
+        "lineStart": 1113,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1777,8 +1778,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-006-V46",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1168,
-        "lineStart": 1138,
+        "lineEnd": 1178,
+        "lineStart": 1148,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1832,8 +1833,8 @@
       "lawId": "LAW-RUNTIME-LOG-SPINE-001-V7",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1220,
-        "lineStart": 1172,
+        "lineEnd": 1230,
+        "lineStart": 1182,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1878,8 +1879,8 @@
       "lawId": "LAW-RUNTIME-LOG-SPINE-002-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1261,
-        "lineStart": 1222,
+        "lineEnd": 1271,
+        "lineStart": 1232,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1931,8 +1932,8 @@
       "lawId": "LAW-RUNTIME-LOG-SPINE-003-V6",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1309,
-        "lineStart": 1263,
+        "lineEnd": 1319,
+        "lineStart": 1273,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1973,8 +1974,8 @@
       "lawId": "LAW-STARTUP-ENTRYPOINT-001-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1352,
-        "lineStart": 1313,
+        "lineEnd": 1362,
+        "lineStart": 1323,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -2014,8 +2015,8 @@
       "lawId": "LAW-STARTUP-ENTRYPOINT-002-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1390,
-        "lineStart": 1354,
+        "lineEnd": 1400,
+        "lineStart": 1364,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -2051,8 +2052,8 @@
       "lawId": "LAW-SYSTEM-SECURITY-001-V15",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1428,
-        "lineStart": 1394,
+        "lineEnd": 1438,
+        "lineStart": 1404,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -2093,8 +2094,8 @@
       "lawId": "LAW-WORKBENCH-API-BOUNDARY-001-V7",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1469,
-        "lineStart": 1432,
+        "lineEnd": 1479,
+        "lineStart": 1442,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
