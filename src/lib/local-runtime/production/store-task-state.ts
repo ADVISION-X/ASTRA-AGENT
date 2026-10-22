@@ -87,10 +87,10 @@ export abstract class ProductionStoreTaskState extends ProductionStoreSourceRead
     this.database.transaction(() => {
       const task = this.readTask(jobId);
       const changed = task?.status === "failed" && task.current_attempt_id === attemptId
-        && !task.attempt_failure && task.staged_result !== null
+        && task.staged_result !== null
         && hashCanonical(task.staged_result) === stagedHash
         ? this.database.prepare(`update production_tasks
-            set staged_result_json=null,current_reason='WEBSITE_REFUSED_RESULT',updated_at=?
+            set staged_result_json=null,attempt_failure_json=null,current_reason='WEBSITE_REFUSED_RESULT',updated_at=?
           where job_id=? and status='failed' and current_attempt_id=? and staged_result_json is not null`)
           .run(now(), jobId, attemptId)
         : null;

@@ -3,7 +3,7 @@
     {
       "capabilityDomain": "agent-production-runtime",
       "lawIds": [
-        "LAW-AGENT-PRODUCTION-RUNTIME-001-V76",
+        "LAW-AGENT-PRODUCTION-RUNTIME-001-V77",
         "LAW-AGENT-PRODUCTION-RUNTIME-002-V12",
         "LAW-AGENT-PRODUCTION-RUNTIME-003-V48",
         "LAW-AGENT-PRODUCTION-RUNTIME-004-V45",
@@ -477,14 +477,14 @@
         "不得发生：同一 Website job 由多个 lifecycle、scheduler、sender、completion Owner、queue 或 store 竞争；job 永久身份只由 job_id、request_hash 与 Website 冻结业务 task 决定，任务公开状态只能是 failed 或 completed。Runtime 不得持久化、配置或自行决定设备当前 N；它只能按跨仓合同安全上限、本地去重后的在途业务数与 executor 可用量提出有界 claim，请求多少不等于授权多少，Website.ai-acceptance 在设备事实行锁内按 ai_production_devices.max_in_flight 唯一裁决新 grant。当前 active execution 与已有 staged result 但尚未取得 Website admission receipt 的同一 job 必须合并计为一个在途业务。",
         "不得发生：Runtime、Product、GPT、Browser、Forensics、日志、进程、lease、Target、build、错误码或时钟自行决定 attempt 结束、重领、续跑、新 result revision、新 attempt 或永久停止；Runtime 必须停止当前无授权或危险动作、保全 typed failure/effect fact，并由现役 worker 有限再检查 Website 下一份精确执行授权；只有 Website.ai-acceptance 可以签发该授权。",
         "不得发生：lease renew 遇到 5xx、传输不可达或非 JSON/无效回执响应时立即放弃续租，而不在 Website 已签发 lease 的本地剩余预算内以新 request_id 重试同一 lease；该重试只延长同一 lease，不改变 lease_version 或 fence，不构成 attempt 续跑、重领或新 attempt。4xx 类型化拒绝与回执 schema 无效仍必须立即停止，不得重试。",
-        "不得发生：新 attempt 把旧 checkpoint、GPT 内容、conversation、DOM 或执行位置当成本轮 Product 输入；只有两种 Website 已签精确来源允许 Product 从第一入口以原 Forensics checkpoint 零提交接收旧 Provider 答案：其一是逐调用风险 grant 的原来源证明为 settled_reusable 的调用，replay_exhausted 指定调用才可按本次 grant 一次风险输入；其二是 AGENT 原 Outbox Owner 已核旧/新请求身份、不同 payload hash、旧 receipt hash 与精确 409，连同 Browser 全部逐调用 settled checkpoint 封进来源 seal，Website 仅以自身原 staged 对象和 cloud write receipt 在原 job 行锁对摘要及完整结果缺席交叉验证后签发 calls=[] 可复用来源 grant。两种授权都只覆盖精确调用，旧 staged payload、conversation、DOM 和未结算半成品不得成为新 Product 输入；但 Runtime 必须通过各原 Owner 的公开 typed reader 在 Website 新授权前保全并报告旧 first fact、结果候选、Outbox 与 Browser effect 历史。已机械有效的旧结果优先走原身份交付；普通新 attempt 仅在旧结果确证不可恢复且 Website 原 job 事件与 claim receipt 已持久化来源证据后接受；来源证据由同一 Runtime per-job Owner 先收束旧 executor，并在同一 SQLite 事务以原 task 的精确 current_attempt_id、staged_result_json is null、旧来源 hash 与 production_attempt_handoffs 对应 source_attempt_id 的 typed seal 封住旧完成端口后出具；stage + terminal 先成立则 seal 必须失败，typed seal 先成立则旧 attempt 的 stage、first-failure、release-descriptor rebind 与普通同 attempt regrant 必须失败。current_reason 仅是可变诊断投影，不得参与授权、CAS、恢复、容量、stage、Provider submit、删除或完成决定；封口前已有 READY 则只交付原结果，旧 attempt 关闭不得终止同一 Website job 的需求。唯一例外为领域拒收关闭：Website 现役 device-status 的 write_receipts 含 response 载荷哈希等于该暂存结果规范哈希的 completed terminal 写入回执（Website 已签收该结果），却回报 WAIT_NEW_ATTEMPT、无当前 attempt、无 terminal、无 business admission receipt 时，Website 已在自身领域 Consumer 终结并拒收该结果，它不再是可恢复结果；Runtime 必须在同一 SQLite 事务丢弃该 attempt 的暂存结果并释放业务席位，此后 Website 签发、不携带来源证据的不同 attempt grant，按 Website 唯一恢复裁决以精确 CAS 取代旧 current_attempt_id 后接受，不要求 seal 或 source_evidence；新 attempt 是新的 result revision，旧 revision 的 Provider effect 与被拒 payload 不成为新 Product 输入。该例外不适用于 Provider 级 first failure、RESULT_SETTLED_UNUSABLE、GPT_RESPONSE_STOPPED_EMPTY、未决 Browser effect 或缺少该 terminal 写入回执的情形，它们仍按上述来源证据规则处理。Product 仍从第一入口执行。八字父结果只消费 Website 已入库的本轮 locked-fact material。",
+        "不得发生：新 attempt 把旧 checkpoint、GPT 内容、conversation、DOM 或执行位置当成本轮 Product 输入；只有两种 Website 已签精确来源允许 Product 从第一入口以原 Forensics checkpoint 零提交接收旧 Provider 答案：其一是逐调用风险 grant 的原来源证明为 settled_reusable 的调用，replay_exhausted 指定调用才可按本次 grant 一次风险输入；其二是 AGENT 原 Outbox Owner 已核旧/新请求身份、不同 payload hash、旧 receipt hash 与精确 409，连同 Browser 全部逐调用 settled checkpoint 封进来源 seal，Website 仅以自身原 staged 对象和 cloud write receipt 在原 job 行锁对摘要及完整结果缺席交叉验证后签发 calls=[] 可复用来源 grant。两种授权都只覆盖精确调用，旧 staged payload、conversation、DOM 和未结算半成品不得成为新 Product 输入；但 Runtime 必须通过各原 Owner 的公开 typed reader 在 Website 新授权前保全并报告旧 first fact、结果候选、Outbox 与 Browser effect 历史。已机械有效的旧结果优先走原身份交付；普通新 attempt 仅在旧结果确证不可恢复且 Website 原 job 事件与 claim receipt 已持久化来源证据后接受；来源证据由同一 Runtime per-job Owner 先收束旧 executor，并在同一 SQLite 事务以原 task 的精确 current_attempt_id、staged_result_json is null、旧来源 hash 与 production_attempt_handoffs 对应 source_attempt_id 的 typed seal 封住旧完成端口后出具；stage + terminal 先成立则 seal 必须失败，typed seal 先成立则旧 attempt 的 stage、first-failure、release-descriptor rebind 与普通同 attempt regrant 必须失败。current_reason 仅是可变诊断投影，不得参与授权、CAS、恢复、容量、stage、Provider submit、删除或完成决定；封口前已有 READY 则只交付原结果，旧 attempt 关闭不得终止同一 Website job 的需求。唯一例外为领域拒收关闭：Website 现役 device-status 的 write_receipts 含 response 载荷哈希等于该暂存结果规范哈希的 completed terminal 写入回执（Website 已签收该结果），却回报 WAIT_NEW_ATTEMPT、无当前 attempt、无 terminal、无 business admission receipt 时，Website 已在自身领域 Consumer 终结并拒收该结果，它不再是可恢复结果；Runtime 必须在同一 SQLite 事务丢弃该 attempt 的暂存结果并释放业务席位，此后 Website 签发、不携带来源证据的不同 attempt grant，按 Website 唯一恢复裁决以精确 CAS 取代旧 current_attempt_id 后接受，不要求 seal 或 source_evidence；新 attempt 是新的 result revision，旧 revision 的 Provider effect 与被拒 payload 不成为新 Product 输入。未取得该 completed terminal 写入回执的 Provider 级 first failure、RESULT_SETTLED_UNUSABLE、GPT_RESPONSE_STOPPED_EMPTY 或未决 Browser effect 仍按上述来源证据规则处理；已有回执绑定的完整结果被领域拒收时，旧 first fact 原字节保留在原 terminal Outbox 与 Website 原事件，当前失败槽随该结果在同一事务退休，不得再作为新 attempt 的阻断条件。Product 仍从第一入口执行。八字父结果只消费 Website 已入库的本轮 locked-fact material。",
         "不得发生：Runtime 为结果、artifact、checkpoint 或 failure 建立第二 Outbox、重投器或恢复链；同一机械有效结果只经现役 Outbox 幂等交付，stage 与 terminal intent 同一 SQLite 事务持久化，Browser cleanup/日志/旧 first failure 不得撤销 stage。Provider 同一已输入 effect 由 Browser WAL 守住零重复输入；只有 Website 基于原结果不可取得、Browser 完整 effect 历史及现役有界 readback 耗尽或 typed unaddressable 证据，在原 job 上持久签发绑定指定调用的新 result revision 风险授权时，Browser 才可对新 effect 一次可能重复输入，AGENT 不自行授权。",
         "不得发生：Runtime 直接读取 Browser 私有 WAL、Target、Document 或旧 GPT/Forensics 正文，或从错误字符串猜测相邻 Owner 结论；跨 Owner 只消费其公开 typed 结果、first fact、候选/Outbox receipt 与 Browser 全历史 effect/locator/input-quiescence 证明；跨仓 V45 的 first_fact_raw_hash 也只可从原失败的 targetless 稳定字段形成，原 failure evidence_hash 仅在本地核原 WAL、不得进入新 source 身份；跨仓 V45 的 WAL、anchor、source-effect-set 与 history hash 必须是剔除 Target/Document 及其派生 grant/payload 的稳定投影，原始 WAL authority 和完整 recovery payload 只在 Browser 内部验真，且只为同一 Website job 的结果交付或已鉴权 claim 证据交接使用。 V45 source保持原exact字段、canonical hash与完整历史；input_quiescence_proof为required nullable字段，unknown/possible允许null，null不代表zero，非null只接受原真实terminal_wal；不得以历史unresolved_count或quiescence缺席作为当前授予资格。原sealed body/hash不刷新，合法封存超24小时仍可沿原身份交付，未来时间或倒序时间仍拒绝。",
         "不得发生：Runtime 违反 FROZEN-WEBSITE-RESULT-DEMAND-001；Website 保持同一 job 的未完成业务需求并唯一决定 attempt 结束、有限 retry_not_before、新 attempt、永久撤权与 completed，Runtime 不得创建 replacement job、第二状态或恢复裁决。 未 admission 且未被 Website 持久终止的 job 在进程重启、普通代码/环境故障或尝试失败后必须仍有现役 worker 可执行或有界再检查的下一动作；blocked Runtime handle 不算 worker 已恢复。 历史未决与单 job 远端读取失败不能中断同批其它合法 job；原有限快照逐 job 处理，exact Website absence 沿原清理，非 absence 错误保留该 job typed 原因并由原 worker 下一轮再查。完成 Target 清理只核该 job 自身结果/Outbox并逐 pending 快照各一次，不因其它 job 未SENT或首张失败使后续饥饿。已SENT或admitted的只读确认不因日志故障丢失，日志故障仍阻止新claim、新mutation及未发云写。满N仍可由原独立recoverable入口接回原seat同job，不增容量、释放API或新状态。",
         "不得发生：Browser 精确识别已知限流弹窗后，Runtime 未在确认点击前以现役唯一 production_outbox 持久化 provider_cooldown intent，或新事故尚未由 Website 精确落账时利用事故前 grant 继续未发生的 Provider submit。原 notice/receipt 同身份有限续交，不能新增 cooldown 表、Outbox 或 retry worker。旧 clearance ACK 缺失、历史 not_cleared 不得永久阻断当前 claim、下一真实独立 incident 或其它合法 job；当前资格唯一消费 Website server clock、N/cohort/惩罚及 Browser 中央 fresh preflight。原 ack 已有可信 CONFIRMED terminal 时仅零输入回读原 confirmed_absent，其余如实 not_cleared，不凭新页面 absence 清算旧事故或重放旧点击。单 incident 失败保留 typed 原因并继续其它 pending incident，lease/heartbeat、结果交付、consumer/admission readback 不连坐。",
         "不得发生：private base、fork、reservation、fresh fallback、recovery manager、coordinator、planner、workflow、graph、fallback、compatibility、legacy、bridge、shadow、第二 scheduler、第二 store、第二 queue、第二 state machine、第二结果真相或任何同义恢复结构。"
       ],
-      "lawId": "LAW-AGENT-PRODUCTION-RUNTIME-001-V76",
+      "lawId": "LAW-AGENT-PRODUCTION-RUNTIME-001-V77",
       "schemaVersion": 2,
       "source": {
         "lineEnd": 63,
@@ -493,7 +493,7 @@
       },
       "status": "active",
       "summary": "必须由唯一 Runtime 服从 Website 当前精确授权，把每个未撤权、未 admission 的 job 自动接回并持续交付；机械有效结果先原子 stage/Outbox 再 cleanup，旧失败不撤销结果。Provider 同一 effect 默认零输入读回，只有 Website 持久风险授权的新 result revision 可对指定调用一次受控风险输入；动态 N、唯一 Outbox、Browser WAL 与 Website 唯一恢复 Owner 不变。",
-      "supersedesLawId": "LAW-AGENT-PRODUCTION-RUNTIME-001-V75",
+      "supersedesLawId": "LAW-AGENT-PRODUCTION-RUNTIME-001-V76",
       "tier": "P0"
     },
     {
@@ -562,7 +562,7 @@
         "docs/specs/agent-production-runtime/xuanxue-ai-production-v6.dependency.spec.json"
       ],
       "dependsOnLawIds": [
-        "LAW-AGENT-PRODUCTION-RUNTIME-001-V76"
+        "LAW-AGENT-PRODUCTION-RUNTIME-001-V77"
       ],
       "enforcementMode": "composite",
       "evidenceModes": [
@@ -606,7 +606,7 @@
         "docs/specs/agent-production-runtime/website-agent-task-result.dependency.spec.json"
       ],
       "dependsOnLawIds": [
-        "LAW-AGENT-PRODUCTION-RUNTIME-001-V76",
+        "LAW-AGENT-PRODUCTION-RUNTIME-001-V77",
         "LAW-AGENT-PRODUCTION-RUNTIME-003-V48"
       ],
       "enforcementMode": "composite",
@@ -653,7 +653,7 @@
         "docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md"
       ],
       "dependsOnLawIds": [
-        "LAW-AGENT-PRODUCTION-RUNTIME-001-V76"
+        "LAW-AGENT-PRODUCTION-RUNTIME-001-V77"
       ],
       "enforcementMode": "composite",
       "evidenceModes": [
@@ -697,7 +697,7 @@
         "docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md"
       ],
       "dependsOnLawIds": [
-        "LAW-AGENT-PRODUCTION-RUNTIME-001-V76",
+        "LAW-AGENT-PRODUCTION-RUNTIME-001-V77",
         "LAW-AGENT-PRODUCTION-RUNTIME-004-V45",
         "LAW-AGENT-PRODUCTION-RUNTIME-005-V43",
         "LAW-LOCAL-BROWSER-SESSION-004-V58"
@@ -740,7 +740,7 @@
         "docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md"
       ],
       "dependsOnLawIds": [
-        "LAW-AGENT-PRODUCTION-RUNTIME-001-V76",
+        "LAW-AGENT-PRODUCTION-RUNTIME-001-V77",
         "LAW-AGENT-PRODUCTION-RUNTIME-002-V12",
         "LAW-AGENT-PRODUCTION-RUNTIME-003-V48",
         "LAW-AGENT-PRODUCTION-RUNTIME-004-V45",
@@ -784,7 +784,7 @@
         "docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md"
       ],
       "dependsOnLawIds": [
-        "LAW-AGENT-PRODUCTION-RUNTIME-001-V76",
+        "LAW-AGENT-PRODUCTION-RUNTIME-001-V77",
         "LAW-AGENT-PRODUCTION-RUNTIME-002-V12",
         "LAW-AGENT-PRODUCTION-RUNTIME-003-V48",
         "LAW-AGENT-PRODUCTION-RUNTIME-004-V45",

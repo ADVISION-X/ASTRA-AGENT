@@ -8,6 +8,7 @@ import { hashCanonical } from "../../src/lib/local-runtime/production/contracts.
 import { executionFailure } from "../../src/lib/execution-failure.js";
 import { readProductionDeviceJobStatus } from "../../src/lib/local-runtime/production/cloud-reconciliation-client.js";
 import { reconcilePendingAttemptFailures } from "../../src/lib/local-runtime/production/runtime-claim.js";
+import { reconcileClaimAttemptFailure } from "../../src/lib/local-runtime/production/runtime-claim-recovery.js";
 import { purgeDeletedJob, reconcileBusinessAdmission } from "../../src/lib/local-runtime/production/runtime-business-admission.js";
 import { BrowserMutationStore } from "../../src/lib/browser/exact-target/browser-mutation-store.js";
 import { BrowserLaneCoordinator } from "../../src/lib/browser/infrastructure/browser-lane-coordinator.js";
@@ -407,14 +408,17 @@ const exerciseWebsiteRefusedResult = async (
 ): Promise<void> => {
   const refusedDir = path.join(admissionTemporary, "refused");
   await mkdir(refusedDir);
-  const store = new ProductionRuntimeStore(refusedDir);
+  let store = new ProductionRuntimeStore(refusedDir);
   const refused = task({ jobId: "job:refused:domain",
     productId: productionTask.product_id, actionId: productionTask.action_id,
     materialRefs: productionTask.material_refs, extra: { parameters: productionTask.parameters } });
   const staged = resultFor(refused);
   store.acceptTask(refused, "attempt:refused-1");
   store.markExecuting(refused.job_id);
+  store.recordAttemptFailure(refused.job_id, "attempt:refused-1",
+    failureFact(refused.job_id, "attempt:refused-1", { code: "BROWSER_BACKPRESSURE" }));
   stageResultForAcceptance(store, refused.job_id, "attempt:refused-1", staged);
+  const history = store.readResultOutboxHistoryEvidence(refused.job_id, "attempt:refused-1");
   const state = (session: never) => ({ store, session, active: new Map() }) as never;
   await reconcileBusinessAdmission(state(withTerminalReceipt(refused.job_id, HASH_C)),
     store.readTask(refused.job_id)!);
@@ -426,11 +430,20 @@ const exerciseWebsiteRefusedResult = async (
   assert.equal(store.readTask(refused.job_id)?.staged_result, null,
     "the Website signed this exact result yet reports no terminal: its refusal drops the dead candidate");
   assert.equal(store.readTask(refused.job_id)?.current_reason, "WEBSITE_REFUSED_RESULT");
+  assert.equal(store.readAttemptFailureRaw(refused.job_id), null);
+  assert.deepEqual(store.readResultOutboxHistoryEvidence(refused.job_id, "attempt:refused-1"), history,
+    "the terminal Outbox retains the exact old first fact and all original result history");
   assert.equal(store.attemptClosedByWebsite(refused.job_id, "attempt:refused-1"), true);
   assert.equal(businessInFlightCount({ active: new Map(), store } as never), before - 1,
     "a refused result releases its business seat immediately");
   assert.equal(store.pendingBusinessAdmissions().some((row) => row.task.job_id === refused.job_id), false);
   assert.equal(store.isLedgerConsistent(new Set()), true, "a refused attempt leaves a consistent ledger");
+  store.close(); store = new ProductionRuntimeStore(refusedDir);
+  const next = claimTask(refused);
+  const recovery = await reconcileClaimAttemptFailure({ store } as never,
+    { ...next, grant: { ...next.grant, attempt_id: "attempt:refused-2", same_accepted_attempt: false } },
+    { attempt_failure: null } as never, "refused-result", async () => undefined);
+  assert.equal(recovery.stopBeforeProduct, false, "a historical first fact cannot veto the new Website grant after restart");
   assert.equal(store.acceptTask(refused, "attempt:refused-2").current_attempt_id, "attempt:refused-2",
     "the Website's new attempt replaces the refused one without a source seal");
   assert.equal(store.attemptClosedByWebsite(refused.job_id, "attempt:refused-2"), false);

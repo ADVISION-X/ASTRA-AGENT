@@ -108,7 +108,7 @@ const inspectRuntimeSources = (project: Project, queryRef: string) => {
   inspectAgentProductionRuntime({
     project,
     sealedRoot: path.resolve("."),
-    selectedLawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V76",
+    selectedLawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V77",
     targetSet: { queryRef, count: project.getSourceFiles().length },
     targetPaths: project.getSourceFiles().map((source) => path.relative(path.resolve("."), source.getFilePath()).replaceAll("\\", "/")),
     lawRequirements: [],
@@ -117,7 +117,7 @@ const inspectRuntimeSources = (project: Project, queryRef: string) => {
       manifestPath: "scripts/audit/domains/agent-production-runtime/manifest.json",
       ownerInspectorPath: "scripts/audit/domains/agent-production-runtime/inspector.ts",
       executionGroup: "domain",
-      lawIds: ["LAW-AGENT-PRODUCTION-RUNTIME-001-V76"],
+      lawIds: ["LAW-AGENT-PRODUCTION-RUNTIME-001-V77"],
     },
     generatedPlan: [],
   }, findings);
@@ -326,7 +326,7 @@ const exerciseManifestAndLawOwnership = async (): Promise<void> => {
   const runtimeLawRecords = [...runtimeLawSource.matchAll(/```law-record\n([\s\S]*?)\n```/gu)]
     .map((match) => JSON.parse(match[1]!) as { lawId: string; forbidden: string[] });
   const runtimeCoreLaw = runtimeLawRecords.find(
-    (record) => record.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V76",
+    (record) => record.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V77",
   );
   assert.ok(runtimeCoreLaw);
   for (const token of [

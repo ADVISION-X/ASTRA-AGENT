@@ -59,7 +59,7 @@ export const purgeDeletedJob = async (state: RuntimeState, jobId: string): Promi
 const websiteRefusedStagedResult = (
   record: StoredProductionTask,
   remote: Awaited<ReturnType<typeof readProductionDeviceJobStatus>>,
-): boolean => record.attempt_failure === null && record.staged_result !== null
+): boolean => record.staged_result !== null
   && remote.terminal_status === null && remote.terminal_payload_hash === null
   && remote.write_receipts.some((receipt) => receipt.write_kind === "terminal"
     && receipt.response_json.payload_hash === hashCanonical(record.staged_result));
