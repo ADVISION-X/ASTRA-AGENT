@@ -195,12 +195,10 @@ const inspectNavigation = (s: Sources, findings: InspectorFinding[], lawId: stri
   const acquire = body(s.authority, "ExtensionTargetAuthority", "acquireJobBoundChatGptTargetCycle");
   const qualify = body(s.authority, "ExtensionTargetAuthority", "qualifyCandidateNavigation");
   const complete = body(s.created, "ExtensionCreatedTarget", "completeNavigation");
-  const wait = body(s.created, "ExtensionCreatedTarget", "waitForCreatedTarget");
-  const consume = body(s.created, "ExtensionCreatedTarget", "consumeTabUpdateAfterBarrier");
   const selection = body(s.authority, "ExtensionTargetAuthority", "executeConversationSelection");
   requireContract(ordered(acquire, ["await preflightTargetAcquisition(", "await this.qualifyBoundTarget(preflight.bound, targetMode, assertCurrent)",
     "createProductionCandidate(deadlineAt, assertCurrent)", "await this.qualifyCandidateNavigation(candidate, bound, targetMode, preflight.continuationUrl, assertCurrent, deadlineAt)", "claimActiveTarget(publishedTarget, frame.url, { deadlineAt, assertCurrent })"])
-    && includesAll(s.acquisition.getText(), ["findByJobRefHash(input.jobRefHash)", "input.activeTarget", "input.createdTarget.isPending()"])
+    && includesAll(s.acquisition.getText(), ["findByJobRefHash(input.jobRefHash)", "input.activeTarget"])
     && includesAll(body(s.authority, "ExtensionTargetAuthority", "qualifyBoundTarget"), ["await this.debuggerRuntime.readTargets()", "target.tabId === bound.tabId", "target.id === bound.chromeTargetId", 'targetMode === "bound-observation"'])
     && acquire.includes("advanceDocument(")
     && includesAll(qualify, ['targetMode === "fresh"', "activateTab(bound.tabId)", "completeNavigation(candidate, deadlineAt",
@@ -209,15 +207,13 @@ const inspectNavigation = (s: Sources, findings: InspectorFinding[], lawId: stri
   findings, lawId, paths.authority, "Acquisition must inspect only the current registry/physical Target and qualify navigation before publishing a claim.");
   requireContract(ordered(complete, ["const [before, assertActivation] = await this.qualifyCurrentFrame(target, deadlineAt, assertCurrent)",
     "expectedLoaderId !== undefined && before.loaderId !== expectedLoaderId", "assertCurrent(); assertActivation()",
-    "Date.now() >= deadlineAt", '"Page.navigate"', "waitForCreatedTarget(",
+    "Date.now() >= deadlineAt", '"Page.navigate"',
     "const [frame, assertReadback] = await this.qualifyCurrentFrame(target, deadlineAt, assertCurrent)", "assertCurrent(); assertReadback()", "return frame"])
     && includesAll(complete, ["const beforeUrl = new URL(before.url)", "const afterUrl = new URL(frame.url)", "`${afterUrl.origin}${afterUrl.pathname}` !== destination", "frame.loaderId === before.loaderId", "Date.now() >= deadlineAt"])
-    && includesAll(wait, ["deadlineAt - Date.now()", "this.pendingTarget =", "void this.consumeTabUpdateAfterBarrier(tabId)"])
-    && includesAll(consume, ['tab.status !== "complete"', "pending.requireAttached", "this.pendingTarget !== pending", "globalThis.clearTimeout(pending.timeout)"])
     && includesAll(selection, ["completeNavigation(", "deadlineAt, assertCurrent, expected, false, target.loaderId", "publishMainFrameNavigation(frame.url, frame.loaderId)"])
     && body(s.authority, "ExtensionTargetAuthority", "start").includes("this.createdTarget.onTabUpdated(tabId)")
     && !body(s.authority, "ExtensionTargetAuthority", "start").includes("this.createdTarget.markTabRemoved("),
-  findings, lawId, paths.created, "Fresh, continuation and reset navigation must share one absolute deadline, direct event wake-up and fresh complete/non-discarded/attached frame readback.");
+  findings, lawId, paths.created, "Fresh, continuation and reset navigation must share one absolute deadline, fresh non-discarded/attached frame readback.");
 };
 const inspectNavigationInput = (s: Sources, findings: InspectorFinding[], lawId: string): void => {
   const input = body(s.created, "ExtensionCreatedTarget", "qualifyCurrentFrame");
@@ -230,19 +226,16 @@ const inspectNavigationInput = (s: Sources, findings: InspectorFinding[], lawId:
     && body(s.interaction, "ExtensionInteractionReadiness", "assertInteractionReady").includes("lease.assertActivation()")
     && includesAll(input, [
       "row.tabId === target.tabId && row.id === target.id", "requireGptWebPolicyForUrl(frame.url)"]),
-  findings, lawId, paths.created, "Before navigation input, the current complete active Tab, fresh Document and exact attached Chrome identity must still qualify.");
+  findings, lawId, paths.created, "Before navigation input, the current active Tab, fresh Document and exact attached Chrome identity must still qualify.");
 };
 const inspectRetirement = (s: Sources, findings: InspectorFinding[], lawId: string): void => {
-  const cancel = body(s.created, "ExtensionCreatedTarget", "rejectPendingCreatedTarget");
   const retire = body(s.authority, "ExtensionTargetAuthority", "retireInvalidCommandTarget");
-  requireContract(ordered(cancel, ["this.pendingTarget = null", "globalThis.clearTimeout(pending.timeout)", "pending.reject(new Error(reasonCode))"])
-    && !cancel.includes("removeTab") && !cancel.includes("awaitPageReadPermission")
-    && ordered(retire, ["this.targets.resolve(permit.targetRef, permit.documentRef)", "await hashBrowserExtensionText(permit.jobId)",
+  requireContract(ordered(retire, ["this.targets.resolve(permit.targetRef, permit.documentRef)", "await hashBrowserExtensionText(permit.jobId)",
       "await this.debuggerRuntime.awaitPageReadPermission()", "const current = this.activeTarget", "this.clearActiveTarget()"])
     && includesAll(retire, ["current.jobRefHash !== jobRefHash", "targetRef: failed.targetRef", "documentRef: failed.documentRef",
       "chromeTargetId: failed.chromeTargetId", "tabId: failed.tabId", "jobRefHash: failed.jobRefHash"])
     && !retire.slice(retire.indexOf("const current = this.activeTarget"), retire.indexOf("this.clearActiveTarget()")).includes("await "),
-  findings, lawId, paths.authority, "Cancellation must wake the original waiter without deleting a bound Target; retirement must compare the whole original identity after the last await.");
+  findings, lawId, paths.authority, "retirement must compare the whole original identity after the last await.");
 };
 
 const inspectRelease = (s: Sources, context: InspectorContext, findings: InspectorFinding[], lawId: string): void => {
@@ -253,7 +246,7 @@ const inspectRelease = (s: Sources, context: InspectorContext, findings: Inspect
     && ordered(release, ["await context.awaitOldCommandHandlers()", "await context.debuggerRuntime.awaitPageReadPermission()",
       "findByJobRefHash(jobRefHash)", "await context.debuggerRuntime.readTargets()", "await context.debuggerRuntime.removeTab(bound.tabId)"])
     && includesAll(release, ['targetRef: null', 'releaseOutcome: "absent"', 'releaseOutcome: "released"',
-      "target.id === bound.chromeTargetId", "context.targets.restore(bound)", "context.createdTarget.isPending()"]),
+      "target.id === bound.chromeTargetId", "context.targets.restore(bound)"]),
   findings, lawId, paths.release, "Release must drain handlers, prove current physical identity and absence, distinguish absent/released and restore the registry on close failure.");
   inspectPhysicalReleaseProof(s, context, findings, lawId);
 };

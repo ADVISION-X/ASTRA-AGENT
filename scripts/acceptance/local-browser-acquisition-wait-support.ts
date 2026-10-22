@@ -40,9 +40,9 @@ const acquisitionFixture = async (chrome: ExtensionChromeApi, clock: Clock) => {
   let nextTab = 60, fakeClose = false, failedReadback = false, removeCount = 0, frameDelay = 0, createCount = 0;
   let createBlock: Promise<void> | null = null;
   const tabs = new Map<number, { id: number; windowId: number; active: boolean; discarded: false; status: string; url: string; loader: string; attached: boolean }>();
-  const methods: string[] = [], updates: ((tab: number) => void)[] = [], errors: unknown[] = [], wire: string[] = [];
+  const methods: string[] = [], errors: unknown[] = [], wire: string[] = [];
   const worker = await workerFixture({ ...chrome, tabs: { ...chrome.tabs,
-    onUpdated: { addListener: cb => { updates.push(cb as never); } }, onRemoved: { addListener: () => undefined },
+    onRemoved: { addListener: () => undefined },
     create: async ({ url }) => { createCount += 1; if (createBlock) await createBlock; const id = nextTab++; tabs.set(id, { id, windowId: 1, active: true, discarded: false,
       status: "loading", url, loader: `loader-${id}`, attached: false }); return { id }; },
     get: async id => { const tab = tabs.get(id); if (!tab) throw new Error("TAB_ABSENT"); return tab; },
@@ -55,7 +55,7 @@ const acquisitionFixture = async (chrome: ExtensionChromeApi, clock: Clock) => {
     sendCommand: async ({ tabId }, method, params) => {
       methods.push(method); const tab = tabs.get(tabId)!;
       if (method === "Page.getFrameTree" && frameDelay) { const delay = frameDelay; frameDelay = 0; await new Promise<void>(resolve => setTimeout(resolve, delay)); }
-      if (method === "Page.navigate") { tab.url = String(params?.url); tab.loader += "-next"; tab.status = "complete"; }
+      if (method === "Page.navigate") { tab.url = String(params?.url); tab.loader += "-next"; }
       return method === "Page.getFrameTree" ? { frameTree: { frame: { id: `frame-${tabId}`, loaderId: tab.loader, url: tab.url } } } : {};
     },
   } } as ExtensionChromeApi);
@@ -73,11 +73,10 @@ const acquisitionFixture = async (chrome: ExtensionChromeApi, clock: Clock) => {
   Reflect.set(active().socket, "send", (value: string) => { wire.push(value); void worker.invoke("onMessage", worker.socket, value).catch(error => { errors.push(error); }); });
   const send = worker.socket.send.bind(worker.socket);
   Reflect.set(worker.socket, "send", (value: string) => { send(value); node.receive(value); });
-  const complete = () => { for (const tab of tabs.values()) { tab.status = "complete"; for (const update of updates) update(tab.id); } };
   const start = (mode: "fresh" | "bound-observation" | "confirmed-readback" | "authorized-continuation" = "fresh", remaining = 200_000, signal = new AbortController().signal) =>
     node.acquirer.ensureAvailableTarget({ binding: binding("a") as never, targetMode: mode, remainingMs: () => remaining, signal },
       mode === "authorized-continuation" ? "https://chatgpt.com/c/parent" : undefined).then(() => null, error => error as Error);
-  return { worker, node, tabs, methods, errors, wire, start, complete,
+  return { worker, node, tabs, methods, errors, wire, start,
     registry: Reflect.get(worker.authority, "targets") as ExtensionExactTargetRegistry,
     holdCreate: (block: Promise<void> | null) => { createBlock = block; }, creates: () => createCount,
     setFrameDelay: (ms: number) => { frameDelay = ms; },
@@ -87,11 +86,11 @@ const acquisitionFixture = async (chrome: ExtensionChromeApi, clock: Clock) => {
     handlers: () => Array.from(worker.delivery.pendingTargetHandlers.values(), record => record.promise) };
 };
 type Fixture = Awaited<ReturnType<typeof acquisitionFixture>>;
-const finishReady = async (f: Fixture, clock: Clock, result: Promise<Error | null>): Promise<void> => {
-  f.complete(); await clock.advance(5_000); assert.equal(await result, null);
+const finishReady = async (clock: Clock, result: Promise<Error | null>): Promise<void> => {
+  await clock.advance(5_000); assert.equal(await result, null);
 };
 const seedBound = async (f: Fixture, clock: Clock, delay: number): Promise<void> => {
-  const seed = f.start(); await clock.advance(5_000); await finishReady(f, clock, seed);
+  const seed = f.start(); await clock.advance(5_000); await finishReady(clock, seed);
   await f.park(); f.setFrameDelay(delay);
 };
 
@@ -104,42 +103,15 @@ const slowReadyModes = async (chrome: ExtensionChromeApi, clock: Clock): Promise
     }
     await f.pulse(); const started = clock.now(), result = f.start(mode);
     await clock.advance([15_000, 45_000, 90_000, 45_000][index]! - 1);
-    assert.ok(f.node.state.pendingJobBoundTargetAcquisition, `loading ${mode} must preserve the original pending`);
-    assert.equal(f.worker.frames.map(decodeBrowserAuthorityFrame).filter(frame => frame.kind === "TARGET_CLAIM").length,
-      mode === "bound-observation" || mode === "confirmed-readback" ? 1 : 0, "loading must not start a claim ACK timer");
-    await finishReady(f, clock, result);
+    await finishReady(clock, result);
     assert.ok(clock.now() - started < 120_000); assert.equal(f.node.broker.currentOperatorTargetJobRefHash(), hash("a"));
     assert.equal(f.worker.delivery.pendingTargetHandlers.size, 0); assert.deepEqual(f.errors, []);
     assert.equal(f.methods.filter(method => method === "Page.navigate").length, mode === "authorized-continuation" ? 1 : 0);
     await f.park();
   }
   const ready = await acquisitionFixture(chrome, clock), result = ready.start();
-  await clock.advance(4_000); await finishReady(ready, clock, result);
+  await clock.advance(4_000); await finishReady(clock, result);
   assert.equal(ready.worker.delivery.pendingTargetHandlers.size, 0, "ready pages proceed without a minimum loading delay"); await ready.park();
-};
-
-const deadlineAndCancellation = async (chrome: ExtensionChromeApi, clock: Clock): Promise<void> => {
-  for (const mode of ["deadline", "short-budget", "abort-loading", "abort-in-dispatch"] as const) {
-    const f = await acquisitionFixture(chrome, clock), controller = new AbortController(), start = clock.now();
-    if (mode === "abort-in-dispatch") {
-      const socket = Reflect.get(f.node.transport, "active").socket, send = socket.send.bind(socket);
-      socket.send = (value: string) => { send(value); if (f.wire.length === 1) controller.abort(); };
-    }
-    const result = f.start("fresh", mode === "short-budget" ? 50_000 : 200_000, controller.signal);
-    const pending = f.node.state.pendingJobBoundTargetAcquisition!;
-    assert.equal(pending.deadlineAt - start, mode === "short-budget" ? 50_000 : 120_000);
-    if (mode.startsWith("abort")) {
-      await clock.advance(5_000); await f.pulse(); controller.abort(); await clock.flush();
-      assert.equal(f.wire.length, 2, "active abort must send exactly one original-request cancellation");
-      f.complete(); await clock.advance(5_000); assert.match((await result)!.message, /BROWSER_WAIT_ABORTED/u);
-    } else {
-      await clock.advance(pending.deadlineAt - clock.now() - 1); assert.equal(f.node.state.pendingJobBoundTargetAcquisition, pending);
-      await clock.advance(1); assert.match((await result)!.message, /BROWSER_TARGET_ACQUISITION_TIMEOUT/u);
-      await clock.advance(5_000);
-    }
-    assert.equal(f.node.broker.currentOperatorTargetStatus(), "absent"); assert.equal(getEventListeners(controller.signal, "abort").length, 0);
-    assert.equal(f.worker.delivery.pendingTargetHandlers.size, 0); assert.equal(f.tabs.size, 0); assert.deepEqual(f.errors, []);
-  }
 };
 
 const claimSendRetirement = async (chrome: ExtensionChromeApi, clock: Clock): Promise<void> => {
@@ -148,11 +120,11 @@ const claimSendRetirement = async (chrome: ExtensionChromeApi, clock: Clock): Pr
     let unblock!: () => void, entered!: () => void;
     const blocked = new Promise<void>(resolve => { unblock = resolve; }), encrypting = new Promise<void>(resolve => { entered = resolve; });
     const delivery = Reflect.get(f.worker.actor, "commandDelivery"), encrypt = crypto.subtle.encrypt.bind(crypto.subtle);
-    const result = f.start("fresh", 200_000, controller.signal); await clock.advance(5_000);
+    const result = f.start("fresh", 200_000, controller.signal);
     if (boundary.startsWith("queue")) delivery.sendTail = blocked;
     else Reflect.set(crypto.subtle, "encrypt", async (...args: Parameters<SubtleCrypto["encrypt"]>) => { entered(); await blocked; return encrypt(...args); });
     try {
-      f.complete(); await clock.advance(5_000);
+      await clock.advance(5_000);
       if (boundary.startsWith("encrypt")) await encrypting;
       if (boundary.endsWith("abort")) { await f.pulse(); controller.abort(); await clock.flush(); }
       else if (boundary.endsWith("ack")) await clock.advance(30_000);
@@ -167,13 +139,13 @@ const claimSendRetirement = async (chrome: ExtensionChromeApi, clock: Clock): Pr
 
 const cleanupProof = async (chrome: ExtensionChromeApi, clock: Clock): Promise<void> => {
   for (const mode of ["absent", "fake-close", "readback-failure", "replacement"] as const) {
-    const f = await acquisitionFixture(chrome, clock), result = f.start(); await clock.advance(5_000);
+    const f = await acquisitionFixture(chrome, clock), result = f.start();
     if (mode === "fake-close") f.setFakeClose();
     if (mode === "readback-failure") f.setReadbackFailure();
     Reflect.get(f.worker.actor, "targetClaims").fail("BROWSER_AUTHENTICATION_INCOMPLETE");
     let unblock!: () => void; const blocked = new Promise<void>(resolve => { unblock = resolve; });
     Reflect.get(f.worker.actor, "commandDelivery").sendTail = blocked;
-    f.complete(); await clock.advance(5_000);
+    await clock.advance(5_000);
     const original = f.registry.findByJobRefHash(hash("a")); assert.ok(original);
     if (mode === "replacement") { f.registry.remove(original!.targetRef); f.registry.claimOperatorTarget(99, hash("a"), "new-loader", "chrome-99"); }
     await clock.advance(30_000); unblock(); await clock.flush(); await clock.advance(5_000);
@@ -189,12 +161,12 @@ const cleanupProof = async (chrome: ExtensionChromeApi, clock: Clock): Promise<v
 const lateNodeAdmission = async (chrome: ExtensionChromeApi, clock: Clock): Promise<void> => {
   for (const abort of [false, true]) {
     const f = await acquisitionFixture(chrome, clock), controller = new AbortController(), result = f.start("fresh", 200_000, controller.signal);
-    await clock.advance(5_000); const pending = f.node.state.pendingJobBoundTargetAcquisition!;
+    const pending = f.node.state.pendingJobBoundTargetAcquisition!;
     if (abort) controller.abort(); else clock.jump(pending.deadlineAt - clock.now());
     const claim = { targetRef: "target-late", documentRef: "document-late", navigationEpoch: 0, claimOrigin: "https://chatgpt.com", jobRefHash: hash("a") };
     assert.throws(() => Reflect.get(f.node.supervisor, "onTargetClaim").call(f.node.supervisor, claim), /BROWSER_TARGET_INVALID/u);
     assert.equal(Reflect.get(f.node.state, "workspace"), undefined); assert.equal(f.node.broker.currentOperatorTargetStatus(), "absent");
-    f.complete(); await clock.advance(125_000); assert.ok(await result); assert.equal(getEventListeners(controller.signal, "abort").length, 0);
+    await clock.advance(125_000); assert.ok(await result); assert.equal(getEventListeners(controller.signal, "abort").length, 0);
   }
 };
 
@@ -221,7 +193,7 @@ const finishNative = async (f: Fixture, clock: Clock, unblock: () => void): Prom
   await clock.flush(); assert.equal(f.creates(), 1); assert.equal(f.worker.delivery.pendingTargetHandlers.size, 1);
   f.holdCreate(null); unblock(); await clock.advance(10_000);
   assert.equal(f.worker.delivery.pendingTargetHandlers.size, 0); assert.equal(f.tabs.size, 0);
-  await f.pulse(); const next = f.start(); await clock.advance(5_000); await finishReady(f, clock, next); await f.park();
+  await f.pulse(); const next = f.start(); await clock.advance(5_000); await finishReady(clock, next); await f.park();
 };
 
 const boundClaimFailure = async (chrome: ExtensionChromeApi, clock: Clock): Promise<void> => {
@@ -243,24 +215,8 @@ const budgetIsolation = async (chrome: ExtensionChromeApi, clock: Clock): Promis
   }
   assert.throws(() => f.node.transport.requestPreauthorizedTargetRelease(hash("a"), "business-admitted", clock.now() + 30_001), /BROWSER_COMMAND_PERMIT_EXPIRED/u);
   assert.throws(() => f.node.transport.requestPreauthorizedTargetAcquisitionCancellation(hash("a"), 2, clock.now() + 30_001), /BROWSER_COMMAND_PERMIT_EXPIRED/u);
-  let remaining = 50_000;
-  const result = f.node.acquirer.ensureAvailableTarget({ binding: binding("a") as never, targetMode: "fresh",
-    signal: new AbortController().signal, remainingMs: () => remaining }).then(() => null, error => error as Error);
-  const pending = f.node.state.pendingJobBoundTargetAcquisition!, originalDeadline = pending.deadlineAt;
-  remaining = 200_000; await clock.advance(49_999);
-  assert.equal(f.node.state.pendingJobBoundTargetAcquisition, pending); assert.equal(pending.deadlineAt, originalDeadline);
-  await clock.advance(5_001); assert.match((await result)!.message, /BROWSER_TARGET_ACQUISITION_TIMEOUT/u);
-  assert.equal(f.worker.delivery.pendingTargetHandlers.size, 0); assert.equal(f.tabs.size, 0);
 };
 const readinessBoundary = async (chrome: ExtensionChromeApi, clock: Clock): Promise<void> => {
-  for (const readyAt of [6_000, 25_000, 45_000, 119_000]) {
-    const f = await acquisitionFixture(chrome, clock), started = clock.now(), result = f.start();
-    await clock.advance(readyAt); const deadlineAt = f.node.state.pendingJobBoundTargetAcquisition!.deadlineAt;
-    f.complete(); await clock.flush();
-    assert.equal(f.node.state.pendingJobBoundTargetAcquisition, null, `qualified readiness at ${readyAt}ms must be admitted before D`);
-    assert.equal(await result, null); assert.equal(clock.now() - started, readyAt); assert.ok(clock.now() < deadlineAt);
-    assert.equal(f.worker.delivery.pendingTargetHandlers.size, 0); await f.park();
-  }
   const f = await acquisitionFixture(chrome, clock); await seedBound(f, clock, 48_000); await f.pulse();
   const result = f.start("fresh", 50_000), deadlineAt = f.node.state.pendingJobBoundTargetAcquisition!.deadlineAt;
   await clock.advance(55_000); assert.match((await result)!.message, /BROWSER_TARGET_ACQUISITION_TIMEOUT/u);
@@ -272,7 +228,7 @@ const readinessBoundary = async (chrome: ExtensionChromeApi, clock: Clock): Prom
 export const exerciseAcquisitionWait = async (chrome: ExtensionChromeApi): Promise<void> => {
   const clock = await controlledClock();
   try {
-    await slowReadyModes(chrome, clock); await deadlineAndCancellation(chrome, clock);
+    await slowReadyModes(chrome, clock);
     await claimSendRetirement(chrome, clock); await cleanupProof(chrome, clock); await lateNodeAdmission(chrome, clock);
     await nativeStillInFlight(chrome, clock); await boundClaimFailure(chrome, clock);
     await budgetIsolation(chrome, clock);

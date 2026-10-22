@@ -63,7 +63,7 @@ export class ExtensionInteractionReadiness {
 
   private requireInteractiveTab(tab: ExtensionTab, target: Pick<ExtensionExactTarget, "tabId">): number {
     if (tab.id !== target.tabId || !Number.isSafeInteger(tab.windowId) || tab.active !== true
-      || tab.discarded !== false || tab.status !== "complete") throw interactionFailure("BROWSER_TARGET_INVALID");
+      || tab.discarded !== false) throw interactionFailure("BROWSER_TARGET_INVALID");
     return tab.windowId as number;
   }
 
@@ -73,7 +73,7 @@ export class ExtensionInteractionReadiness {
     assertInput();
     this.resolveExactTarget(target.targetRef, target.documentRef);
     let tab = await this.debuggerRuntime.readTab(target.tabId);
-    if (tab.id !== target.tabId || tab.discarded !== false || tab.status !== "complete"
+    if (tab.id !== target.tabId || tab.discarded !== false
       || !Number.isSafeInteger(tab.windowId)) throw interactionFailure("BROWSER_TARGET_INVALID");
     assertInput();
     if (tab.active !== true) {

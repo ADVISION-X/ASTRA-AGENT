@@ -103,7 +103,7 @@ const verifiedTerminalReadbackIsExact = (actor: NonNullable<ReturnType<typeof re
 const inspectV51ProofTopology = (
   context: InspectorContext, findings: InspectorFinding[], lawId: string,
 ): void => {
-  if (lawId !== "LAW-LOCAL-BROWSER-SESSION-004-V57") return;
+  if (lawId !== "LAW-LOCAL-BROWSER-SESSION-004-V58") return;
   inspectSharedWalConnection(context, findings, lawId);
   const permitPath = "src/lib/browser/transport/command-permit.ts";
   const actorPath = "src/lib/browser/exact-target/browser-command-actor.ts";

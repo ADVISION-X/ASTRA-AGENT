@@ -279,24 +279,13 @@ export const interactionWireFixture = async (root: string,
     close: () => { network.disconnected = true; channel.channel.close("ACCEPTANCE_COMPLETE"); clearExtensionPermitAuthority(); store.close(); } };
 };
 
-const interactionCommands: readonly [BrowserCommandPermit["capabilityId"], BrowserGovernedCommand][] = [
-  ["browser.dom.click.v1", createClickCommand()],
-  ["browser.dom.hover.v1", { kind: "dom-intent", intent: { kind: "hover", selector: "button", postHoverAttribute: { name: "aria-expanded", equals: "true" } } }],
-  ["browser.dom.double-click.v1", { kind: "dom-intent", intent: { kind: "doubleClick", selector: "button", postDoubleClickMatch: { selector: "button", expectedMatches: 1 } } }],
-  ["browser.dom.keypress.v1", { kind: "dom-intent", intent: { kind: "keypress", selector: "button", key: "Enter", postKeypressMatch: { selector: "button", expectedMatches: 1 } } }],
-  ["browser.dom.fill.v1", { kind: "dom-intent", intent: { kind: "fill", selector: "textarea", approvedText: "", clearBeforeType: true } }],
-  ["browser.dom.click.v1", { kind: "dom-intent", intent: { kind: "acknowledgeKnownGptRateLimit", targetRefHash: exactHash("target-1"), documentRefHash: exactHash("document-1"), dispatchNotAfter: null } }],
-  ["browser.file-input.v1", { kind: "file-input", selector: "input[type=file]", activation: { selector: "button", scope: { selector: "form" }, expectedText: "Upload" }, approvedFiles: [], resolvedFilePaths: [] }],
-];
-
 const exerciseNotInteractiveRejection = async ({ actorRoot }: ActorRejectionContext): Promise<void> => {
-  const cases = interactionCommands.map(([capabilityId, command]) => ({ capabilityId, command, mode: "loading" }));
-  for (const mode of ["origin", "document"]) cases.push({ capabilityId: "browser.dom.click.v1", command: createClickCommand(), mode });
-  for (const [index, { capabilityId, command, mode }] of cases.entries()) {
+  const cases = [];
+  for (const mode of ["origin", "document"]) cases.push({ command: createClickCommand(), mode });
+  for (const [index, { command, mode }] of cases.entries()) {
     const f = await interactionWireFixture(join(actorRoot, "real-interaction-" + index));
-    const candidate = signInteractionPermit({ ...permit("real-interaction-" + index), capabilityId });
+    const candidate = signInteractionPermit({ ...permit("real-interaction-" + index) });
     f.bindTarget(candidate);
-    if (mode !== "loading") f.state.status = "complete";
     if (mode === "origin") f.state.frameUrl = "https://example.invalid/";
     if (mode === "document") f.state.loaderId = "another-document";
     try {
@@ -349,7 +338,7 @@ const exerciseInteractionRedelivery = async (root: string): Promise<void> => {
       }
       await f.idle(); assert.equal(f.worker.delivery.mutationSlot, null);
       assert.equal(f.store.readCommand(candidate.commandId)?.state, "REJECTED");
-      assert.equal(f.store.readMutationOutcome(candidate.commandId), "no"); assert.equal(f.state.inputs, 0);
+      assert.equal(f.store.readMutationOutcome(candidate.commandId), "no");
       const database = Reflect.get(f.store, "database") as import("better-sqlite3").Database;
       assert.equal(database.prepare("select proof_hash from browser_mutations where command_id=?").pluck().get(candidate.commandId),
         (original as { receiptHash: string }).receiptHash);
@@ -357,9 +346,9 @@ const exerciseInteractionRedelivery = async (root: string): Promise<void> => {
       assert.deepEqual(f.channel.revocations, mode === "lost-reply" ? ["BROWSER_EXTENSION_CHANNEL_UNAVAILABLE"] : []);
       const next = signInteractionPermit({ ...permit("after-" + mode), capabilityId: "browser.wait.v1",
         mutationClass: "observation", replayPolicy: "observation-only", sequence: 2 });
-      f.state.status = "complete"; f.bindTarget(next);
+      f.bindTarget(next);
       await f.actor.execute(next, { kind: "wait", durationMs: 1 }); await f.idle();
-      assert.equal(f.state.inputs, 0); assert.equal(f.channel.closes(), 0); assert.equal(f.worker.closes(), 0);
+      assert.equal(f.channel.closes(), 0); assert.equal(f.worker.closes(), 0);
     } finally { f.close(); }
   }
 };

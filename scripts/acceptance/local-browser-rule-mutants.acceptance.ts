@@ -126,7 +126,7 @@ const TERMINAL_RULE_MUTANTS = [
   ] as const;
 
 const exerciseInspectors = (): void => {
-  const project = new Project({ tsConfigFilePath: "tsconfig.json" }), lawId = "LAW-LOCAL-BROWSER-SESSION-004-V57";
+  const project = new Project({ tsConfigFilePath: "tsconfig.json" }), lawId = "LAW-LOCAL-BROWSER-SESSION-004-V58";
   const paths = project.getSourceFiles().map(source => source.getFilePath().slice(process.cwd().length + 1));
   const context: InspectorContext = { project, sealedRoot: process.cwd(), selectedLawId: lawId, targetPaths: paths,
     targetSet: { queryRef: "terminal-owner-mutants", count: paths.length }, lawRequirements: [{ lawId, forbiddenCount: 24,

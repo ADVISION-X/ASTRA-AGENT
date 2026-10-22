@@ -154,7 +154,7 @@ export class ExtensionTargetAuthority {
   }
   public async releaseJobBoundChatGptTarget(jobRefHash: `sha256:${string}`, releaseAuthority: BrowserTargetReleaseAuthority,
     onReleased: () => Promise<void>): ReturnType<typeof releaseJobBoundTarget> {
-    const result = await releaseJobBoundTarget({ targets: this.targets, debuggerRuntime: this.debuggerRuntime, createdTarget: this.createdTarget,
+    const result = await releaseJobBoundTarget({ targets: this.targets, debuggerRuntime: this.debuggerRuntime,
       readActiveJobRefHash: () => this.activeTarget?.jobRefHash ?? null,
       awaitOldCommandHandlers: async () => {
         await this.awaitOldCommandHandlers();
@@ -163,7 +163,6 @@ export class ExtensionTargetAuthority {
     await onReleased(); return result;
   }
   public async releaseActiveTarget(notifyWorkbench = true): Promise<void> {
-    await this.createdTarget.rejectPendingCreatedTarget("BROWSER_EXTENSION_CHANNEL_UNAVAILABLE");
     await this.debuggerRuntime.awaitPageReadPermission();
     const target = this.activeTarget;
     if (!target) return;

@@ -40,7 +40,7 @@ const releaseThroughWire = async (): Promise<void> => {
         } } });
     const invoke = (body: Record<string, unknown>): void =>
       (supervisor.onTargetRevoke as (input: unknown) => void).call(supervisor, parseBrowserAuthorityTargetRevoke(body));
-    const release = () => releaseJobBoundTarget({ targets: registry, createdTarget: { isPending: () => false } as never,
+    const release = () => releaseJobBoundTarget({ targets: registry,
       readActiveJobRefHash: () => null, awaitOldCommandHandlers: async () => undefined,
       debuggerRuntime: { awaitPageReadPermission: async () => undefined,
         readTargets: async () => { if (mode === "readback-failed" && removals) throw new Error("READBACK_FAILED");
@@ -123,7 +123,7 @@ const intentionalClose = async (): Promise<void> => {
     readTargets: async () => open ? [{ id: "chrome-a", tabId: 23, attached: true }] : [], forgetAttached: () => undefined };
   const loss = new ExtensionTargetLoss({ debuggerRuntime: runtime as never, targets: registry, createdTarget: { markTabRemoved: () => undefined } as never,
     readActiveTabId: () => null, clearActiveTarget: () => undefined, reportTargetFailure: async input => { reports.push(input); }, sendRevoke: async body => { revokes.push(body); } });
-  const result = await releaseJobBoundTarget({ targets: registry, createdTarget: { isPending: () => false } as never, readActiveJobRefHash: () => null,
+  const result = await releaseJobBoundTarget({ targets: registry, readActiveJobRefHash: () => null,
     awaitOldCommandHandlers: async () => undefined, debuggerRuntime: { ...runtime, removeTab: async () => {
       open = false; await loss.consumeTabRemoval(23, bound); await loss.consumeDebuggerDetach(23, "target_closed", bound);
     } } as never }, hash("a"));

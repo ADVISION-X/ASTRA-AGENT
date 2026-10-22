@@ -163,6 +163,6 @@ try {
     (error: unknown) => error instanceof Error && error.message === "BROWSER_COMMAND_RECEIPT_MISSING" && error.cause instanceof Error);
   assert.equal(closes, 1); assert.equal(Reflect.get(timeoutChannel, "active"), null);
 } finally { store?.close(); await rm(root, { recursive: true, force: true }); }
-emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-004-V57", evidenceMode: "exam.property", clauses: ["forbidden:0"],
+emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-004-V58", evidenceMode: "exam.property", clauses: ["forbidden:0"],
   locator: "acceptance:browser-terminal:frame-property-model", observedValue: "64 encrypted full-payload sequences, direction and ciphertext rejection, original WAL error receipts and single unknown dispatch exercised" });
 console.log("native Browser encrypted property model exercised");

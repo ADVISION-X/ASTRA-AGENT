@@ -6,25 +6,19 @@ import { readExtensionMainFrame, type ExtensionMainFrame } from "./extension-tar
 export type TargetFailureReporter = (input: Readonly<{ targetRef: string; runtimeEventType: "debugger-detach" | "tab-remove";
   reasonCode: "BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT" | "BROWSER_DEVTOOLS_CONFLICT" | "BROWSER_TARGET_CLEANUP_FAILED";
   nativeCauseCode?: "CHROME_DEBUGGER_TARGET_CLOSED" | "CHROME_DEBUGGER_CANCELED_BY_USER" }>) => Promise<void> | void;
-type PendingCreatedTarget = Readonly<{ tabId: number; chromeTargetId: string; assertCurrent(): void; requireAttached: boolean;
-  resolve(target: ExtensionDebugTarget): void; reject(error: Error): void; timeout: ReturnType<typeof globalThis.setTimeout> }>;
 
 export class ExtensionCreatedTarget {
-  private pendingTarget: PendingCreatedTarget | null = null;
   private readonly removedTabIds = new Set<number>();
   private readonly orphanCandidates = new Map<number, string | null>();
   private readonly orphanRetryTimers = new Map<number, ReturnType<typeof globalThis.setTimeout>>();
   private readonly orphanRetryCounts = new Map<number, number>();
   public constructor(private readonly debuggerRuntime: ExtensionDebuggerRuntime, private readonly reportTargetFailure: TargetFailureReporter,
     private readonly interactionReadiness: ExtensionInteractionReadiness) {}
-  public isPending(): boolean { return this.pendingTarget !== null; }
   public wasTabRemoved(tabId: number): boolean { return this.removedTabIds.has(tabId); }
   public markTabRemoved(tabId: number): void {
     this.removedTabIds.add(tabId); this.orphanCandidates.delete(tabId); this.clearOrphanRetry(tabId);
-    if (this.pendingTarget?.tabId === tabId) void this.rejectPendingCreatedTarget("BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT");
   }
   public onTabUpdated(tabId: number): void {
-    void this.consumeTabUpdateAfterBarrier(tabId);
     if (this.orphanCandidates.has(tabId)) void this.reconcileOrphanCandidate(tabId);
   }
   public async createProductionCandidate(deadlineAt: number, assertCurrent: () => void): Promise<ExtensionDebugTarget> {
@@ -43,7 +37,7 @@ export class ExtensionCreatedTarget {
         if (attempt < 4) await new Promise<void>(resolve => globalThis.setTimeout(resolve, Math.max(1, Math.min(100, deadlineAt - Date.now()))));
       }
       if (!identity) throw new Error("BROWSER_TARGET_CLEANUP_IDENTITY_MISMATCH");
-      return await this.waitForCreatedTarget(tabId, identity.id, deadlineAt, assertCurrent);
+      return identity;
     } catch (error) {
       if (!this.wasTabRemoved(tabId)) {
         this.orphanCandidates.set(tabId, identity?.id ?? null);
@@ -66,7 +60,6 @@ export class ExtensionCreatedTarget {
       if (Date.now() >= deadlineAt) throw new Error("BROWSER_TARGET_ACQUISITION_TIMEOUT");
       await this.debuggerRuntime.send(target.tabId, "Page.navigate", { url: destination });
     }
-    await this.waitForCreatedTarget(target.tabId, target.id, deadlineAt, assertCurrent, true);
     const [frame, assertReadback] = await this.qualifyCurrentFrame(target, deadlineAt, assertCurrent);
     assertCurrent(); assertReadback();
     const afterUrl = new URL(frame.url);
@@ -84,42 +77,6 @@ export class ExtensionCreatedTarget {
     assertCurrent();
     if (Date.now() >= deadlineAt) throw new Error("BROWSER_TARGET_ACQUISITION_TIMEOUT");
     return [frame, assertActivation];
-  }
-  public waitForCreatedTarget(tabId: number, chromeTargetId: string, deadlineAt: number, assertCurrent: () => void,
-    requireAttached = false): Promise<ExtensionDebugTarget> {
-    if (this.pendingTarget || !chromeTargetId) throw new Error("BROWSER_TARGET_INVALID");
-    const check = (): void => { assertCurrent(); if (Date.now() >= deadlineAt) throw new Error("BROWSER_TARGET_ACQUISITION_TIMEOUT"); };
-    check();
-    const result = new Promise<ExtensionDebugTarget>((resolve, reject) => {
-      const timeout = globalThis.setTimeout(() => { void this.rejectPendingCreatedTarget("BROWSER_TARGET_ACQUISITION_TIMEOUT"); }, deadlineAt - Date.now());
-      this.pendingTarget = { tabId, chromeTargetId, assertCurrent: check, requireAttached, resolve, reject, timeout };
-    });
-    void this.consumeTabUpdateAfterBarrier(tabId);
-    return result;
-  }
-  public async consumeTabUpdateAfterBarrier(tabId: number): Promise<void> {
-    const pending = this.pendingTarget;
-    if (!pending || pending.tabId !== tabId) return;
-    try {
-      await this.debuggerRuntime.awaitPageReadPermission(); pending.assertCurrent();
-      const tab = await this.debuggerRuntime.readTab(tabId);
-      if (tab.id !== tabId || tab.discarded !== false) throw new Error("BROWSER_TARGET_INVALID");
-      if (tab.status !== "complete") return;
-      const targets = (await this.debuggerRuntime.readTargets()).filter(target => target.tabId === tabId && target.id === pending.chromeTargetId && target.type === "page");
-      pending.assertCurrent();
-      if (targets.length !== 1 || pending.requireAttached && !targets[0]!.attached) throw new Error("BROWSER_TARGET_INVALID");
-      if (this.pendingTarget !== pending) return;
-      this.pendingTarget = null; globalThis.clearTimeout(pending.timeout); pending.resolve(targets[0]!);
-    } catch (error) {
-      if (this.pendingTarget !== pending) return;
-      this.pendingTarget = null; globalThis.clearTimeout(pending.timeout);
-      pending.reject(error instanceof Error ? error : new Error("BROWSER_TARGET_INVALID"));
-    }
-  }
-  public async rejectPendingCreatedTarget(reasonCode: string): Promise<void> {
-    const pending = this.pendingTarget;
-    if (!pending) return;
-    this.pendingTarget = null; globalThis.clearTimeout(pending.timeout); pending.reject(new Error(reasonCode));
   }
   public async removeExactCandidate(candidate: ExtensionDebugTarget): Promise<void> {
     const targets = await this.debuggerRuntime.readTargets();

@@ -54,7 +54,7 @@ const inspectInteractionLease = (s: Sources, findings: InspectorFinding[], lawId
     countCalls(s.readiness, owner, "ensureInteractionReady", "requireGptWebPolicyForUrl") === 1,
     ensure.indexOf("this.captureTabActivation(tab, target.tabId)") < ensure.indexOf("await readExtensionMainFrame("),
     has(method(s.readiness, owner, "requireInteractiveTab"), ["tab.id !== target.tabId",
-      "!Number.isSafeInteger(tab.windowId)", "tab.active !== true", "tab.discarded !== false", 'tab.status !== "complete"']),
+      "!Number.isSafeInteger(tab.windowId)", "tab.active !== true", "tab.discarded !== false"]),
     has(capture, ["this.requireInteractiveTab(tab, { tabId })",
       "if (!this.activeTabsByWindow.has(windowId)) this.recordActiveTab(windowId, tabId)",
       "const generation = this.activeTabsByWindow.get(windowId)!.generation",
@@ -124,7 +124,7 @@ const inspectPhysicalInput = (s: Sources, findings: InspectorFinding[], lawId: s
 };
 
 const inspectRateLimitGate = (s: Sources, findings: InspectorFinding[], lawId: string): void => {
-  if (lawId !== "LAW-LOCAL-BROWSER-SESSION-004-V57") return;
+  if (lawId !== "LAW-LOCAL-BROWSER-SESSION-004-V58") return;
   requireContract(has(s.access.getText(), ["CHATGPT_LOGICAL_ACCESS_INTERVAL_MS = 1_500",
     "private lastAccessStartedAt = performance.now()", "this.lastAccessStartedAt + CHATGPT_LOGICAL_ACCESS_INTERVAL_MS",
     "this.tail = entered.then(() => undefined, () => undefined)"])

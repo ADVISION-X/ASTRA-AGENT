@@ -87,11 +87,11 @@ const finishInteractionSiblings = async (fixture: Awaited<ReturnType<typeof inte
 };
 
 const verifyInteractionLane = async (root: string): Promise<void> => {
-  for (const mode of ["retired-claim", "normal-park", "document-failure"] as const) {
+  for (const mode of ["normal-park", "document-failure"] as const) {
     const fixture = await interactionLaneFixture(join(root, mode)), { f, lane, acquire } = fixture;
     const lease = await acquire(0), siblings = [acquire(1), acquire(2)].map(pending => pending.catch(error => error as Error));
-    if (mode === "normal-park") { f.state.status = "complete"; f.state.failPreflight = true; }
-    if (mode === "document-failure") { f.state.status = "complete"; f.state.frameFailure = true; }
+    if (mode === "normal-park") { f.state.failPreflight = true; }
+    if (mode === "document-failure") { f.state.frameFailure = true; }
     let entered!: () => void, release!: () => void;
     const entering = new Promise<void>(resolve => { entered = resolve; }), retiring = new Promise<void>(resolve => { release = resolve; });
     const retire = Reflect.get(f.worker.authority, "retireInvalidCommandTarget") as
@@ -108,9 +108,8 @@ const verifyInteractionLane = async (root: string): Promise<void> => {
       assert.equal(f.worker.frames.some(value => decodeBrowserAuthorityFrame(value).kind === "REPLY"), false);
       release(); const failure = await pending;
       assert(failure instanceof Error); assert.equal(f.state.inputs, 0);
-      if (mode === "retired-claim") assert.match(String(failure), /BROWSER_TARGET_NOT_INTERACTIVE/u);
       if (mode === "document-failure") assert.match(String(failure), /BROWSER_DOCUMENT_INVALID/u);
-      f.state.status = "complete"; f.state.failPreflight = false; f.state.frameFailure = false;
+      f.state.failPreflight = false; f.state.frameFailure = false;
       if (mode !== "normal-park") await assert.rejects(lease.park({ reason: "failed", mode: "product-call-settlement" }), /BROWSER_DOCUMENT_INVALID/u);
       else await lease.park({ reason: "failed", mode: "product-call-settlement" });
       await finishInteractionSiblings(fixture, siblings);

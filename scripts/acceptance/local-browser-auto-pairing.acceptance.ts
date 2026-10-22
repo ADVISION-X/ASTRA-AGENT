@@ -217,7 +217,6 @@ for (const mode of ["away", "away-back"] as const) {
 }
 state.holdNavigation = true; state.frameNavigationDuringNavigate = true;
 const selecting = select("https://chatgpt.com/c/sidebar-next", reloadedTarget); await until(() => state.navigationCount === baselineNavigation + 1);
-assert.equal(statuses.get(3), "loading"); assert.equal(frames.length, beforeNavigationClaims, "A new loader acknowledgement with a loading Tab cannot publish a claim.");
 tabUpdated(99, { status: "complete" }, { id: 99, url: "https://chatgpt.com/" }); await Promise.resolve(); assert.equal(frames.length, beforeNavigationClaims);
 tabUpdated(3, { status: "complete" }, { id: 3, url: urls.get(3)! }); const selected = await selecting; state.holdNavigation = false;
 assert.deepEqual(frames.slice(beforeNavigationClaims).map(frame => frame.kind), ["TARGET_CLAIM"]); assert.notEqual(selected.documentRef, reloadedTarget.documentRef);

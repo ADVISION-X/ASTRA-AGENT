@@ -1514,7 +1514,7 @@ test("Browser reply inspection rejects mixed transport and permit identities", (
 
 test("Browser receipt inspection rejects raw caller facts and unbound WAL readback", () => {
   const path = "src/lib/browser/exact-target/browser-command-actor.ts";
-  verifyBrowserBoundaryMutants("LAW-LOCAL-BROWSER-SESSION-004-V57", inspectProviderEffectAttemptGuard, [
+  verifyBrowserBoundaryMutants("LAW-LOCAL-BROWSER-SESSION-004-V58", inspectProviderEffectAttemptGuard, [
     [path, "verifyNormalBrowserMutationReply(permit, command, { result: reply.result, mutationReceipt: reply.mutationReceipt })", "reply.mutationReceipt!"],
     [path, "receipt.terminal === \"confirmed\" ? \"CONFIRMED\" : \"REJECTED\"", "\"CONFIRMED\""],
     [path, "private completeMutation(permit: BrowserCommandPermit, command: BrowserGovernedCommand, reply: BrowserCommandReply,\n    span: ReturnType<typeof startBrowserCommandSpan>, state: BrowserCommandExecutionState): void", "private async completeMutation(permit: BrowserCommandPermit, command: BrowserGovernedCommand, reply: BrowserCommandReply,\n    span: ReturnType<typeof startBrowserCommandSpan>, state: BrowserCommandExecutionState): Promise<void>"],
@@ -1702,7 +1702,7 @@ test("Browser inspectors require current WAL schema without startup migration an
   for (const [path, original] of mutations) {
     assert.equal((path === exactPath ? exact : fixed).split(original).length, 2, `unique current mutation: ${original}`);
   }
-  verifyBrowserBoundaryMutants("LAW-LOCAL-BROWSER-SESSION-004-V57", inspectDomMechanicalFacts, mutations);
+  verifyBrowserBoundaryMutants("LAW-LOCAL-BROWSER-SESSION-004-V58", inspectDomMechanicalFacts, mutations);
 });
 
 test("GPT001 native AST and contract routes reject text settlement and attachment selector drift under their own law", () => {

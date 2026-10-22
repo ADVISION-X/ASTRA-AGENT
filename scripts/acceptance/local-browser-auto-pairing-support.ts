@@ -265,7 +265,7 @@ const authorizedWithdrawal = async (chrome: ExtensionChromeApi): Promise<void> =
     const handler = new Promise<void>(resolve => { finish = resolve; }); fixture.delivery.pendingCommandHandlers.add(handler);
     void handler.then(() => fixture.delivery.pendingCommandHandlers.delete(handler));
     Object.assign(fixture.authority, { targets: registry, activeTarget: mode === "other" ? retained : mode === "ordinary" ? null : bound,
-      createdTarget: { isPending: () => false }, debuggerRuntime: { awaitPageReadPermission: async () => undefined,
+      debuggerRuntime: { awaitPageReadPermission: async () => undefined,
         readTargets: async () => open ? [{ id: "chrome-23", tabId: 23 }] : [], forgetAttached: () => undefined,
         readTab: async () => { if (!open) throw new Error("ABSENT"); return { id: 23 }; }, removeTab: async () => {
           assert.equal(fixture.delivery.pendingCommandHandlers.size, 0); assert.equal(fixture.delivery.mutationSlot?.fact, fact);
@@ -325,7 +325,7 @@ const reconnectedWithdrawal = async (chrome: ExtensionChromeApi, job: `sha256:${
     putFact(old, fact); old.delivery.mutationSlot!.fact = null; old.delivery.pendingCommandHandlers.add(handler);
     void handler.then(() => { old.delivery.pendingCommandHandlers.delete(handler); old.delivery.mutationSlot!.fact = fact; });
     Object.assign(old.authority, { targets: registry, activeTarget: bound,
-      createdTarget: { isPending: () => false, rejectPendingCreatedTarget: async () => undefined }, debuggerRuntime: { awaitPageReadPermission: () => read,
+      debuggerRuntime: { awaitPageReadPermission: () => read,
         forgetAttached: () => undefined, readTargets: async () => open ? [{ id: "chrome-23", tabId: 23 }] : [],
         readTab: async () => { if (!open) throw new Error("ABSENT"); return { id: 23 }; },
         removeTab: async () => { startedRemove(); await removed; open = false; } } });

@@ -232,10 +232,7 @@ const inspectReadGate = (s: Sources, context: InspectorContext, findings: Inspec
     && (runtime.match(/PAGE_ACTION_READ_SETTLEMENT_MS\s*=\s*2500/gu)?.length ?? 0) === 1
     && !/constructor\([^)]*(?:delay|settlement|timing)/iu.test(runtime)
     && s.transport.getText().includes("MUTATION_TERMINAL_REPLY_GRACE_MS = 4_000")
-    && s.commandPostcondition.getText().includes("BROWSER_TERMINAL_REPLY_MARGIN_MS = 4_000")
-    && method(s.created, "ExtensionCreatedTarget", "waitForCreatedTarget").includes("deadlineAt - Date.now()")
-    && method(s.created, "ExtensionCreatedTarget", "consumeTabUpdateAfterBarrier").includes("await this.debuggerRuntime.awaitPageReadPermission()")
-    && s.authority.getText().includes("await this.createdTarget.rejectPendingCreatedTarget"),
+    && s.commandPostcondition.getText().includes("BROWSER_TERMINAL_REPLY_MARGIN_MS = 4_000"),
     findings, lawId, paths.runtime, "One non-configurable 2500ms Browser read gate and the original terminal reply margins must govern every page action and failed action.");
   const classifications = {
     PAGE_MUTATION_METHODS: ["DOM.focus", "DOM.setFileInputFiles", "Input.dispatchKeyEvent", "Input.dispatchMouseEvent", "Input.insertText", "Page.navigate"],

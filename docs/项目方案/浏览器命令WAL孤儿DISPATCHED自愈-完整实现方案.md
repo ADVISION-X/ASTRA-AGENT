@@ -9,7 +9,7 @@
 
 本轮用户已明确授权按本方案在main建设并执行CI-FULL，目标等级为AGENT READY：本方案、Browser Blueprint、登记的Browser生产片区与原质检消费者可施工；CHANGE通过后提交/首推、完整READY及第二推。Website仅只读核源，本案不改产品、数据库、运行服务或Chrome，不删单、不重启、不执行Provider输入；RELEASE另行授权。
 
-需求直接终点：同一授权 job 的当前 system Target 以现役完整加载/物理身份/current Document 证明取得合法 Browser lease，原 GPT Child 可以继续；未就绪不得输入 Prompt 或提交。业务终点仍为 Product 结果→Runtime durable stage/原 Outbox→Website 领域幂等入库/admission→Runtime completed。页面取得、普通测试、READY 和业务完成分别报告。
+需求直接终点：同一授权 job 的当前 system Target 以现役物理身份/current Document 证明取得合法 Browser lease，原 GPT Child 可以继续；未就绪不得输入 Prompt 或提交。业务终点仍为 Product 结果→Runtime durable stage/原 Outbox→Website 领域幂等入库/admission→Runtime completed。页面取得、普通测试、READY 和业务完成分别报告。
 
 ## 2. 已证事实、首个断裂与前轮连续性
 
@@ -21,7 +21,6 @@
 | 兄弟 job `aiprod_25902401-1b2a-46a4-920b-ddbdcc77dbf9` | 同三轮在前一超时后立即报 BROWSER_BACKPRESSURE；后来 17:29:32.623Z—17:29:39.038Z 约 6.415 秒成功开页，17:30:38.581Z submit Child 成功。后两项不证明业务最终入库 |
 | 第一个直接断裂 | `runtime-state.ts#leaseBudget` 给普通 command_ttl_ms≤20,000；`production-browser-lifecycle.ts#acquireBrowserLease` 暴露 commandTtlMs；`browser-target-acquirer.ts#ensureAvailableTarget` 将加载取得 Target 的预算也取该 commandTtlMs。页面生命周期被普通命令期限提前截断 |
 | 第二个直接限制 | 同文件 `awaitTargetOperation` 又用普通 BROWSER_COMMAND_DEFAULT_DEADLINE_MS=30,000 截断；`browser-authority-websocket.ts#sendControlFrame` 对所有控制帧统一限制未来 30 秒。只把第一处改成 120 秒不能成立 |
-| 已有等待与清理 | `extension-created-target.ts#waitForCreatedTarget/consumeTabUpdateAfterBarrier` 已按 tabs.onUpdated 唤醒并 fresh readTab，status 非 complete 就等待；超时由原 timer 唤醒，创建失败进入精确孤儿清理。不是缺少另一套等待引擎 |
 | 截止点接缝 | 原pending没有deadlineAt，Supervisor#onTargetClaim只核pending存在/job后先注册，resolvePending只清timer；定时回调未调度时不能证明严格D。扩展claim经sendTail/加密后又给新30秒frame，原发送前assert不能覆盖异步延迟。要实现§4硬边界，必须在原pending与原认领收发链承接同D |
 | 已发取得操作的撤权缺口 | Coordinator出队停止queued abort监控，active Acquirer不监听signal；Runtime控制意图仅abort本地signal，扩展guard只核session/READY/D。加载后可继续尚未发出的导航，Node最后才拒绝lease。直接拉长窗口会放大该缺口，必须纳入W1C，而不是声称Provider submit为零就已覆盖全部动作 |
 | 认领失败的活动绑定接缝 | Authority#claimActiveTarget先置activeTarget再await发送；acquisition catch仅为新建候选discard。复用bound Target时，新增异步发送guard若因截止/取消拒绝，会留下未成功认领的activeTarget，后续acquire与普通release均可被拒。须精确退休本次绑定，保留bound registry/Tab，不能仅验证零输入 |
@@ -31,7 +30,7 @@
 
 ## 3. 权威、影响范围与停止边界
 
-权威：本仓冻结说明书 §4、§22、§24—25、§35—38、§41—44、§46—47；基础法案 LAW-CODE-PURITY-001-V6 / 002-V2 / 003-V3；功能法案 LAW-LOCAL-BROWSER-SESSION-001-V4 / 003-V46 / 004-V57 / 005-V6 / 006-V46，及 LAW-GPT-002-V32、LAW-AGENT-PRODUCTION-RUNTIME-001-V76 的当前权限/恢复边界。原 Owner Manifest、Browser V56 Blueprint 和协议 revision12 为现役来源。
+权威：本仓冻结说明书 §4、§22、§24—25、§35—38、§41—44、§46—47；基础法案 LAW-CODE-PURITY-001-V6 / 002-V2 / 003-V3；功能法案 LAW-LOCAL-BROWSER-SESSION-001-V4 / 003-V46 / 004-V58 / 005-V6 / 006-V46，及 LAW-GPT-002-V32、LAW-AGENT-PRODUCTION-RUNTIME-001-V76 的当前权限/恢复边界。原 Owner Manifest、Browser V56 Blueprint 和协议 revision12 为现役来源。
 
 本轮不需要降低 active law、改变 Owner 或修改冻结说明书。Browser Blueprint 第17行原文为“不扩大native期限”，不等于active law把acquisition固定为20秒；未来代码前须补明本案acquisition独立上限、原在途native不得假取消，以及第92行真实handler背压对精确撤回通知的唯一窄分流；release、普通 mutation、1.5秒访问节拍、2.5秒动作读回、40秒静默、70—90秒 Provider observation 保持。法案没有要求所有取得 Target 都只能20秒；不能反过来放大全部普通命令 deadline 来迁就加载。
 
@@ -51,16 +50,16 @@
 
 ## 4. 唯一目标链与期限语义
 
-唯一主链：当前 Website grant→Runtime durable accept→Product/GPT 原调用→唯一 Coordinator FIFO/原静默门→Browser Acquirer 签本次 acquisition 的截止点→原 AEAD TARGET_ACQUIRE→原 Extension 事件等待 complete/身份核验→原 TARGET_CLAIM admission/lease→原 Child。关闭上限仅终止调用等待，不签业务完成或新 attempt。
+唯一主链：当前 Website grant→Runtime durable accept→Product/GPT 原调用→唯一 Coordinator FIFO/原静默门→Browser Acquirer 签本次 acquisition 的截止点→原 AEAD TARGET_ACQUIRE→原 Extension 身份核验→原 TARGET_CLAIM admission/lease→原 Child。关闭上限仅终止调用等待，不签业务完成或新 attempt。
 
 1. **唯一数值源**：在现役 `browser-protocol.schema.json.commandAdmission` 增加 `targetAcquisitionMaxWaitMs:120000`，普通 `defaultDeadlineMs:30000` 不改；现役 generator 仅新增导出 `BROWSER_TARGET_ACQUISITION_MAX_WAIT_MS`。配置改变随同唯一 Browser revision12→13，一次切换、拒绝旧协议；不增加frame、数据库、环境变量或用户开关；原acquire/release body不改，仅第9项增加cancel-acquisition这一严格三字段控制分支，未来施工授权须明确包含该分支及原signal的active监听。
 2. **起点**：仍 queued 的等待、Provider observation eligibility 与40秒提交静默遵守原预算；真正出队、静默完成、重核当前资格后，在原 Acquirer 即将 dispatch 时建立 D=`Date.now()+min(120000, waiter.remainingMs())`。`remainingMs()<1` 仍原 V6_DEADLINE_BUDGET_EXHAUSTED，零 dispatch。120秒不包含前述排队/静默，不是全 job SLA。
 3. **解除错误耦合**：`ensureAvailableTarget` 不再读取 binding.commandTtlMs 决定 acquisition；`awaitTargetOperation` 按 action 选 acquisition 的120秒上限或 release的原30秒上限。普通 Browser COMMAND 仍 `min(普通30秒上限, permit.commandTtlMs)`，生产普通 TTL仍≤20秒；不修改 Runtime/GPT 的 TTL 提供者或公共 wait 合同。
-4. **同一绝对截止点**：transport仅当 kind=TARGET_ACQUIRE 且已知原 body.action=acquire 时允许≤120秒未来 deadline；其它控制请求，包括同 frame kind 的 release，仍≤30秒。Actor 解密、严格序号/形状通过后按同一 action 上限重核，非法 deadline 沿原拒绝/认证失败路径，未调用 Chrome。Authority 接受原 D，内部缺省调用也引用同一 acquisition 常量。建页、complete事件、激活、attach、必要导航和 Node claim admission不重置 D、不各送120秒、不刷新为后续租约。原 PendingJobBoundTargetAcquisition 同次保存进程内deadlineAt；其原action判别联合中，acquire同时借用原signal并保存退订回调，release无此监听。Supervisor#onTargetClaim对初始claim在workspace/registry副作用前核pending.action=acquire、job匹配、原signal未abort且now<D，过期沿原失败关闭，不能只靠timer回调。
+4. **同一绝对截止点**：transport仅当 kind=TARGET_ACQUIRE 且已知原 body.action=acquire 时允许≤120秒未来 deadline；其它控制请求，包括同 frame kind 的 release，仍≤30秒。Actor 解密、严格序号/形状通过后按同一 action 上限重核，非法 deadline 沿原拒绝/认证失败路径，未调用 Chrome。Authority 接受原 D，内部缺省调用也引用同一 acquisition 常量。建页、激活、attach、必要导航和 Node claim admission不重置 D、不各送120秒、不刷新为后续租约。原 PendingJobBoundTargetAcquisition 同次保存进程内deadlineAt；其原action判别联合中，acquire同时借用原signal并保存退订回调，release无此监听。Supervisor#onTargetClaim对初始claim在workspace/registry副作用前核pending.action=acquire、job匹配、原signal未abort且now<D，过期沿原失败关闭，不能只靠timer回调。
    acquisition的claimActiveTarget把原D通过原TargetFrameSender→Actor构造器callback→sendTargetFrame→sendEncrypted的可选内部调用上下文传递（仅原D与原assertCurrent回调）；仅该CLAIM路径在sendTail取得执行权及encrypt完成、真实socket.send之前重核原assertCurrent和D，该CLAIM frame.deadline取min(now+原30秒,D)。普通navigation-publication claim的参数缺席仍原30秒，TARGET_REVOKE/清理不携此参数，避免截止后阻塞清理。wire body/claim字段零新增，原session/key/sequence核验保留；没有新pending表或新认领回执。
    同一claimActiveTarget原第三个assertCurrent参数替换为上述可选上下文，原普通navigation调用仍缺席。活动绑定退休放在原acquireJobBoundChatGptTargetCycle失败出口：try前仅保存本次publishedTarget可空引用，在原登记/advance位置填入该引用，再调用原claimActiveTarget；仅bound分支且publishedTarget非空、this.activeTarget仍严格等于该引用时，无新增await地比较/调用原clearActiveTarget，随后原TARGET_REVOKE发送该不可变target的精确job/targetRef/documentRef，沿原默认期限，不带失效guard。禁止先await再泛读current的parkActiveTarget；对象已变化或为空不动其它绑定，bound的registry/物理Tab保持。!bound分支不提前clearActiveTarget，先沿原discard精确detach/removeExactCandidate；原discard出口须等待删除后的fresh readTab与readTargets，二者证明该tab及Chrome id缺席后才算物理收尾。当前原discard只有删除前身份与动作后barrier，不能当作缺席证明，故同一既有方法片区必须删除/缺席后重建：原cycle将本次publishedTarget不可变引用传入原discard；删除前捕获原registry，核其仍为本次publishedTarget且Chrome id匹配。若registry已替换而active仍严格等于本次publishedTarget，仅clear/revoke该旧active；替换的registry/active/物理页不动，原失败聚合。保留原精确revoke/detach/close顺序，收集全部失败；删除/读回不成功时只在原tab与job registry均空且无替换记录时恢复该原record，保留未知，绝不恢复active claim或重放输入。readTab须返回不存在（拒绝）且fresh readTargets成功并无原tab/Chrome id；readTargets失败或页面仍在均BROWSER_TARGET_CLEANUP_FAILED，不能靠异步事件或API成功冒充物理证明。还须覆盖registry登记后、claimActiveTarget首句guard即失败而activeTarget尚为空的边界：在同一cycle catch的discard成功返回后，读取原registry当前同job记录；为null则已退休，为本次publishedTarget同一对象则原targets.remove精确删除，若是其它对象则BROWSER_TARGET_CLEANUP_IDENTITY_MISMATCH，绝不删除替换记录。原active路径的releaseActiveTarget已删除时此步为空操作；没有新Target或第二清理器。这样不依赖异步onRemoved/Detach补删，新建registry确定缺席；实际Tab关闭证明仍由原discard承担，registry删除不冒充物理完成。该逻辑退休不证明native退出。清理成功重抛主失败，revoke/discard失败保留主失败并按原BROWSER_TARGET_CLEANUP_FAILED聚合，不吞错或伪造认领/释放成功。
 5. **授权更短时取更短**：当前已签执行预算或既有 probe deadline不足120秒，只能使用其剩余预算。合法续租可以影响出队前的实时 remainingMs，但不能刷新已发请求D；120秒不是绕过当前 lease/fence、abort、session 或授权撤回的许可。当前active acquisition的撤回按下述第9项承接，不能只依赖serveAcquire返回后检查signal。
-6. **就绪即继续**：直接复用 ExtensionCreatedTarget 的事件等待。complete不是成功的唯一条件；仍核 exact tab/Chrome target、未discard、必要attached、当前合法 frame/Document/URL与原activation guard。页面已complete且身份成立时立即走原链，保留必要1.5/2.5秒门，不 sleep120秒、不加最低加载时长、不加后台DOM轮询、不把DOMContentLoaded/出现输入框替代完整现役资格。具体控件就绪仍由原 Child 合同负责，不把它并成 acquisition 第三门。反查 `production-call-preparation.ts#acquireProductionBrowserCall` 证实取得Browser先于Child执行；prepare-clean的timeoutMs只由 `observation.ts#timeoutInput` 验输入、handler没有包住acquisition的第二timer，不需要放大其≤60秒输入上限。
+6. **就绪即继续**：仍核 exact tab/Chrome target、未discard、必要attached、当前合法 frame/Document/URL与原activation guard。页面身份成立时立即走原链，保留必要1.5/2.5秒门，不 sleep120秒、不加最低加载时长、不加后台DOM轮询、不把DOMContentLoaded/出现输入框替代完整现役资格。具体控件就绪仍由原 Child 合同负责，不把它并成 acquisition 第三门。反查 `production-call-preparation.ts#acquireProductionBrowserCall` 证实取得Browser先于Child执行；prepare-clean的timeoutMs只由 `observation.ts#timeoutInput` 验输入、handler没有包住acquisition的第二timer，不需要放大其≤60秒输入上限。
 7. **独立期限不误并**：TargetClaimAwaiter 的原30秒是页面已合格、进入 claim 发布时启动的认证ACK回路，不是建页加载门；普通已取得Target的导航/命令也不是 acquisition。原30秒timer、accept/fail与普通claim语义保留，不扩大到120秒，验收须证明慢加载阶段不会提前启动这30秒ACK计时。施工审查已证其begin在sendTail前计时，原sender在completion失败后仍可能发送；只在原begin→send callback补一个同步assertPending（核this.completion仍是本次completion），Actor仅对acquisition把它与原D/assertCurrent合入同一内部上下文，两个发送异步边界均核；ACK超时/失败后未发CLAIM增量为零。普通navigation-publication不携该上下文，原ACK期限不变；不新增completion表、取消控制帧或timer。Node原 onTargetClaim接纳时 resolve caller、扩展原ACK退休handler的先后保持，不引入第二完成回执。
 8. **失败不假退出**：D 到期仍 BROWSER_TARGET_ACQUISITION_TIMEOUT，沿原精确清理/孤儿管理；session/身份/权限错误仍可在120秒前立即失败。caller退出不等真实 native、cleanup 或handler退出；真实在途未退时新请求仍只能原有限背压，不能删该保护或并行操作。晚诊断/释放回执继续按原job/sequence/session只处理自己。
 
@@ -80,8 +79,8 @@
 
 | 编号/真实分支 | Owner、输出/回接及可证伪验收 |
 | --- | --- |
-| F1 快页与慢页 | 原Acquirer/Actor/CreatedTarget：四种模式均验收；独立时间夹具令完整加载及必要身份/导航资格分别在6、25、45、119秒收敛，D前完成即取得原lease，零固定120秒睡眠。25秒击穿旧20秒，45秒击穿旧30秒；至少有一例生产binding.commandTtlMs=20秒而剩余授权>120秒。119秒仅到complete而尚需导航/2.5秒读回时不承诺成功，必须服从同D |
-| F2 永不complete/边界 | 使用真实Node Acquirer→真实encrypted frame/Actor→CreatedTarget，mock Chrome叶端点和时钟，不mock被测方法；119,999ms仍无额外早失败，D及D之后不得新输入/成功claim，原超时/精确cleanup。延迟执行Node timeout回调、先交付同job合法claim时，Supervisor在registry/workspace前按pending.D拒收且不ACK成功；扩展sendTail等待及encrypt等待分别跨D时，真实CLAIM send为0，原cleanup可继续。本次已置入activeTarget的claim失败：bound页仅精确退休本次活动绑定，registry/Tab保留；新建页不提前clear，原discard及同catch的精确registry退休完成后确实缺席且物理清理有读回；覆盖刚登记registry、尚未置activeTarget时guard跨D/abort，以及记录已被替换不得误删；覆盖对象已变化不误退、主失败与revoke/discard失败聚合，并验证handler真实退出后下一合法job可取得目标。ACK timer先于120秒D到期而sender仍在sendTail/encrypt时，原completion guard拒绝发送，Node不得接纳；关页API假成功、关闭后readTargets/readTab失败均不伪造缺席并保留原资源registry。已发CLAIM迟交付过期仍原fail-close；native不返回另断言未知，不伪造物理完成 |
+| F1 快页与慢页 | 原Acquirer/Actor/CreatedTarget：四种模式均验收；独立时间夹具令必要身份/导航资格分别在6、25、45、119秒收敛，D前完成即取得原lease，零固定120秒睡眠。25秒击穿旧20秒，45秒击穿旧30秒；至少有一例生产binding.commandTtlMs=20秒而剩余授权>120秒。 |
+| F2 边界 | 使用真实Node Acquirer→真实encrypted frame/Actor→CreatedTarget，mock Chrome叶端点和时钟，不mock被测方法；119,999ms仍无额外早失败，D及D之后不得新输入/成功claim，原超时/精确cleanup。延迟执行Node timeout回调、先交付同job合法claim时，Supervisor在registry/workspace前按pending.D拒收且不ACK成功；扩展sendTail等待及encrypt等待分别跨D时，真实CLAIM send为0，原cleanup可继续。本次已置入activeTarget的claim失败：bound页仅精确退休本次活动绑定，registry/Tab保留；新建页不提前clear，原discard及同catch的精确registry退休完成后确实缺席且物理清理有读回；覆盖刚登记registry、尚未置activeTarget时guard跨D/abort，以及记录已被替换不得误删；覆盖对象已变化不误退、主失败与revoke/discard失败聚合，并验证handler真实退出后下一合法job可取得目标。ACK timer先于120秒D到期而sender仍在sendTail/encrypt时，原completion guard拒绝发送，Node不得接纳；关页API假成功、关闭后readTargets/readTab失败均不伪造缺席并保留原资源registry。已发CLAIM迟交付过期仍原fail-close；native不返回另断言未知，不伪造物理完成 |
 | F3 无效身份/早失败 | discarded、目标物理缺席、foreign origin/Document、当前会话/严格序号错误、超120秒/NaN/过期deadline：原code失败关闭，非加载原因不硬等120秒；零Provider submit、零操作者Tab触碰 |
 | F4 不重置/不扩权 | continuation精确导航、bound fresh复位、confirmed缺页重建均共享同D；跳转不重新发120秒；同job最多一system Target，跨job zero reuse；当前locator/effect与parent身份分母不减 |
 | F5 普通能力隔离 | 普通生产COMMAND仍20秒TTL/30秒协议上限，release queued30秒→静默40秒→dispatch30秒；普通导航/claim ACK保原期限。acquisition>30秒合法，但release/其它控制帧携>30秒拒绝；ACK计时在合格页面发claim后才起，不在开始加载时起 |
@@ -161,7 +160,7 @@
 | 单元 | 必须存在的当前原因、真实消费者、最短决定与退休对象 |
 | --- | --- |
 | 唯一acquisition上限/原generator投影 | 普通命令与加载耗时语义不同；Acquirer/transport/Actor/Authority真实消费。删掉独立上限会恢复20/30秒截断，或必须放大所有命令；选择在原schema增加一个字段/原投影，退休acquisition对普通TTL/cap的依赖 |
-| 原事件等待/就绪identity/guard/清理 | 负责真实complete与exact当前目标；原Authority消费。删掉会对loading/串页动作、遗留本job物理资源；直接复用，零新等待层，不删后复制 |
+| 就绪identity/guard/清理 | 负责exact当前目标；原Authority消费。删掉会对串页动作、遗留本job物理资源；直接复用，零新等待层，不删后复制 |
 | 原FIFO/pending/handler/session/seq/ACK | 分别承担当前物理串行、请求归属和可信确认；删掉重现积压/晚回执连坐。保留原职责；pending补同次D/原signal并退订active监听，handler原位单Map绑定当前取消事实；不用第二store。无D会迟到认领，无精确取消链会在撤回后继续未来导航。cancel只复用同通道/原请求，无handler已退出证明；120秒或cancel均不能清槽/假退出，A1/A2/R1安全不变量仍须验收 |
 | 原命令20/30秒与Provider保护 | 原COMMAND/release/claim ACK及GPT真实消费者各自需要有界授权与节拍；不能用总扩时替代。保留，新增政策只用于acquire |
 | 原inspector/fixture/mutants | 原质量入口消费当前law及反例；删掉失去期限隔离/串行保护，旧cap断言又保护错误耦合。原位替换该断言，保留全部有效保护，不新建第二checker/verdict |
