@@ -25,7 +25,6 @@
     "authorityLifetime": "authenticated-connection"
   },
   "commandAdmission": {
-    "maxQueuedCommands": 64,
     "maxInFlightCommandsPerTarget": 1,
     "defaultDeadlineMs": 30000,
     "targetAcquisitionMaxWaitMs": 120000
