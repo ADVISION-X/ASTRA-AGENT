@@ -43,11 +43,16 @@ const exerciseRealAtomicBody = async (page: Page): Promise<void> => {
   assert.match(String(result.rawDomHtml), /<pre><code>\{"ok":true\}<\/code><\/pre>/u);
   assert.deepEqual(baseline.fixture.released, []);
   assert.equal(baseline.fixture.scanCalls(), 1);
-  for (const attribute of ["hidden", 'aria-hidden="true"', "inert", 'style="display:none"']) {
+  assert.equal(result.generatingRaw, 0);
+  for (const attribute of ["hidden", 'aria-hidden="true"', "inert", 'style="display:none"',
+    'style="position:absolute;left:-10000px"']) {
     for (const unit of ['data-markdown-text-style="assistant-message"', 'data-user-message-bubble="true"',
       `data-turn-key="${userId}"`]) {
       await page.setContent(turn().replace(unit, `${unit} ${attribute}`));
-      assert.equal((await runPage(page).result).semanticText, result.semanticText);
+      const hidden = await runPage(page).result;
+      assert.equal(hidden.semanticText, result.semanticText);
+      assert.equal(hidden.semanticTextHash, result.semanticTextHash);
+      assert.equal(hidden.generatingRaw, 0);
     }
   }
   await page.setContent(turn() + `<section data-turn-key="00000000-0000-4000-8000-000000000003"></section>
@@ -57,6 +62,42 @@ const exerciseRealAtomicBody = async (page: Page): Promise<void> => {
   await page.setContent(turn('<pre><code>{"schema_version":"target-language-candidate.v3","items":[]}</code></pre>'));
   assert.equal(JSON.parse(String((await runPage(page).result).semanticText).trim()).schema_version,
     "target-language-candidate.v3", "JSON code blocks retain complete parseable content");
+};
+
+const exerciseCurrentAnswerStopScope = async (page: Page): Promise<void> => {
+  await page.setContent(turn());
+  const baseline = await runPage(page).result;
+  const stop = '<button aria-label="停止"></button>';
+  const home = `<section style="display:none!important"><form data-chatgpt-composer
+    data-composer-placement="home">${stop}</form></section>`;
+  for (const [composers, expected] of [
+    [home + '<form data-chatgpt-composer data-composer-placement="thread"></form>', 0],
+    [`<form data-chatgpt-composer data-composer-placement="home"></form>
+      <form data-chatgpt-composer data-composer-placement="thread">${stop}</form>`, 1],
+    [home + `<form data-chatgpt-composer data-composer-placement="thread">${stop}</form>`, 1],
+    [home + `<form data-chatgpt-composer>${stop}</form>`, 1],
+    [`<form data-chatgpt-composer data-composer-placement="other">${stop}${stop}</form>`, 2],
+  ] as const) {
+    await page.setContent(turn() + composers);
+    const reply = await runPage(page).result;
+    assert.equal(reply.generatingRaw, expected);
+    assert.equal(reply.rawDomHtml, baseline.rawDomHtml); assert.equal(reply.rawDomHash, baseline.rawDomHash);
+    assert.equal(reply.semanticText, baseline.semanticText); assert.equal(reply.semanticTextHash, baseline.semanticTextHash);
+    assert.equal(reply.precedingUserTurnId, userId); assert.equal(reply.assistantTurnId, assistantId);
+  }
+  for (const attribute of ["hidden", 'aria-hidden="true"', "inert", 'style="display:none"',
+    'style="position:absolute;left:-10000px"']) {
+    await page.setContent(turn() + home
+      + `<form data-chatgpt-composer data-composer-placement="thread" ${attribute}>${stop}</form>`);
+    const reply = await runPage(page).result;
+    assert.equal(reply.generatingRaw, 1, "current stop remains authoritative regardless of presentation");
+    assert.equal(reply.semanticTextHash, baseline.semanticTextHash);
+  }
+  await page.setContent(turn() + `<form data-chatgpt-composer>${stop}</form>`);
+  assert.equal((await runPage(page).result).generatingRaw, 1);
+  await page.locator('button[aria-label="停止"]').evaluate(node => node.remove());
+  const stopped = await runPage(page).result;
+  assert.equal(stopped.generatingRaw, 0); assert.equal(stopped.semanticTextHash, baseline.semanticTextHash);
 };
 
 const exerciseRealPending = async (page: Page): Promise<void> => {
@@ -274,7 +315,8 @@ export const exerciseExactAssistantTurnRead = async (): Promise<void> => {
   await exerciseDecoderAndLoader();
   await exerciseExceptionalResources();
   await withSyntheticDom(async page => {
-    await exerciseRealAtomicBody(page); await exerciseRealPending(page); await exerciseRealIdentity(page);
+    await exerciseRealAtomicBody(page); await exerciseCurrentAnswerStopScope(page);
+    await exerciseRealPending(page); await exerciseRealIdentity(page);
     await exerciseFailureClassification(page); await exercisePreflightBoundary(page);
   });
   await exerciseExactAssistantMaterialization();

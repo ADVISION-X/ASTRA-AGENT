@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { governanceAssert as assert } from "../../audit/shared/governance-exam-assert.js";
 import { zipSync, unzipSync, strToU8 } from "fflate";
 import type { WebsiteAgentTask } from "../../../src/mediator/product-plugin-contract.js";
@@ -33,6 +34,16 @@ const zipMaterials = (task: WebsiteAgentTask, route: (typeof productionRoutePoli
 
 const plugin = productionPluginCatalog.find((entry) => entry.pluginId === "bazi-ai-full-analysis");
 assert(plugin);
+const productSkillText = readFileSync(new URL("../../../src/plugins/bazi-ai-full-analysis/SKILL.md", import.meta.url), "utf8").normalize("NFC");
+const assertSkillPrompt = (prompt: string, review: boolean, contract: unknown): void => {
+  // Mechanical injection/action isolation only; this does not grade generated report content.
+  assert.ok(prompt.startsWith(productSkillText));
+  const instructions = prompt.slice(productSkillText.length);
+  assert.equal(instructions.includes("正式生产按本消息开头Product Skill"), !review);
+  const lines = instructions.split("\n").filter(line => line.startsWith("当前 canonical 输出合同："));
+  assert.equal(lines.length, 1);
+  assert.deepEqual(JSON.parse(lines[0]!.slice("当前 canonical 输出合同：".length)), contract);
+};
 const reviewSequence = [
   "prepare_clean_gpt_chat", "open_gpt_execution_profile", "open_gpt_model_selector_v3",
   "select_gpt_model_from_start_v3", "select_gpt_reasoning_from_start_v3",
@@ -46,12 +57,13 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
       ? { parameters: { challenge_id: "challenge:1", question_text: "复核八字问答" }, reviewPolicy: "manual-accuracy-challenge.v1" as const }
       : { parameters: { reflection_plan_id: "reflection:1", reflection_contract_version: "scheduled-quality-reflection.v1", evidence_ref_catalog: ["receipt:1"] }, reviewPolicy: "scheduled-quality-reflection.v1" as const };
     const task = buildProductTask(route, review);
-    const flowFixture = { task, output: { decision: "no_issue", issues: [] } };
+    const flowFixture = { task, output: { decision: "no_issue", issues: [] }, productSkillText };
     const issue = { observation: "e\u0301𠮷", extra: { untouched: true } };
     assert.deepEqual(parseProductResult(task, { decision: "issues", issues: issue, extra: true }, route),
       { decision: "issues", issues: [issue], extra: true });
     assert.throws(() => parseProductResult(task, { decision: "invalid", issues: [] }, route), /AGENT_REVIEW_DECISION_INVALID/u);
     const run = await exerciseProductFlow(plugin, flowFixture);
+    assertSkillPrompt(String(run.calls.find(call => call.child === "write_exact_gpt_prompt")!.input.prompt), route.relation_kind === "review", route.result_contract);
     await exerciseConfirmedSubmitRecovery(plugin, flowFixture);
     const selectedModel = run.calls.find(call => call.child === "select_gpt_model_from_start_v3")!;
     const selectedReasoning = run.calls.find(call => call.child === "select_gpt_reasoning_from_start_v3")!;
@@ -93,7 +105,7 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
     assert.throws(() => parseProductResult(task, output, { ...route, action_id: "foreign" }), /PRODUCT_RESULT_OWNER_MISMATCH/u);
   }
   const flowFixture = {
-    task, output, materialContents: zipMaterials(task, route),
+    task, output, materialContents: zipMaterials(task, route), productSkillText,
   };
   {
     const role = "bazi_formal_input", base = unzipSync(flowFixture.materialContents[role]!);
@@ -120,6 +132,7 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
     }
   }
   const run = await exerciseProductFlow(plugin, flowFixture);
+    assertSkillPrompt(String(run.calls.find(call => call.child === "write_exact_gpt_prompt")!.input.prompt), false, route.result_contract);
   await exerciseConfirmedSubmitRecovery(plugin, flowFixture);
   assert.equal(run.physicalSubmitDispatches, 1);
   const selectedModel = run.calls.find(call => call.child === "select_gpt_model_from_start_v3")!;

@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { parseProductResult } from "../../../src/plugins/bazi-report-followup/result-contract.js";
 import { governanceAssert as assert } from "../../audit/shared/governance-exam-assert.js";
 import { zipSync, unzipSync, strToU8 } from "fflate";
@@ -34,6 +35,16 @@ const zipMaterials = (task: WebsiteAgentTask, route: (typeof productionRoutePoli
 
 const plugin = productionPluginCatalog.find((entry) => entry.pluginId === "bazi-report-followup");
 assert(plugin);
+const productSkillText = readFileSync(new URL("../../../src/plugins/bazi-report-followup/SKILL.md", import.meta.url), "utf8").normalize("NFC");
+const assertSkillPrompt = (prompt: string, review: boolean, contract: unknown): void => {
+  // Mechanical injection/action isolation only; this does not grade generated report content.
+  assert.ok(prompt.startsWith(productSkillText));
+  const instructions = prompt.slice(productSkillText.length);
+  assert.equal(instructions.includes("正式生产按本消息开头Product Skill"), !review);
+  const lines = instructions.split("\n").filter(line => line.startsWith("当前 canonical 输出合同："));
+  assert.equal(lines.length, 1);
+  assert.deepEqual(JSON.parse(lines[0]!.slice("当前 canonical 输出合同：".length)), contract);
+};
 const reviewSequence = [
   "prepare_clean_gpt_chat", "open_gpt_execution_profile", "open_gpt_model_selector_v3",
   "select_gpt_model_from_start_v3", "select_gpt_reasoning_from_start_v3",
@@ -68,6 +79,7 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
   const flowFixture = {
     task,
     output,
+    productSkillText,
     materialContents: zipMaterials(task, route),
   };
   if (route.relation_kind !== "review") {
@@ -117,6 +129,7 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
     assert.throws(() => parseProductResult(task, output, { ...route, action_id: "foreign" }), /PRODUCT_RESULT_OWNER_MISMATCH/u);
   }
   const run = await exerciseProductFlow(plugin, flowFixture);
+  assertSkillPrompt(String(run.calls.find(call => call.child === "write_exact_gpt_prompt")!.input.prompt), route.relation_kind === "review", route.result_contract);
   await exerciseConfirmedSubmitRecovery(plugin, flowFixture);
   if (!review) {
     const successorParent = { ...flowFixture, materialContents: zipMaterials(task, route, "bazi-report-followup-answer-output.v1") };

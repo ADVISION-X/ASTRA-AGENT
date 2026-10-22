@@ -121,37 +121,46 @@ const inspectReceiptConsumer = (s: Sources, findings: InspectorFinding[], lawId:
     findings, lawId, paths.actor, "Mutation consumers must read the authenticated original terminal fact without a retired live-claim gate; observations and new input retain authority guards.");
 };
 
-const inspectReceiptDelivery = (s: Sources, findings: InspectorFinding[], lawId: string): void => {
-  const execute = method(s.worker, "ExtensionWebSocketActor", "executeCommand");
-  const worker = s.worker.getClass("ExtensionWebSocketActor"), sender = worker?.getMethod("sendEncrypted")?.getName();
-  const senderReferences = worker?.getMethod("executeCommand")?.getDescendants().filter(node =>
+const inspectTerminalPublication = (s: Sources, findings: InspectorFinding[], lawId: string): void => {
+  const worker = s.worker.getClass("ExtensionWebSocketActor");
+  const command = worker?.getMethod("executeCommand"), sender = worker?.getMethod("sendEncrypted")?.getName();
+  const senderUses = command?.getDescendants().filter(node =>
     node.asKind(SyntaxKind.Identifier)?.getText() === sender || node.asKind(SyntaxKind.StringLiteral)?.getLiteralValue() === sender
       || node.isKind(SyntaxKind.ThisKeyword) && node.getParentIfKind(SyntaxKind.PropertyAccessExpression)?.getName() !== sender
         && worker?.getProperty(node.getParentIfKind(SyntaxKind.PropertyAccessExpression)?.getName() ?? "") === undefined);
-  const delivery = s.worker.getClass("ExtensionWebSocketActor")?.getMethod("executeCommand")
-    ?.getDescendantsOfKind(SyntaxKind.TryStatement).find(block => block.getTryBlock().getDescendantsOfKind(SyntaxKind.CallExpression)
-      .some(call => call.getExpression().getText() === "this.sendEncrypted"
+  const diagnostic = command?.getDescendantsOfKind(SyntaxKind.TryStatement).find(statement =>
+    statement.getTryBlock().getDescendantsOfKind(SyntaxKind.CallExpression).some(call =>
+      call.getExpression().getText() === "this.sendEncrypted"
         && call.getArguments()[1]?.asKind(SyntaxKind.StringLiteral)?.getLiteralValue() === "DIAGNOSTIC"));
+  const retirement = diagnostic?.getFinallyBlock()?.getStatements().at(0)?.asKind(SyntaxKind.TryStatement);
+  const retirementAction = retirement?.getTryBlock().getStatements().at(0)?.asKind(SyntaxKind.ExpressionStatement)
+    ?.getExpression().asKind(SyntaxKind.AwaitExpression)?.getExpression().asKind(SyntaxKind.CallExpression);
+  const publication = retirement?.getFinallyBlock()?.getStatements().at(0)?.asKind(SyntaxKind.ExpressionStatement)
+    ?.getExpression().asKind(SyntaxKind.AwaitExpression)?.getExpression().asKind(SyntaxKind.CallExpression);
+  const finalStatement = command?.getBody()?.asKind(SyntaxKind.Block)?.getStatements().at(-1);
+  check(order(method(s.worker, "ExtensionWebSocketActor", "executeCommand"),
+    ["this.commandDelivery.mutationSlot =", "await executeExtensionCommandReply(", "slot.fact = fact",
+      'this.sendEncrypted(socket, "DIAGNOSTIC"', "await this.targetAuthority.retireInvalidCommandTarget(",
+      'await this.sendEncrypted(socket, "REPLY", reply.body)'])
+    && senderUses?.length === 2 && finalStatement === diagnostic
+    && diagnostic?.getCatchClause() === undefined && retirement?.getCatchClause() === undefined
+    && diagnostic?.getFinallyBlock()?.getStatements().length === 1
+    && retirement?.getTryBlock().getStatements().length === 1
+    && retirement?.getFinallyBlock()?.getStatements().length === 1
+    && retirementAction?.getExpression().getText() === "this.targetAuthority.retireInvalidCommandTarget"
+    && publication?.getExpression().getText() === "this.sendEncrypted"
+    && JSON.stringify(publication?.getArguments().map(argument =>
+      argument.asKind(SyntaxKind.StringLiteral)?.getLiteralValue() ?? argument.getText())) === JSON.stringify(["socket", "REPLY", "reply.body"]),
+    findings, lawId, paths.worker, "The original fact is fixed before diagnostics; exact retirement and unconditional same-body REPLY occupy the final double-finally statement with only two sender references.");
+};
+
+const inspectReceiptDelivery = (s: Sources, findings: InspectorFinding[], lawId: string): void => {
+  const execute = method(s.worker, "ExtensionWebSocketActor", "executeCommand");
   const ack = method(s.worker, "ExtensionWebSocketActor", "acceptMutationAck");
-  const retirement = delivery?.getFinallyBlock()?.getStatements()[0]?.asKind(SyntaxKind.TryStatement);
-  const retireCall = retirement?.getTryBlock().getStatements()[0]?.asKind(SyntaxKind.ExpressionStatement)
-    ?.getExpression().asKind(SyntaxKind.AwaitExpression)?.getExpression().asKind(SyntaxKind.CallExpression);
-  const replyCall = retirement?.getFinallyBlock()?.getStatements()[0]?.asKind(SyntaxKind.ExpressionStatement)
-    ?.getExpression().asKind(SyntaxKind.AwaitExpression)?.getExpression().asKind(SyntaxKind.CallExpression);
   const ackShape = text(s.worker, "assertMutationAckShape");
   const slotHash = text(s.worker, "assertMutationSlotHash");
   const flush = method(s.worker, "ExtensionWebSocketActor", "flushMutationReceipt");
-  check(order(execute, ["this.commandDelivery.mutationSlot =", "await executeExtensionCommandReply(", "slot.fact = fact",
-    'this.sendEncrypted(socket, "DIAGNOSTIC"', "await this.targetAuthority.retireInvalidCommandTarget(",
-    'await this.sendEncrypted(socket, "REPLY", reply.body)'])
-    && senderReferences?.length === 2 && delivery?.getCatchClause() === undefined && retirement?.getCatchClause() === undefined
-    && worker?.getMethod("executeCommand")?.getBody()?.asKind(SyntaxKind.Block)?.getStatements().at(-1) === delivery
-    && delivery?.getFinallyBlock()?.getStatements().length === 1 && retirement?.getTryBlock().getStatements().length === 1
-    && retirement?.getFinallyBlock()?.getStatements().length === 1
-    && retireCall?.getExpression().getText() === "this.targetAuthority.retireInvalidCommandTarget"
-    && replyCall?.getExpression().getText() === "this.sendEncrypted"
-    && JSON.stringify(replyCall?.getArguments().map(argument => argument.asKind(SyntaxKind.StringLiteral)?.getLiteralValue() ?? argument.getText())) === JSON.stringify(["socket", "REPLY", "reply.body"])
-    && has(execute, ["slot?.commandId !== permit.commandId", "slot.receiptBindingHash !== receiptBindingHash",
+  check(has(execute, ["slot?.commandId !== permit.commandId", "slot.receiptBindingHash !== receiptBindingHash",
       "socket !== this.connection.socket", "session.serverToClientKey", "Date.now() >= deadline"])
     && has(ackShape, ['"commandId|receiptBindingHash|receiptHash|type"', '"commandId|reasonCode|receiptBindingHash|rejectedFactHash|type"',
       'Object.keys(response).sort().join("|") !== expected', '["ack", "disposed"].includes(String(response.type))',
@@ -251,6 +260,7 @@ export const inspectBrowserMutationSettlement = (context: InspectorContext, find
   const entries = Object.entries(paths).map(([name, path]) => [name, requireSource(context, findings, lawId, path)] as const);
   if (entries.some(([, source]) => source === null)) return;
   const sources = Object.fromEntries(entries) as Sources;
-  inspectTerminalOwner(sources, findings, lawId); inspectTerminalTransport(sources, findings, lawId); inspectReceiptConsumer(sources, findings, lawId); inspectReceiptDelivery(sources, findings, lawId);
+  inspectTerminalOwner(sources, findings, lawId); inspectTerminalTransport(sources, findings, lawId); inspectReceiptConsumer(sources, findings, lawId);
+  inspectTerminalPublication(sources, findings, lawId); inspectReceiptDelivery(sources, findings, lawId);
   inspectMechanicalQualification(sources, findings, lawId); inspectReadGate(sources, context, findings, lawId);
 };

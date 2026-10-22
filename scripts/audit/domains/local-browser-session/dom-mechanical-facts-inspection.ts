@@ -307,8 +307,7 @@ export const exactAssistantTurnReadIsAtomic = (source: SourceFile, fixed: Source
     "units[units.indexOf(user) + 1]", 'endsWith(":assistant")', "rawDomHtml: node ? node.outerHTML",
     'if (matches.length === 1 && matches[0].id !== spec.observedUserTurnId) throw new Error("BROWSER_DOCUMENT_INVALID")',
     'if (assistants.length > 1) throw new Error("BROWSER_DOM_CANDIDATE_AMBIGUOUS")',
-    "semanticText: node ? browserCanonicalSemanticText(node)", 'nativeStage: "runtime-evaluate"',
-    'document.querySelectorAll("form[data-chatgpt-composer] button[aria-label=\'停止\']")'];
+    "semanticText: node ? browserCanonicalSemanticText(node)", 'nativeStage: "runtime-evaluate"'];
   return [required.every(token => exact.includes(token)), !exact.includes("await "),
     ["data-user-message-bubble", ".includes(marker)", "users.length !== 1",
       'matches[0].getAttribute("data-chatgpt-search-message-ids") !== id'].every(token => marker.includes(token)),

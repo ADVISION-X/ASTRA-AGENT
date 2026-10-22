@@ -80,7 +80,7 @@ const EXACT_ASSISTANT_TURN_FUNCTION = `function (spec) {
   return { rawCount: bodies.length, rawDomHtml: node ? node.outerHTML : "",
     semanticText: node ? browserCanonicalSemanticText(node) : "", currentUrl, precedingUserTurnId,
     assistantTurnId, pendingCause, observedAt: new Date().toISOString(), nativeStage: "runtime-evaluate",
-    generatingRaw: document.querySelectorAll("form[data-chatgpt-composer] button[aria-label='停止']").length };
+    generatingRaw: document.querySelectorAll("form[data-chatgpt-composer]:not([data-composer-placement='home']) button[aria-label='停止']").length };
 }`;
 
 /** Mounted markers return before scroll writes; absent markers follow live geometry. */
