@@ -1,6 +1,6 @@
 # AGENT结果签收完成：法条收敛与完成判断修正
 
-状态：按用户最新要求先完成 AGENT 的 CHANGE、提交首推、完整 READY 与再次推送；Website 停止后续修改、提交和推送，既有改动保留。AGENT W1/W2/W3 已施工，正在处理原生 CHANGE 的直接质检阻断；尚不宣称 READY 或运行版本已启用。
+方案状态：可施工。AGENT 已通过 CHANGE 并首推 43fdb641a；READY 因本方案缺少文件 Owner 在入口停止。按原固定合议庭 2:1 裁决，仅由现役 architecture-boundary 登记本方案精确 ownedPath，并由唯一 builder 同步 registry；其职责仅为跨 Owner 施工文档的文件治理，不改变 Runtime 或 Website 的运行主权。原唯一 Owner 检查、Runtime 窄边界、方案路径及唯一性保留，不新增检查器或目录通配主权；修后重走 CHANGE、提交首推、完整 READY 与再次推送。Website 停止后续修改、提交和推送，既有改动保留；尚不宣称 READY 或运行版本已启用。
 
 ## 1. 只做两件事
 
