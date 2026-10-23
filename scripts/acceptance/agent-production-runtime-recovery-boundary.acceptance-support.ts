@@ -56,7 +56,7 @@ const inspectRuntimeSources = (project: Project, queryRef: string) => {
   inspectAgentProductionRuntime({
     project,
     sealedRoot: path.resolve("."),
-    selectedLawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V78",
+    selectedLawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V79",
     targetSet: { queryRef, count: project.getSourceFiles().length },
     targetPaths: project.getSourceFiles().map((source) => path.relative(path.resolve("."), source.getFilePath()).replaceAll("\\", "/")),
     lawRequirements: [],
@@ -65,7 +65,7 @@ const inspectRuntimeSources = (project: Project, queryRef: string) => {
       manifestPath: "scripts/audit/domains/agent-production-runtime/manifest.json",
       ownerInspectorPath: "scripts/audit/domains/agent-production-runtime/inspector.ts",
       executionGroup: "domain",
-      lawIds: ["LAW-AGENT-PRODUCTION-RUNTIME-001-V78"],
+      lawIds: ["LAW-AGENT-PRODUCTION-RUNTIME-001-V79"],
     },
     generatedPlan: [],
   }, findings);
@@ -96,7 +96,7 @@ const exerciseAuthorityGuardMutants = (): void => {
   const project = new Project({ tsConfigFilePath: path.resolve("tsconfig.json") });
   assert.deepEqual(inspectRuntimeSources(project, "acceptance:runtime-authority-baseline"), []);
   const guardCases = [
-    ["runtime-business-admission", "BUSINESS_ADMISSION_RESULT_HASH_MISMATCH", "admission-before-completion"],
+    ["store-outbox", "V6_TERMINAL_RECEIPT_MISMATCH", "receiving-before-completion"],
     ["executor", "PRODUCTION_PARENT_RESULT_BINDING_INVALID", "completed-parent-exact-locator"],
   ] as const;
   for (const [file, code, check] of guardCases) {
@@ -274,7 +274,7 @@ const exerciseManifestAndLawOwnership = async (): Promise<void> => {
   const runtimeLawRecords = [...runtimeLawSource.matchAll(/```law-record\n([\s\S]*?)\n```/gu)]
     .map((match) => JSON.parse(match[1]!) as { lawId: string; forbidden: string[] });
   const runtimeCoreLaw = runtimeLawRecords.find(
-    (record) => record.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V78",
+    (record) => record.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V79",
   );
   assert.ok(runtimeCoreLaw);
   for (const token of [

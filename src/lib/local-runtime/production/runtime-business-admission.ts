@@ -3,7 +3,6 @@ import { lstat, rm } from "node:fs/promises";
 
 import { executionFailure } from "../../execution-failure.js";
 import { failureCode } from "../../execution-failure.js";
-import { hashCanonical } from "./contracts.js";
 import { readProductionDeviceJobStatus } from "./cloud-reconciliation-client.js";
 import type { RuntimeState } from "./runtime-state.js";
 import type { StoredProductionTask } from "./store.js";
@@ -55,59 +54,37 @@ export const purgeDeletedJob = async (state: RuntimeState, jobId: string): Promi
   }
 };
 
-/** The Website signed for this very result yet reports no attempt, terminal or admission: its Consumer refused it. */
-const websiteRefusedStagedResult = (
-  record: StoredProductionTask,
-  remote: Awaited<ReturnType<typeof readProductionDeviceJobStatus>>,
-): boolean => record.staged_result !== null
-  && remote.terminal_status === null && remote.terminal_payload_hash === null
-  && remote.write_receipts.some((receipt) => receipt.write_kind === "terminal"
-    && receipt.response_json.payload_hash === hashCanonical(record.staged_result));
-
 export const reconcileBusinessAdmission = async (
   state: RuntimeState,
   record: StoredProductionTask,
 ): Promise<"completed" | "pending" | "deleted"> => {
   const staged = record.staged_result;
   if (!staged) return record.status === "completed" ? "completed" : "pending";
-  let remote: Awaited<ReturnType<typeof readProductionDeviceJobStatus>>;
-  try {
-    remote = await readProductionDeviceJobStatus(state.session, record.task.job_id);
-  } catch (error) {
-    if (!websiteJobAbsent(error)) throw error;
-    await purgeDeletedJob(state, record.task.job_id);
-    return "deleted";
-  }
-  const admission = remote.business_admission_receipt;
-  if (!admission) {
-    if (remote.next_action_code === "WAIT_NEW_ATTEMPT") {
-      if (websiteRefusedStagedResult(record, remote)) {
-        state.store.closeAttemptRefusedByWebsite(
-          record.task.job_id, record.current_attempt_id, hashCanonical(staged));
-      } else state.store.setCurrentReason(record.task.job_id, "RESULT_AUTHORITY_RECONCILIATION_PENDING");
-      return "pending";
-    }
-    state.store.setCurrentReason(
-      record.task.job_id,
-      remote.business_consumer_error
-        ? `BUSINESS_ADMISSION_FAILED:${remote.business_consumer_error}`
-        : "BUSINESS_ADMISSION_PENDING",
-    );
-    return "pending";
-  }
-  if (remote.terminal_payload_hash !== hashCanonical(staged)
-    || admission.result_payload_hash !== staged.result_payload_hash) {
-    throw executionFailure("failed", "BUSINESS_ADMISSION_RESULT_HASH_MISMATCH");
-  }
   if (!record.current_attempt_id) {
     throw executionFailure("failed", "BUSINESS_ADMISSION_ATTEMPT_IDENTITY_MISSING");
   }
-  try {
-    state.store.hydrateCurrentResultArtifacts(record.task.job_id,
-      record.current_attempt_id, staged, remote.write_receipts);
-  } catch (error) {
-    state.lastErrorCode = failureCode(error, "PRODUCTION_RESULT_ARTIFACT_READBACK_INCOMPLETE");
-    state.lastErrorReason = "Website admission is authoritative; local artifact receipt reconciliation remains pending.";
+  if (!state.store.readResultReceivingReceipt(record.task.job_id, record.current_attempt_id, staged)) {
+    let remote: Awaited<ReturnType<typeof readProductionDeviceJobStatus>>;
+    try {
+      remote = await readProductionDeviceJobStatus(state.session, record.task.job_id);
+    } catch (error) {
+      if (!websiteJobAbsent(error)) throw error;
+      await purgeDeletedJob(state, record.task.job_id);
+      return "deleted";
+    }
+    state.store.hydrateRemoteOutboxReceipts(record.task.job_id,
+      remote.write_receipts.filter(receipt => receipt.write_kind === "terminal"));
+    if (!state.store.readResultReceivingReceipt(record.task.job_id, record.current_attempt_id, staged)) {
+      state.store.setCurrentReason(record.task.job_id, "RESULT_AUTHORITY_RECONCILIATION_PENDING");
+      return "pending";
+    }
+    try {
+      state.store.hydrateCurrentResultArtifacts(record.task.job_id,
+        record.current_attempt_id, staged, remote.write_receipts);
+    } catch (error) {
+      state.lastErrorCode = failureCode(error, "PRODUCTION_RESULT_ARTIFACT_READBACK_INCOMPLETE");
+      state.lastErrorReason = "Website receiving receipt is authoritative; local artifact receipt reconciliation remains pending.";
+    }
   }
   state.store.completeTask(record.task.job_id, staged);
   return "completed";

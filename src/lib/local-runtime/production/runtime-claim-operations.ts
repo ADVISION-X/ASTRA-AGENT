@@ -245,8 +245,7 @@ const sendStagedTerminal = async (input: Readonly<{ state: RuntimeState; job: Cl
     }));
     await runRuntimeSpan({ span, failureCode: "JOB_TERMINAL_FAILED", action: async () => {
       await deliverTerminalProductionIntent(input.state.session, input.state.store, input.terminalIntent);
-      const current = input.state.store.readTask(input.job.job_id)!;
-      if (current.status !== "completed") input.state.store.setCurrentReason(input.job.job_id, "BUSINESS_ADMISSION_PENDING");
+      await reconcileBusinessAdmission(input.state, input.state.store.readTask(input.job.job_id)!);
       return input.state.store.readTask(input.job.job_id)!;
     }, success: record => ({ authorityRef: `production-task:${input.job.job_id}`, authorityHash: hashCanonical(record) }) });
   } catch (error) {

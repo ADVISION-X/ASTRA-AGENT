@@ -73,11 +73,11 @@ const importedTypeBinding = (source: SourceFile, reference: Node | undefined, mo
     && symbol.getDeclarations()[0] === bindings[0]
     && symbol === (bindings[0]?.getAliasNode() ?? bindings[0]?.getNameNode())?.getSymbol();
 };
-const inferredSchemaBinding = (source: SourceFile, name: string, schemaName: string): boolean => {
+const inferredSchemaBinding = (source: SourceFile, name: string, schemaName: string, publicSchema = true): boolean => {
   const alias = source.getTypeAlias(name);
   const type = alias?.getTypeNode();
   const schema = source.getVariableDeclaration(schemaName);
-  if (!alias?.isExported() || !schema?.isExported() || schema.getTypeNode() !== undefined
+  if (!alias?.isExported() || !schema || schema.isExported() !== publicSchema || schema.getTypeNode() !== undefined
     || !Node.isCallExpression(schema.getInitializer()) || !Node.isTypeReference(type)) return false;
   const reference = type.getTypeName();
   const arguments_ = type.getTypeArguments();
@@ -132,7 +132,7 @@ export function inspectAgentTypes(context: InspectorContext, findings: Inspector
     [LAWS.core, "store-foundation", "ProductionTaskStatus"],
     [LAWS.credential, "transport-protocol", "DeviceCredential"],
     [LAWS.route, "contracts", "WebsiteAgentTask"],
-    [LAWS.admission, "cloud-reconciliation-client", "BusinessAdmissionReceipt"],
+    [LAWS.admission, "contracts", "TerminalReceipt"],
     [LAWS.database, "store-foundation", "ProductionAuthorityReader"],
     [LAWS.storage, "runtime-storage-inventory", "ProductionRuntimeStorageInventory"],
   ] as const;
@@ -141,6 +141,7 @@ export function inspectAgentTypes(context: InspectorContext, findings: Inspector
     const type = source.getTypeAlias(name);
     const valid = name === "DeviceCredential" ? inferredSchemaBinding(source, name, "DeviceCredentialSchema")
       : name === "WebsiteAgentTask" ? inferredSchemaBinding(source, name, "WebsiteAgentTaskSchema") && taskSchemaTypeBinding(source)
+        : name === "TerminalReceipt" ? inferredSchemaBinding(source, name, "TerminalReceiptSchema", false)
         : type?.isExported() === true && !type.getType().isAny() && !type.getType().isUnknown();
     reject(findings, lawId, "static.types", runtimePath(file), "resolved-owner-type",
       valid, `The original ${name} must retain its actual exported Owner type and schema symbol binding.`);
@@ -154,14 +155,6 @@ export function inspectAgentTypes(context: InspectorContext, findings: Inspector
     JSON.stringify(credential) === JSON.stringify([
       "credential", "device_epoch", "device_id", "enrolled_at", "environment_id", "origin", "protocol_version", "server_base_url"]),
     "Device credential type must retain only its own eight long-lived fields.");
-  const admissionType = sourceFor(context, runtimePath("cloud-reconciliation-client")).getTypeAliasOrThrow("BusinessAdmissionReceipt").getType();
-  const admissionBase = ["schema_version", "job_id", "result_payload_hash", "consumer_ref", "outcome", "consumption_hash", "consumed_at"];
-  const expectedVariants = [admissionBase, [...admissionBase, "bazi_domain_admission_receipt_hash", "delivery_manifest_id", "delivery_manifest_hash"],
-    [...admissionBase, "review_receipt_hash"]].map((fields) => [...fields].sort().join(",")).sort();
-  reject(findings, LAWS.admission, "static.types", runtimePath("cloud-reconciliation-client"), "three-exclusive-admission-types",
-    admissionType.isUnion() && JSON.stringify(admissionType.getUnionTypes().map((type) =>
-      type.getProperties().map((property) => property.getName()).sort().join(",")).sort()) === JSON.stringify(expectedVariants),
-    "The actual admission type must expose exactly base, complete Bazi or review variants.");
   const taskShape = sourceFor(context, runtimePath("store-foundation")).getInterfaceOrThrow("StoredProductionTask").getType();
   reject(findings, LAWS.database, "static.types", runtimePath("store-foundation"), "no-persisted-implementation-or-fence-identity",
     ["identity", "identity_json", "plugin_id", "plugin_version", "catalog_hash", "lease_version", "execution_fence_hash"]

@@ -16,8 +16,5 @@ export function parseProductResult(task: WebsiteAgentTask, value: unknown, route
   if (output.manifest_hash !== task.parameters.fact_semantic_manifest_hash) {
     throw new Error("BAZI_CHART_INTERPRETATION_MANIFEST_HASH_LOCK_INVALID");
   }
-  for (const field of ["uncertainties", "limitations", "safety_notes"]) {
-    if (typeof output[field] === "string") output[field] = [output[field]];
-  }
   return Object.freeze(output);
 }

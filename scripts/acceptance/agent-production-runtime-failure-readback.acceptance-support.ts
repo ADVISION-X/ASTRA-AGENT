@@ -235,10 +235,11 @@ const verifyAdmissionLogFailureAndReadbackIsolation = async (): Promise<void> =>
   try {
     const jobs = ["A", "B", "C"].map(id => task({ jobId: `job:sink-${id}`,
       productId: "payment_screenshot_observation", actionId: "observe" }));
+    const receiving = new Map<string, ReturnType<typeof stageResultForAcceptance>>();
     for (const job of jobs) {
       const result = resultFor(job); store.acceptTask(job, "attempt:sink");
-      stageResultForAcceptance(store, job.job_id, "attempt:sink", result);
-      store.markOutboxSent(`terminal:acceptance:${job.job_id}:attempt:sink`, {
+      receiving.set(job.job_id, stageResultForAcceptance(store, job.job_id, "attempt:sink", result));
+      if (job === jobs[2]) store.markOutboxSent(`terminal:acceptance:${job.job_id}:attempt:sink`, {
         schema_version: "xuanxue-ai-terminal-receipt.v6", job_id: job.job_id, terminal_status: "completed",
         payload_hash: hashCanonical(result), failure: null, first_terminal: true, device_id: "device:test", device_epoch: 1,
         worker_session_id: "session:acceptance", worker_session_epoch: 1, runtime_attestation_receipt_hash: HASH_A });
@@ -253,7 +254,7 @@ const verifyAdmissionLogFailureAndReadbackIsolation = async (): Promise<void> =>
       if (reads === 1) throw firstError;
       const result = resultFor(job);
       return (deviceStatusWithAdmission(admissionReceiptFor(job.job_id, result.result_payload_hash),
-        job.job_id, hashCanonical(result)) as { request: () => Promise<unknown> }).request();
+        job.job_id, hashCanonical(result), null, [receiving.get(job.job_id)!]) as { request: () => Promise<unknown> }).request();
     } };
     const control = new ProviderRateLimitControl(store, session as never);
     const state = { store, active: new Map(), runtimeLogger: { startSpan: () => {
@@ -265,7 +266,7 @@ const verifyAdmissionLogFailureAndReadbackIsolation = async (): Promise<void> =>
       sessionKey: "session:sink", observedAt: "2030-01-01T00:00:00.000Z" });
     assert.equal(await api.workerIteration!(state), 1_000);
     assert.equal(store.pendingProviderCooldownRequestIds().length, 1);
-    assert.equal(reads, 3); assert.equal(spans, 3);
+    assert.equal(reads, 2); assert.equal(spans, 3);
     assert.equal(store.readTask(jobs[0]!.job_id)?.current_reason, "OWN_ADMISSION_REMOTE_FAILED");
     assert.equal(store.readTask(jobs[1]!.job_id)?.status, "completed");
     assert.equal(store.readTask(jobs[2]!.job_id)?.status, "completed");

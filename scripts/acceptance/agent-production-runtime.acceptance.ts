@@ -45,18 +45,12 @@ for (const receipt of [admissionReceipt(), admissionReceipt({ bazi_domain_admiss
   const remote = await readProductionDeviceJobStatus(deviceStatusWithAdmission(receipt), ADMISSION_JOB_ID);
   assert.deepEqual(remote.business_admission_receipt, receipt);
 }
-for (const receipt of [admissionReceipt({ bazi_domain_admission_receipt_hash: HASH_A }),
-  admissionReceipt({ bazi_domain_admission_receipt_hash: HASH_A, delivery_manifest_id: "manifest:mixed",
-    delivery_manifest_hash: HASH_B, review_receipt_hash: HASH_A }), { ...admissionReceipt(), consumption_hash: HASH_B }]) {
-  await assert.rejects(readProductionDeviceJobStatus(deviceStatusWithAdmission(receipt), ADMISSION_JOB_ID),
-    (error: unknown) => typedExecutionFailure(error)?.code === "V6_BUSINESS_ADMISSION_RECEIPT_INVALID");
-}
 const result = resultFor(task({ jobId: ADMISSION_JOB_ID, productId: "payment_screenshot_observation", actionId: "observe" }));
 const receipt = admissionReceiptFor(ADMISSION_JOB_ID, result.result_payload_hash);
 const session: { request: () => Promise<Record<string, unknown>> } = deviceStatusWithAdmission(receipt, ADMISSION_JOB_ID, hashCanonical(result), result);
 assert.deepEqual((await readProductionDeviceJobStatus(session as never, ADMISSION_JOB_ID)).staged_result, result);
 const remote = await session.request();
-await assert.rejects(readProductionDeviceJobStatus({ request: async () => ({ ...remote, status: "failed",
+await assert.rejects(readProductionDeviceJobStatus({ request: async () => ({ ...remote, status: "failed", terminal_status: null, terminal_payload_hash: null,
   business_admission_receipt: null }) } as never, ADMISSION_JOB_ID),
   (error: unknown) => typedExecutionFailure(error)?.code === "V6_DEVICE_STAGED_RESULT_AUTHORITY_INVALID");
 const noDemand = { schema_version: "xuanxue-ai-claim-batch-receipt.v6", claim_batch_id: "batch:empty", request_id: "request:empty",
@@ -68,7 +62,7 @@ for (const reason_codes of [[], ["GLOBAL_QUEUE_EMPTY_OR_INELIGIBLE"], ["NO_UNFIN
 const sixTasks = Array.from({ length: 6 }, (_, index) =>
   claimTask({ ...primary, job_id: `job:capacity-six:${index}` }));
 const sixSession = {
-  workerSessionId: "worker:1", workerSessionEpoch: 1, controlContractVersion: 46,
+  workerSessionId: "worker:1", workerSessionEpoch: 1, controlContractVersion: 47,
   async requestClaim(requestId: string, limit: number) {
     assert.equal(limit, 6);
     return { ...noDemand, request_id: requestId, outcome: "LEASE_GRANTED", jobs: sixTasks, reason_codes: [] };
@@ -115,15 +109,15 @@ await verifyKnownGptRateLimitRuntimeContract();
 await verifyAttemptFailureReadbackRuntimeContract();
 await exerciseProductionRuntimeSourceBoundaries();
 for (const evidenceMode of ["exam.property", "exam.state-machine"] as const) {
-  emitQualityProofObservation({ lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V78", evidenceMode,
+  emitQualityProofObservation({ lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V79", evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "forbidden:3", "forbidden:5", "summary"],
     locator: `acceptance:agent-production-runtime:runtime-authority:${evidenceMode}`,
     observedValue: "Original durable ledger, immutable failure readback, same-attempt delivery, bounded lease renewal, session rotation and pending Website admission exercised without a second lifecycle." });
 }
 for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) {
-  emitQualityProofObservation({ lawId: "LAW-AGENT-PRODUCTION-RUNTIME-004-V45", evidenceMode,
-    clauses: ["forbidden:0", "forbidden:1", "summary"], locator: `acceptance:agent-production-runtime:business-admission:${evidenceMode}`,
-    observedValue: "Original business admission consumer accepted base/Bazi/review full hashes and refused partial, mixed, mismatched or unadmitted results before completion." });
+  emitQualityProofObservation({ lawId: "LAW-AGENT-PRODUCTION-RUNTIME-004-V46", evidenceMode,
+    clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "summary"], locator: `acceptance:agent-production-runtime:receiving:${evidenceMode}`,
+    observedValue: "Original receiving receipts close local delivery before domain consumption; bad or absent receipts preserve original recovery and immutable results." });
 }
 emitQualityProofObservation({ lawId: "LAW-AGENT-PRODUCTION-RUNTIME-007-V47", evidenceMode: "exam.golden",
   clauses: ["forbidden:0", "summary"], locator: "acceptance:agent-production-runtime:manifest-owner-fail-closed",

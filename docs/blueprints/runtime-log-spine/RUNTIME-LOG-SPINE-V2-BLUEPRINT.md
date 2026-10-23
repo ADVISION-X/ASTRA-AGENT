@@ -7,7 +7,7 @@
   "status": "active",
   "owner": "runtime-log-spine",
   "lawIds": [
-    "LAW-RUNTIME-LOG-SPINE-001-V7",
+    "LAW-RUNTIME-LOG-SPINE-001-V8",
     "LAW-RUNTIME-LOG-SPINE-002-V4",
     "LAW-RUNTIME-LOG-SPINE-003-V6"
   ],
@@ -22,9 +22,9 @@
     {"contractRef":"docs/specs/runtime-log-spine/runtime-log-event-v2.spec.json","from":{"domain":"local-browser-session","repo":"local"},"to":{"domain":"runtime-log-spine","repo":"local"}}
   ],
   "prohibitedDependencyEdges": [
-    {"from":{"domain":"runtime-log-spine","repo":"local"},"to":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-RUNTIME-LOG-SPINE-001-V7"},
-    {"from":{"domain":"runtime-log-spine","repo":"local"},"to":{"domain":"gpt","repo":"local"},"lawId":"LAW-RUNTIME-LOG-SPINE-001-V7"},
-    {"from":{"domain":"runtime-log-spine","repo":"local"},"to":{"domain":"local-browser-session","repo":"local"},"lawId":"LAW-RUNTIME-LOG-SPINE-001-V7"}
+    {"from":{"domain":"runtime-log-spine","repo":"local"},"to":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-RUNTIME-LOG-SPINE-001-V8"},
+    {"from":{"domain":"runtime-log-spine","repo":"local"},"to":{"domain":"gpt","repo":"local"},"lawId":"LAW-RUNTIME-LOG-SPINE-001-V8"},
+    {"from":{"domain":"runtime-log-spine","repo":"local"},"to":{"domain":"local-browser-session","repo":"local"},"lawId":"LAW-RUNTIME-LOG-SPINE-001-V8"}
   ]
 }
 ```
@@ -75,7 +75,7 @@ causedByEventId?
 
 `span.terminal` 只允许 `succeeded|failed|interrupted`；同一 span 至多一个 terminal。failure 必须保存稳定 code、responsible owner、impact、存在时的 allowlisted 原生 cause 和可读 authority/evidence ref。Browser、GPT 与跨仓 HTTP 外层不得把原生原因统一覆盖成 `BROWSER_INFRASTRUCTURE_FAILED` 或其它通用码。不得保存 `retryable` 布尔、任意 recovery 字符串、task state 或通用 payload bag。
 
-failure `impact` 的唯一判定来源固定为：同一失败终结时，进程内是否已携带上游 runtime log cause event 唯一决定结果——携带则必须写 `CONSEQUENTIAL` 且同时写该 `causedByEventId`，未携带才写 `BLOCKING` 且不得写 `causedByEventId`；`CLEANUP` 仍由现役非阻断清理路径独立持有。同一 Owner 的全部失败终结路径必须共用这一判定：失败以 typed result 返回还是以异常抛出，属于实现形态，不得产生不同 `impact`，也不得在跨层转换中丢弃 cause。任一层把已有上游 cause 的失败记为独立 `BLOCKING`，即构成 `LAW-RUNTIME-LOG-SPINE-001-V7` 禁止的“冒充全部独立阻断根”，必须由唯一原生质检失败关闭。本段只记录 `impact` 与 `causedByEventId` 的一致性结构，不新增字段、第二因果链、诊断表或恢复语义，也不自行创设禁令或解冻程序；其效力来自上述 active law。
+failure `impact` 的唯一判定来源固定为：同一失败终结时，进程内是否已携带上游 runtime log cause event 唯一决定结果——携带则必须写 `CONSEQUENTIAL` 且同时写该 `causedByEventId`，未携带才写 `BLOCKING` 且不得写 `causedByEventId`；`CLEANUP` 仍由现役非阻断清理路径独立持有。同一 Owner 的全部失败终结路径必须共用这一判定：失败以 typed result 返回还是以异常抛出，属于实现形态，不得产生不同 `impact`，也不得在跨层转换中丢弃 cause。任一层把已有上游 cause 的失败记为独立 `BLOCKING`，即构成 `LAW-RUNTIME-LOG-SPINE-001-V8` 禁止的“冒充全部独立阻断根”，必须由唯一原生质检失败关闭。本段只记录 `impact` 与 `causedByEventId` 的一致性结构，不新增字段、第二因果链、诊断表或恢复语义，也不自行创设禁令或解冻程序；其效力来自上述 active law。
 
 `cloud.claim` terminal 必须使用 `RuntimeLogEventV2` 合同 V3 唯一新增的封闭 `claimDiagnostics` 记录 Website 已返回的 `outcome + claimed_count + reason_codes`。该对象只允许三个字段：outcome 取 `LEASE_GRANTED|NO_ELIGIBLE_JOB|CAPACITY_ZERO|CLAIM_BLOCKED|DRAINING`，claimed_count 为 0..10 整数且 `LEASE_GRANTED` 当且仅当大于零，reason_codes 为最多 32 个 machine code；只有 `operation=cloud.claim` 且已经取得有效 Website receipt 时才允许并必须存在。零任务仍是成功终态，但不得丢失 Website 给出的安全原因；请求在取得 receipt 前失败时不得伪造该对象。它只解释本次 claim，不得成为任务状态、恢复裁决或通用 payload bag。
 

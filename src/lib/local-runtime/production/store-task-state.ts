@@ -82,25 +82,6 @@ export abstract class ProductionStoreTaskState extends ProductionStoreSourceRead
     return terminals.some((row) => terminalBodyAttemptId(row.body_blob) === attemptId);
   }
 
-  /** Obey the Website's refusal: drop the dead candidate so its seat is freed and a fresh attempt can replace it. */
-  public closeAttemptRefusedByWebsite(jobId: string, attemptId: string, stagedHash: `sha256:${string}`): void {
-    this.database.transaction(() => {
-      const task = this.readTask(jobId);
-      const changed = task?.status === "failed" && task.current_attempt_id === attemptId
-        && task.staged_result !== null
-        && hashCanonical(task.staged_result) === stagedHash
-        ? this.database.prepare(`update production_tasks
-            set staged_result_json=null,attempt_failure_json=null,current_reason='WEBSITE_REFUSED_RESULT',updated_at=?
-          where job_id=? and status='failed' and current_attempt_id=? and staged_result_json is not null`)
-          .run(now(), jobId, attemptId)
-        : null;
-      if (changed?.changes !== 1) {
-        throw executionFailure("failed", "PRODUCTION_REFUSED_RESULT_CLOSE_CONFLICT");
-      }
-      this.supersedeUnsentWritesForWebsiteAttempt(jobId);
-    })();
-  }
-
   public acceptTaskAfterSourceHandoff(
     task: WebsiteAgentTask,
     attemptId: string,
@@ -303,7 +284,7 @@ export abstract class ProductionStoreTaskState extends ProductionStoreSourceRead
       }
       if (changed.changes === 1) {
         this.database.prepare(`update production_outbox set last_error='BUSINESS_ADMITTED'
-          where instr(path,?)>0 and sent_at is null`
+          where kind<>'provider_cooldown' and instr(path,?)>0 and sent_at is null`
         ).run(jobPathMarker(jobId));
         this.database.prepare(`update production_outbox
           set last_error='BROWSER_CLEANUP_PENDING'

@@ -146,7 +146,12 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
       safety_notes: rawText, provider_extra: extra }, route);
     assert.deepEqual(received.report_summary, prose);
     assert.deepEqual(received.interpretation_blocks, blocks);
-    for (const field of ["uncertainties", "limitations", "safety_notes"]) assert.deepEqual(received[field], [rawText]);
+    for (const field of ["uncertainties", "limitations", "safety_notes"]) assert.equal(received[field], rawText);
+    const notes = { ...output, uncertainties: prose, limitations: rawText,
+      safety_notes: [rawText, { extra: [prose, 0, false, null] }] };
+    const originalNotes = JSON.stringify(notes);
+    assert.deepEqual(parseProductResult(task, notes, route), notes);
+    assert.equal(JSON.stringify(notes), originalNotes);
     assert.deepEqual(received.provider_extra, extra);
     assert.throws(() => parseProductResult(task, { ...output, schema_version: "wrong" }, route), /SCHEMA_VERSION_INVALID/u);
     for (const key of ["chart_ref", "chart_version", "chart_hash", "fact_semantic_manifest_ref", "manifest_hash"]) {
@@ -163,11 +168,6 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
   await exerciseConfirmedSubmitRecovery(plugin, flowFixture);
   const actualPrompt = String(run.calls.find(call => call.child === "write_exact_gpt_prompt")!.input.prompt);
   assertSkillPrompt(actualPrompt, route.action_id, route.result_contract);
-  // This checks delivery of the same product-owned instructions, not the meaning or quality of an AI answer.
-  for (const fragment of ['`chart_fact`', '`reviewed_rule`', '`classical_text`', '同一原 occurrence',
-    'literal null', 'source_object_ref 或 source_pointer', '不能填作报告引用类型']) {
-    assert.ok(actualPrompt.includes(fragment));
-  }
   assert.equal(actualPrompt.includes('Website 已授权结果修订'), false);
   const revisionFixture = { ...flowFixture, resultRevision: { revision: 1,
     priorRejection: { receipt_hash: FIXTURE_HASH, rejected_result_payload_hash: FIXTURE_HASH_B,

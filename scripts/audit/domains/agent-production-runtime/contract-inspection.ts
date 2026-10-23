@@ -6,10 +6,10 @@ import type { InspectorContext, InspectorFinding } from "../../shared/inspector-
 import { producerClaimRoutesFor } from "../../shared/proof-observation.js";
 
 export const LAWS = {
-  core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V78",
+  core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V79",
   credential: "LAW-AGENT-PRODUCTION-RUNTIME-002-V12",
   route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V49",
-  admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V45",
+  admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V46",
   database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V43",
   storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V47",
   staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V47",
@@ -70,20 +70,8 @@ export const rejectingComparison = (node: Node | undefined, left: string, right:
   booleanTerms(node, SyntaxKind.BarBarToken).some((term) => Node.isBinaryExpression(term)
     && term.getOperatorToken().getKind() === SyntaxKind.ExclamationEqualsEqualsToken
     && term.getLeft().getText() === left && term.getRight().getText() === right);
-const returnedExpression = (node: Node | undefined): Node | undefined => {
-  if (Node.isArrowFunction(node)) {
-    const body = node.getBody();
-    if (!Node.isBlock(body)) return body;
-  }
-  const returns = node?.getDescendantsOfKind(SyntaxKind.ReturnStatement) ?? [];
-  return returns.length === 1 ? returns[0]?.getExpression() : undefined;
-};
-const conjunct = (node: Node | undefined, left: string, right: string): boolean =>
-  booleanTerms(node, SyntaxKind.AmpersandAmpersandToken).some((term) => Node.isBinaryExpression(term)
-    && term.getOperatorToken().getKind() === SyntaxKind.EqualsEqualsEqualsToken
-    && term.getLeft().getText() === left && term.getRight().getText() === right);
 const hasError = (node: Node | undefined, code: string): boolean => calls(node, "executionFailure")
-  .some((call) => literal(call.getArguments()[1]) === code);
+  .some(call => literal(call.getArguments()[1]) === code);
 const exactProperties = (node: Node | undefined, expected: readonly string[]): boolean => {
   const object = objectFor(node);
   return object !== undefined && same(object.getProperties().map((property) =>
@@ -172,69 +160,27 @@ const inspectGeneratedImageProjection = (context: InspectorContext, findings: In
     "Provider projection must transport decoded dimensions without geometry restrictions.");
 };
 
-const admissionKeySetsAreExact = (source: SourceFile): boolean => {
-  const keys = returnedExpression(bodyFor(source, "exactAdmissionKeys"));
-  return Node.isBinaryExpression(keys)
-    && keys.getOperatorToken().getKind() === SyntaxKind.EqualsEqualsEqualsToken
-    && callNames(keys.getLeft()).has("Object.keys")
-    && calls(keys.getLeft(), "Object.keys")[0]?.getArguments()[0]?.getText() === "row"
-    && calls(keys.getLeft(), "JSON.stringify").length === 1
-    && calls(keys.getRight(), "JSON.stringify").length === 1
-    && keys.getRight().getDescendantsOfKind(SyntaxKind.SpreadElement).map((spread) => spread.getExpression().getText()).join(",")
-      === "admissionBaseKeys,extra"
-    && calls(keys).filter((call) => Node.isPropertyAccessExpression(call.getExpression())
-      && call.getExpression().getText().endsWith(".sort")).length === 2;
-};
-const admissionValuesAreValid = (source: SourceFile): boolean => {
-  const base = returnedExpression(bodyFor(source, "admissionBaseValid"));
-  const extensions = booleanTerms(returnedExpression(bodyFor(source, "admissionExtensionValid")), SyntaxKind.BarBarToken);
-  return conjunct(base, "row.job_id", "jobId") && conjunct(base, "row.consumption_hash", "expectedHash")
-    && conjunct(base, "row.outcome", '"completed"')
-    && conjunct(base, "row.schema_version", '"xuanxue-ai-business-admission-receipt.v6"')
-    && calls(base, "productionHash").some((call) => call.getArguments()[0]?.getText() === "row.result_payload_hash")
-    && extensions.length === 3 && conjunct(extensions[0], "kind", '"base"')
-    && conjunct(extensions[1], "kind", '"bazi"') && conjunct(extensions[2], "kind", '"review"')
-    && ["row.bazi_domain_admission_receipt_hash", "row.delivery_manifest_hash"].every((value) =>
-      calls(extensions[1], "productionHash").some((call) => call.getArguments()[0]?.getText() === value))
-    && calls(extensions[2], "productionHash").some((call) => call.getArguments()[0]?.getText() === "row.review_receipt_hash");
-};
 const inspectAdmission = (context: InspectorContext, findings: InspectorFinding[]): void => {
-  const path = runtimePath("cloud-reconciliation-client"), source = sourceFor(context, path);
-  const kind = bodyFor(source, "admissionKind"), hash = bodyFor(source, "admissionHash");
-  const parser = bodyFor(source, "parseBusinessAdmissionReceipt");
-  const hashArgument = calls(hash, "hashCanonical")[0]?.getArguments()[0];
-  const hashFields = hashArgument?.getDescendantsOfKind(SyntaxKind.PropertyAssignment).map((property) => property.getName()) ?? [];
-  if (Node.isObjectLiteralExpression(hashArgument)) hashFields.push(...hashArgument.getProperties()
-    .filter(Node.isPropertyAssignment).map((property) => property.getName()));
-  const parseGuard = parser?.getDescendantsOfKind(SyntaxKind.IfStatement).find((statement) =>
-    callNames(statement.getExpression()).has("admissionBaseValid"));
-  const variants = calls(kind, "exactAdmissionKeys").map((call) => call.getArguments()[1]?.getText());
-  const kindBranches = kind?.getDescendantsOfKind(SyntaxKind.IfStatement) ?? [];
-  const kindValues = kindBranches.map((branch) => {
-    const statement = branch.getThenStatement();
-    return Node.isReturnStatement(statement) ? literal(statement.getExpression()) : undefined;
-  });
-  const parserRejects = booleanTerms(parseGuard?.getExpression(), SyntaxKind.BarBarToken);
-  const valid = same(variants, ["[]", "admissionBaziKeys", "admissionReviewKeys"])
-    && admissionKeySetsAreExact(source) && admissionValuesAreValid(source) && same(kindValues, ["base", "bazi", "review"])
-    && kindBranches.every((branch) => Node.isCallExpression(unwrap(branch.getExpression()))
-      && unwrap(branch.getExpression()).getText().startsWith("exactAdmissionKeys("))
-    && parserRejects.length === 3 && parserRejects.every((term) => Node.isPrefixUnaryExpression(term)
-      && term.getOperatorToken() === SyntaxKind.ExclamationToken)
-    && ["job_id", "result_payload_hash", "consumer_ref", "outcome", "bazi_domain_admission_receipt_hash",
-      "delivery_manifest_id", "delivery_manifest_hash", "review_receipt_hash"].every((field) => hashFields.includes(field))
-    && callNames(parseGuard?.getExpression()).has("admissionHash")
-    && callNames(parseGuard?.getExpression()).has("admissionExtensionValid")
-    && hasError(parseGuard?.getThenStatement(), "V6_BUSINESS_ADMISSION_RECEIPT_INVALID")
-    && calls(parser, "freezeAdmission").length === 1;
-  reject(findings, LAWS.admission, "static.contract", path, "complete-admission-contract", valid,
-    "Admission must distinguish exact base/Bazi/review keys and reject incomplete full canonical hash before returning authority.");
+  const path = runtimePath("contracts"), source = sourceFor(context, path);
+  const parser = bodyFor(source, "parseTerminalReceipt");
+  const guard = parser?.getDescendantsOfKind(SyntaxKind.IfStatement).find(statement =>
+    rejectingComparison(statement.getExpression(), "receipt.job_id", "expected.job_id"));
+  const fields = ["job_id", "terminal_status", "payload_hash", "worker_session_id", "worker_session_epoch"];
+  const schemaUse = calls(parser, "TerminalReceiptSchema.safeParse")[0]?.getExpression();
+  const valid = calls(parser, "TerminalReceiptSchema.safeParse").length === 1
+    && Node.isPropertyAccessExpression(schemaUse)
+    && schemaUse.getExpression().getSymbol() === source.getVariableDeclaration("TerminalReceiptSchema")?.getNameNode().getSymbol()
+    && fields.every(field => rejectingComparison(guard?.getExpression(), `receipt.${field}`, `expected.${field}`))
+    && calls(guard, "executionFailure").some(call => literal(call.getArguments()[1]) === "V6_TERMINAL_RECEIPT_MISMATCH")
+    && source.getVariableDeclaration("TerminalReceiptSchema")?.getText().includes("failure: z.null()") === true;
+  reject(findings, LAWS.admission, "static.contract", path, "receiving-receipt-contract", valid,
+    "The original terminal parser must bind successful receiving to the original request's job, result and session.");
 };
 
 const inspectDependencies = (context: InspectorContext, findings: InspectorFinding[]): void => {
   for (const [name, id, version] of [
     ["website-agent-task-result", "ai-acceptance.website-agent-task-result", 22],
-    ["xuanxue-ai-production-v6", "ai-acceptance.xuanxue-ai-production-v6", 46],
+    ["xuanxue-ai-production-v6", "ai-acceptance.xuanxue-ai-production-v6", 47],
   ] as const) {
     const path = `docs/specs/agent-production-runtime/${name}.dependency.spec.json`;
     const dependency = JSON.parse(read(context, path)) as { contract: Record<string, unknown>; lawIds: string[] };

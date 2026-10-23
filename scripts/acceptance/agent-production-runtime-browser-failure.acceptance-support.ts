@@ -159,12 +159,12 @@ try {
   await reconcilePendingAttemptFailures(state);
   const reconciled = store.readTask(websiteTask.job_id);
   assert.equal(reads, 2,
-    "consume-current-result must read the failure disposition and then business admission");
+    "consume-current-result must read the failure disposition and then receiving authority");
   assert.deepEqual(reconciled?.attempt_failure, failure,
-    "consume-current-result must preserve the first failure fact until Website admission");
+    "consume-current-result must preserve the first failure fact until Website receiving is confirmed");
   assert.deepEqual(reconciled?.staged_result, staged,
-    "consume-current-result must retain the exact staged result for admission");
-  assert.equal(reconciled?.current_reason, "BUSINESS_ADMISSION_PENDING");
+    "consume-current-result must retain the exact staged result for receiving");
+  assert.equal(reconciled?.current_reason, "RESULT_AUTHORITY_RECONCILIATION_PENDING");
 } finally {
   store.close();
   await rm(temporary, { recursive: true, force: true });

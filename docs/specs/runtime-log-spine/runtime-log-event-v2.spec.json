@@ -5,7 +5,7 @@
   "version": 3,
   "owner": "runtime-log-spine",
   "lawIds": [
-    "LAW-RUNTIME-LOG-SPINE-001-V7",
+    "LAW-RUNTIME-LOG-SPINE-001-V8",
     "LAW-RUNTIME-LOG-SPINE-002-V4",
     "LAW-RUNTIME-LOG-SPINE-003-V6"
   ],

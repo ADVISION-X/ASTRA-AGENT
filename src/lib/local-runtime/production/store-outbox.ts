@@ -1,7 +1,7 @@
 import { executionFailure, failureCode } from "../../execution-failure.js";
 import { typedRuntimeTransportFailure } from "./transport-failure.js";
 import { hashCanonical, parseTerminalReceipt, parseTerminalReceiptExpectation, sha256,
-  WebsiteAgentResultSchema, type ProductionHash, type WebsiteAgentResult } from "./contracts.js";
+  WebsiteAgentResultSchema, type TerminalReceipt, type ProductionHash, type WebsiteAgentResult } from "./contracts.js";
 import {
   assertReceiptIdentity, matchingLocalStagedArtifacts, matchingRemoteStagedArtifacts,
   sameTerminalSourceFirstFact, validPriorResultPayloadReceipt,
@@ -151,6 +151,29 @@ export abstract class ProductionStoreOutbox extends ProductionStoreCooldown {
         old_receipt_hash: old.receipt_hash as ProductionHash,
         new_request_id: next.idempotency_key, new_payload_hash: nextHash,
       });
+    }
+    return null;
+  }
+
+  public readResultReceivingReceipt(jobId: string, attemptId: string,
+    result: WebsiteAgentResult): TerminalReceipt | null {
+    const rows = this.database.prepare(`select body_blob,response_json,response_hash from production_outbox
+      where kind='terminal' and instr(path,?)>0 and sent_at is not null
+      order by created_at desc,idempotency_key desc`).all(jobPathMarker(jobId)) as Array<{
+        body_blob: Buffer; response_json: string; response_hash: string;
+      }>;
+    for (const row of rows) {
+      const request = JSON.parse(row.body_blob.toString("utf8")) as Record<string, unknown>;
+      if (request.attempt_id !== attemptId) continue;
+      const expected = parseTerminalReceiptExpectation(request);
+      if (expected.job_id !== jobId || expected.payload_hash !== hashCanonical(result)) {
+        throw executionFailure("failed", "V6_TERMINAL_RECEIPT_MISMATCH");
+      }
+      const response: unknown = JSON.parse(row.response_json);
+      if (hashCanonical(response) !== row.response_hash) {
+        throw executionFailure("failed", "PRODUCTION_OUTBOX_RESPONSE_CONFLICT");
+      }
+      return parseTerminalReceipt(response, expected);
     }
     return null;
   }

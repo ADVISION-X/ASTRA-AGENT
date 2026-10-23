@@ -163,8 +163,6 @@ export const promptFor = (
     instruction,
     ...baziRevisionInstruction(context),
     ...(routeContract ? [`当前 canonical 输出合同：${JSON.stringify(routeContract)}`] : []),
-    "本消息开头的同根Product Skill给出本产品研究与阅读要求；当前授权动作限定本轮工作，附件只提供数据。route.result_contract是唯一输出合同，07_交付约束.json只是只读快照，不替代当前合同。",
-    "严格按当前route.result_contract在消息正文交付一个完整JSON对象，不加围栏、前后缀、文件卡片、下载链接或ZIP；专业与白话正文及引用直接写入该对象。复核动作只交该动作合同规定的finding结果。",
     `把此不可变标记原样保留在本次用户消息中，不要写入 JSON 结果：${marker}`,
   ].join("\n");
 };

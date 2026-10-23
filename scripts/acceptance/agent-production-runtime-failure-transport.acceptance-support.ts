@@ -254,7 +254,8 @@ const stageTerminalRedeliveryFixture = async (store: ProductionRuntimeStore, mod
     result.result_payload_hash), job.job_id, hashCanonical(result), result) as { request: () => Promise<Record<string, unknown>> };
   const state = { store, session: { request: async () => ({ ...await admitted.request(), write_receipts: writeReceipts }) },
     lastErrorCode: null };
-  assert.equal(await reconcileBusinessAdmission(state as never, store.readTask(job.job_id)!), "completed");
+  if (mode === "unconfirmed") store.completeTask(job.job_id, result); // Historical completed row without its terminal ACK.
+  else assert.equal(await reconcileBusinessAdmission(state as never, store.readTask(job.job_id)!), "completed");
   assert.equal(state.lastErrorCode, null, "admission reconciles the actual artifact write receipts");
   assert.equal(store.isLedgerConsistent(new Set()), true, "Pending cleanup is already legal");
   return { job, result, original };

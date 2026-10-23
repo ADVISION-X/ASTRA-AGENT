@@ -74,9 +74,10 @@ const assertActiveTaskDrain = async (): Promise<void> => {
 const assertFinalResultDrain = async (): Promise<void> => {
   for (const scenario of ["last-admission", "original-cause"] as const) {
     const dataDir = await mkdtemp(path.join(tmpdir(), "shutdown-final-")), store = new ProductionRuntimeStore(dataDir);
+    const receipts = new Map<string, ReturnType<typeof stageResultForAcceptance>>();
     for (const jobId of ["last-a", "last-b"]) {
       const candidate = task({ jobId, productId: "bazi_ai_full_analysis", actionId: "produce" });
-      store.acceptTask(candidate, "attempt:final"); stageResultForAcceptance(store, jobId, "attempt:final", resultFor(candidate));
+      store.acceptTask(candidate, "attempt:final"); receipts.set(jobId, stageResultForAcceptance(store, jobId, "attempt:final", resultFor(candidate)));
       if (scenario === "original-cause") { store.completeTask(jobId, resultFor(candidate)); store.settleBrowserCleanup(jobId); }
     }
     const logger = createRuntimeLogger({ producer: "shutdown-final", owner: "production-runtime",
@@ -93,7 +94,7 @@ const assertFinalResultDrain = async (): Promise<void> => {
       const jobId = decodeURIComponent(requestPath.split("/").at(-2)!);
       const result = resultFor(store.readTask(jobId)!.task);
       const fixture = passes === 0 ? deviceStatusWithoutAdmission(jobId)
-        : deviceStatusWithAdmission(admissionReceiptFor(jobId, result.result_payload_hash), jobId, hashCanonical(result));
+        : deviceStatusWithAdmission(admissionReceiptFor(jobId, result.result_payload_hash), jobId, hashCanonical(result), null, [receipts.get(jobId)!]);
       return await (fixture as { request(): Promise<unknown> }).request();
     };
     state.iteration = scenario === "original-cause" ? Promise.reject(withRuntimeLogCause(error, priorTerminal.eventId)) : null;
@@ -256,7 +257,7 @@ const createSessionFetch = (
   if (url.endsWith("/internal/ai-production/v6/sessions/open")) return successfulJsonResponse({
     session: {
       device_id: "device:atomic-claim", worker_session_id: "worker-session:atomic-claim",
-      worker_session_epoch: 1, control_contract_version: 46, attestation_seq: 0,
+      worker_session_epoch: 1, control_contract_version: 47, attestation_seq: 0,
     },
     session_credential: credentialFor(1),
   });
@@ -442,7 +443,7 @@ export const exerciseHeartbeatResponseLossRecovery = async (): Promise<void> => 
       opens += 1;
       return successfulJsonResponse({
         session: { device_id: "device:atomic-claim", worker_session_id: "worker-session:atomic-claim",
-          worker_session_epoch: 1, control_contract_version: 46, attestation_seq: serverSequence },
+          worker_session_epoch: 1, control_contract_version: 47, attestation_seq: serverSequence },
         session_credential: credentialFor(serverGeneration),
       });
     }

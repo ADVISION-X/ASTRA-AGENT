@@ -344,12 +344,12 @@ test("each Dynamic mode authenticates its native object, clause binding, and obs
   } as const;
   const routes = {
     browser: { lawId: "LAW-LOCAL-BROWSER-SESSION-001-V4", clauses: ["forbidden:6"] },
-    service: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V78", clauses: ["summary"] },
-    database: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V78", clauses: ["forbidden:0", "forbidden:2"] },
-    storage: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V78", clauses: ["forbidden:2"] },
+    service: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V79", clauses: ["summary"] },
+    database: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V79", clauses: ["forbidden:0", "forbidden:2"] },
+    storage: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V79", clauses: ["forbidden:2"] },
     provider: { lawId: "LAW-GPT-001-V65", clauses: ["forbidden:0", "forbidden:3", "forbidden:7"] },
     authorization: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-002-V12", clauses: ["forbidden:1", "forbidden:2"] },
-    recovery: { lawId: "LAW-RUNTIME-LOG-SPINE-001-V7", clauses: ["summary"] },
+    recovery: { lawId: "LAW-RUNTIME-LOG-SPINE-001-V8", clauses: ["summary"] },
   } as const;
   for (const [kind, observation] of Object.entries(observations)) {
     const evidenceMode = `dynamic.${kind}`;
@@ -1359,7 +1359,7 @@ test("every active law scope is deterministic, owned, unique, and includes all c
 
 test("active mutation inspectors use one DISPATCHED chain inside each law scope", () => {
   const registry = buildRegistry();
-  const agentLaw = registry.laws.find((law) => law.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V78");
+  const agentLaw = registry.laws.find((law) => law.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V79");
   assert.ok(agentLaw);
   const agentTargets = computeTargetPaths(agentLaw, registry);
   const crossOwnerPaths = [
@@ -1869,7 +1869,7 @@ test("every declared Dynamic mode has one exact producer claim route", () => {
 
 test("a law-authorized summary-only Dynamic claim validates against its exact producer fact", () => {
   const binding = {
-    lawId: "LAW-RUNTIME-LOG-SPINE-001-V7", evidenceMode: "dynamic.browser", clauses: ["summary"],
+    lawId: "LAW-RUNTIME-LOG-SPINE-001-V8", evidenceMode: "dynamic.browser", clauses: ["summary"],
     observedValue: "native-runtime-log", proofRunId: "a".repeat(64), candidate: "b".repeat(40),
     producerScript: "acceptance:runtime-log-spine:real-proof",
   };
@@ -1894,7 +1894,7 @@ test("Dynamic Proof routes are separated by native Owner", () => {
     ".catch(() => undefined)", "cleanupVerified: true", "dynamic.recovery",
     "old_attempt_after_restart_rejected", "new_attempt_fresh_started",
   ]) assert.equal(proof.includes(forbidden), false, forbidden);
-  for (const token of ["LAW-AGENT-PRODUCTION-RUNTIME-001-V78", "runtime_schema_exact", "runtime_orphan_directory_count",
+  for (const token of ["LAW-AGENT-PRODUCTION-RUNTIME-001-V79", "runtime_schema_exact", "runtime_orphan_directory_count",
     "AGENT_RUNTIME_OWNER_ISOLATED_RELEASE_PROOF_NOT_ADMITTED"]) assert.ok(proof.includes(token), token);
   for (const adjacentPrefix of ["LAW-GPT-", "LAW-LOCAL-BROWSER-SESSION-", "LAW-RUNTIME-LOG-SPINE-"]) {
     assert.equal(proof.includes(adjacentPrefix), false, adjacentPrefix);
@@ -1965,6 +1965,11 @@ test("Runtime types bind their actual schema and native imports inside the seale
   };
   assert.deepEqual(inspect(), []);
   const mutations = [
+    ["src/lib/local-runtime/production/contracts.ts", "z.infer<typeof TerminalReceiptSchema>", "z.infer<typeof WebsiteAgentTaskSchema>", "resolved-owner-type"],
+    ["src/lib/local-runtime/production/contracts.ts", "z.infer<typeof TerminalReceiptSchema>", "any", "resolved-owner-type"],
+    ["src/lib/local-runtime/production/contracts.ts", "z.infer<typeof TerminalReceiptSchema>", "unknown", "resolved-owner-type"],
+    ["src/lib/local-runtime/production/contracts.ts", "TerminalReceiptSchema =", "TerminalReceiptSchema: any =", "resolved-owner-type"],
+    ["src/lib/local-runtime/production/contracts.ts", 'from "zod"', 'from "wrong-zod"', "resolved-owner-type"],
     ["src/lib/local-runtime/production/transport-protocol.ts", "z.infer<typeof DeviceCredentialSchema>", "z.infer<typeof WorkerSessionCredentialSchema>", "resolved-owner-type"],
     ["src/lib/local-runtime/production/transport-protocol.ts", "z.infer<typeof DeviceCredentialSchema>", "any", "resolved-owner-type"],
     ["src/lib/local-runtime/production/transport-protocol.ts", 'from "zod"', 'from "wrong-zod"', "resolved-owner-type"],

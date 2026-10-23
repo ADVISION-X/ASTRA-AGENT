@@ -15,7 +15,7 @@ const clauses: Record<string, Partial<Record<keyof typeof producers, string[]>>>
     "static.types": staticForbiddenClauses(0), "static.filesystem": staticForbiddenClauses(0) },
   [LAWS.route]: { "static.ast": staticClauses(2), "static.contract": staticForbiddenClauses(0, 1, 3),
     "static.types": staticForbiddenClauses(2), "static.dependency": staticForbiddenClauses(0) },
-  [LAWS.admission]: { "static.ast": staticClauses(1), "static.contract": staticForbiddenClauses(0),
+  [LAWS.admission]: { "static.ast": staticClauses(1, 2), "static.contract": staticForbiddenClauses(0),
     "static.types": staticForbiddenClauses(0) },
   [LAWS.database]: { "static.ast": staticForbiddenClauses(2, 3), "static.sql": staticClauses(0, 1),
     "static.types": staticForbiddenClauses(1) },

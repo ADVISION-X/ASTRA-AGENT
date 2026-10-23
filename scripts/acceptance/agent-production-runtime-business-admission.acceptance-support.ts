@@ -1,10 +1,10 @@
+import Database from "better-sqlite3";
 import { browserExecutionFailure } from "../../src/lib/browser/browser-authority-api.js";
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { hashCanonical } from "../../src/lib/local-runtime/production/contracts.js";
 import { executionFailure } from "../../src/lib/execution-failure.js";
 import { readProductionDeviceJobStatus } from "../../src/lib/local-runtime/production/cloud-reconciliation-client.js";
 import { reconcilePendingAttemptFailures } from "../../src/lib/local-runtime/production/runtime-claim.js";
@@ -18,7 +18,7 @@ import { businessInFlightCount, claimReusesExistingBusinessSlot,
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
 import { readProductionOperationsSnapshot } from "../../src/lib/local-runtime/production/operations-snapshot.js";
 import {
-  HASH_A, HASH_B, HASH_C, admissionReceiptFor, attemptFailureFirstFact, claimTask, deviceStatusWithAdmission,
+  HASH_A, HASH_B, HASH_C, attemptFailureFirstFact, claimTask,
   deviceStatusWithoutAdmission, resultFor, stageResultForAcceptance, task,
 } from "./agent-production-runtime-fixtures.js";
 
@@ -82,18 +82,15 @@ const exerciseWaitNewAndPrivacy = async (
   store.markExecuting(waitNew.job_id);
   stageResultForAcceptance(store, waitNew.job_id, "attempt:wait-new", resultFor(waitNew));
   let releasedWaitNewTarget = 0;
-  let waitNewReleaseAuthority = "";
   assert.equal(await reconcileBusinessAdmission({
     store,
     session: deviceStatusWithoutAdmission(waitNew.job_id, false, "WAIT_NEW_ATTEMPT"),
-    browserAuthority: { releaseJobBoundTarget: async (_jobId: string, authority: string) => {
+    browserAuthority: { releaseJobBoundTarget: async () => {
       releasedWaitNewTarget += 1;
-      waitNewReleaseAuthority = authority;
     } },
     abort: new AbortController(),
   } as never, store.readTask(waitNew.job_id)!), "pending");
   assert.equal(releasedWaitNewTarget, 0);
-  assert.equal(waitNewReleaseAuthority, "");
   assert.deepEqual(store.readTask(waitNew.job_id)?.staged_result, resultFor(waitNew),
     "a valid result remains ready while Website admission is reconciled");
   assert.equal(store.readTask(waitNew.job_id)?.current_reason, "RESULT_AUTHORITY_RECONCILIATION_PENDING");
@@ -142,7 +139,7 @@ const exerciseDeletionControlIntent = async (
   assert.equal(await reconcileBusinessAdmission({
     store, session: deviceStatusWithoutAdmission(pending.job_id, true), activeAbort: new Map(),
   } as never, store.readTask(pending.job_id)!), "pending");
-  assert.equal(store.readTask(pending.job_id)?.current_reason, "BUSINESS_ADMISSION_PENDING",
+  assert.equal(store.readTask(pending.job_id)?.current_reason, "RESULT_AUTHORITY_RECONCILIATION_PENDING",
     "cancel_requested is not physical Website absence and cannot authorize local deletion");
 };
 
@@ -332,25 +329,28 @@ const exerciseCompletedAdmissionCleanup = async (
   let releaseCalls = 0, rejectCleanup!: (error: Error) => void;
   let blockedCleanup: Promise<void> | null = null;
   const abort = new AbortController();
-  for (const kind of ["base", "bazi", "review"] as const) {
+  for (const kind of ["local", "remote", "domain-error"] as const) {
     const accepted = task({ jobId: `job:admission:${kind}`,
       productId: productionTask.product_id, actionId: productionTask.action_id,
       materialRefs: productionTask.material_refs, extra: { parameters: productionTask.parameters } });
     const staged = resultFor(accepted);
     store.acceptTask(accepted, `attempt:${kind}`); store.markExecuting(accepted.job_id);
-    stageResultForAcceptance(store, accepted.job_id, `attempt:${kind}`, staged);
-    const typedReceipt = admissionReceiptFor(accepted.job_id, staged.result_payload_hash,
-      kind === "bazi" ? { bazi_domain_admission_receipt_hash: HASH_A,
-        delivery_manifest_id: "delivery-manifest:1", delivery_manifest_hash: HASH_B }
-        : kind === "review" ? { review_receipt_hash: HASH_A } : {});
+    const receiving = stageResultForAcceptance(store, accepted.job_id, `attempt:${kind}`, staged);
+    if (kind === "local") store.markOutboxSent(receiving.request_id, receiving.response_json);
+    const base = deviceStatusWithoutAdmission(accepted.job_id);
+    const session = { request: async () => {
+      assert.notEqual(kind, "local", "a durable receiving receipt must not wait for another Website request");
+      return { ...await base.request(), write_receipts: [receiving],
+        business_consumer_error: kind === "domain-error" ? "DOMAIN_CONSUMER_FAILED" : null };
+    } };
     assert.equal(await reconcileBusinessAdmission({
-      store, session: deviceStatusWithAdmission(typedReceipt, accepted.job_id, hashCanonical(staged)),
+      store, session,
       browserAuthority: { releaseJobBoundTarget: async () => { throw new Error("ADMISSION_MUST_NOT_CLEAN_BROWSER"); } },
       abort,
     } as never, store.readTask(accepted.job_id)!), "completed");
     assert.equal(store.readTask(accepted.job_id)?.status, "completed");
     assert.equal(store.pendingBrowserCleanupJobIds().includes(accepted.job_id), true);
-    if (kind === "base") blockedCleanup = reconcileCompletedBrowserTargets({
+    if (kind === "local") blockedCleanup = reconcileCompletedBrowserTargets({
       store, abort, browserAuthority: { releaseJobBoundTarget: async () => {
         releaseCalls += 1; await new Promise<void>((_resolve, reject) => { rejectCleanup = reject; });
       } },
@@ -388,7 +388,7 @@ const exercisePendingAdmission = async (
   } as never, store.readTask(pending.job_id)!), "pending");
   assert.deepEqual(store.readTask(pending.job_id)?.staged_result, pendingResult,
     "absence of Website admission must preserve the staged result and await Website authority");
-  assert.equal(store.readTask(pending.job_id)?.current_reason, "BUSINESS_ADMISSION_PENDING");
+  assert.equal(store.readTask(pending.job_id)?.current_reason, "RESULT_AUTHORITY_RECONCILIATION_PENDING");
   assert.equal(businessInFlightCount({ active: new Map(), store } as never), 1,
     "an admission-pending job must retain the only business slot after execution settles");
   assert.equal(businessInFlightCount({ active: new Map([[pending.job_id, Promise.resolve()]]), store } as never), 1,
@@ -396,77 +396,81 @@ const exercisePendingAdmission = async (
   return pending;
 };
 
-const withTerminalReceipt = (jobId: string, payloadHash: string) => {
-  const base = deviceStatusWithoutAdmission(jobId, false, "WAIT_NEW_ATTEMPT");
-  return { request: async () => ({ ...(await base.request()), write_receipts: [{
-    request_id: `receipt:${jobId}`, write_kind: "terminal", payload_hash: HASH_A,
-    response_json: { payload_hash: payloadHash } }] }) } as never;
+const exerciseReceivingReceiptBoundary = async (directory: string, productionTask: ReturnType<typeof task>): Promise<void> => {
+  const dataDir = path.join(directory, "receipt-boundary"); await mkdir(dataDir);
+  let store = new ProductionRuntimeStore(dataDir);
+  const candidate = task({ jobId: "job:receipt-boundary", productId: productionTask.product_id,
+    actionId: productionTask.action_id, materialRefs: productionTask.material_refs, extra: { parameters: productionTask.parameters } });
+  const result = resultFor(candidate); store.acceptTask(candidate, "attempt:receipt");
+  const receiving = stageResultForAcceptance(store, candidate.job_id, "attempt:receipt", result);
+  const base = deviceStatusWithoutAdmission(candidate.job_id, false, "WAIT_NEW_ATTEMPT");
+  const state = (receipt: unknown) => ({ store, session: { request: async () => ({
+    ...await base.request(), business_consumer_error: "DOMAIN_FAILED_AFTER_RECEIVING", write_receipts: [receipt],
+  }) } }) as never;
+  for (const mutation of [{ job_id: "foreign-job" }, { payload_hash: HASH_C },
+    { worker_session_id: "foreign-session" }, { worker_session_epoch: 2 }, { failure: {} }]) {
+    await assert.rejects(reconcileBusinessAdmission(state({ ...receiving,
+      response_json: { ...receiving.response_json, ...mutation } }), store.readTask(candidate.job_id)!));
+    assert.equal(store.readTask(candidate.job_id)?.status, "failed");
+    assert.deepEqual(store.readTask(candidate.job_id)?.staged_result, result);
+  }
+  assert.equal(await reconcileBusinessAdmission(state({ ...receiving, request_id: "foreign-request" }),
+    store.readTask(candidate.job_id)!), "pending");
+  await assert.rejects(reconcileBusinessAdmission(state({ ...receiving, payload_hash: HASH_C }),
+    store.readTask(candidate.job_id)!));
+  await assert.rejects(reconcileBusinessAdmission({ store, session: { request: async () => {
+    throw executionFailure("failed", "CLOUD_TRANSPORT_UNAVAILABLE");
+  } } } as never, store.readTask(candidate.job_id)!));
+  assert.deepEqual(store.readTask(candidate.job_id)?.staged_result, result);
+  const notice = "pending-cooldown";
+  store.enqueue({ idempotency_key: notice, kind: "provider_cooldown", method: "POST", headers: {},
+    path: `/internal/ai-production/v6/jobs/${encodeURIComponent(candidate.job_id)}/provider-cooldown`,
+    body: JSON.stringify({ job_id: candidate.job_id }) });
+  store.markOutboxSent(receiving.request_id, receiving.response_json);
+  store.close(); store = new ProductionRuntimeStore(dataDir);
+  const recovered = { store, session: { workerSessionId: "new-session", workerSessionEpoch: 99,
+    request: async () => { throw new Error("DURABLE_RECEIVING_MUST_NOT_WAIT_FOR_DOMAIN"); } } } as never;
+  assert.equal(await reconcileBusinessAdmission(recovered, store.readTask(candidate.job_id)!), "completed");
+  assert.equal(await reconcileBusinessAdmission(recovered, store.readTask(candidate.job_id)!), "completed");
+  assert.equal(store.readOutboxAuthority(notice)?.lastError, null, "completion cannot swallow a pending provider notice");
+  assert.equal(store.readOutboxAuthority(notice)?.state, "pending");
+  assert.deepEqual(store.readTask(candidate.job_id)?.result, result);
+  store.close();
 };
 
 const exerciseWebsiteRefusedResult = async (
   admissionTemporary: string, productionTask: ReturnType<typeof task>,
 ): Promise<void> => {
-  const refusedDir = path.join(admissionTemporary, "refused");
-  await mkdir(refusedDir);
-  let store = new ProductionRuntimeStore(refusedDir);
-  const refused = task({ jobId: "job:refused:domain",
-    productId: productionTask.product_id, actionId: productionTask.action_id,
-    materialRefs: productionTask.material_refs, extra: { parameters: productionTask.parameters } });
-  const staged = resultFor(refused);
+  const directory = path.join(admissionTemporary, "historical-refusal"); await mkdir(directory);
+  let store = new ProductionRuntimeStore(directory);
+  const refused = task({ jobId: "job:refused:domain", productId: productionTask.product_id,
+    actionId: productionTask.action_id, materialRefs: productionTask.material_refs,
+    extra: { parameters: productionTask.parameters } });
   store.acceptTask(refused, "attempt:refused-1");
-  store.markExecuting(refused.job_id);
-  store.recordAttemptFailure(refused.job_id, "attempt:refused-1",
-    failureFact(refused.job_id, "attempt:refused-1", { code: "BROWSER_BACKPRESSURE" }));
-  stageResultForAcceptance(store, refused.job_id, "attempt:refused-1", staged);
+  const receiving = stageResultForAcceptance(store, refused.job_id, "attempt:refused-1", resultFor(refused));
   const history = store.readResultOutboxHistoryEvidence(refused.job_id, "attempt:refused-1");
-  const state = (session: never) => ({ store, session, active: new Map() }) as never;
-  await reconcileBusinessAdmission(state(withTerminalReceipt(refused.job_id, HASH_C)),
-    store.readTask(refused.job_id)!);
-  assert.deepEqual(store.readTask(refused.job_id)?.staged_result, staged,
-    "a Website terminal receipt for a different result cannot make this result refused");
-  const before = businessInFlightCount({ active: new Map(), store } as never);
-  await reconcileBusinessAdmission(state(withTerminalReceipt(refused.job_id, hashCanonical(staged))),
-    store.readTask(refused.job_id)!);
-  assert.equal(store.readTask(refused.job_id)?.staged_result, null,
-    "the Website signed this exact result yet reports no terminal: its refusal drops the dead candidate");
-  assert.equal(store.readTask(refused.job_id)?.current_reason, "WEBSITE_REFUSED_RESULT");
-  assert.equal(store.readAttemptFailureRaw(refused.job_id), null);
-  assert.deepEqual(store.readResultOutboxHistoryEvidence(refused.job_id, "attempt:refused-1"), history,
-    "the terminal Outbox retains the exact old first fact and all original result history");
+  store.close();
+  const db = new Database(path.join(directory, "production-runtime.sqlite"));
+  db.prepare("update production_tasks set staged_result_json=null,attempt_failure_json=null,current_reason='WEBSITE_REFUSED_RESULT' where job_id=?").run(refused.job_id);
+  db.prepare("update production_outbox set last_error='WEBSITE_ATTEMPT_REPLACED' where idempotency_key=?").run(receiving.request_id);
+  db.close(); store = new ProductionRuntimeStore(directory);
   assert.equal(store.attemptClosedByWebsite(refused.job_id, "attempt:refused-1"), true);
-  assert.equal(businessInFlightCount({ active: new Map(), store } as never), before - 1,
-    "a refused result releases its business seat immediately");
-  assert.equal(store.pendingBusinessAdmissions().some((row) => row.task.job_id === refused.job_id), false);
-  assert.equal(store.isLedgerConsistent(new Set()), true, "a refused attempt leaves a consistent ledger");
-  store.close(); store = new ProductionRuntimeStore(refusedDir);
   const next = claimTask(refused);
   const recovery = await reconcileClaimAttemptFailure({ store } as never,
     { ...next, grant: { ...next.grant, attempt_id: "attempt:refused-2", same_accepted_attempt: false } },
-    { attempt_failure: null } as never, "refused-result", async () => undefined);
-  assert.equal(recovery.stopBeforeProduct, false, "a historical first fact cannot veto the new Website grant after restart");
-  assert.equal(store.acceptTask(refused, "attempt:refused-2").current_attempt_id, "attempt:refused-2",
-    "the Website's new attempt replaces the refused one without a source seal");
-  assert.equal(store.attemptClosedByWebsite(refused.job_id, "attempt:refused-2"), false);
+    { attempt_failure: null } as never, "historical-refusal", async () => undefined);
+  assert.equal(recovery.stopBeforeProduct, false);
+  assert.equal(store.acceptTask(refused, "attempt:refused-2").current_attempt_id, "attempt:refused-2");
+  assert.deepEqual(store.readResultOutboxHistoryEvidence(refused.job_id, "attempt:refused-1"), history);
   store.assertStartupDataIntegrity();
-  store.markExecuting(refused.job_id);
-  stageResultForAcceptance(store, refused.job_id, "attempt:refused-2", staged);
-  assert.equal(store.pendingBusinessAdmissions().some((row) => row.task.job_id === refused.job_id), true,
-    "the replacing attempt stages its own result for Website admission");
-  const provider = task({ jobId: "job:refused:provider-level",
-    productId: productionTask.product_id, actionId: productionTask.action_id,
-    materialRefs: productionTask.material_refs, extra: { parameters: productionTask.parameters } });
-  store.acceptTask(provider, "attempt:provider-1");
-  store.recordAttemptFailure(provider.job_id, "attempt:provider-1",
-    failureFact(provider.job_id, "attempt:provider-1", {}));
-  assert.equal(store.attemptClosedByWebsite(provider.job_id, "attempt:provider-1"), false);
-  assert.throws(() => store.acceptTask(provider, "attempt:provider-2"), /PRODUCTION_SOURCE_HANDOFF_REQUIRED/u,
-    "a Provider-level first failure still needs its source seal before a new attempt");
-  const unclosed = task({ jobId: "job:refused:unclosed",
-    productId: productionTask.product_id, actionId: productionTask.action_id,
-    materialRefs: productionTask.material_refs, extra: { parameters: productionTask.parameters } });
-  store.acceptTask(unclosed, "attempt:unclosed-1");
-  assert.throws(() => store.acceptTask(unclosed, "attempt:unclosed-2"), /PRODUCTION_SOURCE_HANDOFF_REQUIRED/u,
-    "an attempt the Website did not refuse cannot be replaced without a source seal");
+  for (const jobId of ["provider-level", "unclosed"]) {
+    const candidate = { ...refused, job_id: jobId };
+    store.acceptTask(candidate, "attempt:original");
+    if (jobId === "provider-level") store.recordAttemptFailure(jobId, "attempt:original",
+      failureFact(jobId, "attempt:original", {}));
+    assert.equal(store.attemptClosedByWebsite(jobId, "attempt:original"), false);
+    assert.throws(() => store.acceptTask(candidate, "attempt:new"), /PRODUCTION_SOURCE_HANDOFF_REQUIRED/u);
+  }
   store.close();
 };
 
@@ -483,6 +487,7 @@ export const exerciseOperationsAndBusinessAdmission = async (
     await exerciseFailureCapacity(store, productionTask);
     await exerciseBackgroundDeletionSweep(admissionTemporary, productionTask);
     await exerciseWaitNewAndPrivacy(store, productionTask);
+    await exerciseReceivingReceiptBoundary(admissionTemporary, productionTask);
     await exerciseWebsiteRefusedResult(admissionTemporary, productionTask);
     await exerciseAdmissionDeletion(store, admissionTemporary, productionTask, pending);
     store.close();

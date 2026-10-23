@@ -93,6 +93,7 @@ export const deviceStatusWithAdmission = (
   jobId = ADMISSION_JOB_ID,
   terminalPayloadHash: string = HASH_B,
   stagedResult: WebsiteAgentResult | null = null,
+  writeReceipts: readonly unknown[] = [],
 ) => ({
   request: async () => ({
     schema_version: "xuanxue-ai-device-job-status.v6", job_id: jobId, status: "completed",
@@ -102,7 +103,7 @@ export const deviceStatusWithAdmission = (
     next_action_code: "CONSUME_CURRENT_RESULT", terminal_status: "completed",
     attempt_failure: null,
     terminal_payload_hash: terminalPayloadHash, business_admission_receipt: receipt,
-    business_consumer_error: null, accepted_attempt_count: 1, write_receipts: [],
+    business_consumer_error: null, accepted_attempt_count: 1, write_receipts: writeReceipts,
     staged_result: stagedResult, staged_artifact_receipts: [],
   }),
 }) as never;
@@ -230,16 +231,14 @@ export const resultFor = (
 
 export const stageResultForAcceptance = (
   store: ProductionRuntimeStore, jobId: string, attemptId: string, result: WebsiteAgentResult,
-): void => {
+) => {
   const firstRaw = store.readAttemptFailureRaw(jobId);
   const envelopeReceipt = result.result_object_receipt.receipt_hash === HASH_A ? HASH_B : HASH_A;
   const receipts = [result.result_object_receipt.receipt_hash, envelopeReceipt];
   const key = `terminal:acceptance:${jobId}:${attemptId}`;
-  store.stageResultAndEnqueueTerminal({
-    jobId, attemptId, result,
-    terminal: { idempotency_key: key, kind: "terminal",
+  const terminal = { idempotency_key: key, kind: "terminal" as const,
       path: `/internal/ai-production/v6/jobs/${encodeURIComponent(jobId)}/terminal`,
-      method: "POST", headers: {}, body: JSON.stringify({
+      method: "POST" as const, headers: {}, body: JSON.stringify({
         schema_version: "xuanxue-ai-terminal-cas.v6", job_id: jobId,
         attempt_id: attemptId, terminal_status: "completed",
         payload_hash: hashCanonical(result), failure: null,
@@ -247,12 +246,23 @@ export const stageResultForAcceptance = (
         result_object_receipts: receipts,
         terminal_source_first_fact: firstRaw === null ? null
           : { raw_json: firstRaw, hash: sha256(Buffer.from(firstRaw, "utf8")) },
-      }) },
+      }) };
+
+  store.stageResultAndEnqueueTerminal({
+    jobId, attemptId, result, terminal,
     websiteStagedArtifactReceipts: [
       { role: "result_payload", receipt_hash: receipts[0]! },
       { role: "result_envelope", receipt_hash: receipts[1]! },
     ],
   });
+  return { request_id: key, write_kind: "terminal" as const,
+    payload_hash: hashCanonical(JSON.parse(terminal.body)), response_json: {
+      schema_version: "xuanxue-ai-terminal-receipt.v6", job_id: jobId, terminal_status: "completed",
+      payload_hash: hashCanonical(result), failure: null, first_terminal: true,
+      device_id: "device:acceptance", device_epoch: 1, worker_session_id: "session:acceptance",
+      worker_session_epoch: 1, runtime_attestation_receipt_hash: HASH_A,
+    } };
+
 };
 
 const executionGrant = (base: WebsiteAgentTask) => {
@@ -273,12 +283,12 @@ const executionGrant = (base: WebsiteAgentTask) => {
     worker_session_id: "worker:1", worker_session_epoch: 1, lease_token: `lease:${base.job_id}`,
     lease_version: 1, server_now: "2030-01-01T00:00:00.000Z",
     lease_expires_at: "2030-01-01T00:05:00.000Z", renew_after_ms: 20_000,
-    control_contract_version: 46,
+    control_contract_version: 47,
     execution_fence: {
       schema_version: "xuanxue-ai-execution-fence.v6", environment_id: "production", device_id: "device:1",
       device_epoch: 1, worker_session_id: "worker:1", worker_session_epoch: 1, job_id: base.job_id,
       attempt_id: `attempt:${base.job_id}`, lease_version: 1, lease_token_hash: HASH_A,
-      control_contract_version: 46, fence_hash: HASH_B,
+      control_contract_version: 47, fence_hash: HASH_B,
     },
   } as const;
 };

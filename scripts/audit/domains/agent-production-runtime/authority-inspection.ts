@@ -108,20 +108,22 @@ const inspectAdmissionCompletion = (context: InspectorContext, findings: Inspect
   const source = sourceFor(context, runtimePath("runtime-business-admission"));
   const admission = bodyFor(source, "reconcileBusinessAdmission");
   const completion = calls(admission, "state.store.completeTask")[0];
-  const receiptGuard = admission?.getDescendantsOfKind(SyntaxKind.IfStatement).find((statement) =>
-    statement.getExpression().getText() === "!admission");
-  const identityGuard = admission?.getDescendantsOfKind(SyntaxKind.IfStatement).find((statement) =>
-    compare(statement.getExpression(), "admission.result_payload_hash", SyntaxKind.ExclamationEqualsEqualsToken,
-      "staged.result_payload_hash"));
-  reject(findings, LAWS.admission, "static.ast", runtimePath("runtime-business-admission"), "admission-before-completion",
-    completion !== undefined && receiptGuard !== undefined && identityGuard !== undefined
-    && rejectingComparison(identityGuard.getExpression(), "admission.result_payload_hash", "staged.result_payload_hash")
-    && rejectingComparison(identityGuard.getExpression(), "remote.terminal_payload_hash", "hashCanonical(staged)")
-    && receiptGuard.getEnd() < completion.getStart() && identityGuard.getEnd() < completion.getStart()
-    && errors(identityGuard).includes("BUSINESS_ADMISSION_RESULT_HASH_MISMATCH")
-    && receiptGuard.getThenStatement().getDescendantsOfKind(SyntaxKind.ReturnStatement)
-      .some((statement) => literal(statement.getExpression()) === "pending"),
-    "Local completion requires actual Website admission and the same result hash; absence must return pending.");
+  const receiptGuard = admission?.getDescendantsOfKind(SyntaxKind.IfStatement).find(statement =>
+    statement.getExpression().getText().startsWith("!state.store.readResultReceivingReceipt")
+    && statement.getThenStatement().getDescendantsOfKind(SyntaxKind.ReturnStatement)
+      .some(branch => literal(branch.getExpression()) === "pending"));
+  const reader = method(context, "store-outbox", "ProductionStoreOutbox", "readResultReceivingReceipt");
+  reject(findings, LAWS.admission, "static.ast", runtimePath("runtime-business-admission"), "receiving-before-completion",
+    completion !== undefined && receiptGuard !== undefined && receiptGuard.getEnd() < completion.getStart()
+    && calls(admission, "state.store.readResultReceivingReceipt").length === 2
+    && hasCall(admission, "state.store.hydrateRemoteOutboxReceipts")
+    && hasCall(reader, "parseTerminalReceipt") && hasCall(reader, "parseTerminalReceiptExpectation")
+    && rejectingComparison(reader?.getDescendantsOfKind(SyntaxKind.IfStatement).find(statement =>
+      compare(statement.getExpression(), "expected.payload_hash", SyntaxKind.ExclamationEqualsEqualsToken,
+        "hashCanonical(result)"))?.getExpression(), "expected.payload_hash", "hashCanonical(result)")
+    && !admission?.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression).some(access =>
+      ["business_admission_receipt", "business_consumer_error"].includes(access.getName())),
+    "Local completion must use the original Outbox receiving receipt, with no domain admission completion gate.");
 };
 
 const inspectWebsiteLifecycle = (context: InspectorContext, findings: InspectorFinding[]): void => {
@@ -133,7 +135,6 @@ const inspectWebsiteLifecycle = (context: InspectorContext, findings: InspectorF
   const outbox = method(context, "store-outbox", "ProductionStoreOutbox", "deliverOutbox");
   const remoteFailure = bodyFor(sourceFor(context, runtimePath("runtime-claim")), "applyRemoteFailureDisposition");
   const startup = bodyFor(sourceFor(context, runtimePath("runtime-startup")), "reconcileStartupTasks");
-  const admission = bodyFor(sourceFor(context, runtimePath("runtime-business-admission")), "reconcileBusinessAdmission");
   const forbiddenCalls = new Set(["state.store.endUnsentAttemptWrites", "state.store.discardStagedResult",
     "restoreBrowserHostVisibility", "this.releaseAttemptForWebsiteDecision"]);
   const noLocalEnded = productionSources(context).every((source) => !calls(source).some((call) =>
@@ -143,11 +144,11 @@ const inspectWebsiteLifecycle = (context: InspectorContext, findings: InspectorF
   const valid = noLocalEnded && taskClass?.getMethod("discardStagedResult") === undefined
     && taskClass?.getMethod("releaseAttemptForWebsiteDecision") === undefined
     && supersede?.hasModifier(SyntaxKind.PrivateKeyword) === true
-    && JSON.stringify(supersedeOwners) === JSON.stringify(["acceptTaskAfterSourceHandoff", "closeAttemptRefusedByWebsite"])
+    && JSON.stringify(supersedeOwners) === JSON.stringify(["acceptTaskAfterSourceHandoff"])
     && calls(outbox, "executionFailure").some((call) => call.getArguments()[1]?.getText() === "authority.lastError")
     && !hasCall(startup, "state.store.setCurrentReason")
     && compare(remoteFailure, "remote.next_action_code", SyntaxKind.EqualsEqualsEqualsToken, '"WAIT_NEW_ATTEMPT"')
-    && compare(admission, "remote.next_action_code", SyntaxKind.EqualsEqualsEqualsToken, '"WAIT_NEW_ATTEMPT"');
+;
   reject(findings, LAWS.core, "static.ast", runtimePath("runtime-claim"), "no-local-business-lifecycle-adjudication", valid,
     "Restart, failure and undelivered results must remain Website-owned decisions; local Outbox errors cannot end attempts.");
   const accept = taskClass?.getMethod("acceptTaskAfterSourceHandoff");

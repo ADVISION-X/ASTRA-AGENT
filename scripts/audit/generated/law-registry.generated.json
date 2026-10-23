@@ -3,10 +3,10 @@
     {
       "capabilityDomain": "agent-production-runtime",
       "lawIds": [
-        "LAW-AGENT-PRODUCTION-RUNTIME-001-V78",
+        "LAW-AGENT-PRODUCTION-RUNTIME-001-V79",
         "LAW-AGENT-PRODUCTION-RUNTIME-002-V12",
         "LAW-AGENT-PRODUCTION-RUNTIME-003-V49",
-        "LAW-AGENT-PRODUCTION-RUNTIME-004-V45",
+        "LAW-AGENT-PRODUCTION-RUNTIME-004-V46",
         "LAW-AGENT-PRODUCTION-RUNTIME-005-V43",
         "LAW-AGENT-PRODUCTION-RUNTIME-006-V47",
         "LAW-AGENT-PRODUCTION-RUNTIME-007-V47",
@@ -354,7 +354,7 @@
     {
       "capabilityDomain": "runtime-log-spine",
       "lawIds": [
-        "LAW-RUNTIME-LOG-SPINE-001-V7",
+        "LAW-RUNTIME-LOG-SPINE-001-V8",
         "LAW-RUNTIME-LOG-SPINE-002-V4",
         "LAW-RUNTIME-LOG-SPINE-003-V6"
       ],
@@ -458,7 +458,7 @@
       "dependsOnLawIds": [
         "LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V7",
         "LAW-GPT-001-V65",
-        "LAW-RUNTIME-LOG-SPINE-001-V7"
+        "LAW-RUNTIME-LOG-SPINE-001-V8"
       ],
       "enforcementMode": "composite",
       "evidenceModes": [
@@ -475,17 +475,17 @@
       "excludes": [],
       "forbidden": [
         "不得发生：V6 claim、lease、grant、fence 未在 Runtime 唯一入口闭合并先 durable accept，就把任务交给 Mediator 或执行外部副作用；运输控制字段不得进入 Product task，Mediator 只能按 product_id、action_id 与 contract version 路由一次，Runtime 不得决定 Product 的 Prompt、模型、Child 顺序、分支、下一步、内容质量或领域裁决。",
-        "不得发生：同一 Website job 由多个 lifecycle、scheduler、sender、completion Owner、queue 或 store 竞争；job 永久身份只由 job_id、request_hash 与 Website 冻结业务 task 决定，任务公开状态只能是 failed 或 completed。Runtime 不得持久化、配置或自行决定设备当前 N；它只能按跨仓合同安全上限、本地去重后的在途业务数与 executor 可用量提出有界 claim，请求多少不等于授权多少，Website.ai-acceptance 在设备事实行锁内按 ai_production_devices.max_in_flight 唯一裁决新 grant。当前 active execution 与已有 staged result 但尚未取得 Website admission receipt 的同一 job 必须合并计为一个在途业务。",
+        "不得发生：同一 Website job 由多个 lifecycle、scheduler、sender、completion Owner、queue 或 store 竞争；job 永久身份只由 job_id、request_hash 与 Website 冻结业务 task 决定，任务公开状态只能是 failed 或 completed。Runtime 不得持久化、配置或自行决定设备当前 N；它只能按跨仓合同安全上限、本地去重后的在途业务数与 executor 可用量提出有界 claim，请求多少不等于授权多少，Website.ai-acceptance 在设备事实行锁内按 ai_production_devices.max_in_flight 唯一裁决新 grant。当前 active execution 与已有 staged result 但尚未取得 Website 完整结果接收回执 的同一 job 必须合并计为一个在途业务。",
         "不得发生：Runtime、Product、GPT、Browser、Forensics、日志、进程、lease、Target、build、错误码或时钟自行决定 attempt 结束、重领、续跑、新 result revision、新 attempt 或永久停止；Runtime 必须停止当前无授权或危险动作、保全 typed failure/effect fact，并由现役 worker 有限再检查 Website 下一份精确执行授权；只有 Website.ai-acceptance 可以签发该授权；原 first fact/release 已确认且当前 grant 为 ACTIVE_ATTEMPT 时，Runtime 不得再以本地失败分类否决同 attempt durable accept，现实输入仍由 Browser 原 WAL 与当前精确 grant 裁决。",
         "不得发生：lease renew 遇到 5xx、传输不可达或非 JSON/无效回执响应时立即放弃续租，而不在 Website 已签发 lease 的本地剩余预算内以新 request_id 重试同一 lease；该重试只延长同一 lease，不改变 lease_version 或 fence，不构成 attempt 续跑、重领或新 attempt。4xx 类型化拒绝与回执 schema 无效仍必须立即停止，不得重试。",
-        "不得发生：新 attempt 把旧 checkpoint、GPT 内容、conversation、DOM 或执行位置当成本轮 Product 输入；只有两种 Website 已签精确来源允许 Product 从第一入口以原 Forensics checkpoint 零提交接收旧 Provider 答案：其一是逐调用风险 grant 的原来源证明为 settled_reusable 的调用，replay_exhausted 指定调用才可按本次 grant 一次风险输入；其二是 AGENT 原 Outbox Owner 已核旧/新请求身份、不同 payload hash、旧 receipt hash 与精确 409，连同 Browser 全部逐调用 settled checkpoint 封进来源 seal，Website 仅以自身原 staged 对象和 cloud write receipt 在原 job 行锁对摘要及完整结果缺席交叉验证后签发 calls=[] 可复用来源 grant。两种授权都只覆盖精确调用，旧 staged payload、conversation、DOM 和未结算半成品不得成为新 Product 输入；但 Runtime 必须通过各原 Owner 的公开 typed reader 在 Website 新授权前保全并报告旧 first fact、结果候选、Outbox 与 Browser effect 历史。已机械有效的旧结果优先走原身份交付；普通新 attempt 仅在旧结果确证不可恢复且 Website 原 job 事件与 claim receipt 已持久化来源证据后接受；来源证据由同一 Runtime per-job Owner 先收束旧 executor，并在同一 SQLite 事务以原 task 的精确 current_attempt_id、staged_result_json is null、旧来源 hash 与 production_attempt_handoffs 对应 source_attempt_id 的 typed seal 封住旧完成端口后出具；stage + terminal 先成立则 seal 必须失败，typed seal 先成立则旧 attempt 的 stage、first-failure、release-descriptor rebind 与普通同 attempt regrant 必须失败。current_reason 仅是可变诊断投影，不得参与授权、CAS、恢复、容量、stage、Provider submit、删除或完成决定；封口前已有 READY 则只交付原结果，旧 attempt 关闭不得终止同一 Website job 的需求。唯一例外为领域拒收关闭：Website 现役 device-status 的 write_receipts 含 response 载荷哈希等于该暂存结果规范哈希的 completed terminal 写入回执（Website 已签收该结果），却回报 WAIT_NEW_ATTEMPT、无当前 attempt、无 terminal、无 business admission receipt 时，Website 已在自身领域 Consumer 终结并拒收该结果，它不再是可恢复结果；Runtime 必须在同一 SQLite 事务丢弃该 attempt 的暂存结果并释放业务席位，此后 Website 签发、不携带来源证据的不同 attempt grant，按 Website 唯一恢复裁决以精确 CAS 取代旧 current_attempt_id 后接受，不要求 seal 或 source_evidence；新 attempt 是新的 result revision，旧 revision 的 Provider effect 与被拒 payload 不成为新 Product 输入。未取得该 completed terminal 写入回执的 Provider 级 first failure、RESULT_SETTLED_UNUSABLE、GPT_RESPONSE_STOPPED_EMPTY 或未决 Browser effect 仍按上述来源证据规则处理；已有回执绑定的完整结果被领域拒收时，旧 first fact 原字节保留在原 terminal Outbox 与 Website 原事件，当前失败槽随该结果在同一事务退休，不得再作为新 attempt 的阻断条件。Product 仍从第一入口执行。八字父结果只消费 Website 已入库的本轮 locked-fact material。",
+        "不得发生：新 attempt 把旧 checkpoint、GPT 内容、conversation、DOM 或执行位置当成本轮 Product 输入；只有两种 Website 已签精确来源允许 Product 从第一入口以原 Forensics checkpoint 零提交接收旧 Provider 答案：其一是逐调用风险 grant 的原来源证明为 settled_reusable 的调用，replay_exhausted 指定调用才可按本次 grant 一次风险输入；其二是 AGENT 原 Outbox Owner 已核旧/新请求身份、不同 payload hash、旧 receipt hash 与精确 409，连同 Browser 全部逐调用 settled checkpoint 封进来源 seal，Website 仅以自身原 staged 对象和 cloud write receipt 在原 job 行锁对摘要及完整结果缺席交叉验证后签发 calls=[] 可复用来源 grant。两种授权都只覆盖精确调用，旧 staged payload、conversation、DOM 和未结算半成品不得成为新 Product 输入；但 Runtime 必须通过各原 Owner 的公开 typed reader 在 Website 新授权前保全并报告旧 first fact、结果候选、Outbox 与 Browser effect 历史。已机械有效的旧结果优先走原身份交付；普通新 attempt 仅在旧结果确证不可恢复且 Website 原 job 事件与 claim receipt 已持久化来源证据后接受；来源证据由同一 Runtime per-job Owner 先收束旧 executor，并在同一 SQLite 事务以原 task 的精确 current_attempt_id、staged_result_json is null、旧来源 hash 与 production_attempt_handoffs 对应 source_attempt_id 的 typed seal 封住旧完成端口后出具；stage + terminal 先成立则 seal 必须失败，typed seal 先成立则旧 attempt 的 stage、first-failure、release-descriptor rebind 与普通同 attempt regrant 必须失败。current_reason 仅是可变诊断投影，不得参与授权、CAS、恢复、容量、stage、Provider submit、删除或完成决定；封口前已有 READY 则只交付原结果，旧 attempt 关闭不得终止同一 Website job 的需求。Product 仍从第一入口执行。八字父结果只消费 Website 已入库的本轮 locked-fact material。",
         "不得发生：Runtime 为结果、artifact、checkpoint 或 failure 建立第二 Outbox、重投器或恢复链；同一机械有效结果只经现役 Outbox 幂等交付，stage 与 terminal intent 同一 SQLite 事务持久化，Browser cleanup/日志/旧 first failure 不得撤销 stage。Provider 同一已输入 effect 由 Browser WAL 守住零重复输入；只有 Website 基于原结果不可取得、Browser 完整 effect 历史及现役有界 readback 耗尽或 typed unaddressable 证据，在原 job 上持久签发绑定指定调用的新 result revision 风险授权时，Browser 才可对新 effect 一次可能重复输入，AGENT 不自行授权。",
         "不得发生：Runtime 直接读取 Browser 私有 WAL、Target、Document 或旧 GPT/Forensics 正文，或从错误字符串猜测相邻 Owner 结论；跨 Owner 只消费其公开 typed 结果、first fact、候选/Outbox receipt 与 Browser 全历史 effect/locator/input-quiescence 证明；跨仓 V45 的 first_fact_raw_hash 也只可从原失败的 targetless 稳定字段形成，原 failure evidence_hash 仅在本地核原 WAL、不得进入新 source 身份；跨仓 V45 的 WAL、anchor、source-effect-set 与 history hash 必须是剔除 Target/Document 及其派生 grant/payload 的稳定投影，原始 WAL authority 和完整 recovery payload 只在 Browser 内部验真，且只为同一 Website job 的结果交付或已鉴权 claim 证据交接使用。 V45 source保持原exact字段、canonical hash与完整历史；input_quiescence_proof为required nullable字段，unknown/possible允许null，null不代表zero，非null只接受原真实terminal_wal；不得以历史unresolved_count或quiescence缺席作为当前授予资格。原sealed body/hash不刷新，合法封存超24小时仍可沿原身份交付，未来时间或倒序时间仍拒绝。",
-        "不得发生：Runtime 违反 FROZEN-WEBSITE-RESULT-DEMAND-001；Website 保持同一 job 的未完成业务需求并唯一决定 attempt 结束、有限 retry_not_before、新 attempt、永久撤权与 completed，Runtime 不得创建 replacement job、第二状态或恢复裁决。 未 admission 且未被 Website 持久终止的 job 在进程重启、普通代码/环境故障或尝试失败后必须仍有现役 worker 可执行或有界再检查的下一动作；blocked Runtime handle 不算 worker 已恢复。 历史未决与单 job 远端读取失败不能中断同批其它合法 job；原有限快照逐 job 处理，exact Website absence 沿原清理，非 absence 错误保留该 job typed 原因并由原 worker 下一轮再查。完成 Target 清理只核该 job 自身结果/Outbox并逐 pending 快照各一次，不因其它 job 未SENT或首张失败使后续饥饿。已SENT或admitted的只读确认不因日志故障丢失，日志故障仍阻止新claim、新mutation及未发云写。满N仍可由原独立recoverable入口接回原seat同job，不增容量、释放API或新状态。",
+        "不得发生：Runtime 违反 FROZEN-WEBSITE-RESULT-DEMAND-001；Website 保持同一 job 的未完成业务需求并唯一决定 attempt 结束、有限 retry_not_before、新 attempt、永久撤权与 completed，Runtime 不得创建 replacement job、第二状态或恢复裁决。 尚未完成交付且未被 Website 持久终止的 job 在进程重启、普通代码/环境故障或尝试失败后必须仍有现役 worker 可执行或有界再检查的下一动作；blocked Runtime handle 不算 worker 已恢复。 历史未决与单 job 远端读取失败不能中断同批其它合法 job；原有限快照逐 job 处理，exact Website absence 沿原清理，非 absence 错误保留该 job typed 原因并由原 worker 下一轮再查。完成 Target 清理只核该 job 自身结果/Outbox并逐 pending 快照各一次，不因其它 job 未SENT或首张失败使后续饥饿。已SENT或已接收的只读确认不因日志故障丢失，日志故障仍阻止新claim、新mutation及未发云写。满N仍可由原独立recoverable入口接回原seat同job，不增容量、释放API或新状态。",
         "不得发生：Browser 精确识别已知限流弹窗后，Runtime 未在确认点击前以现役唯一 production_outbox 持久化 provider_cooldown intent，或新事故尚未由 Website 精确落账时利用事故前 grant 继续未发生的 Provider submit。原 notice/receipt 同身份有限续交，不能新增 cooldown 表、Outbox 或 retry worker。旧 clearance ACK 缺失、历史 not_cleared 不得永久阻断当前 claim、下一真实独立 incident 或其它合法 job；当前资格唯一消费 Website server clock、N/cohort/惩罚及 Browser 中央 fresh preflight。原 ack 已有可信 CONFIRMED terminal 时仅零输入回读原 confirmed_absent，其余如实 not_cleared，不凭新页面 absence 清算旧事故或重放旧点击。单 incident 失败保留 typed 原因并继续其它 pending incident，lease/heartbeat、结果交付、consumer/admission readback 不连坐。",
         "不得发生：private base、fork、reservation、fresh fallback、recovery manager、coordinator、planner、workflow、graph、fallback、compatibility、legacy、bridge、shadow、第二 scheduler、第二 store、第二 queue、第二 state machine、第二结果真相或任何同义恢复结构。"
       ],
-      "lawId": "LAW-AGENT-PRODUCTION-RUNTIME-001-V78",
+      "lawId": "LAW-AGENT-PRODUCTION-RUNTIME-001-V79",
       "schemaVersion": 2,
       "source": {
         "lineEnd": 63,
@@ -493,8 +493,8 @@
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
-      "summary": "必须由唯一 Runtime 服从 Website 当前精确授权，把每个未撤权、未 admission 的 job 自动接回并持续交付；机械有效结果先原子 stage/Outbox 再 cleanup，旧失败不撤销结果。Provider 同一 effect 默认零输入读回，只有 Website 持久风险授权的新 result revision 可对指定调用一次受控风险输入；动态 N、唯一 Outbox、Browser WAL 与 Website 唯一恢复 Owner 不变。",
-      "supersedesLawId": "LAW-AGENT-PRODUCTION-RUNTIME-001-V77",
+      "summary": "必须由唯一 Runtime 服从 Website 当前精确授权，把每个未撤权、尚未完成交付 的 job 自动接回并持续交付；机械有效结果先原子 stage/Outbox 再 cleanup，旧失败不撤销结果。Provider 同一 effect 默认零输入读回，只有 Website 持久风险授权的新 result revision 可对指定调用一次受控风险输入；动态 N、唯一 Outbox、Browser WAL 与 Website 唯一恢复 Owner 不变。",
+      "supersedesLawId": "LAW-AGENT-PRODUCTION-RUNTIME-001-V78",
       "tier": "P0"
     },
     {
@@ -564,7 +564,7 @@
         "docs/specs/agent-production-runtime/xuanxue-ai-production-v6.dependency.spec.json"
       ],
       "dependsOnLawIds": [
-        "LAW-AGENT-PRODUCTION-RUNTIME-001-V78"
+        "LAW-AGENT-PRODUCTION-RUNTIME-001-V79"
       ],
       "enforcementMode": "composite",
       "evidenceModes": [
@@ -598,9 +598,11 @@
       "appliesTo": [
         "scripts/acceptance/agent-production-runtime.acceptance.ts",
         "src/lib/local-runtime/production/cloud-reconciliation-client.ts",
-        "src/lib/local-runtime/production/reconciliation.ts",
+        "src/lib/local-runtime/production/runtime-business-admission.ts",
         "src/lib/local-runtime/production/runtime-claim.ts",
-        "src/lib/local-runtime/production/runtime-startup.ts"
+        "src/lib/local-runtime/production/runtime-startup.ts",
+        "src/lib/local-runtime/production/store-outbox.ts",
+        "src/lib/local-runtime/production/store-task-state.ts"
       ],
       "capabilityDomain": "agent-production-runtime",
       "contractRefs": [
@@ -608,7 +610,7 @@
         "docs/specs/agent-production-runtime/website-agent-task-result.dependency.spec.json"
       ],
       "dependsOnLawIds": [
-        "LAW-AGENT-PRODUCTION-RUNTIME-001-V78",
+        "LAW-AGENT-PRODUCTION-RUNTIME-001-V79",
         "LAW-AGENT-PRODUCTION-RUNTIME-003-V49"
       ],
       "enforcementMode": "composite",
@@ -623,19 +625,20 @@
       ],
       "excludes": [],
       "forbidden": [
-        "不得发生：Runtime 丢弃 Website business admission receipt 的权威字段、只用基础字段子集重算 consumption_hash、允许 Bazi 三字段部分出现、混合 Bazi 与 review receipt，或解释领域内容；只允许 base、Bazi primary、review 三种互斥结构，必须对完整字段、当前 job/result identity 与 canonical hash 机械闭合。",
-        "不得发生：Runtime 把 staged result、Outbox delivered、terminal receipt 或 Runtime PASS 当成业务完成；只有 Website domain consumer 对当前 job_id + result_hash 完成幂等入库并签发已校验的 business admission receipt 后，本地任务才可原子 completed，失败、404、权限不足、hash mismatch 或多义时完成增量必须为零。"
+        "不得发生：Runtime 未核原 terminal 写入回执的成功 outcome、原 request/job/attempt/session/epoch 与完整 result hash 绑定就完成；单独 HTTP 200、staged、artifact receipt、Outbox 标记或本地 PASS 均不能替代该回执，错身份、坏 hash、无权限或多义时不得误完成。",
+        "不得发生：已核验成功接收后，仍以领域 admission、base/Bazi/review receipt、内容质量、PDF、付款、发布、用户交付或 Browser/日志收尾作为 AGENT 完工条件，或因这些后续失败撤销 AGENT completed、丢弃原结果并重派生产；Website 业务完成仍由其原领域 Owner 裁决。",
+        "不得发生：接收失败或未知时新增恢复链、改变原 job/attempt、WAL、Outbox、source handoff、授权及事务顺序；已有报告继续按原身份交付，未知先查原回执，后续动作只沿现役 Owner 和精确授权，接收失败本身不授予再次 Provider 输入资格。"
       ],
-      "lawId": "LAW-AGENT-PRODUCTION-RUNTIME-004-V45",
+      "lawId": "LAW-AGENT-PRODUCTION-RUNTIME-004-V46",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 190,
+        "lineEnd": 193,
         "lineStart": 152,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
-      "summary": "必须完整校验 Website 签发的 base、Bazi primary、review 三种互斥 business admission receipt，并且只有当前 job 与 result 的领域入库回执闭合后才允许本地任务 completed；generic base receipt 不是八字 private base。",
-      "supersedesLawId": "LAW-AGENT-PRODUCTION-RUNTIME-004-V44",
+      "summary": "必须使所有 AI 产品共用唯一接收完成边界：Website 对同一完整结果的成功接收回执核验闭合，AGENT 即在原事务 completed；明确接收失败沿原链复工；回复未知先读回原请求。",
+      "supersedesLawId": "LAW-AGENT-PRODUCTION-RUNTIME-004-V45",
       "tier": "P0"
     },
     {
@@ -655,7 +658,7 @@
         "docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md"
       ],
       "dependsOnLawIds": [
-        "LAW-AGENT-PRODUCTION-RUNTIME-001-V78"
+        "LAW-AGENT-PRODUCTION-RUNTIME-001-V79"
       ],
       "enforcementMode": "composite",
       "evidenceModes": [
@@ -677,8 +680,8 @@
       "lawId": "LAW-AGENT-PRODUCTION-RUNTIME-005-V43",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 235,
-        "lineStart": 192,
+        "lineEnd": 238,
+        "lineStart": 195,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -699,8 +702,8 @@
         "docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md"
       ],
       "dependsOnLawIds": [
-        "LAW-AGENT-PRODUCTION-RUNTIME-001-V78",
-        "LAW-AGENT-PRODUCTION-RUNTIME-004-V45",
+        "LAW-AGENT-PRODUCTION-RUNTIME-001-V79",
+        "LAW-AGENT-PRODUCTION-RUNTIME-004-V46",
         "LAW-AGENT-PRODUCTION-RUNTIME-005-V43",
         "LAW-LOCAL-BROWSER-SESSION-004-V58"
       ],
@@ -724,8 +727,8 @@
       "lawId": "LAW-AGENT-PRODUCTION-RUNTIME-006-V47",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 279,
-        "lineStart": 237,
+        "lineEnd": 282,
+        "lineStart": 240,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -742,10 +745,10 @@
         "docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md"
       ],
       "dependsOnLawIds": [
-        "LAW-AGENT-PRODUCTION-RUNTIME-001-V78",
+        "LAW-AGENT-PRODUCTION-RUNTIME-001-V79",
         "LAW-AGENT-PRODUCTION-RUNTIME-002-V12",
         "LAW-AGENT-PRODUCTION-RUNTIME-003-V49",
-        "LAW-AGENT-PRODUCTION-RUNTIME-004-V45",
+        "LAW-AGENT-PRODUCTION-RUNTIME-004-V46",
         "LAW-AGENT-PRODUCTION-RUNTIME-005-V43",
         "LAW-AGENT-PRODUCTION-RUNTIME-006-V47"
       ],
@@ -766,8 +769,8 @@
       "lawId": "LAW-AGENT-PRODUCTION-RUNTIME-007-V47",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 318,
-        "lineStart": 281,
+        "lineEnd": 321,
+        "lineStart": 284,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -786,10 +789,10 @@
         "docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md"
       ],
       "dependsOnLawIds": [
-        "LAW-AGENT-PRODUCTION-RUNTIME-001-V78",
+        "LAW-AGENT-PRODUCTION-RUNTIME-001-V79",
         "LAW-AGENT-PRODUCTION-RUNTIME-002-V12",
         "LAW-AGENT-PRODUCTION-RUNTIME-003-V49",
-        "LAW-AGENT-PRODUCTION-RUNTIME-004-V45",
+        "LAW-AGENT-PRODUCTION-RUNTIME-004-V46",
         "LAW-AGENT-PRODUCTION-RUNTIME-005-V43",
         "LAW-AGENT-PRODUCTION-RUNTIME-006-V47",
         "LAW-AGENT-PRODUCTION-RUNTIME-007-V47"
@@ -814,8 +817,8 @@
       "lawId": "LAW-AGENT-PRODUCTION-RUNTIME-008-V48",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 363,
-        "lineStart": 320,
+        "lineEnd": 366,
+        "lineStart": 323,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -853,8 +856,8 @@
       "lawId": "LAW-APP-SHELL-UI-001-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 402,
-        "lineStart": 366,
+        "lineEnd": 405,
+        "lineStart": 369,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -885,8 +888,8 @@
       "lawId": "LAW-APP-SHELL-UI-002-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 433,
-        "lineStart": 404,
+        "lineEnd": 436,
+        "lineStart": 407,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -919,8 +922,8 @@
       "lawId": "LAW-APP-SHELL-UI-003-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 466,
-        "lineStart": 435,
+        "lineEnd": 469,
+        "lineStart": 438,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -967,8 +970,8 @@
       "lawId": "LAW-ARCHITECTURE-BOUNDARY-001-V18",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 515,
-        "lineStart": 470,
+        "lineEnd": 518,
+        "lineStart": 473,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -995,8 +998,8 @@
       "lawId": "LAW-ARCHITECTURE-BOUNDARY-002-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 542,
-        "lineStart": 517,
+        "lineEnd": 545,
+        "lineStart": 520,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1041,8 +1044,8 @@
       "lawId": "LAW-CAPABILITY-GOVERNANCE-001-V19",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 589,
-        "lineStart": 546,
+        "lineEnd": 592,
+        "lineStart": 549,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1084,8 +1087,8 @@
       "lawId": "LAW-CAPABILITY-GOVERNANCE-002-V5",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 631,
-        "lineStart": 591,
+        "lineEnd": 634,
+        "lineStart": 594,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1244,8 +1247,8 @@
       "lawId": "LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V7",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 663,
-        "lineStart": 635,
+        "lineEnd": 666,
+        "lineStart": 638,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1274,8 +1277,8 @@
       "lawId": "LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V7",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 692,
-        "lineStart": 665,
+        "lineEnd": 695,
+        "lineStart": 668,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1303,8 +1306,8 @@
       "lawId": "LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V6",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 720,
-        "lineStart": 694,
+        "lineEnd": 723,
+        "lineStart": 697,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1359,8 +1362,8 @@
       "lawId": "LAW-GPT-001-V65",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 775,
-        "lineStart": 724,
+        "lineEnd": 778,
+        "lineStart": 727,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1410,8 +1413,8 @@
       "lawId": "LAW-GPT-002-V32",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 823,
-        "lineStart": 777,
+        "lineEnd": 826,
+        "lineStart": 780,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1452,8 +1455,8 @@
       "lawId": "LAW-LOCAL-APP-SHELL-001-V6",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 866,
-        "lineStart": 827,
+        "lineEnd": 869,
+        "lineStart": 830,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1483,8 +1486,8 @@
       "lawId": "LAW-LOCAL-APP-SHELL-002-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 896,
-        "lineStart": 868,
+        "lineEnd": 899,
+        "lineStart": 871,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1517,8 +1520,8 @@
       "lawId": "LAW-LOCAL-APP-SHELL-003-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 929,
-        "lineStart": 898,
+        "lineEnd": 932,
+        "lineStart": 901,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1557,8 +1560,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-001-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 968,
-        "lineStart": 933,
+        "lineEnd": 971,
+        "lineStart": 936,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1600,8 +1603,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-002-V6",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1010,
-        "lineStart": 970,
+        "lineEnd": 1013,
+        "lineStart": 973,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1649,8 +1652,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-003-V47",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1056,
-        "lineStart": 1012,
+        "lineEnd": 1059,
+        "lineStart": 1015,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1707,8 +1710,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-004-V58",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1111,
-        "lineStart": 1058,
+        "lineEnd": 1114,
+        "lineStart": 1061,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1743,8 +1746,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-005-V6",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1146,
-        "lineStart": 1113,
+        "lineEnd": 1149,
+        "lineStart": 1116,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1778,8 +1781,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-006-V46",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1178,
-        "lineStart": 1148,
+        "lineEnd": 1181,
+        "lineStart": 1151,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1822,7 +1825,7 @@
         "不得发生：第二 logger、第二日志总线、第二持久化诊断报告，或绕过 Runtime Log Spine 的直接业务日志路径。",
         "不得发生：生产原子动作缺少唯一 Owner、trace/span identity、按适用场景必需的 parent/boundary identity、一次 started 与至多一次真实 terminal，或失败缺少 allowlisted 原生稳定 code、responsibleOwner、impact 以及存在时的原生 cause；Browser、GPT 与跨仓 HTTP 外层不得用通用 code 覆盖内层原生 reason。claim terminal 必须安全记录 Website 已返回的 outcome、claimed_count 与 reason_codes，零任务成功不得丢失其可诊断结果。",
         "不得发生：只返回最后一条 ERROR 或单一首因，或把 HTTP 200、heartbeat、listener、Browser Authority、Target 与日志文本单独冒充全部独立阻断根、端到端运行态或业务成功。",
-        "不得发生：把历史事件重放、状态投影、startup summary 或日志新鲜度计算成任务权威状态；任务当前状态只从 Website 任务记录读取 failed + current_reason 或 completed + admission receipt。",
+        "不得发生：把历史事件重放、状态投影、startup summary 或日志新鲜度计算成任务权威状态；Website 业务状态与 AGENT 交付状态分别只读各自原 Owner 的持久事实，日志不得另设接收或完成条件。",
         "不得发生：日志或诊断器决定业务下一步、重放外部 mutation，或取代 Production Store、Browser WAL、Forensics 与网站业务结果真相。",
         "不得发生：日志写入失败后继续认领新任务或发起新外部 mutation，或已 SENT mutation 因日志故障停止确认与清理。",
         "不得发生：authorityRef 指向无法由诊断器只读重读的临时网络回执、内存对象或一次性会话；Lease、Checkpoint、Outbox 与 Browser mutation 必须逐对象持久化后再引用。",
@@ -1830,16 +1833,16 @@
         "不得发生：为了降低终端噪声而丢弃、抽样或改写原始 JSONL 事件；完整事件必须先原样持久化，终端默认只投影状态变化、新的独立故障与必要启动/停止边界，重复 heartbeat、空 claim 与相同成功请求不得逐条刷屏。",
         "不得发生：历史诊断要求先知道 jobId 才能发现故障范围，或在未给 jobId 时静默猜选最近失败。诊断器必须只读、有界发现候选：零项返回 NO_ACTIVE_SCOPE，唯一项才自动选择，多项返回 AMBIGUOUS_SCOPE 与 candidates；相同根因按 responsibleOwner、code、operation、authorityRef、evidenceRef 归并并保留 count、first_seen、last_seen 与 event refs，原始事件仍可下钻。"
       ],
-      "lawId": "LAW-RUNTIME-LOG-SPINE-001-V7",
+      "lawId": "LAW-RUNTIME-LOG-SPINE-001-V8",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1230,
-        "lineStart": 1182,
+        "lineEnd": 1233,
+        "lineStart": 1185,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
       "summary": "必须保持唯一 Runtime Log Spine 全量持久化原始 event/span/error 与可读诊断引用，同时终端只投影状态变化和新独立故障；诊断可自动发现最近运行并归并重复根因，但不得保存或推导任务状态、流程位置、恢复结论或业务完成真相。",
-      "supersedesLawId": "LAW-RUNTIME-LOG-SPINE-001-V6",
+      "supersedesLawId": "LAW-RUNTIME-LOG-SPINE-001-V7",
       "tier": "P0"
     },
     {
@@ -1879,8 +1882,8 @@
       "lawId": "LAW-RUNTIME-LOG-SPINE-002-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1271,
-        "lineStart": 1232,
+        "lineEnd": 1274,
+        "lineStart": 1235,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1932,8 +1935,8 @@
       "lawId": "LAW-RUNTIME-LOG-SPINE-003-V6",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1319,
-        "lineStart": 1273,
+        "lineEnd": 1322,
+        "lineStart": 1276,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1974,8 +1977,8 @@
       "lawId": "LAW-STARTUP-ENTRYPOINT-001-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1362,
-        "lineStart": 1323,
+        "lineEnd": 1365,
+        "lineStart": 1326,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -2015,8 +2018,8 @@
       "lawId": "LAW-STARTUP-ENTRYPOINT-002-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1400,
-        "lineStart": 1364,
+        "lineEnd": 1403,
+        "lineStart": 1367,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -2033,7 +2036,7 @@
       "contractRefs": [],
       "dependsOnLawIds": [
         "LAW-ARCHITECTURE-BOUNDARY-001-V18",
-        "LAW-RUNTIME-LOG-SPINE-001-V7"
+        "LAW-RUNTIME-LOG-SPINE-001-V8"
       ],
       "enforcementMode": "composite",
       "evidenceModes": [
@@ -2052,8 +2055,8 @@
       "lawId": "LAW-SYSTEM-SECURITY-001-V15",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1438,
-        "lineStart": 1404,
+        "lineEnd": 1441,
+        "lineStart": 1407,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -2094,8 +2097,8 @@
       "lawId": "LAW-WORKBENCH-API-BOUNDARY-001-V7",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1479,
-        "lineStart": 1442,
+        "lineEnd": 1482,
+        "lineStart": 1445,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",

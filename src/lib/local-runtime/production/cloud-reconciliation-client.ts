@@ -3,7 +3,7 @@ import {
   type ControlIntent,
 } from "./transport-protocol.js";
 import {
-  hashCanonical, WebsiteAgentResultSchema,
+  WebsiteAgentResultSchema,
   type ProductionHash,
   type WebsiteAgentResult,
 } from "./contracts.js";
@@ -34,25 +34,6 @@ export type RemoteAttemptFailure = SerializedTerminalFailure & Readonly<{
   lease_version: number;
 }>;
 
-type BaseBusinessAdmissionReceipt = Readonly<{
-  schema_version: "xuanxue-ai-business-admission-receipt.v6";
-  job_id: string;
-  result_payload_hash: ProductionHash;
-  consumer_ref: string;
-  outcome: "completed";
-  consumption_hash: ProductionHash;
-  consumed_at: string;
-}>;
-
-export type BusinessAdmissionReceipt =
-  | BaseBusinessAdmissionReceipt
-  | Readonly<BaseBusinessAdmissionReceipt & {
-    bazi_domain_admission_receipt_hash: ProductionHash;
-    delivery_manifest_id: string;
-    delivery_manifest_hash: ProductionHash;
-  }>
-  | Readonly<BaseBusinessAdmissionReceipt & { review_receipt_hash: ProductionHash }>;
-
 export type RemoteProductionDeviceJobStatus = Readonly<{
   job_id: string;
   status: string;
@@ -62,7 +43,7 @@ export type RemoteProductionDeviceJobStatus = Readonly<{
   next_action_code: "ACTIVE_ATTEMPT" | "WAIT_NEW_ATTEMPT" | "CONSUME_CURRENT_RESULT";
   terminal_status: "completed" | null;
   terminal_payload_hash: ProductionHash | null;
-  business_admission_receipt: BusinessAdmissionReceipt | null;
+  business_admission_receipt: Readonly<Record<string, unknown>> | null;
   business_consumer_error: string | null;
   accepted_attempt_count: number;
   write_receipts: readonly RemoteProductionWriteReceipt[];
@@ -97,93 +78,6 @@ const parseRemoteAttemptFailure = (value: unknown): RemoteAttemptFailure | null 
     attempt_id: row.attempt_id,
     lease_version: row.lease_version,
   }) as RemoteAttemptFailure;
-};
-
-const admissionBaseKeys = [
-  "schema_version", "job_id", "result_payload_hash", "consumer_ref",
-  "outcome", "consumption_hash", "consumed_at",
-];
-const admissionBaziKeys = [
-  "bazi_domain_admission_receipt_hash", "delivery_manifest_id", "delivery_manifest_hash",
-];
-const admissionReviewKeys = ["review_receipt_hash"];
-type BusinessAdmissionKind = "base" | "bazi" | "review";
-const exactAdmissionKeys = (row: Record<string, unknown>, extra: readonly string[]): boolean =>
-  JSON.stringify(Object.keys(row).sort()) === JSON.stringify([...admissionBaseKeys, ...extra].sort());
-const admissionKind = (row: Record<string, unknown>): BusinessAdmissionKind | null => {
-  if (exactAdmissionKeys(row, [])) return "base";
-  if (exactAdmissionKeys(row, admissionBaziKeys)) return "bazi";
-  if (exactAdmissionKeys(row, admissionReviewKeys)) return "review";
-  return null;
-};
-const productionHash = (value: unknown): value is ProductionHash =>
-  typeof value === "string" && /^sha256:[a-f0-9]{64}$/u.test(value);
-const admissionBaseValid = (
-  row: Record<string, unknown>,
-  jobId: string,
-  expectedHash: ProductionHash,
-): boolean => row.schema_version === "xuanxue-ai-business-admission-receipt.v6"
-  && row.job_id === jobId && productionHash(row.result_payload_hash)
-  && typeof row.consumer_ref === "string" && row.consumer_ref.length > 0
-  && row.outcome === "completed" && row.consumption_hash === expectedHash
-  && typeof row.consumed_at === "string" && Number.isFinite(Date.parse(row.consumed_at));
-const admissionExtensionValid = (
-  row: Record<string, unknown>,
-  kind: BusinessAdmissionKind,
-): boolean => kind === "base"
-  || (kind === "bazi" && productionHash(row.bazi_domain_admission_receipt_hash)
-    && typeof row.delivery_manifest_id === "string" && row.delivery_manifest_id.length > 0
-    && productionHash(row.delivery_manifest_hash))
-  || (kind === "review" && productionHash(row.review_receipt_hash));
-const admissionHash = (
-  row: Record<string, unknown>,
-  kind: BusinessAdmissionKind,
-): ProductionHash => hashCanonical({
-  job_id: row.job_id,
-  result_payload_hash: row.result_payload_hash,
-  ...(kind === "bazi" ? {
-    bazi_domain_admission_receipt_hash: row.bazi_domain_admission_receipt_hash,
-    delivery_manifest_id: row.delivery_manifest_id,
-    delivery_manifest_hash: row.delivery_manifest_hash,
-  } : {}),
-  ...(kind === "review" ? { review_receipt_hash: row.review_receipt_hash } : {}),
-  consumer_ref: row.consumer_ref,
-  outcome: row.outcome,
-});
-const freezeAdmission = (
-  row: Record<string, unknown>,
-  kind: BusinessAdmissionKind,
-): BusinessAdmissionReceipt => Object.freeze({
-  schema_version: "xuanxue-ai-business-admission-receipt.v6",
-  job_id: row.job_id as string,
-  result_payload_hash: row.result_payload_hash as ProductionHash,
-  ...(kind === "bazi" ? {
-    bazi_domain_admission_receipt_hash: row.bazi_domain_admission_receipt_hash as ProductionHash,
-    delivery_manifest_id: row.delivery_manifest_id as string,
-    delivery_manifest_hash: row.delivery_manifest_hash as ProductionHash,
-  } : {}),
-  ...(kind === "review" ? { review_receipt_hash: row.review_receipt_hash as ProductionHash } : {}),
-  consumer_ref: row.consumer_ref as string,
-  outcome: "completed",
-  consumption_hash: row.consumption_hash as ProductionHash,
-  consumed_at: row.consumed_at as string,
-}) as BusinessAdmissionReceipt;
-
-const parseBusinessAdmissionReceipt = (
-  jobId: string,
-  value: unknown,
-): RemoteProductionDeviceJobStatus["business_admission_receipt"] => {
-  if (value === null) return null;
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    throw executionFailure("failed", "V6_BUSINESS_ADMISSION_RECEIPT_INVALID");
-  }
-  const row = value as Record<string, unknown>;
-  const kind = admissionKind(row);
-  if (!kind || !admissionBaseValid(row, jobId, admissionHash(row, kind))
-    || !admissionExtensionValid(row, kind)) {
-    throw executionFailure("failed", "V6_BUSINESS_ADMISSION_RECEIPT_INVALID");
-  }
-  return freezeAdmission(row, kind);
 };
 
 const parseRemoteWriteReceipt = (receipt: unknown): RemoteProductionWriteReceipt => {
@@ -222,6 +116,8 @@ const deviceStatusAuthorityFieldsValid = (row: Record<string, unknown>): boolean
   && ["ACTIVE_ATTEMPT", "WAIT_NEW_ATTEMPT", "CONSUME_CURRENT_RESULT"].includes(
     row.next_action_code as string,
   )
+  && (row.business_admission_receipt === null || Boolean(row.business_admission_receipt
+    && typeof row.business_admission_receipt === "object" && !Array.isArray(row.business_admission_receipt)))
   && Array.isArray(row.write_receipts)
   && Array.isArray(row.staged_artifact_receipts);
 
@@ -241,17 +137,6 @@ const parseDeviceTerminalAuthority = (row: Record<string, unknown>): Readonly<{
     throw executionFailure("failed", "V6_DEVICE_JOB_TERMINAL_AUTHORITY_INVALID");
   }
   return { terminalStatus, terminalPayloadHash };
-};
-
-const assertBusinessAdmissionAuthority = (
-  row: Record<string, unknown>,
-  admission: RemoteProductionDeviceJobStatus["business_admission_receipt"],
-  terminalStatus: "completed" | null,
-): void => {
-  if ((row.status === "completed") !== (admission !== null)
-    || (admission !== null && terminalStatus !== "completed")) {
-    throw executionFailure("failed", "V6_BUSINESS_ADMISSION_AUTHORITY_INVALID");
-  }
 };
 
 const parseDeviceControlAuthority = (
@@ -288,8 +173,6 @@ export async function readProductionDeviceJobStatus(
     throw executionFailure("failed", "V6_DEVICE_JOB_STATUS_INVALID");
   }
   const { terminalStatus, terminalPayloadHash } = parseDeviceTerminalAuthority(row);
-  const admission = parseBusinessAdmissionReceipt(jobId, row.business_admission_receipt);
-  assertBusinessAdmissionAuthority(row, admission, terminalStatus);
   const { controlIntent, currentReason } = parseDeviceControlAuthority(row, jobId);
   const attemptFailure = parseRemoteAttemptFailure(row.attempt_failure);
   const staged = row.staged_result === null ? null
@@ -310,7 +193,7 @@ export async function readProductionDeviceJobStatus(
     return Object.freeze({ role: artifact.role as string,
       receipt_hash: artifact.receipt_hash as ProductionHash });
   });
-  if (staged !== null && admission === null && stagedArtifactReceipts.length < 2) {
+  if (staged !== null && terminalStatus !== "completed" && stagedArtifactReceipts.length < 2) {
     throw executionFailure("failed", "V6_DEVICE_STAGED_RESULT_AUTHORITY_INVALID");
   }
   return Object.freeze({
@@ -322,7 +205,7 @@ export async function readProductionDeviceJobStatus(
     next_action_code: row.next_action_code as RemoteProductionDeviceJobStatus["next_action_code"],
     terminal_status: terminalStatus,
     terminal_payload_hash: terminalPayloadHash,
-    business_admission_receipt: admission,
+    business_admission_receipt: row.business_admission_receipt as RemoteProductionDeviceJobStatus["business_admission_receipt"],
     business_consumer_error: row.business_consumer_error as string | null,
     accepted_attempt_count: row.accepted_attempt_count as number,
     write_receipts: Object.freeze((row.write_receipts as unknown[]).map(parseRemoteWriteReceipt)),
