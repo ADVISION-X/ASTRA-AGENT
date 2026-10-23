@@ -1,6 +1,6 @@
 # AGENT结果签收完成：法条收敛与完成判断修正
 
-方案状态：可施工。AGENT 已通过 CHANGE 并首推 43fdb641a；READY 因本方案缺少文件 Owner 在入口停止。按原固定合议庭 2:1 裁决，仅由现役 architecture-boundary 登记本方案精确 ownedPath，并由唯一 builder 同步 registry；其职责仅为跨 Owner 施工文档的文件治理，不改变 Runtime 或 Website 的运行主权。原唯一 Owner 检查、Runtime 窄边界、方案路径及唯一性保留，不新增检查器或目录通配主权；修后重走 CHANGE、提交首推、完整 READY 与再次推送。Website 停止后续修改、提交和推送，既有改动保留；尚不宣称 READY 或运行版本已启用。
+方案状态：可施工。AGENT 已通过 CHANGE 并首推；本方案按原固定合议庭 2:1 裁决登记 architecture-boundary 精确文件归属，原 builder 已同步 registry，Runtime 与 Website 运行主权不变。提交 3ab4ccef9 的完整 READY 中 111 项治理测试、全部 Runtime 法案通过；唯一剩余项是 W3 测试汇总函数 11 个 await 超过 10 的结构预算。按原庭 3:0 裁修测试组合：合并相邻接收回执与历史拒收两份 fixture 的函数组织，删除独立历史函数及汇总调用，保留原先各自目录、关闭/重开及所有断言的执行顺序；不改生产、预算或检查器，不加包装层。修后重走 CHANGE、提交首推、完整 READY 与再次推送。Website 停止后续修改、提交和推送，既有改动保留；尚不宣称 READY 或运行版本已启用。
 
 ## 1. 只做两件事
 

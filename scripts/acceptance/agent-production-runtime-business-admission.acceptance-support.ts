@@ -396,8 +396,8 @@ const exercisePendingAdmission = async (
   return pending;
 };
 
-const exerciseReceivingReceiptBoundary = async (directory: string, productionTask: ReturnType<typeof task>): Promise<void> => {
-  const dataDir = path.join(directory, "receipt-boundary"); await mkdir(dataDir);
+const exerciseReceivingReceiptBoundary = async (admissionTemporary: string, productionTask: ReturnType<typeof task>): Promise<void> => {
+  const dataDir = path.join(admissionTemporary, "receipt-boundary"); await mkdir(dataDir);
   let store = new ProductionRuntimeStore(dataDir);
   const candidate = task({ jobId: "job:receipt-boundary", productId: productionTask.product_id,
     actionId: productionTask.action_id, materialRefs: productionTask.material_refs, extra: { parameters: productionTask.parameters } });
@@ -436,23 +436,18 @@ const exerciseReceivingReceiptBoundary = async (directory: string, productionTas
   assert.equal(store.readOutboxAuthority(notice)?.state, "pending");
   assert.deepEqual(store.readTask(candidate.job_id)?.result, result);
   store.close();
-};
-
-const exerciseWebsiteRefusedResult = async (
-  admissionTemporary: string, productionTask: ReturnType<typeof task>,
-): Promise<void> => {
   const directory = path.join(admissionTemporary, "historical-refusal"); await mkdir(directory);
-  let store = new ProductionRuntimeStore(directory);
+  store = new ProductionRuntimeStore(directory);
   const refused = task({ jobId: "job:refused:domain", productId: productionTask.product_id,
     actionId: productionTask.action_id, materialRefs: productionTask.material_refs,
     extra: { parameters: productionTask.parameters } });
   store.acceptTask(refused, "attempt:refused-1");
-  const receiving = stageResultForAcceptance(store, refused.job_id, "attempt:refused-1", resultFor(refused));
+  const refusalReceipt = stageResultForAcceptance(store, refused.job_id, "attempt:refused-1", resultFor(refused));
   const history = store.readResultOutboxHistoryEvidence(refused.job_id, "attempt:refused-1");
   store.close();
   const db = new Database(path.join(directory, "production-runtime.sqlite"));
   db.prepare("update production_tasks set staged_result_json=null,attempt_failure_json=null,current_reason='WEBSITE_REFUSED_RESULT' where job_id=?").run(refused.job_id);
-  db.prepare("update production_outbox set last_error='WEBSITE_ATTEMPT_REPLACED' where idempotency_key=?").run(receiving.request_id);
+  db.prepare("update production_outbox set last_error='WEBSITE_ATTEMPT_REPLACED' where idempotency_key=?").run(refusalReceipt.request_id);
   db.close(); store = new ProductionRuntimeStore(directory);
   assert.equal(store.attemptClosedByWebsite(refused.job_id, "attempt:refused-1"), true);
   const next = claimTask(refused);
@@ -488,7 +483,6 @@ export const exerciseOperationsAndBusinessAdmission = async (
     await exerciseBackgroundDeletionSweep(admissionTemporary, productionTask);
     await exerciseWaitNewAndPrivacy(store, productionTask);
     await exerciseReceivingReceiptBoundary(admissionTemporary, productionTask);
-    await exerciseWebsiteRefusedResult(admissionTemporary, productionTask);
     await exerciseAdmissionDeletion(store, admissionTemporary, productionTask, pending);
     store.close();
   } finally {
