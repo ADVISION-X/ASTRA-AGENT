@@ -12,6 +12,8 @@ const appShellZhCopyEntries = [
   ["GrassEye AGENT Workbench", "GrassEye AGENT 工作台"],
   ["AGENT Workbench", "AGENT 工作台"],
   ["Skill Registry", "技能注册表"],
+  ["Skip to workspace", "跳到工作区"],
+  ["Panels", "面板"],
   ["Toggle sidebar", "切换侧边栏"],
   ["Collapse sidebar", "收起侧边栏"],
   ["Toggle inspector", "切换检查器"],

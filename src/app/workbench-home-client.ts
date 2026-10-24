@@ -5,12 +5,16 @@ const state = { skill: "production-runtime" };
 
 ${WORKBENCH_HOME_SKILL_MAP_CLIENT}
 const qs = (selector) => document.querySelector(selector);
+const qsa = (selector) => document.querySelectorAll(selector);
 const setText = (selector, value) => {
   const node = qs(selector);
   if (node) node.textContent = value ?? "-";
 };
 const setRegionState = (stateName) => {
-  setText("[data-runtime-console-state]", stateName || "ready");
+  const label = stateName || "ready";
+  setText("[data-runtime-console-state]", label);
+  const badge = qs("[data-runtime-console-state]");
+  if (badge) badge.dataset.tone = label;
 };
 const clearRuntimeEmptyState = () => {
   qs("[data-runtime-empty-state]")?.remove();
@@ -19,15 +23,21 @@ const writeActivity = (message, tone = "ready") => {
   const list = qs("[data-activity-log]");
   if (!list) return;
   clearRuntimeEmptyState();
+  const now = new Date();
   const node = document.createElement("button");
   node.type = "button";
   node.className = "runtime-event " + tone + "-state";
   node.dataset.runtimeEvent = tone;
-  node.textContent = new Date().toLocaleTimeString() + " " + message;
+  const time = document.createElement("time");
+  time.dateTime = now.toISOString();
+  time.textContent = now.toLocaleTimeString();
+  const text = document.createElement("span");
+  text.textContent = message;
+  node.append(time, text);
   node.addEventListener("click", () => openInspector({
     kind: "runtime event",
     title: tone,
-    payload: { Message: message, Status: tone, Time: new Date().toISOString() },
+    payload: { Message: message, Status: tone, Time: now.toISOString() },
   }));
   list.prepend(node);
   setRegionState(tone);
@@ -58,7 +68,11 @@ const renderInspectorValue = (value) => {
       : String(value);
   return span;
 };
+let inspectorTrigger = null;
 const openInspector = ({ kind, title, payload }) => {
+  if (document.body.classList.contains("inspector-collapsed") && document.activeElement !== document.body) {
+    inspectorTrigger = document.activeElement;
+  }
   document.body.classList.remove("inspector-collapsed");
   setText("[data-inspector-title]", title || "Detail");
   setText("[data-inspector-kind]", kind || "detail");
@@ -84,10 +98,26 @@ const openInspector = ({ kind, title, payload }) => {
   section.append(heading, grid);
   body.replaceChildren(section);
 };
+const closeInspector = () => {
+  document.body.classList.add("inspector-collapsed");
+  const target = inspectorTrigger && inspectorTrigger.isConnected ? inspectorTrigger : qs("[data-inspector-toggle]");
+  inspectorTrigger = null;
+  target?.focus();
+};
 const resetInspector = () => {
   document.body.classList.add("inspector-collapsed");
   setText("[data-inspector-title]", "No selection");
   setText("[data-inspector-kind]", "empty");
+};
+const syncPanelState = () => {
+  for (const [selector, collapsedClass] of [
+    ["[data-sidebar-toggle]", "sidebar-collapsed"],
+    ["[data-inspector-toggle]", "inspector-collapsed"],
+    ["[data-console-toggle]", "console-collapsed"],
+  ]) {
+    const expanded = String(!document.body.classList.contains(collapsedClass));
+    qsa(selector).forEach((button) => button.setAttribute("aria-expanded", expanded));
+  }
 };
 const showSkill = (skill) => {
   state.skill = skill;
@@ -114,8 +144,18 @@ document.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll("[data-skill-id]").forEach((item) => {
     item.addEventListener("click", () => showSkill(item.dataset.skillId));
   });
-  qs("[data-sidebar-toggle]")?.addEventListener("click", () => document.body.classList.toggle("sidebar-collapsed"));
-  qs("[data-inspector-toggle]")?.addEventListener("click", () => document.body.classList.toggle("inspector-collapsed"));
+  qsa("[data-sidebar-toggle]").forEach((button) => button.addEventListener("click", () => document.body.classList.toggle("sidebar-collapsed")));
+  qsa("[data-console-toggle]").forEach((button) => button.addEventListener("click", () => document.body.classList.toggle("console-collapsed")));
+  qsa("[data-inspector-toggle]").forEach((button) => button.addEventListener("click", () => {
+    if (!document.body.classList.contains("inspector-collapsed")) return closeInspector();
+    inspectorTrigger = button;
+    document.body.classList.remove("inspector-collapsed");
+  }));
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !document.body.classList.contains("inspector-collapsed")) closeInspector();
+  });
+  new MutationObserver(syncPanelState).observe(document.body, { attributes: true, attributeFilter: ["class"] });
+  syncPanelState();
   qs("[data-refresh-shell]")?.addEventListener("click", refreshShell);
   showSkill("production-runtime");
   refreshShell();

@@ -1,11 +1,16 @@
+import { renderAppShellIcon } from "./app-shell-icons.js";
+
 export const renderInspector = (): string => `
-<aside class="inspector" data-app-shell-inspector data-task-status-panel>
+<aside class="inspector" data-app-shell-inspector data-task-status-panel aria-label="Inspector">
   <div class="inspector-toolbar">
-    <div>
+    <div class="inspector-heading">
       <span class="eyebrow">Inspector</span>
       <h2 data-inspector-title>No selection</h2>
     </div>
-    <span class="status-badge status-insufficient" data-inspector-kind>empty</span>
+    <div class="inspector-tools">
+      <span class="status-badge status-insufficient" data-inspector-kind>empty</span>
+      <button class="icon-button icon-button-ghost" type="button" data-inspector-toggle aria-expanded="false" aria-label="Toggle inspector" title="Toggle inspector">${renderAppShellIcon("close")}</button>
+    </div>
   </div>
   <div class="inspector-body" data-inspector-body>
     <section class="empty-state" data-inspector-empty data-inspector-empty-state>

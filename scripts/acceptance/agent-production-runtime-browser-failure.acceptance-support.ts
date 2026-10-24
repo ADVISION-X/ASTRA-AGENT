@@ -14,8 +14,8 @@ import { serializeTerminalFailureTransport } from
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { attemptFailureFirstFact, claimTask, failureStatus,
-  resultFor, task } from "./agent-production-runtime-fixtures.js";
+import { HASH_A, HASH_B, HASH_C, attemptFailureFirstFact, claimTask, failureStatus,
+  resultFor, shutdownRuntimeFixture, task } from "./agent-production-runtime-fixtures.js";
 import { verifyFailureReleaseReadbackScenarios, verifyAttemptFailureClassificationMatrix } from
   "./agent-production-runtime-failure-readback.acceptance-support.js";
 import {
@@ -268,6 +268,8 @@ export const verifyAttemptFailureReadbackRuntimeContract = async (): Promise<voi
 
   await verifyFailureReleaseReadbackScenarios();
 
+  await verifyFirstSettledFailureDuringAcceptedReadback();
+
 
 
   await verifyUnresolvedBrowserMutationDoesNotStarveClaimRecovery();
@@ -289,6 +291,72 @@ export const verifyAttemptFailureReadbackRuntimeContract = async (): Promise<voi
 
 
   await verifyConsumeCurrentResult();
+};
+
+const verifyFirstSettledFailureDuringAcceptedReadback = async (): Promise<void> => {
+  const directory = await mkdtemp(join(tmpdir(), "agent-first-settled-readback-failure-"));
+  const store = new RuntimeStore(directory);
+  try {
+    const websiteTask = task({ jobId: "job:first-settled-readback-failure",
+      productId: "localization_static_catalog", actionId: "produce_locale_catalog",
+      extra: { parameters: { target_locale: "zh-HK", source_resource_id: "website-fixed-copy-catalog",
+        source_version: "message-catalog.v2", source_sha256: HASH_A, policy_version: "policy:test",
+        cohort_id: "batch:test", ordered_pending_ids_hash: HASH_B,
+        result_schema_version: "localization-static-catalog-result.v3" } } });
+    const first = claimTask(websiteTask);
+    const job = { ...first, grant: { ...first.grant, same_accepted_attempt: true } };
+    store.acceptTask(websiteTask, job.grant.attempt_id);
+    const failure = executionFailure("failed", "RESULT_SETTLED_UNUSABLE", { metadata: {
+      mutationOutcome: "confirmed",
+      evidence: { evidenceRef: "browser-mutation:settled-readback", evidenceHash: HASH_A },
+      browserEffect: { effectScope: "provider_effect", childCapabilityId: "submit_exact_gpt_turn_once",
+        browserOutcome: "CONFIRMED", providerEffectIdentityHash: HASH_B },
+      settledResultPayloadHash: HASH_C,
+    } });
+    const releases: Record<string, unknown>[] = [];
+    const state = shutdownRuntimeFixture({ store, dataDir: directory,
+      browser: { readJobPhysicalInputState: () => "possible" },
+      session: { workerSessionId: job.grant.worker_session_id,
+        workerSessionEpoch: job.grant.worker_session_epoch } as never,
+      runtimeLogger: createRuntimeLogger({ producer: "agent-first-settled-readback-failure",
+        owner: "production-runtime", component: "production-runtime", terminalEnabled: false,
+        fileSink: { directoryPath: join(directory, "runtime-logs") } }),
+    });
+    let executions = 0;
+    state.activeAbort.set(job.job_id, new AbortController());
+    state.executor.accept = (value, attemptId) => store.acceptTask(value, attemptId);
+    state.executor.execute = async () => { executions += 1; throw failure; };
+    state.session.request = async (path, options) => {
+      if (path.endsWith("/lease-release")) {
+        releases.push(JSON.parse(String(options.body)) as Record<string, unknown>);
+        return { ok: true };
+      }
+      assert.ok(path.endsWith("/device-status"), "readback must not request a new Provider input");
+      const released = releases[0];
+      if (!released) return failureStatus(job.job_id, null, []);
+      const receipt = { schema_version: "xuanxue-ai-lease-release-receipt.v6", job_id: job.job_id,
+        task_status: "failed", lease_disposition: "released", reason_code: "RESULT_REVISION_REJECTED",
+        payload_hash: released.payload_hash, terminal_payload_hash: null,
+        attempt_failure: released.attempt_failure };
+      return { ...failureStatus(job.job_id, null, [{ request_id: released.request_id,
+        write_kind: "lease_release", payload_hash: hashCanonical(released), response_json: receipt }]),
+      next_action_code: "WAIT_NEW_ATTEMPT" };
+    };
+    await executeClaim(state, job);
+    assert.equal(executions, 1, state.lastErrorReason ?? state.lastErrorCode ?? undefined);
+    assert.equal(releases.length, 1);
+    assert.equal(releases[0]?.reason_code, "ATTEMPT_FAILED",
+      "a first settled-result failure during accepted readback must not become an empty readback release");
+    const expected = serializeTerminalFailureTransport(failure);
+    assert.deepEqual(releases[0]?.attempt_failure, expected);
+    assert.deepEqual(store.readTask(job.job_id)?.attempt_failure?.failure_core, expected,
+      "the exact settled-result first fact must survive the Website rejection readback");
+    assert.equal(store.readTask(job.job_id)?.current_reason, "SOURCE_HANDOFF_RECONCILIATION_PENDING");
+    assert.equal(state.lastErrorCode, null);
+  } finally {
+    store.close();
+    await rm(directory, { recursive: true, force: true });
+  }
 };
 
 const verifyUnresolvedBrowserMutationDoesNotStarveClaimRecovery = async (): Promise<void> => {

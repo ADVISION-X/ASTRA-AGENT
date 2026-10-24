@@ -1,31 +1,39 @@
+import { renderAppShellIcon } from "./app-shell-icons.js";
+
 export const renderProductionRuntimeWorkspace = (): string => `
-<section class="skill-workspace hidden" data-skill-workspace="production-runtime">
+<section class="skill-workspace hidden" data-skill-workspace="production-runtime" aria-labelledby="production-runtime-title">
   <div class="skill-header">
-    <div>
-      <span class="eyebrow">生产运行时</span>
-      <h1>生产工厂</h1>
-      <p>一次读取 Website、AGENT、Browser、Outbox 与日志各自权威；不领取、不重试、不恢复。</p>
-    </div>
+    <span class="eyebrow">生产运行时</span>
+    <h1 id="production-runtime-title">生产工厂</h1>
+    <p>一次读取 Website、AGENT、Browser、Outbox 与日志各自权威；不领取、不重试、不恢复。</p>
   </div>
-  <section class="panel app-form-panel">
-    <form class="form-grid compact-form" data-production-runtime-form>
-      <div class="field wide"><label>任务编号（可选）</label><input name="jobId" placeholder="留空自动发现；多个候选时明确选择" /></div>
-      <div class="actions wide"><button class="btn secondary" type="button" data-production-status>刷新真实状态</button></div>
-      <div class="summary-metrics wide">
-        <div><b data-production-scope>-</b><span>观察范围</span></div>
-        <div><b data-production-selected-job>-</b><span>当前工单</span></div>
-        <div><b data-production-completeness>-</b><span>诊断完整性</span></div>
-        <div><b data-production-observed-at>-</b><span>观察时间</span></div>
-      </div>
-      <div class="field wide">
-        <label>生产真实状态矩阵（点击一行查看完整证据）</label>
-        <div class="listing-edit-read-table-shell">
-          <table class="compact-data-table">
-            <thead><tr><th>事实</th><th>Owner</th><th>当前值</th><th>原因</th><th>观察时间</th><th>新鲜度</th><th>权威 / 证据</th><th>完整性</th></tr></thead>
-            <tbody data-production-observation-rows><tr><td colspan="8">正在读取当前权威</td></tr></tbody>
-          </table>
+  <section class="panel query-panel" aria-label="任务查询">
+    <form class="query-form" data-production-runtime-form novalidate>
+      <div class="field">
+        <label for="production-job-id">任务编号（可选）</label>
+        <div class="query-row">
+          <input id="production-job-id" name="jobId" autocomplete="off" spellcheck="false" placeholder="留空自动发现；多个候选时明确选择" />
+          <button class="btn" type="button" data-production-status>${renderAppShellIcon("refresh")}<span>刷新真实状态</span></button>
         </div>
       </div>
     </form>
+  </section>
+  <dl class="metric-strip" aria-label="生产观察摘要">
+    <div class="metric"><dt>观察范围</dt><dd data-production-scope data-tone="unknown">-</dd></div>
+    <div class="metric"><dt>当前工单</dt><dd data-production-selected-job data-tone="unknown">-</dd></div>
+    <div class="metric"><dt>诊断完整性</dt><dd data-production-completeness data-tone="unknown">-</dd></div>
+    <div class="metric"><dt>观察时间</dt><dd data-production-observed-at data-tone="unknown">-</dd></div>
+  </dl>
+  <section class="panel matrix-panel" aria-labelledby="production-matrix-title">
+    <div class="panel-header">
+      <h2 id="production-matrix-title">生产真实状态矩阵</h2>
+      <p class="panel-hint">点击一行查看完整证据</p>
+    </div>
+    <div class="matrix-shell" role="region" aria-labelledby="production-matrix-title" tabindex="0">
+      <table class="matrix-table">
+        <thead><tr><th scope="col">事实</th><th scope="col">Owner</th><th scope="col">当前值</th><th scope="col">原因</th><th scope="col">观察时间</th><th scope="col">新鲜度</th><th scope="col">权威 / 证据</th><th scope="col">完整性</th></tr></thead>
+        <tbody data-production-observation-rows><tr><td class="matrix-empty" colspan="8">正在读取当前权威</td></tr></tbody>
+      </table>
+    </div>
   </section>
 </section>`;

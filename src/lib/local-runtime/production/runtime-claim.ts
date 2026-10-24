@@ -10,7 +10,7 @@ import {
   failureCode,
   typedExecutionFailure,
 } from "../../execution-failure.js";
-import { serializeTerminalFailureTransport } from "./terminal-failure.js";
+import { classifyAttemptFailure, serializeTerminalFailureTransport } from "./terminal-failure.js";
 import {
   requireRuntimeLogWrite,
   runtimeLogCauseEventId,
@@ -230,7 +230,9 @@ const handleProductExecutionFailure = async (
     browserAuthority ? "browser-session" : undefined,
   );
   try {
-    if (recoveryReadback) {
+    if (recoveryReadback && !(code === "RESULT_SETTLED_UNUSABLE"
+      && state.store.readAttemptFailureRaw(job.job_id) === null
+      && classifyAttemptFailure(serializeTerminalFailureTransport(error)) === "new_attempt_allowed")) {
       await reconcileSourceReadbackFailure(state, job, error, code);
       const release = buildProductionLeaseRelease(state.session, job, {
         reasonCode: "PROVIDER_READBACK_UNAVAILABLE", attemptFailure: null,

@@ -17,6 +17,7 @@ export const renderAppShell = (): string => `<!doctype html>
   <style>${renderWorkbenchHomeStyles()}</style>
 </head>
 <body class="inspector-collapsed" data-active-skill="production-runtime">
+  <a class="skip-link" href="#workspace-main">Skip to workspace</a>
   <div class="app-shell" data-workbench-shell data-app-shell>
     ${renderCommandBar()}
     <div class="app-shell-layout" data-app-shell-layout>
