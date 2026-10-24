@@ -186,6 +186,19 @@ export class ProductionGptChildTools {
       || confirmed.providerEffectIdentityHash !== call.input.providerEffectIdentityHash) {
       throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_IDENTITY_MISMATCH");
     }
+    const outcome = this.readConfirmedLocatorOutcome(execution, call, confirmed);
+    const locator = outcome.conversationLocator;
+    if (!locator && confirmed.sourceReadback) throw executionFailure("failed", "GPT_SUBMITTED_CONVERSATION_URL_INVALID");
+    if (locator && (locator.userTurnId !== confirmed.userTurnId
+      || locator.providerEffectIdentityHash !== confirmed.providerEffectIdentityHash)) {
+      throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_IDENTITY_MISMATCH");
+    }
+    return locator ?? null;
+  }
+
+  private readConfirmedLocatorOutcome(execution: ExecutionInput,
+    call: ProductGptCallInput<"get_submitted_gpt_conversation_url">,
+    confirmed: NonNullable<ProductionGptBrowserCall["confirmedProviderEffect"]>) {
     const source = confirmed.sourceReadback;
     const old = source ? this.browserAuthority.readSourceConfirmedProviderEffect({ jobId: execution.jobId, ...source,
       productStepId: call.productStepId, callId: call.input.submitCallId, childCapabilityId: "submit_exact_gpt_turn_once" }) : null;
@@ -199,13 +212,7 @@ export class ProductionGptChildTools {
       || (current && current.mutation.providerEffectIdentityHash !== confirmed.providerEffectIdentityHash)) {
       throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_READBACK_INVALID");
     }
-    const locator = outcome.conversationLocator;
-    if (!locator && source) throw executionFailure("failed", "GPT_SUBMITTED_CONVERSATION_URL_INVALID");
-    if (locator && (locator.userTurnId !== confirmed.userTurnId
-      || locator.providerEffectIdentityHash !== confirmed.providerEffectIdentityHash)) {
-      throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_IDENTITY_MISMATCH");
-    }
-    return locator ?? null;
+    return outcome;
   }
 
   private async settleChildOutcome<K extends GptChildCapabilityId>(input: Readonly<{

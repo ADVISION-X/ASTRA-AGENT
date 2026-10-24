@@ -172,14 +172,9 @@ const inspectRawImageArtifact = (context: InspectorContext, findings: InspectorF
   "gpt/generated-image-one-raw-artifact", ARTIFACTS, "Image delivery persists exactly one unchanged original-media artifact.", findings, finding);
 };
 
-export const inspectProviderWaitContract = (context: InspectorContext, findings: InspectorFinding[], finding: FindingFactory): void => {
-  check(textResponseTwoGateSettlementIsFrozen(text(context, TEXT)),
-    "gpt/provider-observation-gate-first", TEXT, "Text readback must execute the sole frozen observation gate and exact response settlement.", findings, finding);
-  inspectImageObservationOrder(context, findings, finding);
-  inspectPersistedCheckpointOrder(context, findings, finding);
-  inspectGeneratedImageRawBoundary(context, findings, finding);
-  inspectRawImageArtifact(context, findings, finding);
-  const submitPath = `${ROOT}/children/submit_exact_gpt_turn_once/handler.ts`, submit = text(context, submitPath);
+const inspectSubmissionLocatorContract = (context: InspectorContext, findings: InspectorFinding[],
+  finding: FindingFactory, submitPath: string): void => {
+  const submit = text(context, submitPath);
   const submitProof = text(context, "src/lib/browser/exact-target/browser-submit-recovery-payload.ts");
   check(["expectedPromptHash: approvedHash", "expectedAttachmentLabels: files.map(file => file.providerDisplayName)", "userTurnSelector: GPT_USER_TURN_SELECTOR",
     "latestGptUserTurn: true", "selector: GPT_EMPTY_COMPOSER_SELECTOR", "proof.promptHash !== approvedHash",
@@ -191,6 +186,17 @@ export const inspectProviderWaitContract = (context: InspectorContext, findings:
     'mutationOutcome: "no"', "locator.locatorHash"].every(token => locator.includes(token))
     && !/kind: "click"|submitExactGptTurnOnceHandler|selectExactGptConversation/u.test(locator),
   "gpt/current-provider-chain", locatorPath, "The independent URL Child consumes the original effect locator with no new Provider input.", findings, finding);
+};
+
+export const inspectProviderWaitContract = (context: InspectorContext, findings: InspectorFinding[], finding: FindingFactory): void => {
+  check(textResponseTwoGateSettlementIsFrozen(text(context, TEXT)),
+    "gpt/provider-observation-gate-first", TEXT, "Text readback must execute the sole frozen observation gate and exact response settlement.", findings, finding);
+  inspectImageObservationOrder(context, findings, finding);
+  inspectPersistedCheckpointOrder(context, findings, finding);
+  inspectGeneratedImageRawBoundary(context, findings, finding);
+  inspectRawImageArtifact(context, findings, finding);
+  const submitPath = `${ROOT}/children/submit_exact_gpt_turn_once/handler.ts`;
+  inspectSubmissionLocatorContract(context, findings, finding, submitPath);
   const outgoing = text(context, "src/lib/browser/chrome-extension/dom-coherent-candidate.ts");
   check(outgoing.includes("expectedLabels.includes(providerLabel(label))")
     && !/priorTurns\.length > 1|querySelectorAll\(outgoing\.userTurnSelector\)|baselineOrdinal \+ 2/u.test(outgoing),

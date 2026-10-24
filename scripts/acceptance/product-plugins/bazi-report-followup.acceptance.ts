@@ -130,11 +130,11 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
   }
   const run = await exerciseProductFlow(plugin, flowFixture);
   assertSkillPrompt(String(run.calls.find(call => call.child === "write_exact_gpt_prompt")!.input.prompt), route.relation_kind === "review", route.result_contract);
-  await exerciseConfirmedSubmitRecovery(plugin, flowFixture);
+  assert.deepEqual((await exerciseConfirmedSubmitRecovery(plugin, flowFixture)).calls.map((call) => call.child), ["get_submitted_gpt_conversation_url", "checkpoint_gpt_text_response"]);
   if (!review) {
     const successorParent = { ...flowFixture, materialContents: zipMaterials(task, route, "bazi-report-followup-answer-output.v1") };
     await exerciseProductFlow(plugin, successorParent);
-    await exerciseConfirmedSubmitRecovery(plugin, successorParent);
+    assert.deepEqual((await exerciseConfirmedSubmitRecovery(plugin, successorParent)).calls.map((call) => call.child), ["get_submitted_gpt_conversation_url", "checkpoint_gpt_text_response"]);
   }
   const selectedModel = run.calls.find(call => call.child === "select_gpt_model_from_start_v3")!;
   const selectedReasoning = run.calls.find(call => call.child === "select_gpt_reasoning_from_start_v3")!;

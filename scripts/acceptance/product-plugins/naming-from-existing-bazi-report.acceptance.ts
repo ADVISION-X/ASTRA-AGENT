@@ -160,7 +160,7 @@ for (const route of routesForPlugin(original, productionRoutePolicies)) {
   assert.ok(written.input.prompt.startsWith(skill));
   assert.ok(written.input.prompt.includes(JSON.stringify(task.parameters)));
   assert.equal(new Set(run.calls.map(call => call.sessionKey)).size, 1);
-  await exerciseConfirmedSubmitRecovery(plugin, fixture);
+  assert.deepEqual((await exerciseConfirmedSubmitRecovery(plugin, fixture)).calls.map((call) => call.child), ["get_submitted_gpt_conversation_url", "checkpoint_gpt_text_response"]);
   const recovered = await exerciseProductFlow(plugin, { ...fixture, confirmedSubmit: true });
   assert.deepEqual(recovered.completed.payload, output);
   for (const [fault, code] of [["hash", /PRODUCT_TEXT_CHECKPOINT_INVALID/], ["files", /PRODUCT_ATTACHMENT_RECONCILIATION_INVALID/],

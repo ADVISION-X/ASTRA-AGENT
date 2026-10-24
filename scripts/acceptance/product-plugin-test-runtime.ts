@@ -295,7 +295,7 @@ export const exerciseProductFlow = async (
 export const exerciseConfirmedSubmitRecovery = async (
   plugin: ProductPlugin,
   fixture: ProductFlowFixture,
-): Promise<void> => {
+): Promise<Awaited<ReturnType<typeof exerciseProductFlow>>> => {
   const baseline = await exerciseProductFlow(plugin, fixture);
   const run = await exerciseProductFlow(plugin, { ...fixture, confirmedSubmit: true });
   assert.equal(run.confirmedSubmitReads.length, 1,
@@ -303,10 +303,9 @@ export const exerciseConfirmedSubmitRecovery = async (
   assert.deepEqual(run.confirmedSubmitReads[0],
     baseline.calls.find((call) => call.child === "submit_exact_gpt_turn_once"),
     `${plugin.pluginId} recovery must query the exact identity used by physical submit`);
-  assert.deepEqual(run.calls.map((call) => call.child), ["get_submitted_gpt_conversation_url", "checkpoint_gpt_text_response"],
-    `${plugin.pluginId} must continue with zero-input readback after a confirmed submit`);
   assert.equal(run.physicalSubmitDispatches, 0,
     `${plugin.pluginId} must not physically submit again after a confirmed submit`);
+  return run;
 };
 
 export const routesForPlugin = (

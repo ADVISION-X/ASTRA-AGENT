@@ -347,7 +347,7 @@ test("each Dynamic mode authenticates its native object, clause binding, and obs
     service: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V79", clauses: ["summary"] },
     database: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V79", clauses: ["forbidden:0", "forbidden:2"] },
     storage: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V79", clauses: ["forbidden:2"] },
-    provider: { lawId: "LAW-GPT-001-V65", clauses: ["forbidden:0", "forbidden:3", "forbidden:7"] },
+    provider: { lawId: "LAW-GPT-001-V66", clauses: ["forbidden:0", "forbidden:3", "forbidden:7"] },
     authorization: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-002-V12", clauses: ["forbidden:1", "forbidden:2"] },
     recovery: { lawId: "LAW-RUNTIME-LOG-SPINE-001-V8", clauses: ["summary"] },
   } as const;
@@ -1514,7 +1514,7 @@ test("Browser reply inspection rejects mixed transport and permit identities", (
 
 test("Browser receipt inspection rejects raw caller facts and unbound WAL readback", () => {
   const path = "src/lib/browser/exact-target/browser-command-actor.ts";
-  verifyBrowserBoundaryMutants("LAW-LOCAL-BROWSER-SESSION-004-V58", inspectProviderEffectAttemptGuard, [
+  verifyBrowserBoundaryMutants("LAW-LOCAL-BROWSER-SESSION-004-V59", inspectProviderEffectAttemptGuard, [
     [path, "verifyNormalBrowserMutationReply(permit, command, { result: reply.result, mutationReceipt: reply.mutationReceipt })", "reply.mutationReceipt!"],
     [path, "receipt.terminal === \"confirmed\" ? \"CONFIRMED\" : \"REJECTED\"", "\"CONFIRMED\""],
     [path, "private completeMutation(permit: BrowserCommandPermit, command: BrowserGovernedCommand, reply: BrowserCommandReply,\n    span: ReturnType<typeof startBrowserCommandSpan>, state: BrowserCommandExecutionState): void", "private async completeMutation(permit: BrowserCommandPermit, command: BrowserGovernedCommand, reply: BrowserCommandReply,\n    span: ReturnType<typeof startBrowserCommandSpan>, state: BrowserCommandExecutionState): Promise<void>"],
@@ -1562,7 +1562,7 @@ test("Extension command failure preserves its original redacted intent identity"
 });
 test("Browser media inspection rejects alternate identities, missing guards and duplicate input", () => {
   const path = "src/lib/browser/chrome-extension/extension-command-runtime.ts";
-  verifyBrowserBoundaryMutants("LAW-LOCAL-BROWSER-SESSION-006-V46", inspectOpaqueAuthorityBoundary, [
+  verifyBrowserBoundaryMutants("LAW-LOCAL-BROWSER-SESSION-006-V47", inspectOpaqueAuthorityBoundary, [
     [path, 'case "authenticated-media": return', 'case "other-media": return'],
     [path, "switch (command.kind) {", 'switch ("never-media") {'],
     [path, "switch (command.kind) {", "if (false) switch (command.kind) {"],
@@ -1702,7 +1702,7 @@ test("Browser inspectors require current WAL schema without startup migration an
   for (const [path, original] of mutations) {
     assert.equal((path === exactPath ? exact : fixed).split(original).length, 2, `unique current mutation: ${original}`);
   }
-  verifyBrowserBoundaryMutants("LAW-LOCAL-BROWSER-SESSION-004-V58", inspectDomMechanicalFacts, mutations);
+  verifyBrowserBoundaryMutants("LAW-LOCAL-BROWSER-SESSION-004-V59", inspectDomMechanicalFacts, mutations);
 });
 
 test("GPT001 native AST and contract routes reject text settlement and attachment selector drift under their own law", () => {
@@ -1727,7 +1727,7 @@ test("GPT001 native AST and contract routes reject text settlement and attachmen
     ["--import", "tsx", resolve("scripts/audit/shared/quality-inspector-worker.ts")],
     { encoding: "utf8", maxBuffer: 10 * 1024 * 1024, env: { ...process.env,
       GOVERNANCE_SEALED_ROOT: root, GOVERNANCE_INSPECTION_REQUEST: requestPath } }), "gpt")
-    .lawResults.find(law => law.lawId === "LAW-GPT-001-V65")!;
+    .lawResults.find(law => law.lawId === "LAW-GPT-001-V66")!;
   const ownModes = (law: ReturnType<typeof inspect>) => law.assertions
     .filter(assertion => ["static.ast", "static.contract"].includes(assertion.evidenceMode))
     .map(assertion => assertion.passed);

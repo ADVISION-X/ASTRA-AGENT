@@ -78,7 +78,7 @@ for (const route of routesForPlugin(namingCommercialPlugin, productionRoutePolic
   const model = run.calls.find(call => call.child === "select_gpt_model_from_start_v3")!;
   assert.equal(model.input.profile.startModelDisplayName, "最新");
   assert.equal(model.input.profile.requestedReasoningValue, 4);
-  await exerciseConfirmedSubmitRecovery(plugin, fixture);
+  assert.deepEqual((await exerciseConfirmedSubmitRecovery(plugin, fixture)).calls.map((call) => call.child), ["get_submitted_gpt_conversation_url", "checkpoint_gpt_text_response"]);
   if (review) {
     assert.deepEqual(parseProductResult(task, { ...output, issues: issue }, route), output);
     assert.throws(() => parseProductResult(task, { decision: "invalid", issues: [] }, route), /AGENT_REVIEW_DECISION_INVALID/u);

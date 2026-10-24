@@ -282,10 +282,10 @@ for (const run of [staticRootRun, staticRun]) {
   assert.deepEqual(modelCall.input.profile, reasoningCall.input.profile,
     "fixed-copy model and reasoning selection must consume the same profile");
 }
-for (const task of [staticRootTask, staticTask]) await exerciseConfirmedSubmitRecovery(plugin, {
+for (const task of [staticRootTask, staticTask]) assert.deepEqual((await exerciseConfirmedSubmitRecovery(plugin, {
   task, materialContents: { static_catalog_input: staticInput }, output: {},
   expectedSessionCount: 1, checkpointOutput: () => candidate,
-});
+})).calls.map((call) => call.child), ["get_submitted_gpt_conversation_url", "checkpoint_gpt_text_response"]);
 const staticPrompt = String(staticRun.calls.find((call) => call.child === "write_exact_gpt_prompt")?.input.prompt);
 assert.equal(staticPrompt.includes(contextBundleJson), false);
 assert.equal(staticPrompt.includes(JSON.stringify(staticInput)), false);

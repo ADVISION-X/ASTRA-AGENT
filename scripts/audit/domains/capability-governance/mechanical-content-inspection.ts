@@ -30,6 +30,7 @@ const judgeName = (value: string): boolean => {
 
 const callName = (call: CallExpression): string => {
   const expression = call.getExpression();
+  if (Node.isCallExpression(expression)) return callName(expression);
   return Node.isPropertyAccessExpression(expression) ? expression.getName() : expression.getText();
 };
 

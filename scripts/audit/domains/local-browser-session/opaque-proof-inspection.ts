@@ -241,16 +241,22 @@ const inspectClosedInvocationPayloadBoundary = (
   inspectDiagnosticPayloadBoundary([commandLogging, commandDiagnostic, frameDiagnostic], findings, lawId);
 };
 
+const readEncryptedRecoverySources = (context: InspectorContext, findings: InspectorFinding[], lawId: string) => {
+  const journal = requireSource(context, findings, lawId, sourcePaths[7]);
+  const journalEvidence = requireSource(context, findings, lawId, journalEvidencePath);
+  const journalReplay = requireSource(context, findings, lawId, journalReplayPath);
+  const locator = requireSource(context, findings, lawId, locatorPath);
+  if (!journal || !journalEvidence || !journalReplay || !locator) return null;
+  return { journal, journalEvidence, journalReplay, locator };
+};
+
 export const inspectOpaqueAuthorityBoundary = (
   context: InspectorContext,
   findings: InspectorFinding[],
   lawId: string,
 ): void => {
   const transport = requireSource(context, findings, lawId, sourcePaths[0]);
-  const journal = requireSource(context, findings, lawId, sourcePaths[7]);
-  const journalEvidence = requireSource(context, findings, lawId, journalEvidencePath);
-  const journalReplay = requireSource(context, findings, lawId, journalReplayPath);
-  const locator = requireSource(context, findings, lawId, locatorPath);
+  const recovery = readEncryptedRecoverySources(context, findings, lawId);
   const broker = requireSource(context, findings, lawId, sourcePaths[18]);
   const supervisor = requireSource(context, findings, lawId, sourcePaths[3]);
   const targetAuthority = requireSource(context, findings, lawId, targetAuthorityPath);
@@ -264,10 +270,10 @@ export const inspectOpaqueAuthorityBoundary = (
   const commandLogging = requireSource(context, findings, lawId, commandLoggingPath);
   const commandDiagnostic = requireSource(context, findings, lawId, commandDiagnosticPath);
   const frameDiagnostic = requireSource(context, findings, lawId, frameDiagnosticPath);
-  if (!transport || !journal || !journalEvidence || !journalReplay || !locator || !broker || !supervisor || !targetAuthority || !commandRuntime
-    || !authenticatedMediaRuntime || !leaseManager
-    || !extensionActor || !extensionCrypto
+  if (!transport || !recovery || !broker || !supervisor || !targetAuthority || !commandRuntime
+    || !authenticatedMediaRuntime || !leaseManager || !extensionActor || !extensionCrypto
     || !commandLogging || !commandDiagnostic || !frameDiagnostic) return;
+  const { journal, journalEvidence, journalReplay, locator } = recovery;
   requireIdentifiers(broker, ["authorityRefHash", "certificateHash", "channelSessionHash", "artifactRef", "contentHash"], findings, lawId,
     "Public Browser authority and artifact status must expose opaque references and hashes.");
   requireIdentifiers(journal, ["payloadHash", "proofHash", "targetRef", "documentRef"], findings, lawId,

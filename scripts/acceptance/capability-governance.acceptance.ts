@@ -88,6 +88,24 @@ assert.ok(mechanicalContentFindingIds({
   ].join("\n"),
 }).has("capability-governance/deterministic-content-judge"));
 
+const transactionFindings = mechanicalContentFindingIds({
+  "src/lib/browser/transaction.ts": [
+    "const database = { transaction: <T>(callback: () => T) => callback };",
+    "const rows = [{ result_revision: 1 }];",
+    "database.transaction(() => { if (rows.length !== 1) throw new Error('IDENTITY'); return rows[0]!.result_revision; })();",
+  ].join("\n"),
+});
+const judgeFactoryFindings = mechanicalContentFindingIds({
+  "src/plugins/demo/content-quality.ts": [
+    "const makeSemanticQualityJudge = () => (value: string): boolean => value.length > 20;",
+    "if (!makeSemanticQualityJudge()('provider response')) throw new Error('CONTENT_QUALITY_REJECTED');",
+  ].join("\n"),
+});
+for (const checkId of ["capability-governance/deterministic-content-judge", "capability-governance/deterministic-content-judge-type"]) {
+  assert.equal(transactionFindings.has(checkId), false, "mechanical transaction bodies are not callee names");
+  assert.equal(judgeFactoryFindings.has(checkId), true, "real judge factories retain both native checks");
+}
+
 const blueprintSource = readFileSync(
   "docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md",
   "utf8",

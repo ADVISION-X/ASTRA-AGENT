@@ -26,7 +26,7 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
     success_visible: true, visible_amount_minor_units: 100, reason_code: "VISIBLE_SUCCESS",
   };
   const run = await exerciseProductFlow(plugin, { task, output });
-  await exerciseConfirmedSubmitRecovery(plugin, { task, output });
+  assert.deepEqual((await exerciseConfirmedSubmitRecovery(plugin, { task, output })).calls.map((call) => call.child), ["get_submitted_gpt_conversation_url", "checkpoint_gpt_text_response"]);
   assert.deepEqual(run.calls.map((call) => call.child), sequence);
   assert.match(String(run.calls.find((call) => call.child === "write_exact_gpt_prompt")?.input.prompt), /当前 Product Plugin：payment-screenshot-observation/u);
   const model = run.calls.find(call => call.child === "select_gpt_model_from_start_v3")!;
@@ -55,7 +55,7 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
     ]) {
       const received = await exerciseProductFlow(plugin, { task, output: observed });
       assert.deepEqual(received.completed.payload, observed, "basic reception preserves raw values and unknown fields");
-      await exerciseConfirmedSubmitRecovery(plugin, { task, output: observed });
+      assert.deepEqual((await exerciseConfirmedSubmitRecovery(plugin, { task, output: observed })).calls.map((call) => call.child), ["get_submitted_gpt_conversation_url", "checkpoint_gpt_text_response"]);
     }
   }
 }

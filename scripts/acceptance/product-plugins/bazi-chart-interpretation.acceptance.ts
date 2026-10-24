@@ -94,7 +94,7 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
     assert.throws(() => parseProductResult(task, { decision: "invalid", issues: [] }, route), /AGENT_REVIEW_DECISION_INVALID/u);
     const run = await exerciseProductFlow(plugin, flowFixture);
     assertSkillPrompt(String(run.calls.find(call => call.child === "write_exact_gpt_prompt")!.input.prompt), route.action_id, route.result_contract);
-    await exerciseConfirmedSubmitRecovery(plugin, flowFixture);
+    assert.deepEqual((await exerciseConfirmedSubmitRecovery(plugin, flowFixture)).calls.map((call) => call.child), ["get_submitted_gpt_conversation_url", "checkpoint_gpt_text_response"]);
     const reviewRevision = await exerciseProductFlow(plugin, { ...flowFixture,
       resultRevision: {revision:1,priorRejection:{receipt_hash:FIXTURE_HASH,rejected_result_payload_hash:FIXTURE_HASH_B,reason_codes:['DOMAIN_RESULT_REVISION_REJECTED']}} });
     const reviewPrompt = String(reviewRevision.calls.find(call => call.child === 'write_exact_gpt_prompt')!.input.prompt);
@@ -165,7 +165,7 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
   };
   const run = await exerciseProductFlow(plugin, flowFixture);
   assert.deepEqual(run.completed.payload, output);
-  await exerciseConfirmedSubmitRecovery(plugin, flowFixture);
+  assert.deepEqual((await exerciseConfirmedSubmitRecovery(plugin, flowFixture)).calls.map((call) => call.child), ["get_submitted_gpt_conversation_url", "checkpoint_gpt_text_response"]);
   const actualPrompt = String(run.calls.find(call => call.child === "write_exact_gpt_prompt")!.input.prompt);
   assertSkillPrompt(actualPrompt, route.action_id, route.result_contract);
   assert.equal(actualPrompt.includes('Website 已授权结果修订'), false);
@@ -180,7 +180,7 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
   assert.ok(revisionPrompt.includes('不得编辑旧回答或旧artifact'));
   assert.ok(revisionPrompt.includes(JSON.stringify(revisionFixture.resultRevision.priorRejection)));
   assert.equal(revision.physicalSubmitDispatches, 1);
-  await exerciseConfirmedSubmitRecovery(plugin, revisionFixture);
+  assert.deepEqual((await exerciseConfirmedSubmitRecovery(plugin, revisionFixture)).calls.map((call) => call.child), ["get_submitted_gpt_conversation_url", "checkpoint_gpt_text_response"]);
   assert.equal(actualPrompt.includes("TEST_ONLY:foreign-product-skill"), false);
   assert.ok(route.material_roles.every(row => row.role !== "result_contract"));
   assert.equal(run.physicalSubmitDispatches, 1);

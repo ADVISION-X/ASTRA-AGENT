@@ -42,7 +42,7 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
   assert(attach?.child === "attach_approved_gpt_files_once" && submit?.child === "submit_exact_gpt_turn_once");
   assert.deepEqual(attach.input.files.map(file => file.artifactRef), task.material_refs.map(file => file.material_id));
   assert.deepEqual(submit.input.files.map(file => file.artifactRef), task.material_refs.map(file => file.material_id));
-  await exerciseConfirmedSubmitRecovery(plugin, fixture);
+  assert.deepEqual((await exerciseConfirmedSubmitRecovery(plugin, fixture)).calls.map((call) => call.child), ["get_submitted_gpt_conversation_url", "checkpoint_gpt_text_response"]);
   const changedPrompt = await exerciseProductFlow(plugin, { ...fixture, confirmedSubmit: true,
     confirmedPromptHash: FIXTURE_HASH, resultRevision: { revision: 1, priorRejection: null } });
   assert.equal(changedPrompt.physicalSubmitDispatches, 0);

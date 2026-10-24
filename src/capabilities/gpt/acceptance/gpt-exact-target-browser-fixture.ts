@@ -36,6 +36,19 @@ const same = (left: BrowserAtomicStepIdentity, right: BrowserAtomicStepIdentity)
   ["resultRevision", "productStepId", "callId", "childCapabilityId", "inputHash", "actionOrdinal", "replayPolicy"]
     .every(key => left[key as keyof BrowserAtomicStepIdentity] === right[key as keyof BrowserAtomicStepIdentity]);
 
+const withConfirmedSubmitProof = (active: BrowserAtomicStepIdentity, next: BrowserAtomicStepOutcome,
+  observation: unknown): BrowserAtomicStepOutcome => {
+  if (active.childCapabilityId !== "submit_exact_gpt_turn_once" || next.state !== "confirmed") return next;
+  const packet = record(observation), query = record((packet.queries as unknown[] | undefined)?.[0]);
+  const message = record((query.matches as unknown[] | undefined)?.[0]);
+  return { ...next, terminalPayload: { schemaVersion: "grasseye.browser.confirmed-submit-proof.v2",
+    promptHash: message.exactGptUserPromptHash, userTurnId: message.turnKey,
+    exactCallIdentityHash: browserExactCallIdentityHash({ jobId: "job:gpt-exact-target", attemptId: "attempt:gpt-exact-target",
+      writerFenceHash: fixtureHash("d"), ...active }), observationRevisionHash: packet.observationRevisionHash,
+    targetRefHash: packet.targetRefHash, documentRefHash: packet.documentRefHash,
+    rawCount: query.rawCount, eligibleCount: query.eligibleCount } };
+};
+
 const throwFixtureTerminalFailure = (active: BrowserAtomicStepIdentity, next: BrowserAtomicStepOutcome): void => {
     if (next.failureCode) throw browserExecutionFailure(new Error(next.failureCode, {
       ...(next.nativeFailureCode ? { cause: Object.assign(new Error(next.nativeFailureCode), { code: next.nativeFailureCode }) } : {}) }), next.mutationOutcome, {
@@ -59,20 +72,10 @@ export const fakeBrowser = (respond: (intent: BrowserDomIntent, callNumber: numb
     const mutationOutcome = missing || row.terminalRejectedDispatched === true ? "dispatched" : count === 0 ? "no" : "confirmed";
     const failureCode = missing ? "BROWSER_COMMAND_RECEIPT_MISSING" : rejected ? typeof row.failureCode === "string" ? row.failureCode : "BROWSER_POSTCONDITION_FAILED" : null;
     const nativeFailureCode = typeof row.nativeCauseCode === "string" ? row.nativeCauseCode : null;
-    const next: BrowserAtomicStepOutcome = { state, mutationOutcome, providerEffectIdentityHash: active.replayPolicy === "provider-effect-once" ? fixtureHash("8") : null,
+    const next = withConfirmedSubmitProof(active, { state, mutationOutcome, providerEffectIdentityHash: active.replayPolicy === "provider-effect-once" ? fixtureHash("8") : null,
       terminalAt: missing ? null : "2026-09-02T00:00:01.000Z", failureCode, nativeFailureCode, authorityRef: `browser-mutation:${active.callId}`,
       authorityHash: fixtureHash("9"), targetRef: "target:1", documentRef: `document:${epoch}`, physicalInputCount: count,
-      downloadGuidHash: null, downloadCompleted: false, identityRevalidated: false };
-    if (active.childCapabilityId === "submit_exact_gpt_turn_once" && state === "confirmed") {
-      const packet = record(row.postconditionObservation), query = record((packet.queries as unknown[] | undefined)?.[0]);
-      const message = record((query.matches as unknown[] | undefined)?.[0]);
-      Object.assign(next, { terminalPayload: { schemaVersion: "grasseye.browser.confirmed-submit-proof.v2",
-        promptHash: message.exactGptUserPromptHash, userTurnId: message.turnKey,
-        exactCallIdentityHash: browserExactCallIdentityHash({ jobId: "job:gpt-exact-target", attemptId: "attempt:gpt-exact-target",
-          writerFenceHash: fixtureHash("d"), ...active }), observationRevisionHash: packet.observationRevisionHash,
-        targetRefHash: packet.targetRefHash, documentRefHash: packet.documentRefHash,
-        rawCount: query.rawCount, eligibleCount: query.eligibleCount } });
-    }
+      downloadGuidHash: null, downloadCompleted: false, identityRevalidated: false }, row.postconditionObservation);
     origin = active; outcome = next;
     throwFixtureTerminalFailure(active, next);
   };

@@ -110,7 +110,7 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
     assert.throws(() => parseProductResult(task, output, { ...route, action_id: "foreign" }), /PRODUCT_RESULT_OWNER_MISMATCH/u);
   }
   const run = await exerciseProductFlow(plugin, { task, output, productSkillText: skillText, materialContents: zipMaterials(task, route) });
-  await exerciseConfirmedSubmitRecovery(plugin, { task, output, productSkillText: skillText, materialContents: zipMaterials(task, route) });
+  assert.deepEqual((await exerciseConfirmedSubmitRecovery(plugin, { task, output, productSkillText: skillText, materialContents: zipMaterials(task, route) })).calls.map((call) => call.child), ["get_submitted_gpt_conversation_url", "checkpoint_gpt_text_response"]);
   const selectedModel = run.calls.find(call => call.child === "select_gpt_model_from_start_v3")!;
   const selectedReasoning = run.calls.find(call => call.child === "select_gpt_reasoning_from_start_v3")!;
   assert.deepEqual({ profileRef: selectedModel.input.profile.profileRef,

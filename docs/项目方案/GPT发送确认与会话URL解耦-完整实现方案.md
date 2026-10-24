@@ -303,6 +303,18 @@ WO-6 只是各单验收与原检查器更新的合并说明：GPT 检查器归 G
 - **顺序/验收**：WO-2—5 后先运行相交普通测试，主 Codex 两遍自检及实际建设子审后，按冻结 CI-FULL 执行 CHANGE→提交首推→完整 READY→第二推；原生命令为 `npm run quality:check -- CHANGE` 与 `npm run quality:check -- READY`。不执行 RELEASE。
 - **停止**：发现新 consumer、结构超限或其它失败时只重开受影响条目，不修改不相干检查器、测试豁免或整个治理内核。
 
+### WO-6 续单：首次 READY 的已证直接消费者
+
+原生首次 READY 退出 1；原日志和 39 条逐法原报告已保全。原固定庭第三案及 4A—4C 分题裁决，不改变现役法案、蓝图、质量入口或分母。第三案为轻度：`tests/governance/quality-contract.test.ts` 的五个正向/current-law 绑定逐处从 GPT65、Browser004V58、006V46 投影到现役66、59、47，旧绑定退出后立即查缺席；原事实、clauses、baseline与全部反例保留，不改 validator/registry，不泛化接受版本。该对象只作局部机械修改，不称算法重建。
+
+4A 的中央固定恢复数组本体裁删，不保留存在资格；合法恢复验收职责继续履行。共享 `scripts/acceptance/product-plugin-test-runtime.ts` 删除该数组断言并立即核缺席，只保留原身份、原确认读取次数及零再次 submit，返回已经取得的实际 run。§5 中除 SEO 外的十二个 Product 各自拥有的 `scripts/acceptance/product-plugins/<Product>.acceptance.ts` 在全部十七个现存 await 调用点及原循环样本上断言自己的 URL→checkpoint 完整顺序；不建中央期望表、配置字段或新运行器。主Codex分别修改共享中性接口与各 Product 自有断言，不能把它们交同一个 Owner 越域；原 Product 生产 Flow 不动。
+
+4B/4C 按中度核接缝，复用 J2 独立只读技术分析，披露既有上下文，不作新盲审或方案审批。4B 唯一修改单元为 `scripts/audit/domains/capability-governance/mechanical-content-inspection.ts` 的 callee 名称提取：退休把复合调用及回调正文当名字的旧分支，核缺席后仅沿 CallExpression 的 callee 取底层调用名；保留 identifier/property、原 heuristic、AST/TYPE/dependency检查，不改正确 locator、不加白名单或通用解释器。在原 `capability-governance.acceptance.ts` 补机械 transaction（含 result_revision/rows.length）不报 AST/TYPE、真实 judge 工厂仍报两模式的有限对照，原反例完整保留。此为 domain 检查器的错误对象修正，不改变治理主链。
+
+4C 分属原 GPT/Browser Owner，各自在原文件内承接原输出：`gpt-provider-contract-inspection.ts` 将完整发送/URL检查从 `inspectProviderWaitContract` 分出，主方法保留 submitPath 供退休步骤检查；`opaque-proof-inspection.ts` 将四个 encrypted-recovery 来源完整取得为 typed bundle，四源及主方法其它来源全部读取并保留各缺席 finding 后才判退出；`gpt-exact-target-browser-fixture.ts` 只退休新增内嵌 proof 分支并立即核缺席，同文件构造完整 CONFIRMED submit outcome，保留成熟 fakeBrowser/settle 的其余职责，保持计数→终态/proof→origin/outcome→失败运输顺序；`production-child-tools.ts` 退休超限 `readSubmittedLocator` 并核缺席，重建为原 step/call/effect资格与locator投影、原source/current事实读取和exact/authority验真两个完整职责。其它必要检查及模拟均提前裁留，不整文件删除或搬家；无新文件、公共端口、Owner、存储或生产行为，不能称全部片区都重新建设。
+
+本续单主审先从五级义务及真实消费者正查，再从各失败、source/current和缺席反查：规范无须变更，所有对象均有直接消费者及当前验证落点，不能删除必要保护。写前再核 main/目标 Git 状态；所有写入仅主 Codex。施工后正向与反向自检各一遍，原算法核所有受影响函数预算，由只读子审只审实际修后差异；随后从原生 CHANGE、提交首推、完整 READY、第二推重走。保留首次 FAIL，不以单项或审计替代质量结果；任一新实质 finding 交原庭，禁止扩改无关系统。
+
 ## 8. 有限验收分母与完成证据
 
 WO-6 补充的已证直接消费者为 `scripts/acceptance/agent-production-runtime-startup.acceptance.ts` 的迟清理 GPT 夹具（原约277—286行，Owner：agent-production-runtime）。原生 CHANGE r3 在 `PRODUCT_PROVIDER_EFFECT_IDENTITY_MISSING` 提前失败，尚未到 complete callback；旧夹具还把 URL 放入发送值，且对 URL Child 无差别返回 checkpoint。三名固定法官对同一原件均裁定保留迟清理验收、修其具体夹具，生产 effect 保护无违规，不放宽或处分生产 guard。该对象是本次共享合同的真实测试消费者，不是新增业务目标。
