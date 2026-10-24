@@ -69,7 +69,7 @@ export const inspectGptProviderProbeOwnerContract = (context: InspectorContext, 
       'productStepId, callId, observationDeadlineAt, "confirmed-readback", eligibleAt',
       "canonicalConversationUrl: active.confirmedProviderEffect!.canonicalConversationUrl", 'mode: "product-call-settlement"'].every(token => waitText.includes(token))
     && before(waitText, 'if (eligibleAt > observationDeadlineAt) return "deadline"', "await active.facade.park(")
-    && before(waitText, "assertConfirmedProviderReadback(active, this.browserAuthority, this.execution.jobId)", "await active.facade.park(")
+    && before(waitText, "assertConfirmedProviderReadback(active, this.browserAuthority, this.execution.jobId, this.execution.attemptId)", "await active.facade.park(")
     && before(waitText, "await active.facade.park(", "await this.acquireBrowserLease(")
     && before(waitText, "await this.acquireBrowserLease(", 'kind: "selectExactGptConversation"')
     && settlement?.getText().includes('mode: "product-call-settlement"') === true
@@ -180,10 +180,17 @@ export const inspectProviderWaitContract = (context: InspectorContext, findings:
   inspectGeneratedImageRawBoundary(context, findings, finding);
   inspectRawImageArtifact(context, findings, finding);
   const submitPath = `${ROOT}/children/submit_exact_gpt_turn_once/handler.ts`, submit = text(context, submitPath);
-  check(["expectedPromptHash: promptHash", "expectedAttachmentLabels: files.map(file => file.providerDisplayName)", "userTurnSelector: GPT_USER_TURN_SELECTOR",
-    "latestGptUserTurn: true", "selector: GPT_EMPTY_COMPOSER_SELECTOR", "match.exactGptUserPromptHash !== promptHash", "canonicalConversationOrNull(packet.currentUrl)",
-    "UUID.test(match.turnKey)", 'status: "CONFIRMED", promptHash', "physicalInputCount !== 1"].every(token => submit.includes(token)),
-  "gpt/current-provider-chain", submitPath, "Submit uses the two approved preconditions and exact latest turn/empty composer readback.", findings, finding);
+  const submitProof = text(context, "src/lib/browser/exact-target/browser-submit-recovery-payload.ts");
+  check(["expectedPromptHash: approvedHash", "expectedAttachmentLabels: files.map(file => file.providerDisplayName)", "userTurnSelector: GPT_USER_TURN_SELECTOR",
+    "latestGptUserTurn: true", "selector: GPT_EMPTY_COMPOSER_SELECTOR", "proof.promptHash !== approvedHash",
+    "proof.userTurnId", 'status: "CONFIRMED", promptHash', "physicalInputCount !== 1", "proof.exactCallIdentityHash !== exactCallIdentityHash"].every(token => submit.includes(token))
+    && !submit.includes("canonicalConversation") && submitProof.includes('schemaVersion: PROOF_SCHEMA'),
+  "gpt/current-provider-chain", submitPath, "Submit proves the exact message and immutable Browser receipt independently of URL readiness.", findings, finding);
+  const locatorPath = `${ROOT}/children/get_submitted_gpt_conversation_url/handler.ts`, locator = text(context, locatorPath);
+  check(["submittedConversationLocator", "readSubmittedConversationUrl({ ...input", "locator.providerEffectIdentityHash !== input.providerEffectIdentityHash",
+    'mutationOutcome: "no"', "locator.locatorHash"].every(token => locator.includes(token))
+    && !/kind: "click"|submitExactGptTurnOnceHandler|selectExactGptConversation/u.test(locator),
+  "gpt/current-provider-chain", locatorPath, "The independent URL Child consumes the original effect locator with no new Provider input.", findings, finding);
   const outgoing = text(context, "src/lib/browser/chrome-extension/dom-coherent-candidate.ts");
   check(outgoing.includes("expectedLabels.includes(providerLabel(label))")
     && !/priorTurns\.length > 1|querySelectorAll\(outgoing\.userTurnSelector\)|baselineOrdinal \+ 2/u.test(outgoing),

@@ -191,7 +191,7 @@ const leaseFailureFixture = async (temporary: string) => {
         identity = current; try { return await action(); } finally { identity = null; }
       },
       readAtomicStepOutcome: () => ({ state: "confirmed", mutationOutcome: "confirmed",
-        providerEffectIdentityHash: HASH_A, terminalPayload: {
+        providerEffectIdentityHash: HASH_A, conversationLocator: { canonicalConversationUrl: "https://chatgpt.com/c/lease-failure" }, terminalPayload: {
           canonicalConversationUrl: "https://chatgpt.com/c/lease-failure",
           userTurnId: "00000000-0000-4000-8000-000000000001", promptHash: HASH_B,
         } }),

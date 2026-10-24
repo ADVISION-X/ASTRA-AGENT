@@ -37,12 +37,12 @@ const attachments = [
   "open_gpt_attachment_control", "attach_approved_gpt_files_once", "reconcile_gpt_attachment_set",
 ] as const;
 const textTurn = [
-  "write_exact_gpt_prompt", "submit_exact_gpt_turn_once", "checkpoint_gpt_text_response",
+  "write_exact_gpt_prompt", "submit_exact_gpt_turn_once", "get_submitted_gpt_conversation_url", "checkpoint_gpt_text_response",
 ] as const;
 const initialText = ["prepare_clean_gpt_chat", ...profile, ...attachments, ...textTurn] as const;
 const continuedText = [...profile, ...textTurn] as const;
 const continuedImage = [...profile, "write_exact_gpt_prompt",
-  "submit_exact_gpt_turn_once", "checkpoint_gpt_generated_image"] as const;
+  "submit_exact_gpt_turn_once", "get_submitted_gpt_conversation_url", "checkpoint_gpt_generated_image"] as const;
 
 const source = readFileSync("src/plugins/public-knowledge-article-pipeline/index.ts", "utf8");
 const resultContractSource = readFileSync(
@@ -289,7 +289,7 @@ assert.equal(nextAttempt.calls.filter((call) => call.child === "attach_approved_
     "corpus_research", "article_synthesis", "article_image_generation",
   ]);
   assert.deepEqual(recovered.calls.map((call) => call.child), [
-    "checkpoint_gpt_text_response", "checkpoint_gpt_text_response", "checkpoint_gpt_generated_image",
+    "get_submitted_gpt_conversation_url", "checkpoint_gpt_text_response", "get_submitted_gpt_conversation_url", "checkpoint_gpt_text_response", "get_submitted_gpt_conversation_url", "checkpoint_gpt_generated_image",
   ], "confirmed submit readback must skip fresh, profile, attachment, prompt and submit actions");
   assert.equal(recovered.physicalSubmitDispatches, 0);
   assert(recovered.completed, "zero-input confirmed readback must still assemble one Product result");

@@ -1,3 +1,4 @@
+import { readSubmittedConversationLocator } from "../../../lib/browser/exact-target/browser-submitted-conversation-locator.js";
 import { createHash } from "node:crypto";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -59,7 +60,8 @@ try {
     observationRevisionHash: A, targetRefHash: A, documentRefHash: B, rawCount: 1, eligibleCount: 1 };
   const outcome = { state: "confirmed", mutationOutcome: "confirmed", providerEffectIdentityHash: A, terminalAt: "2026-09-13T00:00:00.000Z",
     failureCode: null, nativeFailureCode: null, authorityRef: "browser-mutation:submit", authorityHash: B, targetRef: "target:recovery",
-    documentRef: "document:recovery", physicalInputCount: 1, downloadGuidHash: null, downloadCompleted: false, identityRevalidated: true, terminalPayload } as const;
+    documentRef: "document:recovery", physicalInputCount: 1, downloadGuidHash: null, downloadCompleted: false, identityRevalidated: true, terminalPayload,
+    conversationLocator: readSubmittedConversationLocator({ terminalPayload }, { exactCallIdentityHash: exact, providerEffectIdentityHash: A }) } as const;
   const browser = { target: { targetRef: outcome.targetRef }, document: { documentRef: outcome.documentRef }, writerFenceHash: A,
     readAtomicStepOutcome: (identity: BrowserAtomicStepIdentity) => { if (identity.childCapabilityId !== original.childCapabilityId) { atomicReads += 1; return null; }
       assert.deepEqual(identity, original); return outcome; }, runAtomicStep: async (_identity: unknown, action: () => Promise<unknown>) => action(),
@@ -85,7 +87,11 @@ try {
   const tools = new ProductionGptChildTools(root, A, createGptAbilityGroup(), evidence, authority as never, logger("recovery"), control);
   const execution = tools.createExecution({ ...input, readbackOnlyCalls: [{ productStepId: original.productStepId, callId: original.callId, childCapabilityId: "submit_exact_gpt_turn_once" }] });
   const submitCall = { sessionKey, productStepId: original.productStepId, callId: original.callId, child: "submit_exact_gpt_turn_once", actionOrdinal: 1, input: submitInput } as const;
+  const locate = async (active: typeof execution, effect = A) => active.tools.execute({ sessionKey,
+    productStepId: original.productStepId, callId: "conversation-url", child: "get_submitted_gpt_conversation_url",
+    actionOrdinal: 2, input: { submitCallId: original.callId, providerEffectIdentityHash: effect, timeoutMs: 15_000 } });
   const submit = await execution.tools.readConfirmedSubmit(submitCall); assert.equal(submit?.value.userTurnId, user);
+  await locate(execution);
   const proof = execution.readProviderEffectReadbackProof(); assert.equal(isProviderEffectReadbackProofV1(proof), true);
   assert.equal(proof?.provider_effect_identity_hash, A); assert.equal(proof?.exact_call_identity_hash, exact);
   assert.equal(proof?.browser_authority_ref, outcome.authorityRef); assert.equal(proof?.browser_authority_hash, B); assert.equal(proof?.readback_provider_input_delta, 0);
@@ -116,8 +122,8 @@ try {
     providerEffectIdentityHash: A, effectScope: "provider_effect", browserOutcome: "CONFIRMED", mutationOutcome: "confirmed",
     terminalAt: outcome.terminalAt, evidenceRef: outcome.authorityRef, evidenceHash: B }, original, url, user);
   const liveSession = new ProductionGptExecutionSession(input, live, evidence, new ProductionGptSourceReuse(input, evidence, authority as never), () => {},
-    async () => restored as never, async (_call, _recorder, recordIdentity) => { recordIdentity(original); return submit; }).createExecution();
-  await liveSession.tools.readConfirmedSubmit(submitCall); const liveAcquisitions = acquisitions;
+    async (call) => (call.child === "get_submitted_gpt_conversation_url" ? { ...restored, value: { canonicalConversationUrl: url, userTurnId: user } } : restored) as never, async (_call, _recorder, recordIdentity) => { recordIdentity(original); return submit; }).createExecution();
+  await liveSession.tools.readConfirmedSubmit(submitCall); await locate(liveSession); const liveAcquisitions = acquisitions;
   await liveSession.tools.execute(textCall); assert.equal(liveCall.settledResultPayloadHash, digest(savedText)); assert.equal(acquisitions, liveAcquisitions);
   await liveSession.tools.execute({ ...submitCall, sessionKey: "next-live", productStepId: "next-live", child: "prepare_clean_gpt_chat", input: { timeoutMs: 1_000 } });
   await liveSession.settle(null);
@@ -127,7 +133,9 @@ try {
   const sourceEffect = digest("source-effect"), sourceWal = digest("source-wal"), sourcePrompt = digest("old-prompt"), newPrompt = digest("new-prompt");
   let sourceReads = 0, sourceAcquisitions = 0; const checkpoints: unknown[] = [];
   const sourceAuthority = { readSourceConfirmedProviderEffect: () => { sourceReads += 1; return { exactCallIdentityHash: exact, inputHash: original.inputHash,
-    actionOrdinal: 1, terminalPayload: { ...terminalPayload, promptHash: sourcePrompt }, authorityRef: "browser-mutation:source", authorityHash: sourceWal, terminalAt: outcome.terminalAt }; },
+    actionOrdinal: 1, terminalPayload: { ...terminalPayload, promptHash: sourcePrompt },
+    conversationLocator: readSubmittedConversationLocator({ terminalPayload: { ...terminalPayload, promptHash: sourcePrompt } },
+      { exactCallIdentityHash: exact, providerEffectIdentityHash: sourceEffect }), authorityRef: "browser-mutation:source", authorityHash: sourceWal, terminalAt: outcome.terminalAt }; },
     acquireJobBoundTargetLease: async () => { sourceAcquisitions += 1; throw new Error("SOURCE_REUSE_ACQUIRED_TARGET"); } };
   const replay = new ProductionGptChildTools(join(root, "replay"), A, createGptAbilityGroup(), evidence, sourceAuthority as never, logger("replay"), control).createExecution({
     ...input, attemptId: "new-attempt", resultRevision: 1, leaseVersion: 2, deliveryPriorityReplayCalls: [{ productStepId: "corpus_research", callId: "turn-submit",
@@ -146,7 +154,8 @@ try {
     deliveryPriorityReplayCalls: [{ productStepId: "other-step", callId: "other-submit", childCapabilityId: "submit_exact_gpt_turn_once", sourceEffectSetHash: A, callGrantHash: B }],
     sourceReusableCalls: [grant], recordSettledCheckpoint: checkpoint => { checkpoints.push(checkpoint); } });
   assert.equal((await reuse.tools.readConfirmedSubmit({ ...submitCall, input: { files: [], promptHash: newPrompt } }))?.value.promptHash, sourcePrompt);
-  assert.equal((await reuse.tools.execute(textCall)).artifactRefs[0], textRef); assert.deepEqual([sourceReads, sourceAcquisitions, checkpoints.length], [1, 0, 1]);
+  await locate(reuse, sourceEffect);
+  assert.equal((await reuse.tools.execute(textCall)).artifactRefs[0], textRef); assert.deepEqual([sourceReads, sourceAcquisitions, checkpoints.length], [3, 0, 1]);
   assert.equal(executionFailureMetadata(reuse.decorateSettledResultFailure(new Error("SOURCE_SCHEMA_INVALID")))?.settledResultPayloadHash, digest(savedText));
   assert.equal(executionFailureMetadata(reuse.decorateSettledResultFailure(new Error("SOURCE_SCHEMA_INVALID")))?.browserEffect?.providerEffectIdentityHash, sourceEffect);
   await reuse.settle(null);
@@ -154,10 +163,11 @@ try {
     { ...authority, acquireJobBoundTargetLease: async () => { throw browserExecutionFailure(new Error("BROWSER_EXTENSION_CHANNEL_UNAVAILABLE")); } } as never,
     logger("unavailable"), control).createExecution(input);
   assert.equal((await unavailable.tools.readConfirmedSubmit(submitCall))?.value.userTurnId, user);
+  await locate(unavailable);
   assert.equal((await unavailable.tools.execute(textCall)).artifactRefs[0], textRef);
   assert.equal(failureCode(unavailable.decorateSettledResultFailure(new Error("AGENT_RESULT_SCHEMA_VERSION_INVALID"))), "RESULT_SETTLED_UNUSABLE");
   for (const scope of [sessionKey, "different-session"]) {
-    await unavailable.tools.readConfirmedSubmit(submitCall); await unavailable.tools.execute(textCall);
+    await unavailable.tools.readConfirmedSubmit(submitCall); await locate(unavailable); await unavailable.tools.execute(textCall);
     await assert.rejects(unavailable.tools.execute({ ...submitCall, sessionKey: scope, productStepId: "next-turn", child: "prepare_clean_gpt_chat", input: { timeoutMs: 1_000 } }),
       (error: unknown) => unavailable.decorateSettledResultFailure(error) === error);
   }
@@ -174,14 +184,14 @@ try {
   const imageExact = gptExactCallIdentityHash({ jobId, attemptId, resultRevision: 0, productStepId: imageCall.productStepId,
     callId: imageCall.callId, childCapabilityId: imageCall.child, inputHash: gptCanonicalHash(imageCall.input) });
   const imageTools = new ProductionGptChildTools(join(root, "image"), A, createGptAbilityGroup(), evidence, authority as never, logger("image"), control), imageExecution = imageTools.createExecution(input);
-  await imageExecution.tools.readConfirmedSubmit(submitCall); const image = await imageExecution.tools.execute(imageCall);
+  await imageExecution.tools.readConfirmedSubmit(submitCall); await locate(imageExecution); const image = await imageExecution.tools.execute(imageCall);
   assert.equal(image.value.originalSha256, imageHash); assert.deepEqual(image.value.originalBytes, bytes); assert.equal(image.artifactRefs.length, 1); assert.equal(imageReads, 1);
   const originalArtifact = await evidence.readArtifact({ idempotencyKey: `gpt-call-artifact:v1:${imageExact}:original` });
   assert.equal(originalArtifact.status, "success"); if (originalArtifact.status === "success") { assert.deepEqual(originalArtifact.artifact.content, bytes); assert.equal(originalArtifact.artifact.mimeType, "image/png"); }
   const imageEvidence = await readPersistedGptImageEvidence({ evidenceStore: evidence, jobId, attemptId, exactCallIdentityHash: imageExact });
   assert.equal(imageEvidence?.originalArtifactRef, image.artifactRefs[0]); assert.equal(imageEvidence?.binding.originalSha256, imageHash);
   const bindingKey = `gpt-call-artifact:v1:${imageExact}:source-binding`, binding = artifacts.get(bindingKey)!; assert.ok(binding);
-  const coldImage = imageTools.createExecution(input); await coldImage.tools.readConfirmedSubmit(submitCall);
+  const coldImage = imageTools.createExecution(input); await coldImage.tools.readConfirmedSubmit(submitCall); await locate(coldImage);
   const imageBefore = [acquisitions, imageReads, appends, selections, atomicReads];
   assert.deepEqual((await coldImage.tools.execute(imageCall)).value.originalBytes, bytes);
   assert.deepEqual([acquisitions, imageReads, appends, selections, atomicReads], imageBefore);
@@ -213,18 +223,42 @@ try {
   for (const renamed of [{ ...submitCall, productStepId: "renamed-step" }, { ...submitCall, callId: "renamed-submit" }])
     await assert.rejects(imageReuse.tools.readConfirmedSubmit(renamed), (error: unknown) => failureCode(error) === "PRODUCTION_SOURCE_REUSE_IDENTITY_MISMATCH");
   await assert.rejects(imageReuse.tools.execute({ ...imageCall, productStepId: "renamed-step" }), (error: unknown) => failureCode(error) === "PRODUCTION_SOURCE_REUSE_IDENTITY_MISMATCH");
-  assert.deepEqual([sourceReads, sourceAcquisitions], [1, 0]);
+  assert.deepEqual([sourceReads, sourceAcquisitions], [3, 0]);
   assert.equal((await imageReuse.tools.readConfirmedSubmit({ ...submitCall, input: { files: [], promptHash: newPrompt } }))?.value.promptHash, sourcePrompt);
+  await locate(imageReuse, sourceEffect);
   const restoredImage = await imageReuse.tools.execute(imageCall); assert.deepEqual(restoredImage.value.originalBytes, bytes); assert.equal(restoredImage.artifactRefs[0], image.artifactRefs[0]);
-  assert.deepEqual([sourceReads, sourceAcquisitions, checkpoints.length], [2, 0, 2]);
+  assert.deepEqual([sourceReads, sourceAcquisitions, checkpoints.length], [6, 0, 2]);
   assert.equal(executionFailureMetadata(imageReuse.decorateSettledResultFailure(new Error("SOURCE_IMAGE_SCHEMA_INVALID")))?.settledResultPayloadHash, imageHash);
   await assert.rejects(imageReuse.tools.execute({ ...submitCall, sessionKey: "next-source", productStepId: "next-source", child: "prepare_clean_gpt_chat", input: { timeoutMs: 1_000 } }),
     (error: unknown) => { assert.equal(failureCode(error), "PRODUCTION_SOURCE_REUSE_IDENTITY_MISMATCH"); return imageReuse.decorateSettledResultFailure(error) === error; });
   const abort = new AbortController(), aborted = imageTools.createExecution({ ...input, abortSignal: abort.signal });
-  await aborted.tools.readConfirmedSubmit(submitCall); await aborted.tools.execute(imageCall); abort.abort("NEXT_TURN_ABORTED");
+  await aborted.tools.readConfirmedSubmit(submitCall); await locate(aborted); await aborted.tools.execute(imageCall); abort.abort("NEXT_TURN_ABORTED");
   await assert.rejects(aborted.tools.execute({ ...submitCall, child: "prepare_clean_gpt_chat", input: { timeoutMs: 1_000 } }),
     (error: unknown) => { assert.equal(failureCode(error), "NEXT_TURN_ABORTED"); return aborted.decorateSettledResultFailure(error) === error; });
   await aborted.settle(null);
   await imageReuse.settle(null); await imageExecution.settle(null); await coldImage.settle(null);
+  const { canonicalConversationUrl: _historicalUrl, ...messageProof } = terminalPayload;
+  let unlocatedAcquisitions = 0;
+  const unlocated = new ProductionGptChildTools(join(root, "unlocated"), A, createGptAbilityGroup(), evidence, {
+    ...authority, readProviderEffectStepCallFact: () => ({ ...authority.readProviderEffectStepCallFact(),
+      confirmedOutcome: { ...outcome, terminalPayload: { schemaVersion: "grasseye.browser.confirmed-submit-proof.v2", ...messageProof },
+        conversationLocator: null } }),
+    acquireJobBoundTargetLease: async (_binding: unknown, _owner: unknown, wait: { targetMode: string }) => {
+      unlocatedAcquisitions += 1; assert.equal(wait.targetMode, "bound-observation");
+      throw browserExecutionFailure(new Error("BROWSER_TARGET_INVALID"));
+    },
+  } as never, logger("unlocated"), control).createExecution({ ...input,
+    readbackOnlyCalls: [{ productStepId: original.productStepId, callId: original.callId, childCapabilityId: "submit_exact_gpt_turn_once" }] });
+  const confirmedWithoutUrl = await unlocated.tools.readConfirmedSubmit(submitCall);
+  assert.equal(confirmedWithoutUrl?.effectReceipt?.outcome, "CONFIRMED");
+  assert.equal(unlocatedAcquisitions, 0, "absence of locator must not acquire a fresh Browser or negate the send");
+  await assert.rejects(locate(unlocated), error => {
+    const facts = executionFailureMetadata(error);
+    assert.equal(failureCode(error), "BROWSER_TARGET_INVALID");
+    assert.equal(facts?.mutationOutcome, "confirmed");
+    assert.equal(facts?.browserEffect?.providerEffectIdentityHash, A);
+    assert.equal(facts?.browserEffect?.browserOutcome, "CONFIRMED"); return true;
+  });
+  assert.equal(unlocatedAcquisitions, 1); await unlocated.settle(null);
   assert.ok(acquisitions > 0);
 } finally { await rm(root, { recursive: true, force: true }); }

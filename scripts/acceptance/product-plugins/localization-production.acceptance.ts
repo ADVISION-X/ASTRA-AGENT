@@ -18,7 +18,7 @@ const sequence = [
   "select_gpt_model_from_start_v3", "select_gpt_reasoning_from_start_v3",
   "close_gpt_execution_profile",
   "open_gpt_attachment_control", "attach_approved_gpt_files_once", "reconcile_gpt_attachment_set",
-  "write_exact_gpt_prompt", "submit_exact_gpt_turn_once", "checkpoint_gpt_text_response",
+  "write_exact_gpt_prompt", "submit_exact_gpt_turn_once", "get_submitted_gpt_conversation_url", "checkpoint_gpt_text_response",
 ] as const;
 
 for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
@@ -328,7 +328,7 @@ assert.notEqual(oldSubmitRead.input.promptHash, FIXTURE_HASH);
 const oldConfirmedPayload = oldConfirmed.completed.payload;
 assert(oldConfirmedPayload && typeof oldConfirmedPayload === "object" && "promptHash" in oldConfirmedPayload);
 assert.equal(oldConfirmedPayload.promptHash, FIXTURE_HASH);
-assert.deepEqual(oldConfirmed.calls.map((call) => call.child), ["checkpoint_gpt_text_response"]);
+assert.deepEqual(oldConfirmed.calls.map((call) => call.child), ["get_submitted_gpt_conversation_url", "checkpoint_gpt_text_response"]);
 assert.equal(oldConfirmed.physicalSubmitDispatches, 0);
 assert.match(staticPrompt, /read_only_siblings/u);
 assert.doesNotMatch(staticPrompt, /"finding_codes"\s*:|五个 locale turn/u);

@@ -73,6 +73,7 @@ export interface GptProductionBrowserAuthority {
     effectIdentityHash: GptHash; walAuthorityHash: GptHash;
   }>): Readonly<{ exactCallIdentityHash: GptHash; actionOrdinal: number;
     inputHash: GptHash; terminalPayload: unknown;
+    conversationLocator?: Awaited<ReturnType<BrowserTargetLease["readSubmittedConversationUrl"]>> | null;
     authorityRef: string; authorityHash: GptHash; terminalAt: string }>;
   releaseJobBoundTarget(jobId: string, releaseAuthority: "wait-new-attempt",
     signal: AbortSignal): Promise<void>;

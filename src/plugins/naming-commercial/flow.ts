@@ -84,9 +84,14 @@ export async function executeOwnedFlow(task: WebsiteAgentTask, context: SharedEx
     || !accepted.effectReceipt.terminalAt || !Number.isFinite(Date.parse(accepted.effectReceipt.terminalAt))) {
     throw executionFailure("failed", "PRODUCT_PROVIDER_EFFECT_TERMINAL_FACT_MISSING");
   }
+  const providerEffectIdentityHash = accepted.effectReceipt?.providerEffectIdentityHash;
+  result.hash(providerEffectIdentityHash, "PRODUCT_PROVIDER_EFFECT_IDENTITY_MISSING");
+  const locator = await invoke({ productStepId: task.action_id, callId: "conversation-url", actionOrdinal: 12,
+    child: "get_submitted_gpt_conversation_url", input: { submitCallId: "commercial-submit",
+      providerEffectIdentityHash: providerEffectIdentityHash!, timeoutMs: 15_000 } }) as ProductGptChildResult<"get_submitted_gpt_conversation_url">;
   const capture = await invoke({ productStepId: task.action_id, callId: "commercial-answer", actionOrdinal: 12,
     child: "checkpoint_gpt_text_response", input: { probeBudgetMs: 3_600_000, turnMarker: marker,
-      canonicalConversationUrl: accepted.value.canonicalConversationUrl, userTurnId: accepted.value.userTurnId } });
+      canonicalConversationUrl: locator.value.canonicalConversationUrl, userTurnId: locator.value.userTurnId } });
   const captured = result.object(capture.value, "PRODUCT_TEXT_CHECKPOINT_INVALID");
   if (capture.artifactRefs.length !== 1 || !capture.artifactRefs[0] || typeof captured.semanticText !== "string"
     || captured.semanticTextHash !== sha256(captured.semanticText)) throw executionFailure("failed", "PRODUCT_TEXT_CHECKPOINT_INVALID");

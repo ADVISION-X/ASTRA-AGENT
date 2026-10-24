@@ -60,6 +60,19 @@ export type BrowserProviderEffectStepCallFact = Readonly<{
   confirmedOutcome: BrowserAtomicStepOutcome | null;
 }>;
 
+export type BrowserSubmittedConversationLocator = Readonly<{
+  schemaVersion?: "grasseye.browser.submitted-conversation-locator.v1";
+  providerEffectIdentityHash: `sha256:${string}`;
+  submitExactCallIdentityHash: `sha256:${string}`;
+  canonicalConversationUrl: string;
+  userTurnId: string;
+  targetRefHash: `sha256:${string}`;
+  documentRefHash: `sha256:${string}`;
+  observationRevisionHash: `sha256:${string}`;
+  observedAt?: string;
+  locatorHash: `sha256:${string}`;
+}>;
+
 export type BrowserAtomicStepOutcome = Readonly<{
   state: "dispatched" | "confirmed" | "rejected";
   mutationOutcome: BrowserMutationOutcome;
@@ -76,6 +89,7 @@ export type BrowserAtomicStepOutcome = Readonly<{
   downloadCompleted: boolean;
   identityRevalidated: boolean;
   terminalPayload?: unknown | null;
+  conversationLocator?: BrowserSubmittedConversationLocator | null;
 }>;
 
 export type AtomicStepRow = Readonly<{

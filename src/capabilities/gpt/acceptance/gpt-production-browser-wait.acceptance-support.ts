@@ -42,6 +42,7 @@ try {
       },
       readAtomicStepOutcome: () => ({
         state: "confirmed", mutationOutcome: "confirmed", providerEffectIdentityHash,
+        conversationLocator: { canonicalConversationUrl: "https://chatgpt.com/c/provider-wait" },
         terminalPayload: {
           canonicalConversationUrl: "https://chatgpt.com/c/provider-wait",
           userTurnId: "00000000-0000-4000-8000-000000000001",

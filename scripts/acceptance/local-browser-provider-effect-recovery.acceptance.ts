@@ -1,3 +1,4 @@
+import { verifySubmittedConversationLocator } from "./local-browser-mutation-store-support.js";
 import { terminalFact } from "./local-browser-mutation-store-support.js";
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 import { executionFailureMetadata } from "../../src/lib/execution-failure.js";
@@ -55,16 +56,15 @@ const submitTerminalReply = (currentUrl: string) => ({ postconditionObservation:
     exactGptUserPromptHash: hash("prompt") }] }],
 } });
 
-assert.equal(submitRecoveryPayload(submitTerminalReply(
-  "https://chatgpt.com/c/durable-provider-route",
-)).canonicalConversationUrl, "https://chatgpt.com/c/durable-provider-route");
-assert.throws(() => submitRecoveryPayload(submitTerminalReply(
-  "https://chatgpt.com/c/WEB:temporary-client-route",
-)), /BROWSER_ORIGIN_REJECTED/u,
-"Browser WAL must reject a temporary client route before persisting confirmed recovery data");
+for (const url of ["https://chatgpt.com/c/durable-provider-route", "https://chatgpt.com/c/WEB:temporary-client-route"]) {
+  const proof = submitRecoveryPayload(submitTerminalReply(url));
+  assert.equal(proof.schemaVersion, "grasseye.browser.confirmed-submit-proof.v2");
+  assert.equal("canonicalConversationUrl" in proof, false, "message confirmation must be independent of formal URL readiness");
+}
 const root = await mkdtemp(path.join(tmpdir(), "browser-attempt-fence-"));
 try {
   verifyWalSchemaStartupRejections(root);
+  await verifySubmittedConversationLocator(root);
   const store = new BrowserMutationStore(root);
   store.verifyRuntimeTaskProvenance(null);
   const schema = new Database(path.join(root, "browser", "browser-mutations.sqlite"), { readonly: true });
@@ -489,7 +489,7 @@ try {
 }
 process.stdout.write("LOCAL_BROWSER_ATTEMPT_FENCE_ACCEPTANCE_PASS\n");
 emitQualityProofObservation({
-  lawId: "LAW-LOCAL-BROWSER-SESSION-004-V58", evidenceMode: "exam.golden",
+  lawId: "LAW-LOCAL-BROWSER-SESSION-004-V59", evidenceMode: "exam.golden",
   clauses: ["forbidden:0", "forbidden:3", "forbidden:4", "forbidden:5"],
   locator: "acceptance:local-browser-provider-effect-recovery:risk-grant",
   observedValue: "original Provider effect sets remain in WAL; a risk grant rebinds only proven zero-input PREPARED and retries only proven REJECTED/no commands until one physical input",

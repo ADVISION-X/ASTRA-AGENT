@@ -1,5 +1,5 @@
 import type { BrowserDomObservationQuery } from "./browser-dom-intent.js";
-import { GPT_WEB_ORIGIN, requireCanonicalGptConversationUrl } from "./browser-site-policy-registry.js";
+import { GPT_WEB_ORIGIN } from "./browser-site-policy-registry.js";
 
 export const GPT_CONVERSATION_SEGMENT_MAX_CHARS = 256;
 export const sanitizeCurrentUrl = (value: string): string => {
@@ -89,13 +89,12 @@ const exactOutgoingPostconditionVerified = (
   packet: Readonly<Record<string, unknown>>,
 ): boolean => {
   if (expectedPromptHash === undefined) return true;
-  const firstQuery = (packet.queries as readonly Readonly<Record<string, unknown>>[])[0];
-  const firstMatch = Array.isArray(firstQuery?.matches) ? firstQuery.matches[0] : undefined;
-  const match = firstMatch && typeof firstMatch === "object" && !Array.isArray(firstMatch)
-    ? firstMatch as Readonly<Record<string, unknown>> : null;
-  try { return match?.exactGptUserPromptHash === expectedPromptHash
-    && requireCanonicalGptConversationUrl(packet.currentUrl as string) === packet.currentUrl; }
-  catch { return false; }
+  const rows = packet.queries;
+  if (!Array.isArray(rows)) return false;
+  const row = rows[0] as Readonly<Record<string, unknown>> | undefined;
+  const message = Array.isArray(row?.matches) ? row.matches[0] : null;
+  return message !== null && typeof message === "object" && !Array.isArray(message)
+    && (message as Readonly<Record<string, unknown>>).exactGptUserPromptHash === expectedPromptHash;
 };
 
 export const browserObservationPostconditionDecision = (

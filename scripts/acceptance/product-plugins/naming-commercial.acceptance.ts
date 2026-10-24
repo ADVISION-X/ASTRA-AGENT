@@ -67,7 +67,7 @@ for (const route of routesForPlugin(namingCommercialPlugin, productionRoutePolic
   assert.deepEqual(sequence, ["prepare_clean_gpt_chat", "open_gpt_execution_profile", "open_gpt_model_selector_v3",
     "select_gpt_model_from_start_v3", "select_gpt_reasoning_from_start_v3", "close_gpt_execution_profile",
     "open_gpt_attachment_control", "attach_approved_gpt_files_once", "reconcile_gpt_attachment_set",
-    "write_exact_gpt_prompt", "submit_exact_gpt_turn_once", "checkpoint_gpt_text_response"]);
+    "write_exact_gpt_prompt", "submit_exact_gpt_turn_once", "get_submitted_gpt_conversation_url", "checkpoint_gpt_text_response"]);
   const write = run.calls.find(call => call.child === "write_exact_gpt_prompt")!;
   const submit = run.calls.find(call => call.child === "submit_exact_gpt_turn_once")!;
   assert.equal(submit.input.promptHash, sha256(write.input.prompt));

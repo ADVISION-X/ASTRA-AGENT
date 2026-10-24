@@ -352,9 +352,9 @@ const inspectPostconditionEvidence = (
   "The first failed postcondition query must produce its indexed native cause");
   requireTokens(input.observationReceiptText, ["browserObservationPostconditionDecision(postcondition.queries, packet, expectedHash)",
     "coherentRowResult(candidate, specs[index]!, index)", "browserPostconditionNativeCause(queryIndex, baseCause)",
-    "queryCause ?? (exactOutgoingPostconditionVerified", "requireCanonicalGptConversationUrl(packet.currentUrl as string)",
+    "queryCause ?? (exactOutgoingPostconditionVerified", ".exactGptUserPromptHash === expectedPromptHash",
     "sanitizeCurrentUrl(packet.currentUrl) !== packet.currentUrl"], findings, lawId, OBSERVATION_RECEIPT_PATH,
-  "Both postcondition consumers must use the same decision with query cause priority and canonical exact locator");
+  "Both postcondition consumers must use the same decision with query cause priority and exact outgoing message proof");
   if (input.postconditionText.includes("const exactOutgoingTurnVerified") || input.observationReceiptText.includes("queryIndex === undefined"))
     finding(findings, lawId, OBSERVATION_RECEIPT_PATH, "Retired exact-outgoing exemption and duplicate producer decision must be absent.");
   requireTokens(input.nativeCauseText, ["BROWSER_POSTCONDITION_QUERY_INDEX_MAX = 19",

@@ -12,7 +12,7 @@ import type {
   BrowserTargetLease,
   BrowserTargetLeaseWait,
 } from "../../lib/browser/browser-authority-api.js";
-import { assertBrowserAtomicStepIdentity } from "../../lib/browser/browser-authority-api.js";
+import { assertBrowserAtomicStepIdentity, browserExactCallIdentityHash } from "../../lib/browser/browser-authority-api.js";
 import { requireRuntimeLogWrite, type RuntimeLogger } from "../../lib/runtime-logs/index.js";
 import { executionFailure, failureCode } from "../../lib/execution-failure.js";
 import type { GptProductionBrowserAuthority, GptProductionExecutionInput } from "./production-ports.js";
@@ -42,7 +42,7 @@ export type ProductionGptBrowserCall = {
   providerWaitLog: Readonly<{ callIdentity: string; emittedAt: number }> | null;
   confirmedProviderEffect: (GptChildBrowserFact & Readonly<{
     submitIdentity: BrowserAtomicStepIdentity;
-    canonicalConversationUrl: string;
+    canonicalConversationUrl: string | null;
     userTurnId: string;
     sourceReadback?: NonNullable<NonNullable<GptProductionExecutionInput["readbackOnlyCalls"]>[number]["source"]>;
   }>) | null;
@@ -54,6 +54,7 @@ export const PROVIDER_OBSERVATION_MIN_INTERVAL_MS = 70_000;
 
 const ATOMIC_BROWSER_COMMANDS = new Set<PropertyKey>([
   "executeDomIntent",
+  "readSubmittedConversationUrl",
   "observeCapability",
   "captureScreenshot",
   "attachFile",
@@ -66,9 +67,10 @@ const confirmedReadbackIdentityMatches = (
   confirmed: NonNullable<ProductionGptBrowserCall["confirmedProviderEffect"]>,
   old: ReturnType<NonNullable<GptBrowserLeaseAuthority["readSourceConfirmedProviderEffect"]>> | null,
   prior: ReturnType<BrowserTargetLease["readAtomicStepOutcome"]> | null,
+  exactCallIdentityHash: GptHash,
 ): boolean => {
   const source = confirmed.sourceReadback;
-  return old ? old.exactCallIdentityHash === confirmed.exactCallIdentityHash
+  return old ? old.exactCallIdentityHash === exactCallIdentityHash
     && old.authorityHash === confirmed.evidenceHash && old.authorityRef === confirmed.evidenceRef
     && old.actionOrdinal === confirmed.submitIdentity.actionOrdinal && old.inputHash === confirmed.submitIdentity.inputHash
     && source?.effectIdentityHash === confirmed.providerEffectIdentityHash
@@ -77,7 +79,7 @@ const confirmedReadbackIdentityMatches = (
 };
 
 const assertConfirmedProviderReadback = (active: ProductionGptBrowserCall,
-  browserAuthority: GptBrowserLeaseAuthority, jobId: string): void => {
+  browserAuthority: GptBrowserLeaseAuthority, jobId: string, attemptId: string): void => {
   const confirmed = active.confirmedProviderEffect;
   if (!confirmed) throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_READBACK_INVALID");
   const source = confirmed.sourceReadback;
@@ -92,8 +94,10 @@ const assertConfirmedProviderReadback = (active: ProductionGptBrowserCall,
   const payload = old?.terminalPayload ?? prior?.terminalPayload;
   const record = payload && typeof payload === "object" && !Array.isArray(payload)
     ? payload as Readonly<Record<string, unknown>> : null;
-  const identityMatches = confirmedReadbackIdentityMatches(confirmed, old, prior);
-  if (!identityMatches || record?.canonicalConversationUrl !== confirmed.canonicalConversationUrl
+  const identityMatches = confirmedReadbackIdentityMatches(confirmed, old, prior, browserExactCallIdentityHash({
+    jobId, attemptId, writerFenceHash: active.browser.writerFenceHash, ...confirmed.submitIdentity }));
+  const locator = old?.conversationLocator ?? prior?.conversationLocator;
+  if (!identityMatches || !confirmed.canonicalConversationUrl || locator?.canonicalConversationUrl !== confirmed.canonicalConversationUrl
     || record?.userTurnId !== confirmed.userTurnId) {
     throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_READBACK_INVALID");
   }
@@ -209,7 +213,7 @@ export class ProductionGptBrowserLifecycle {
     active: ProductionGptBrowserCall,
     effect: GptChildBrowserFact,
     submitIdentity: BrowserAtomicStepIdentity,
-    canonicalConversationUrl: string,
+    canonicalConversationUrl: string | null,
     userTurnId: string,
   ): Promise<void> {
     if (active.confirmedProviderEffect?.providerEffectIdentityHash !== effect.providerEffectIdentityHash) {
@@ -217,7 +221,7 @@ export class ProductionGptBrowserLifecycle {
     }
     active.confirmedProviderEffect = Object.freeze({ ...effect, submitIdentity,
       canonicalConversationUrl, userTurnId });
-    if (active.recoverySelectionRequired) {
+    if (active.recoverySelectionRequired && canonicalConversationUrl) {
       await active.browser.executeDomIntent({
         kind: "selectExactGptConversation", canonicalConversationUrl,
       });
@@ -264,7 +268,7 @@ export class ProductionGptBrowserLifecycle {
     if (active.browser.pendingMutationCount() > 0) {
       throw executionFailure("failed", "BROWSER_NORMAL_PROVIDER_WAIT_WITH_PENDING_MUTATION");
     }
-    assertConfirmedProviderReadback(active, this.browserAuthority, this.execution.jobId);
+    assertConfirmedProviderReadback(active, this.browserAuthority, this.execution.jobId, this.execution.attemptId);
     const eligibleAt = Date.now() + PROVIDER_OBSERVATION_MIN_INTERVAL_MS;
     if (eligibleAt > observationDeadlineAt) return "deadline";
     this.emitProviderWaitLog(active, productStepId, callId, childCapabilityId, reason);
@@ -284,7 +288,7 @@ export class ProductionGptBrowserLifecycle {
     }
     this.activeBrowser = current;
     await active.facade.executeDomIntent({ kind: "selectExactGptConversation",
-      canonicalConversationUrl: active.confirmedProviderEffect!.canonicalConversationUrl });
+      canonicalConversationUrl: active.confirmedProviderEffect!.canonicalConversationUrl! });
     return "reobserve";
   }
 

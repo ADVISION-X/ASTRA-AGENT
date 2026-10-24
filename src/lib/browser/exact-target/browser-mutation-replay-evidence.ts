@@ -1,6 +1,6 @@
 import Database from "better-sqlite3";
 import { createHash } from "node:crypto";
-import { requireCanonicalGptConversationUrl } from "./browser-site-policy-registry.js";
+import { readSubmittedConversationLocator } from "./browser-submitted-conversation-locator.js";
 import { unsealProviderRecoveryPayload } from "./browser-mutation-payload.js";
 
 type ReplayCall = Readonly<{ productStepId: string; callId: string;
@@ -19,25 +19,14 @@ const readTrustedAnchor = (payloadKey: Buffer, row: ReplayRow): Readonly<{
   promptHash: `sha256:${string}`; exactCallIdentityHash: `sha256:${string}`;
 }> | null => {
   if (row.provider_recovery_payload === null) return null;
-  const recovered = unsealProviderRecoveryPayload(
-    payloadKey, row.command_id, row.provider_recovery_payload,
-  ).terminalPayload;
-  const value = recovered && typeof recovered === "object" && !Array.isArray(recovered)
-    ? recovered as Readonly<Record<string, unknown>> : null;
-  if (!value || typeof value.canonicalConversationUrl !== "string"
-    || typeof value.userTurnId !== "string"
-    || !/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/u.test(value.userTurnId)
-    || typeof value.promptHash !== "string"
-    || !/^sha256:[a-f0-9]{64}$/u.test(value.promptHash)
-    || value.exactCallIdentityHash !== row.exact_call_identity_hash) {
-    throw new Error("BROWSER_PROVIDER_RECOVERY_ANCHOR_INVALID");
-  }
-  try { return Object.freeze({
-    canonicalConversationUrl: requireCanonicalGptConversationUrl(value.canonicalConversationUrl),
-    userTurnId: value.userTurnId,
-    promptHash: value.promptHash as `sha256:${string}`,
-    exactCallIdentityHash: row.exact_call_identity_hash,
-  }); } catch { throw new Error("BROWSER_PROVIDER_RECOVERY_ANCHOR_INVALID"); }
+  const envelope = unsealProviderRecoveryPayload(payloadKey, row.command_id, row.provider_recovery_payload);
+  if (!row.logical_mutation_id) throw new Error("BROWSER_PROVIDER_RECOVERY_ANCHOR_INVALID");
+  const locator = readSubmittedConversationLocator(envelope, { exactCallIdentityHash: row.exact_call_identity_hash,
+    providerEffectIdentityHash: row.logical_mutation_id });
+  if (!locator) return null;
+  const proof = envelope.terminalPayload as Readonly<{ promptHash: `sha256:${string}` }>;
+  return Object.freeze({ canonicalConversationUrl: locator.canonicalConversationUrl, userTurnId: locator.userTurnId,
+    promptHash: proof.promptHash, exactCallIdentityHash: row.exact_call_identity_hash });
 };
 
 /** Reconstructs each possible Provider effect from the one Browser WAL. */

@@ -14,6 +14,7 @@ const CHILDREN_CONTRACT = {
   attach_approved_gpt_files_once: [3, 1, "TARGET_LOCAL_MUTATION"],
   checkpoint_gpt_generated_image: [6, 3, "DOM_OBSERVATION"],
   checkpoint_gpt_text_response: [6, 3, "DOM_OBSERVATION"],
+  get_submitted_gpt_conversation_url: [1, 1, "DOM_OBSERVATION"],
   close_gpt_execution_profile: [4, 2, "TARGET_LOCAL_MUTATION"],
   open_gpt_attachment_control: [3, 1, "TARGET_LOCAL_MUTATION"],
   open_gpt_execution_profile: [3, 2, "TARGET_LOCAL_MUTATION"],
@@ -22,7 +23,7 @@ const CHILDREN_CONTRACT = {
   reconcile_gpt_attachment_set: [3, 1, "DOM_OBSERVATION"],
   select_gpt_model_from_start_v3: [5, 2, "TARGET_LOCAL_MUTATION"],
   select_gpt_reasoning_from_start_v3: [5, 3, "TARGET_LOCAL_MUTATION"],
-  submit_exact_gpt_turn_once: [6, 2, "PROVIDER_EFFECT_ONCE"],
+  submit_exact_gpt_turn_once: [7, 2, "PROVIDER_EFFECT_ONCE"],
   write_exact_gpt_prompt: [4, 1, "TARGET_LOCAL_MUTATION"],
 } as const;
 const expectedIds = Object.keys(CHILDREN_CONTRACT).sort();
@@ -264,6 +265,7 @@ export const inspectGptContractDenominator = (context: InspectorContext, finding
     "gpt/denominator-derived-once", CONTRACT, "The public projection derives only from GPT_CHILD_CONTRACTS.", findings, finding);
   const decisions: Record<string, readonly string[]> = {
     acknowledge_known_gpt_rate_limit: ["ACT", "FAIL_CLOSED"], attach_approved_gpt_files_once: ["DONE", "ACT", "FAIL_CLOSED"],
+    get_submitted_gpt_conversation_url: ["DONE", "WAIT", "FAIL_CLOSED"],
     checkpoint_gpt_generated_image: ["DONE", "FAIL_CLOSED"], checkpoint_gpt_text_response: ["DONE", "FAIL_CLOSED"],
     close_gpt_execution_profile: ["DONE", "ACT", "FAIL_CLOSED"], open_gpt_attachment_control: ["DONE", "ACT", "WAIT", "FAIL_CLOSED"],
     open_gpt_execution_profile: ["DONE", "ACT", "WAIT", "FAIL_CLOSED"], open_gpt_model_selector_v3: ["DONE", "ACT", "FAIL_CLOSED"],

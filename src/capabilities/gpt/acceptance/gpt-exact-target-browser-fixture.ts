@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import type { BrowserAtomicStepIdentity, BrowserAtomicStepOutcome, BrowserDomIntent, BrowserDomObservationQuery, BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
-import { browserExecutionFailure } from "../../../lib/browser/browser-authority-api.js";
+import { browserExecutionFailure, browserExactCallIdentityHash } from "../../../lib/browser/browser-authority-api.js";
 
 const digest = (text: string): `sha256:${string}` => `sha256:${createHash("sha256").update(text).digest("hex")}`;
 const fixtureHash = (digit: string): `sha256:${string}` => `sha256:${digit.repeat(64)}`;
@@ -26,7 +26,7 @@ export const exactAssistantTurnReply = (intent: Extract<BrowserDomIntent, { kind
 });
 export const EXPECTED_GPT_CHILD_IDS = Object.freeze(["acknowledge_known_gpt_rate_limit", "attach_approved_gpt_files_once", "checkpoint_gpt_generated_image",
   "checkpoint_gpt_text_response", "close_gpt_execution_profile", "open_gpt_attachment_control", "open_gpt_execution_profile", "open_gpt_model_selector_v3",
-  "prepare_clean_gpt_chat", "reconcile_gpt_attachment_set", "select_gpt_model_from_start_v3", "select_gpt_reasoning_from_start_v3", "submit_exact_gpt_turn_once", "write_exact_gpt_prompt"].sort());
+  "get_submitted_gpt_conversation_url", "prepare_clean_gpt_chat", "reconcile_gpt_attachment_set", "select_gpt_model_from_start_v3", "select_gpt_reasoning_from_start_v3", "submit_exact_gpt_turn_once", "write_exact_gpt_prompt"].sort());
 type Options = Readonly<{ initialPending?: number; initialRecovery?: BrowserAtomicStepOutcome; initialRecoveryIdentity?: BrowserAtomicStepIdentity; exposeInitialRecoveryOutsideAtomic?: boolean;
   initialUrl?: string; navigationEpochAdvanceOnMutation?: number; navigationEpochAdvanceOnWait?: number;
   authenticatedMedia?: Awaited<ReturnType<BrowserTargetLease["readAuthenticatedMedia"]>>;
@@ -63,6 +63,16 @@ export const fakeBrowser = (respond: (intent: BrowserDomIntent, callNumber: numb
       terminalAt: missing ? null : "2026-09-02T00:00:01.000Z", failureCode, nativeFailureCode, authorityRef: `browser-mutation:${active.callId}`,
       authorityHash: fixtureHash("9"), targetRef: "target:1", documentRef: `document:${epoch}`, physicalInputCount: count,
       downloadGuidHash: null, downloadCompleted: false, identityRevalidated: false };
+    if (active.childCapabilityId === "submit_exact_gpt_turn_once" && state === "confirmed") {
+      const packet = record(row.postconditionObservation), query = record((packet.queries as unknown[] | undefined)?.[0]);
+      const message = record((query.matches as unknown[] | undefined)?.[0]);
+      Object.assign(next, { terminalPayload: { schemaVersion: "grasseye.browser.confirmed-submit-proof.v2",
+        promptHash: message.exactGptUserPromptHash, userTurnId: message.turnKey,
+        exactCallIdentityHash: browserExactCallIdentityHash({ jobId: "job:gpt-exact-target", attemptId: "attempt:gpt-exact-target",
+          writerFenceHash: fixtureHash("d"), ...active }), observationRevisionHash: packet.observationRevisionHash,
+        targetRefHash: packet.targetRefHash, documentRefHash: packet.documentRefHash,
+        rawCount: query.rawCount, eligibleCount: query.eligibleCount } });
+    }
     origin = active; outcome = next;
     throwFixtureTerminalFailure(active, next);
   };
@@ -80,6 +90,7 @@ export const fakeBrowser = (respond: (intent: BrowserDomIntent, callNumber: numb
       if (!active && !options.exposeInitialRecoveryOutsideAtomic || active && !same(identity, active)) return null;
       return origin && same(identity, origin) ? outcome : null;
     },
+    async readSubmittedConversationUrl() { throw new Error("FIXTURE_SUBMITTED_LOCATOR_REQUIRED"); },
     async executeDomIntent(intent) {
       reads += 1;
       if (intent.kind === "document") return { url, title: "ChatGPT" };

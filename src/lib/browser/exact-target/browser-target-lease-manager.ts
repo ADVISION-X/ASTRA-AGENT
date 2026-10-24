@@ -38,6 +38,7 @@ type LeaseState = {
 type LeaseCommand = (
   capabilityId: BrowserCapabilityId,
   value: Parameters<BrowserCommandActor["execute"]>[1],
+  signal?: AbortSignal,
 ) => Promise<unknown>;
 
 type AuthenticatedMedia = Awaited<ReturnType<BrowserTargetLease["readAuthenticatedMedia"]>>;
@@ -159,12 +160,13 @@ export class BrowserTargetLeaseManager {
     state: LeaseState,
     leaseRef: string,
   ): LeaseCommand {
-    return async (capabilityId, value) => {
+    return async (capabilityId, value, signal) => {
       this.assertCommandAdmission(state, value);
       state.commandInFlight = true;
       let permit: BrowserCommandPermit | null = null;
       try {
         await this.commandActor.awaitPostSubmitQuiet();
+        if (signal?.aborted) throw new Error("BROWSER_COMMAND_ABORTED");
         state.current = this.currentCommandTarget(input, state);
         const sequence = ++state.sequence;
         const step = state.atomicStep ?? {
@@ -245,6 +247,17 @@ export class BrowserTargetLeaseManager {
       },
       readAtomicStepOutcome: (identity) =>
         this.commandActor.readAtomicStepOutcome(this.executionBinding, input.target.target.targetRef, identity),
+      readSubmittedConversationUrl: (locator) => {
+        if (!state.atomicStep) throw new Error("BROWSER_ATOMIC_STEP_IDENTITY_REQUIRED");
+        return this.commandActor.readSubmittedConversationUrl({ ...locator, binding: this.executionBinding,
+          step: state.atomicStep, targetRef: input.target.target.targetRef,
+          execute: (intent) => command(this.capabilityForIntent(intent), { kind: "dom-intent", intent }, locator.signal),
+          wait: async (durationMs) => { await command("browser.wait.v1", { kind: "wait", durationMs }, locator.signal); },
+          assertCurrent: () => { if (locator.signal?.aborted) throw new Error("BROWSER_COMMAND_ABORTED");
+            if (this.executionBinding.commandTtlMs < 1) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+            this.assertCommandAdmission(state, { kind: "dom-intent", intent: { kind: "observe", queries: [] } });
+            state.current = this.currentCommandTarget(input, state); return state.current.document.documentRef; } });
+      },
       executeDomIntent: async (intent: BrowserDomIntent) => command(this.capabilityForIntent(intent), { kind: "dom-intent", intent }),
       observeCapability: async ({ capabilityId }) => command(capabilityId, { kind: "observe", capabilityId }),
       captureScreenshot: ({ regionLabel }) => this.captureScreenshot(command, regionLabel),

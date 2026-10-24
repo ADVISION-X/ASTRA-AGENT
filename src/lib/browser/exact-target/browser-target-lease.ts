@@ -1,7 +1,7 @@
 import type { BrowserDomIntent } from "./browser-dom-intent.js";
 import type { BrowserDocumentRef, BrowserTargetRef } from "./browser-target-ref.js";
 import type { BrowserCapabilityId } from "../protocol/generated/browser-protocol.generated.js";
-import type { BrowserPhysicalInputCount } from "./browser-mutation-types.js";
+import type { BrowserPhysicalInputCount, BrowserSubmittedConversationLocator } from "./browser-mutation-types.js";
 export type TransientDomConfirmationStage = 1 | 2;
 
 export type BrowserAtomicStepIdentity = Readonly<{
@@ -38,6 +38,7 @@ export type BrowserAtomicStepOutcome = Readonly<{
   downloadCompleted: boolean;
   identityRevalidated: boolean;
   terminalPayload?: unknown | null;
+  conversationLocator?: BrowserSubmittedConversationLocator | null;
 }>;
 
 type BrowserTargetLeaseWaitBase = Readonly<{
@@ -94,6 +95,9 @@ export type BrowserTargetLease = Readonly<{
     action: () => Promise<T>,
   ): Promise<T>;
   readAtomicStepOutcome(identity: BrowserAtomicStepIdentity): BrowserAtomicStepOutcome | null;
+  readSubmittedConversationUrl(input: Readonly<{
+    submitCallId: string; providerEffectIdentityHash: `sha256:${string}`; timeoutMs: number; signal?: AbortSignal;
+  }>): Promise<BrowserSubmittedConversationLocator>;
   executeDomIntent(input: BrowserDomIntent): Promise<unknown>;
   observeCapability(input: Readonly<{ capabilityId: BrowserCapabilityId; timeoutMs?: number }>): Promise<unknown>;
   captureScreenshot(input: Readonly<{ regionLabel: string }>): Promise<Readonly<{ artifactRef: string; contentHash: `sha256:${string}` }>>;

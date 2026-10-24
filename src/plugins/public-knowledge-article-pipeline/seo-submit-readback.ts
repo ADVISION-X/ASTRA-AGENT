@@ -9,6 +9,8 @@ export const isConfirmedProviderSubmit = (
 ): submit is SeoConfirmedSubmit => Boolean(
   submit?.effectReceipt?.effectScope === "provider_effect"
   && submit.effectReceipt.outcome === "CONFIRMED"
+  && submit.effectReceipt.mutationOutcome === "confirmed"
+  && /^sha256:[a-f0-9]{64}$/u.test(submit.effectReceipt.providerEffectIdentityHash ?? "")
   && submit.effectReceipt.terminalAt,
 );
 

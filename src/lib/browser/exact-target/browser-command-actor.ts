@@ -4,7 +4,7 @@ import { assertValidCommandPermit } from "../transport/command-permit.js";
 import { BrowserCommandAdmissionBudget } from "../transport/browser-command-admission-budget.js";
 import { withRuntimeLogCause, type RuntimeLogger } from "../../runtime-logs/index.js";
 import { executionFailure } from "../../execution-failure.js";
-import { assertBrowserDomIntent, type BrowserDomIntent } from "./browser-dom-intent.js";
+import { assertBrowserDomIntent, type BrowserDomIntent, type BrowserDomObservationPacketV2 } from "./browser-dom-intent.js";
 import { bindExactAssistantTurnReply } from "./browser-exact-assistant-turn-reply.js";
 import { awaitBrowserPostSubmitQuiet, assertBrowserCommandTerminalReplyMargin, bindBrowserCommandObservationPacket,
   browserExactCallIdentityHash, browserProviderEffectIdentityHash, verifyNormalBrowserMutationReply } from "./browser-command-postcondition.js";
@@ -16,6 +16,7 @@ import type { BrowserAtomicStepOutcome, BrowserMutationIdentity } from "./browse
 import type { BrowserAtomicStepIdentity, TransientDomConfirmationStage } from "./browser-target-lease.js";
 import { browserMutationReceiptBindingProjection, type BrowserMutationTerminalFact } from "./browser-observation-receipt.js";
 import { decodeKnownGptRateLimitPreflightReply, knownGptRateLimitPreflightFactValid, type BrowserPreflightReply } from "./browser-special-mutation-receipt.js";
+import { requireCanonicalGptConversationUrl } from "./browser-site-policy-registry.js";
 
 export type BrowserGovernedCommand =
   | Readonly<{ kind: "dom-intent"; intent: BrowserDomIntent }>
@@ -93,6 +94,16 @@ const gptDialogPreflightFailure = (value: unknown, code: Exclude<BrowserPrefligh
       fact.observedAt, fact.exactCallIdentityHash, fact.targetRefHash, fact.documentRefHash].join("|"), evidenceHash: fact.observationHash as `sha256:${string}` } } });
 };
 
+const canonicalConversationReady = (value: string): boolean => {
+  try { return requireCanonicalGptConversationUrl(value) === value; } catch { return false; }
+};
+
+type SubmittedConversationReadInput = Readonly<{
+  binding: BrowserExecutionBinding; step: BrowserAtomicStepIdentity; targetRef: string;
+  submitCallId: string; providerEffectIdentityHash: `sha256:${string}`; timeoutMs: number;
+  execute(intent: BrowserDomIntent): Promise<unknown>; wait(durationMs: number): Promise<void>; assertCurrent(): string;
+}>;
+
 export class BrowserCommandActor {
   public constructor(private readonly budget: BrowserCommandAdmissionBudget, private readonly port: BrowserCommandPort,
     private readonly mutations: BrowserMutationStore, private readonly authorityGuard: BrowserCommandAuthorityGuard,
@@ -102,6 +113,51 @@ export class BrowserCommandActor {
       leaseVersion: binding.leaseVersion, executionFenceHash: binding.writerFenceHash });
   }
   public awaitPostSubmitQuiet(): Promise<void> { return awaitBrowserPostSubmitQuiet(() => this.mutations.latestProviderInputTerminalAt()); }
+  private confirmedSubmitForLocator(input: SubmittedConversationReadInput) {
+    if (input.step.childCapabilityId !== "get_submitted_gpt_conversation_url"
+      || input.step.replayPolicy !== "observation-only" || !input.submitCallId
+      || !Number.isInteger(input.timeoutMs) || input.timeoutMs < 1 || input.timeoutMs > 15_000) {
+      throw new Error("BROWSER_ATOMIC_STEP_IDENTITY_INVALID");
+    }
+    const fact = this.mutations.readProviderEffectStepCallFact({ ...input.binding,
+      productStepId: input.step.productStepId, callId: input.submitCallId, childCapabilityId: "submit_exact_gpt_turn_once" });
+    const outcome = fact?.confirmedOutcome;
+    if (!fact || !outcome || outcome.state !== "confirmed" || outcome.mutationOutcome !== "confirmed"
+      || outcome.physicalInputCount !== 1 || outcome.providerEffectIdentityHash !== input.providerEffectIdentityHash) {
+      throw new Error("BROWSER_PROVIDER_EFFECT_FACT_INVALID");
+    }
+    return outcome;
+  }
+  public async readSubmittedConversationUrl(input: SubmittedConversationReadInput) {
+    input.assertCurrent();
+    const outcome = this.confirmedSubmitForLocator(input);
+    if (outcome.conversationLocator) return outcome.conversationLocator;
+    const original = this.mutations.readCommand(outcome.authorityRef.replace(/^browser-mutation:/u, ""));
+    if (!original || original.identity.attemptId !== input.binding.attemptId
+      || original.identity.resultRevision !== input.binding.resultRevision || outcome.targetRef !== input.targetRef) {
+      throw new Error("BROWSER_SOURCE_EFFECT_IDENTITY_MISMATCH");
+    }
+    const proof = outcome.terminalPayload as Readonly<{ userTurnId: string }>;
+    let deadline: number | null = null;
+    while (true) {
+      input.assertCurrent();
+      const packet = await input.execute({ kind: "observe", queries: [{ queryId: "submitted-conversation-user",
+        selector: `[data-turn-key='${proof.userTurnId}']:has([data-chatgpt-search-unit-key$=':user'])`,
+        maxMatches: 1, fields: ["turnKey"] }] }) as BrowserDomObservationPacketV2;
+      deadline ??= Date.parse(packet.observedAt) + input.timeoutMs;
+      const query = packet.queries?.[0];
+      if (packet.exactCallIdentityHash !== browserExactCallIdentityHash({ ...input.binding, ...input.step })
+        || query?.rawCount !== 1 || query.eligibleCount !== 1 || query.matches[0]?.turnKey !== proof.userTurnId) {
+        throw new Error("BROWSER_PROVIDER_RECOVERY_ANCHOR_INVALID");
+      }
+      if (Date.parse(packet.observedAt) > deadline) throw new Error("GPT_SUBMITTED_CONVERSATION_URL_INVALID");
+      if (canonicalConversationReady(packet.currentUrl)) return this.mutations.bindSubmittedConversationLocator({
+        binding: input.binding, productStepId: input.step.productStepId, submitCallId: input.submitCallId,
+        providerEffectIdentityHash: input.providerEffectIdentityHash, packet, assertCurrent: input.assertCurrent });
+      if (!Number.isFinite(deadline) || Date.now() + 1_500 >= deadline) throw new Error("GPT_SUBMITTED_CONVERSATION_URL_INVALID");
+      await input.wait(1_500);
+    }
+  }
   public readAtomicStepOutcome(binding: BrowserExecutionBinding, targetRef: string, identity: BrowserAtomicStepIdentity): BrowserAtomicStepOutcome | null {
     if (identity.replayPolicy === "observation-only" || identity.resultRevision !== binding.resultRevision) return null;
     return this.mutations.readAtomicStepOutcome({ jobId: binding.jobId, attemptId: binding.attemptId,

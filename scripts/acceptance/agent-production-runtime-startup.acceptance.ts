@@ -274,12 +274,29 @@ try {
       materialRefs: payment.material_refs, extra: { ...paymentRequest, job_id: `job:executor-${mode}` } });
     executor.accept(candidate, "attempt:late");
     let decorations = 0, settledAfterComplete = false, completedCallback = false;
+    const userTurnId = "11111111-1111-4111-8111-111111111111";
+    const canonicalConversationUrl = "https://chatgpt.com/c/original";
+    const children: string[] = [];
     Reflect.set(Reflect.get(executor, "gptChildTools"), "createExecution", () => ({ tools: {
-      jobId: candidate.job_id, attemptId: "attempt:late", readConfirmedSubmit: async (call: { input: { promptHash: string } }) => ({
-        value: { promptHash: call.input.promptHash, canonicalConversationUrl: "https://chatgpt.com/c/original", userTurnId: "user:original" },
-        artifactRefs: [], effectReceipt: { effectScope: "provider_effect", outcome: "CONFIRMED", terminalAt: new Date().toISOString() },
-      }), execute: async () => ({ value: { semanticText: JSON.stringify({ schema_version: "payment-screenshot-observation-v1" }),
-        rawDomHash: HASH_A, semanticTextHash: HASH_B }, artifactRefs: ["artifact:original"] }),
+      jobId: candidate.job_id, attemptId: "attempt:late",
+      readConfirmedSubmit: async (call: { input: { promptHash: string } }) => ({
+        value: { status: "CONFIRMED", promptHash: call.input.promptHash, mutationSent: true, userTurnId },
+        artifactRefs: [], effectReceipt: { effectScope: "provider_effect", outcome: "CONFIRMED",
+          providerEffectIdentityHash: HASH_A, mutationOutcome: "confirmed", terminalAt: new Date().toISOString() },
+      }),
+      execute: async (call: { child: string; input: Record<string, unknown> }) => {
+        children.push(call.child);
+        if (call.child === "get_submitted_gpt_conversation_url") {
+          assert.equal(call.input.submitCallId, "turn-submit");
+          assert.equal(call.input.providerEffectIdentityHash, HASH_A);
+          return { value: { canonicalConversationUrl, userTurnId }, artifactRefs: [] };
+        }
+        assert.equal(call.child, "checkpoint_gpt_text_response");
+        assert.equal(call.input.canonicalConversationUrl, canonicalConversationUrl);
+        assert.equal(call.input.userTurnId, userTurnId);
+        return { value: { semanticText: JSON.stringify({ schema_version: "payment-screenshot-observation-v1" }),
+          rawDomHash: HASH_A, semanticTextHash: HASH_B }, artifactRefs: ["artifact:original"] };
+      },
     }, readProviderEffectReadbackProof: () => null,
     decorateSettledResultFailure: (error: unknown) => { decorations++; return error; }, settle: async () => {
       settledAfterComplete = completedCallback; throw executionFailure("failed", "LATE_GPT_SETTLE_FAILED");
@@ -309,6 +326,7 @@ try {
       && typedExecutionFailure(error.errors[0])?.code === "LATE_ARTIFACT_RELEASE_FAILED");
     else assert.deepEqual((await execution).result, resultFor(candidate), "late cleanup/log errors preserve this invocation's original result");
     assert.equal(settledAfterComplete, true); assert.equal(decorations, 0, "cleanup cannot classify a new Product rejection");
+    assert.deepEqual(children, ["get_submitted_gpt_conversation_url", "checkpoint_gpt_text_response"]);
     assert.equal(lateReleases - releasesBefore, 1, "the original artifact lease must release exactly once even on late errors");
     if (mode !== "staged" && !mode.startsWith("foreign-")) assert.equal(executorStore.readTask(candidate.job_id)?.staged_result, null);
     Reflect.set(executor, "logBrowserCleanup", originalCleanupLog);

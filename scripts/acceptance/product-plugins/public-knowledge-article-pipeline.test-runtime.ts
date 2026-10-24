@@ -55,9 +55,15 @@ const outputForCall = (
   })) };
   if (call.child === "submit_exact_gpt_turn_once") return {
     status: "CONFIRMED", promptHash: call.input.promptHash,
-    mutationSent: true, canonicalConversationUrl: SEO_CONVERSATION_URL,
+    mutationSent: true,
     userTurnId: userTurnId(call.productStepId),
   };
+  if (call.child === "get_submitted_gpt_conversation_url") {
+    assert.equal(call.input.providerEffectIdentityHash, HASH);
+    assert.equal(call.input.submitCallId, "turn-submit");
+    assert.equal(call.input.timeoutMs, 15_000);
+    return { canonicalConversationUrl: SEO_CONVERSATION_URL, userTurnId: userTurnId(call.productStepId) };
+  }
   if (call.child === "checkpoint_gpt_text_response") {
     const payload = call.productStepId === "corpus_research" ? researchOutput(decision)
       : call.productStepId === "article_synthesis" ? articleOutput() : { decision: "no_issue", issues: [] };
@@ -87,7 +93,7 @@ const assertCallBoundary = (call: SeoCall): void => {
 };
 
 const confirmedEffect = (evidenceRef: string) => ({
-  effectScope: "provider_effect", outcome: "CONFIRMED", mutationOutcome: "confirmed",
+  effectScope: "provider_effect", outcome: "CONFIRMED", mutationOutcome: "confirmed", providerEffectIdentityHash: HASH,
   terminalAt: CONFIRMED_AT, evidenceRef, evidenceHash: HASH,
 });
 

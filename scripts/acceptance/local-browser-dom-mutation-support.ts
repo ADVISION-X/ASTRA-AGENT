@@ -340,10 +340,10 @@ const exerciseExactOutgoingNeverUsesZeroActionPostcondition = async (): Promise<
     () => undefined) as Readonly<Record<string, unknown>>;
   assert.equal(result.postconditionVerified, true);
   assert.equal(state.candidateCalls, 1);
-  assert.equal(state.postconditionCalls, 2,
-    "submit must keep the same bounded postcondition open until the temporary WEB route becomes durable");
+  assert.equal(state.postconditionCalls, 1,
+    "exact message proof must confirm without waiting for the temporary route to become durable");
   assert.equal((result.postconditionObservation as Readonly<Record<string, unknown>>).currentUrl,
-    "https://chatgpt.com/c/durable-provider-route");
+    "https://chatgpt.com/c/WEB:temporary-client-route");
   assert.deepEqual(state.pointerEvents, [
     { type: "mouseMoved", x: 5, y: 5, button: "none", buttons: 0 },
     { type: "mousePressed", x: 5, y: 5, button: "left", buttons: 1, clickCount: 1 },

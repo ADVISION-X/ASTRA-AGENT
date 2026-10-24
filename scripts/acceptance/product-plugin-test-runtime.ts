@@ -147,7 +147,12 @@ const observationExecutionValue = (input: ExecutionValueInput): ExecutionValue |
   if (call.child === "submit_exact_gpt_turn_once") {
     return { value: { status: "CONFIRMED", promptHash: fixture.confirmedPromptHash ?? call.input.promptHash,
       mutationSent: true,
-      canonicalConversationUrl: `https://chatgpt.com/c/${sha256(call.sessionKey).slice(7, 31)}`,
+      userTurnId: "00000000-0000-4000-8000-000000000001" } };
+  }
+  if (call.child === "get_submitted_gpt_conversation_url") {
+    assert.equal(call.input.providerEffectIdentityHash, FIXTURE_HASH);
+    assert.equal(call.input.timeoutMs, 15_000);
+    return { value: { canonicalConversationUrl: `https://chatgpt.com/c/${sha256(call.sessionKey).slice(7, 31)}`,
       userTurnId: "00000000-0000-4000-8000-000000000001" } };
   }
   if (call.child === "checkpoint_gpt_text_response") {
@@ -298,7 +303,7 @@ export const exerciseConfirmedSubmitRecovery = async (
   assert.deepEqual(run.confirmedSubmitReads[0],
     baseline.calls.find((call) => call.child === "submit_exact_gpt_turn_once"),
     `${plugin.pluginId} recovery must query the exact identity used by physical submit`);
-  assert.deepEqual(run.calls.map((call) => call.child), ["checkpoint_gpt_text_response"],
+  assert.deepEqual(run.calls.map((call) => call.child), ["get_submitted_gpt_conversation_url", "checkpoint_gpt_text_response"],
     `${plugin.pluginId} must continue with zero-input readback after a confirmed submit`);
   assert.equal(run.physicalSubmitDispatches, 0,
     `${plugin.pluginId} must not physically submit again after a confirmed submit`);

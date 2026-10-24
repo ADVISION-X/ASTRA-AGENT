@@ -5,8 +5,8 @@ import { identityColumns, mutationAuthorityHash } from "./browser-mutation-schem
 import { requireMutationOutcome, terminalFailureFields } from "./browser-mutation-authority.js";
 import type { AtomicStepRow, BrowserAtomicStepOutcome, BrowserExactCallMutationFact,
   BrowserMutationIdentity, BrowserMutationOutcome, BrowserMutationState } from "./browser-mutation-types.js";
-import { requireCanonicalGptConversationUrl } from "./browser-site-policy-registry.js";
 import { unsealProviderRecoveryPayload } from "./browser-mutation-payload.js";
+import { readSubmittedConversationLocator } from "./browser-submitted-conversation-locator.js";
 import { readJobReplayEffects } from "./browser-mutation-replay-evidence.js";
 const assertSettledRowTiming = (
   row: Pick<AtomicStepRow, "action_ordinal" | "state" | "terminal_at">, actionOrdinal: number,
@@ -186,13 +186,14 @@ export class BrowserMutationEvidence {
       throw new Error("BROWSER_PARENT_PROVIDER_EFFECT_UNSETTLED");
     }
     const rows = this.database.prepare(
-      `select command_id,provider_recovery_payload from browser_mutations
+      `select command_id,provider_recovery_payload,exact_call_identity_hash,logical_mutation_id from browser_mutations
        where job_id=? and attempt_id=? and product_step_id=? and call_id='turn-submit'
          and child_capability_id='submit_exact_gpt_turn_once' and effect_scope='provider_effect'
          and state='CONFIRMED'
        order by command_id`,
     ).all(parentJobId, parentAttemptId, parentProductStepId) as readonly Readonly<{
       command_id: string;
+      exact_call_identity_hash: `sha256:${string}`; logical_mutation_id: `sha256:${string}`;
       provider_recovery_payload: string | null;
     }>[];
     if (rows.length !== 1) throw new Error(rows.length === 0
@@ -200,19 +201,15 @@ export class BrowserMutationEvidence {
       : "BROWSER_PARENT_PROVIDER_EFFECT_AMBIGUOUS");
     const row = rows[0]!;
     if (row.provider_recovery_payload === null) throw new Error("BROWSER_PARENT_PROVIDER_EFFECT_INVALID");
-    let payload: unknown;
     try {
-      payload = unsealProviderRecoveryPayload(
+      const envelope = unsealProviderRecoveryPayload(
         this.payloadKey, row.command_id, row.provider_recovery_payload,
-      ).terminalPayload;
+      );
+      const locator = readSubmittedConversationLocator(envelope, { exactCallIdentityHash: row.exact_call_identity_hash,
+        providerEffectIdentityHash: row.logical_mutation_id });
+      if (!locator) throw new Error("BROWSER_PARENT_PROVIDER_EFFECT_INVALID");
+      return locator.canonicalConversationUrl;
     } catch { throw new Error("BROWSER_PARENT_PROVIDER_EFFECT_INVALID"); }
-    const canonicalConversationUrl = payload && typeof payload === "object" && !Array.isArray(payload)
-      ? (payload as Record<string, unknown>).canonicalConversationUrl : undefined;
-    if (!payload || typeof payload !== "object" || Array.isArray(payload) || typeof canonicalConversationUrl !== "string") {
-      throw new Error("BROWSER_PARENT_PROVIDER_EFFECT_INVALID");
-    }
-    try { return requireCanonicalGptConversationUrl(canonicalConversationUrl); }
-    catch { throw new Error("BROWSER_PARENT_PROVIDER_EFFECT_INVALID"); }
   }
 
   public readAtomicStepOutcome(input: Readonly<{
@@ -272,6 +269,9 @@ export class BrowserMutationEvidence {
       downloadCompleted: row.download_completed === 1,
       identityRevalidated: row.media_identity_revalidated === 1,
       terminalPayload: recovered?.terminalPayload ?? null,
+      conversationLocator: recovered && input.effectScope === "provider_effect" && row.state === "CONFIRMED"
+        ? readSubmittedConversationLocator(recovered, { exactCallIdentityHash: input.exactCallIdentityHash,
+          providerEffectIdentityHash: row.logical_mutation_id! }) : null,
     });
   }
 

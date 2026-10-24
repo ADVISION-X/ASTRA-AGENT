@@ -1,5 +1,6 @@
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 import { decodeBrowserMutationReceipt } from "../../src/lib/browser/exact-target/browser-mutation-receipt.js";
+import { browserObservationPostconditionDecision } from "../../src/lib/browser/exact-target/browser-observation-receipt.js";
 import { preflightReceiptObservationHash } from "../../src/lib/browser/exact-target/browser-special-mutation-receipt.js";
 import { BROWSER_DOM_CANDIDATE_MISSING_STAGES, browserPostconditionNativeCauseValid } from "../../src/lib/browser/exact-target/browser-interaction-native-cause.js";
 import { CANDIDATE_MISSING_STAGE_SOURCE, candidateMissingFailure, candidateMissingStage } from "../../src/lib/browser/chrome-extension/dom-candidate-missing-stage.js";
@@ -107,4 +108,18 @@ const indexedReceipts = (): void => {
   assert.equal(browserPostconditionNativeCauseValid("BROWSER_POSTCONDITION_Q19__NO_LAYOUT_BOX"), true);
   assert.equal(browserPostconditionNativeCauseValid("BROWSER_POSTCONDITION_Q20__NO_LAYOUT_BOX"), false);
 };
-export const exerciseStrictMutationReceipts = (): void => { qualificationReceipts(); freshReceipts(); indexedReceipts(); };
+const independentSubmitPostcondition = (): void => {
+  const specs = [{ queryId: "submitted-user-turn", expectedEligibleCount: 1 }, { queryId: "empty-composer", expectedEligibleCount: 1 }];
+  const message = { queryId: specs[0]!.queryId, rawCount: 1, eligibleCount: 1, rejections: [],
+    matches: [{ turnKey: "00000000-0000-4000-8000-000000000001", exactGptUserPromptHash: hash }] };
+  const empty = { queryId: specs[1]!.queryId, rawCount: 1, eligibleCount: 1, rejections: [], matches: [] };
+  const packet = { currentUrl: "https://chatgpt.com/c/local-chatgpt%3Atemporary", queries: [message, empty] };
+  assert.deepEqual(browserObservationPostconditionDecision(specs, packet, hash), { valid: true, verified: true, nativeCauseCode: null });
+  assert.equal(browserObservationPostconditionDecision(specs, { ...packet, queries: [
+    { ...message, matches: [{ ...message.matches[0], exactGptUserPromptHash: `sha256:${"b".repeat(64)}` }] }, empty,
+  ] }, hash).verified, false);
+  assert.equal(browserObservationPostconditionDecision(specs, { ...packet, queries: [message,
+    { ...empty, rawCount: 0, eligibleCount: 0 },
+  ] }, hash).verified, false, "composer clearing remains a required sending postcondition");
+};
+export const exerciseStrictMutationReceipts = (): void => { qualificationReceipts(); freshReceipts(); indexedReceipts(); independentSubmitPostcondition(); };

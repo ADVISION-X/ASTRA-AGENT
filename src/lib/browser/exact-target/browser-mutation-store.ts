@@ -1,4 +1,5 @@
 import { canonicalizeBrowserAuthorityValue } from "../transport/browser-authority-frame-codec.js";
+import { bindSubmittedConversationLocator } from "./browser-submitted-conversation-locator.js";
 import { browserMutationReceiptBindingProjection, browserMutationTerminalFactBytes, type BrowserMutationTerminalFact } from "./browser-observation-receipt.js";
 import { verifyBrowserMutationTerminalFact } from "./browser-mutation-receipt.js";
 import { unsealProviderRecoveryPayload } from "./browser-mutation-payload.js";
@@ -21,6 +22,9 @@ type ReplayGrantRow = ProviderEffectHistoryRow & Readonly<{ command_id: string;
   proof_hash: string | null; terminal_at: string | null;
   provider_recovery_payload: string | null }>;
 export class BrowserMutationStore extends BrowserMutationEvidence {
+  public bindSubmittedConversationLocator(input: Omit<Parameters<typeof bindSubmittedConversationLocator>[0], "database" | "payloadKey">) {
+    return bindSubmittedConversationLocator({ ...input, database: this.database, payloadKey: this.payloadKey });
+  }
   public readonly existedAtOpen: boolean;
   private readonly fileBirthtimeMs: number;
 
@@ -214,6 +218,7 @@ export class BrowserMutationStore extends BrowserMutationEvidence {
   }>): Readonly<{
     exactCallIdentityHash: `sha256:${string}`; actionOrdinal: number;
     inputHash: `sha256:${string}`; terminalPayload: unknown;
+    conversationLocator: import("./browser-mutation-types.js").BrowserSubmittedConversationLocator | null;
     authorityRef: string; authorityHash: `sha256:${string}`; terminalAt: string;
   }> {
     const rows = this.database.prepare(`select exact_call_identity_hash,request_hash,
@@ -254,6 +259,7 @@ export class BrowserMutationStore extends BrowserMutationEvidence {
       exactCallIdentityHash: row.exact_call_identity_hash,
       actionOrdinal: row.action_ordinal, inputHash: row.request_hash,
       terminalPayload: outcome.terminalPayload,
+      conversationLocator: outcome.conversationLocator ?? null,
       authorityRef: outcome.authorityRef, authorityHash: outcome.authorityHash,
       terminalAt: outcome.terminalAt,
     });

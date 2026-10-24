@@ -67,6 +67,9 @@ export interface GptChildInputMap {
     files: readonly GptApprovedFile[];
     promptHash: GptHash;
   }>;
+  readonly get_submitted_gpt_conversation_url: Readonly<{
+    submitCallId: string; providerEffectIdentityHash: GptHash; timeoutMs: number;
+  }>;
   readonly checkpoint_gpt_text_response: GptResponseCheckpointInput;
   readonly checkpoint_gpt_generated_image: Readonly<{
     canonicalConversationUrl: string;
@@ -116,9 +119,9 @@ export interface GptChildOutputMap {
     status: "CONFIRMED";
     promptHash: GptHash;
     mutationSent: true;
-    canonicalConversationUrl: string;
     userTurnId: string;
   }>;
+  readonly get_submitted_gpt_conversation_url: Readonly<{ canonicalConversationUrl: string; userTurnId: string }>;
   readonly checkpoint_gpt_text_response: Readonly<{
     assistantTurnId: string;
     rawDomHtml: string;

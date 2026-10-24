@@ -137,15 +137,18 @@ function assertConfirmed(submit: Submit): void {
 
 async function readSubmittedTurn(flow: Flow, input: TurnRequest, submit: Submit): Promise<LocalizationGptCheckpoint> {
   assertConfirmed(submit);
+  const locator = await flow.execute({ productStepId: input.stepId, callId: "conversation-url",
+    child: "get_submitted_gpt_conversation_url", actionOrdinal: 14, input: { submitCallId: "turn-submit",
+      providerEffectIdentityHash: hash(submit.effectReceipt?.providerEffectIdentityHash), timeoutMs: 15_000 } }) as ProductGptChildResult<"get_submitted_gpt_conversation_url">;
   const response = await flow.execute({ productStepId: input.stepId, callId: "text-checkpoint",
     child: "checkpoint_gpt_text_response", actionOrdinal: 14, input: {
-      probeBudgetMs: 3_600_000, canonicalConversationUrl: submit.value.canonicalConversationUrl,
-      userTurnId: submit.value.userTurnId, turnMarker: input.marker,
+      probeBudgetMs: 3_600_000, canonicalConversationUrl: locator.value.canonicalConversationUrl,
+      userTurnId: locator.value.userTurnId, turnMarker: input.marker,
     } });
   if (response.artifactRefs.length !== 1 || !response.artifactRefs[0]) fail("PRODUCT_TEXT_ARTIFACT_RECEIPT_INVALID");
   const value = object(response.value, "PRODUCT_TEXT_CHECKPOINT_INVALID");
   return Object.freeze({
-    artifactRef: response.artifactRefs[0]!, canonicalConversationUrl: submit.value.canonicalConversationUrl,
+    artifactRef: response.artifactRefs[0]!, canonicalConversationUrl: locator.value.canonicalConversationUrl,
     promptHash: submit.value.promptHash, rawDomHash: hash(value.rawDomHash),
     semanticText: text(value.semanticText), semanticTextHash: hash(value.semanticTextHash),
     turnMarker: input.marker, submitExactCallIdentityHash: submit.exactCallIdentityHash,

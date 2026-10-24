@@ -71,9 +71,14 @@ export async function executeZejiFlow(task: WebsiteAgentTask, context: SharedExe
     submit = await calls.run(submitCall) as ProductGptChildResult<"submit_exact_gpt_turn_once">;
   }
   assertConfirmed(submit);
+  const providerEffectIdentityHash = submit.effectReceipt?.providerEffectIdentityHash;
+  result.hash(providerEffectIdentityHash, "ZEJI_PROVIDER_EFFECT_IDENTITY_REQUIRED");
+  const locator = await calls.run({ productStepId, callId: "conversation-url", actionOrdinal: 12,
+    child: "get_submitted_gpt_conversation_url", input: { submitCallId: "turn-submit",
+      providerEffectIdentityHash: providerEffectIdentityHash!, timeoutMs: 15_000 } }) as ProductGptChildResult<"get_submitted_gpt_conversation_url">;
   const checkpoint = await calls.run({ productStepId, callId: "text-checkpoint", actionOrdinal: 12,
     child: "checkpoint_gpt_text_response", input: { probeBudgetMs: 3_600_000,
-      canonicalConversationUrl: submit.value.canonicalConversationUrl, userTurnId: submit.value.userTurnId, turnMarker: marker } }) as ProductGptChildResult<"checkpoint_gpt_text_response">;
+      canonicalConversationUrl: locator.value.canonicalConversationUrl, userTurnId: locator.value.userTurnId, turnMarker: marker } }) as ProductGptChildResult<"checkpoint_gpt_text_response">;
   if (checkpoint.artifactRefs.length !== 1) throw new Error("ZEJI_RAW_ANSWER_ARTIFACT_REQUIRED");
   result.hash(checkpoint.value.rawDomHash, "ZEJI_RAW_ANSWER_HASH_REQUIRED");
   const payload = parseZejiResult(task, checkpoint.value.semanticText, context.routePolicy);

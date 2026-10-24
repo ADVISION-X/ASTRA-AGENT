@@ -5,7 +5,7 @@ import {
 } from "./contract.js";
 import { executionFailure, failureCode } from "../../lib/execution-failure.js";
 import { requireRuntimeLogWrite, type RuntimeLogger, type RuntimeSpanHandle } from "../../lib/runtime-logs/index.js";
-import type { BrowserAtomicStepIdentity } from "../../lib/browser/browser-authority-api.js";
+import { browserExactCallIdentityHash, type BrowserAtomicStepIdentity } from "../../lib/browser/browser-authority-api.js";
 import { failedGptChildExecutionResult } from "./ability-group.js";
 import { gptExecutionFailure, typedGptExecutionFailure } from "./execution-fault.js";
 import { readPersistedGptImageEvidence, readPersistedGptTextResponse } from "./evidence-artifacts.js";
@@ -112,7 +112,7 @@ export class ProductionGptChildTools {
       ? raw as Readonly<Record<string, unknown>> : null;
     if (!value || !Number.isSafeInteger(original.actionOrdinal) || original.actionOrdinal < 1
       || typeof value.promptHash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(value.promptHash)
-      || typeof value.canonicalConversationUrl !== "string" || typeof value.userTurnId !== "string"
+      || typeof value.userTurnId !== "string"
       || value.exactCallIdentityHash !== original.exactCallIdentityHash
       || value.rawCount !== 1 || value.eligibleCount !== 1) {
       throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_IDENTITY_MISMATCH");
@@ -121,7 +121,7 @@ export class ProductionGptChildTools {
       productStepId: call.productStepId, callId: call.callId, childCapabilityId: call.child,
       actionOrdinal: original.actionOrdinal, inputHash: original.inputHash, replayPolicy: "provider-effect-once" }));
     return Object.freeze({ value: Object.freeze({ status: "CONFIRMED", promptHash: value.promptHash as GptHash,
-      mutationSent: true, canonicalConversationUrl: value.canonicalConversationUrl, userTurnId: value.userTurnId }),
+      mutationSent: true, userTurnId: value.userTurnId }),
       sourceAttemptId: source.sourceAttemptId, exactCallIdentityHash: original.exactCallIdentityHash,
       evidenceRef: original.authorityRef, evidenceHash: original.authorityHash, artifactRefs: Object.freeze([]),
       effectReceipt: Object.freeze({ effectScope: "provider_effect", providerEffectIdentityHash: source.effectIdentityHash,
@@ -148,13 +148,17 @@ export class ProductionGptChildTools {
       const recovered = await recoverPersistedCheckpoint({ evidenceStore: this.evidenceStore, execution, intent, call, span,
         ...(options.confirmedSubmission ? { confirmedSubmission: options.confirmedSubmission } : {}) });
       if (recovered) return recovered;
-      if (!options.confirmedProviderEffectReadback) browserCall = await acquireProductionBrowserCall(
+      const submittedConversationLocator = call.child === "get_submitted_gpt_conversation_url"
+        ? this.readSubmittedLocator(execution, call as ProductGptCallInput<"get_submitted_gpt_conversation_url">,
+          options.confirmedSubmission) : null;
+      if (!options.confirmedProviderEffectReadback && !submittedConversationLocator) browserCall = await acquireProductionBrowserCall(
         browsers, call, GPT_CHILD_CAPABILITY_CONTRACTS[call.child].requiredTargetKind,
         options.priorEffectKnown ?? false, options.confirmedSubmission,
       );
       this.assertProviderTurnBudget(execution, call, options.priorEffectKnown ?? false);
       result = await runProductionAtomicPhase({
-        ...options, dataDir: this.dataDir, gpt: this.gpt, browsers,
+        ...options, ...(submittedConversationLocator ? { submittedConversationLocator } : {}),
+        dataDir: this.dataDir, gpt: this.gpt, browsers,
         intent: intent as GptAnyChildCapabilityIntent, browserCall,
         signal: execution.abortSignal, resultRevision: execution.resultRevision, childCapabilityId: call.child,
         assertProviderInputAllowed: () => this.providerRateLimitControl.assertProviderSubmitAllowed(),
@@ -171,6 +175,37 @@ export class ProductionGptChildTools {
       });
     }
     return this.settleChildOutcome({ execution, browsers, call, options, intent, span, browserCall, result });
+  }
+
+  private readSubmittedLocator(execution: ExecutionInput,
+    call: ProductGptCallInput<"get_submitted_gpt_conversation_url">,
+    confirmed: ProductionGptBrowserCall["confirmedProviderEffect"] | undefined,
+  ): GptExecutionContext["submittedConversationLocator"] | null {
+    if (!confirmed || confirmed.submitIdentity.productStepId !== call.productStepId
+      || confirmed.submitIdentity.callId !== call.input.submitCallId
+      || confirmed.providerEffectIdentityHash !== call.input.providerEffectIdentityHash) {
+      throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_IDENTITY_MISMATCH");
+    }
+    const source = confirmed.sourceReadback;
+    const old = source ? this.browserAuthority.readSourceConfirmedProviderEffect({ jobId: execution.jobId, ...source,
+      productStepId: call.productStepId, callId: call.input.submitCallId, childCapabilityId: "submit_exact_gpt_turn_once" }) : null;
+    const current = source ? null : this.browserAuthority.readProviderEffectStepCallFact({ ...execution,
+      productStepId: call.productStepId, callId: call.input.submitCallId, childCapabilityId: "submit_exact_gpt_turn_once" });
+    const outcome = old ?? current?.confirmedOutcome;
+    const expectedExact = browserExactCallIdentityHash({ jobId: execution.jobId, attemptId: execution.attemptId,
+      writerFenceHash: execution.executionFenceHash, ...confirmed.submitIdentity });
+    if (!outcome || (old ?? current)!.exactCallIdentityHash !== expectedExact
+      || outcome.authorityRef !== confirmed.evidenceRef || outcome.authorityHash !== confirmed.evidenceHash
+      || (current && current.mutation.providerEffectIdentityHash !== confirmed.providerEffectIdentityHash)) {
+      throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_READBACK_INVALID");
+    }
+    const locator = outcome.conversationLocator;
+    if (!locator && source) throw executionFailure("failed", "GPT_SUBMITTED_CONVERSATION_URL_INVALID");
+    if (locator && (locator.userTurnId !== confirmed.userTurnId
+      || locator.providerEffectIdentityHash !== confirmed.providerEffectIdentityHash)) {
+      throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_IDENTITY_MISMATCH");
+    }
+    return locator ?? null;
   }
 
   private async settleChildOutcome<K extends GptChildCapabilityId>(input: Readonly<{

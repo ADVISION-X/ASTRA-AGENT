@@ -1,3 +1,4 @@
+import { getSubmittedGptConversationUrlHandler } from "./children/get_submitted_gpt_conversation_url/handler.js";
 import { attachApprovedGptFilesOnceHandler } from "./children/attach_approved_gpt_files_once/handler.js";
 import { acknowledgeKnownGptRateLimitHandler } from "./children/acknowledge_known_gpt_rate_limit/handler.js";
 import { checkpointGptGeneratedImageHandler } from "./children/checkpoint_gpt_generated_image/handler.js";
@@ -28,6 +29,7 @@ export const gptChildHandlers = Object.freeze({
   reconcile_gpt_attachment_set: reconcileGptAttachmentSetHandler,
   write_exact_gpt_prompt: writeExactGptPromptHandler,
   submit_exact_gpt_turn_once: submitExactGptTurnOnceHandler,
+  get_submitted_gpt_conversation_url: getSubmittedGptConversationUrlHandler,
   checkpoint_gpt_text_response: checkpointGptTextResponseHandler,
   checkpoint_gpt_generated_image: checkpointGptGeneratedImageHandler,
 } satisfies { readonly [K in GptChildCapabilityId]: GptChildHandler<K> });

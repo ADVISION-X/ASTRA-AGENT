@@ -36,6 +36,7 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
   assert(promptCall?.child === "write_exact_gpt_prompt");
   assert.ok(promptCall.input.prompt.startsWith(skill));
   assert.ok(promptCall.input.prompt.includes(JSON.stringify(route.result_contract)));
+  for (const material of task.material_refs) assert.ok(promptCall.input.prompt.includes(`"original_name":${JSON.stringify(material.display_name)}`));
   const attach = run.calls.find(call => call.child === "attach_approved_gpt_files_once");
   const submit = run.calls.find(call => call.child === "submit_exact_gpt_turn_once");
   assert(attach?.child === "attach_approved_gpt_files_once" && submit?.child === "submit_exact_gpt_turn_once");
@@ -45,7 +46,7 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
   const changedPrompt = await exerciseProductFlow(plugin, { ...fixture, confirmedSubmit: true,
     confirmedPromptHash: FIXTURE_HASH, resultRevision: { revision: 1, priorRejection: null } });
   assert.equal(changedPrompt.physicalSubmitDispatches, 0);
-  assert.deepEqual(changedPrompt.calls.map(call => call.child), ["checkpoint_gpt_text_response"]);
+  assert.deepEqual(changedPrompt.calls.map(call => call.child), ["get_submitted_gpt_conversation_url", "checkpoint_gpt_text_response"]);
   assert.throws(() => parseZejiResult({ ...task, product_id: "foreign" }, JSON.stringify(output), route), /OWNER_MISMATCH/u);
   assert.throws(() => parseZejiResult(task, `${JSON.stringify(output)} {"second":true}`, route), /AMBIGUOUS/u);
   if (review) {
@@ -66,6 +67,16 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
     for (const field of Object.keys(output).filter(key => key !== "provider_extension")) {
       const missing = { ...output } as Record<string, unknown>; delete missing[field];
       assert.throws(() => parseZejiResult(task, JSON.stringify(missing), route));
+    }
+    const extended = { ...output, conclusion_markdown: "本案结论 e\u0301𠮷", case_basis_markdown: "用事与BZ05原观点、前提和未知。",
+      execution_and_answers_markdown: "条件变化与原问题答复。", recommendations: [{ recommendation_ref: "choice:原标识", selection_kind: "equal",
+        date: "2026-11-01", event_cells: [], condition_pointers: [], professional_markdown: "原专业推导", reader_explanation_markdown: "原通俗说明",
+        execution_window_markdown: "14:00–15:00；原条件", selection_reason_markdown: "本项相对理由。", unknown: { tail: [null, false, "e\u0301"] } }] };
+    assert.deepEqual(parseZejiResult(task, JSON.stringify(extended), route), extended);
+    // Open professional positions do not become a second machine-required structure.
+    for (const content of [null, { original: [false, "原键值"] }]) {
+      const nonString = { ...extended, conclusion_markdown: content, recommendations: extended.recommendations.map(item => ({ ...item, selection_reason_markdown: content })) };
+      assert.deepEqual(parseZejiResult(task, JSON.stringify(nonString), route), nonString);
     }
     const parts = [task.material_refs[0]!, ...[1, 2].flatMap(index => [0, 1].map(part => ({ ...task.material_refs[index]!,
       material_id: `${task.source_task_id}:${task.material_refs[index]!.role}:${part}`, display_name: `part-${index}-${part}.zip` })))];

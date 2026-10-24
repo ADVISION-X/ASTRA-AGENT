@@ -8,7 +8,7 @@ import { exerciseExactModelSelection } from "./gpt-exact-target-model.acceptance
 import { execute, exerciseTransientProfileConfirmations, profile, profileFacts } from "./gpt-exact-target-profile-fixture.js";
 import "./gpt-reasoning-requirement.acceptance.js";
 assert.deepEqual(Object.keys(GPT_CHILD_CAPABILITY_CONTRACTS).sort(), EXPECTED_GPT_CHILD_IDS);
-assert.equal(EXPECTED_GPT_CHILD_IDS.length, 14); assertGptExactTargetSourceShape(import.meta.url);
+assert.equal(EXPECTED_GPT_CHILD_IDS.length, 15); assertGptExactTargetSourceShape(import.meta.url);
 
 const verifyFreshChat = async (): Promise<void> => {
   let samples = 0;

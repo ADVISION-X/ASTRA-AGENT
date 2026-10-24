@@ -92,10 +92,10 @@ for (const state of ["rejected", "dispatched", "confirmed"] as const) {
   const result = await createGptAcceptanceHarness("gpt-proof-absent-ack").execute("acknowledge_known_gpt_rate_limit", fixture.browser, acknowledgement("2"));
   assert.equal(result.status, "success"); assert.equal(result.value?.clearance, "confirmed_absent"); assert.equal(fixture.physicalMutations(), 0);
 }
-for (const temporary of [false, true]) {
-  const harness = createGptAcceptanceHarness(`gpt-proof-original-submit-${temporary}`), intent = harness.buildIntent("submit_exact_gpt_turn_once", { files: [], promptHash });
+for (const messageOnly of [false, true]) {
+  const harness = createGptAcceptanceHarness(`gpt-proof-original-submit-${messageOnly}`), intent = harness.buildIntent("submit_exact_gpt_turn_once", { files: [], promptHash });
   const identity = productionGptAtomicIdentity(intent, 0);
-  const payload = { canonicalConversationUrl: temporary ? "https://chatgpt.com/c/WEB:temporary-client-route" : conversationUrl,
+  const payload = { ...(messageOnly ? { schemaVersion: "grasseye.browser.confirmed-submit-proof.v2" } : { canonicalConversationUrl: conversationUrl }),
     promptHash, userTurnId: "00000000-0000-4000-8000-000000000003", exactCallIdentityHash: browserExactCallIdentityHash({
       jobId: intent.jobId, attemptId: intent.attemptId, writerFenceHash: hash("d"), ...identity }), observationRevisionHash: hash("2"),
     targetRefHash: hash("3"), documentRefHash: hash("4"), rawCount: 1, eligibleCount: 1 };
@@ -104,9 +104,10 @@ for (const temporary of [false, true]) {
     { initialRecovery: prior, initialRecoveryIdentity: identity, exposeInitialRecoveryOutsideAtomic: true, initialUrl: conversationUrl });
   const result = await executeProductionGptAtomicCall({ dataDir: "/tmp/gpt-exact-target", gpt: harness.gpt, browsers: {} as never,
     intent, browserCall: browserCall(fixture.browser), signal: new AbortController().signal, resultRevision: 0 });
-  assert.equal(result.status, temporary ? "failed" : "success");
-  if (temporary) assert.equal(result.failureCode, "GPT_CONFIRMED_SUBMIT_READBACK_INVALID");
-  else { assert.equal(Reflect.get(result.value!, "userTurnId"), payload.userTurnId); assert.equal(result.proof.browserFact?.evidenceRef, prior.authorityRef); }
+  assert.equal(result.status, "success");
+  assert.equal(Reflect.get(result.value!, "userTurnId"), payload.userTurnId);
+  assert.equal(Reflect.has(result.value!, "canonicalConversationUrl"), false);
+  assert.equal(result.proof.browserFact?.evidenceRef, prior.authorityRef);
   assert.equal(fixture.physicalMutations(), 0); assert.equal(fixture.documentCalls(), 0);
 }
 for (const promptMatches of [true, false]) {

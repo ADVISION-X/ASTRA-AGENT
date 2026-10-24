@@ -34,10 +34,10 @@ const assertHarness = (
   assert(output);
   if (!recoverAfterFault) {
     const expectedOrdinals = (stepId: string): readonly number[] => stepId === "article_synthesis"
-      ? [21, 22, 23, 25, 26, 27, 29, 31]
+      ? [21, 22, 23, 25, 26, 27, 29, 31, 31]
       : stepId === "article_image_generation"
-        ? [37, 38, 39, 41, 42, 43, 45, 47]
-        : [1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 13, 15];
+        ? [37, 38, 39, 41, 42, 43, 45, 47, 47]
+        : [1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 13, 15, 15];
     const callsByStep = new Map<string, SeoCall[]>();
     for (const call of state.calls) callsByStep.set(call.productStepId, [
       ...(callsByStep.get(call.productStepId) ?? []), call,

@@ -66,7 +66,7 @@ const TERMINAL_RULE_MUTANTS = [
     ["src/lib/browser/infrastructure/browser-target-acquirer.ts", "requestSequence: sequence", "requestSequence: 1"],
     ["src/lib/browser/infrastructure/browser-infrastructure-supervisor.ts", "pending.requestSequence !== input.requestSequence", "false"],
     ["src/lib/browser/infrastructure/browser-infrastructure-supervisor.ts", "if (input.targetRef !== null) this.broker.revokeOperatorTargetClaim({ targetRef: input.targetRef, jobRefHash: input.jobRefHash });\n        return;", "this.broker.revokeOperatorTargetClaim();\n        return;"],
-    ["src/lib/browser/exact-target/browser-observation-receipt.ts", "requireCanonicalGptConversationUrl(packet.currentUrl as string)", "String(packet.currentUrl)"],
+    ["src/lib/browser/exact-target/browser-observation-receipt.ts", ".exactGptUserPromptHash === expectedPromptHash", ".exactGptUserPromptHash !== expectedPromptHash"],
     ["src/lib/browser/exact-target/browser-observation-receipt.ts", "queryCause ?? (exactOutgoingPostconditionVerified", "null ?? (exactOutgoingPostconditionVerified"],
     ["src/lib/browser/exact-target/browser-observation-receipt.ts", 'url.search !== ""', "false"],
     ["src/lib/browser/chrome-extension/dom-coherent-observation.ts", "sanitizeCurrentUrl(packet.currentUrl) !== packet.currentUrl", "false"],
@@ -123,10 +123,12 @@ const TERMINAL_RULE_MUTANTS = [
       'if (mutationClass === "mutation") await this.interactionReadiness.executeMutation(target, execute, assertCommandActive, command.kind); if (mutationClass === "mutation") return '],
     ["src/lib/browser/chrome-extension/extension-target-authority.ts", 'if (mutationClass === "observation") return ',
       'if (mutationClass === "observation") await this.interactionReadiness.executeObservation(target, execute, assertCommandActive); if (mutationClass === "observation") return '],
+    ["src/lib/browser/exact-target/browser-submitted-conversation-locator.ts", "requireCanonicalGptConversationUrl(value.canonicalConversationUrl)", "value.canonicalConversationUrl"],
+    ["src/lib/browser/exact-target/browser-submitted-conversation-locator.ts", "set provider_recovery_payload=?", "set state='REJECTED',provider_recovery_payload=?"],
   ] as const;
 
 const exerciseInspectors = (): void => {
-  const project = new Project({ tsConfigFilePath: "tsconfig.json" }), lawId = "LAW-LOCAL-BROWSER-SESSION-004-V58";
+  const project = new Project({ tsConfigFilePath: "tsconfig.json" }), lawId = "LAW-LOCAL-BROWSER-SESSION-004-V59";
   const paths = project.getSourceFiles().map(source => source.getFilePath().slice(process.cwd().length + 1));
   const context: InspectorContext = { project, sealedRoot: process.cwd(), selectedLawId: lawId, targetPaths: paths,
     targetSet: { queryRef: "terminal-owner-mutants", count: paths.length }, lawRequirements: [{ lawId, forbiddenCount: 24,

@@ -191,8 +191,8 @@ export const exerciseExactOutgoingPostcondition = async (): Promise<void> => {
       userTurnSelector: "[data-turn-key]", expectedPromptHash: hash, expectedAttachmentLabels: [] } };
   const command = { kind: "dom-intent" as const, intent };
   for (const [url, mismatch, promptHash, expectedCause] of [
-    ["https://chatgpt.com/", -1, hash, "BROWSER_DOM_CANDIDATE_MISSING"],
-    ["https://chatgpt.com/c/legal%20opaque", -1, hash, "BROWSER_DOM_CANDIDATE_MISSING"],
+    ["https://chatgpt.com/", -1, hash, null],
+    ["https://chatgpt.com/c/legal%20opaque", -1, hash, null],
     ["https://chatgpt.com/c/exact", -1, hash, null],
     ["https://chatgpt.com/c/exact", -1, `sha256:${"b".repeat(64)}`, "BROWSER_DOM_CANDIDATE_MISSING"],
     ["https://chatgpt.com/", 0, hash, "BROWSER_POSTCONDITION_Q0__BROWSER_DOM_CANDIDATE_MISSING"],

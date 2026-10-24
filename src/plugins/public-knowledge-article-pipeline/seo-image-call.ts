@@ -123,7 +123,11 @@ const checkpointSubmittedImage = async (
   mediaHash: ProductionHash;
   generated: GeneratedImageArtifact;
 }>> => {
-    const { canonicalConversationUrl, userTurnId } = submit.value;
+    const locator = await input.flow.execute({ sessionKey: "", productStepId: input.stepId, callId: "conversation-url",
+      child: "get_submitted_gpt_conversation_url", actionOrdinal: 47, input: { submitCallId: "turn-submit",
+        providerEffectIdentityHash: hashValue(submit.effectReceipt?.providerEffectIdentityHash,
+          "SEO_PROVIDER_EFFECT_IDENTITY_MISSING"), timeoutMs: 15_000 } }) as ProductGptChildResult<"get_submitted_gpt_conversation_url">;
+    const { canonicalConversationUrl, userTurnId } = locator.value;
     const checkpointCall = {
       sessionKey: "", productStepId: input.stepId, callId: "image-checkpoint",
       child: "checkpoint_gpt_generated_image", actionOrdinal: 47,

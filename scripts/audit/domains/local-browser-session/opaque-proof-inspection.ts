@@ -19,6 +19,7 @@ type InvocationPayloadSources = Readonly<{
   journal: RequiredSource;
   journalEvidence: RequiredSource;
   journalReplay: RequiredSource;
+  locator: RequiredSource;
   commandLogging: RequiredSource;
   commandDiagnostic: RequiredSource;
   frameDiagnostic: RequiredSource;
@@ -31,6 +32,7 @@ const commandLoggingPath = "src/lib/browser/exact-target/browser-command-runtime
 const commandDiagnosticPath = "src/lib/browser/chrome-extension/websocket-command-diagnostic.ts";
 const frameDiagnosticPath = "src/lib/browser/chrome-extension/websocket-actor-diagnostics.ts";
 const journalEvidencePath = "src/lib/browser/exact-target/browser-mutation-evidence.ts";
+const locatorPath = "src/lib/browser/exact-target/browser-submitted-conversation-locator.ts";
 const journalReplayPath = "src/lib/browser/exact-target/browser-mutation-replay-evidence.ts";
 
 const inspectOpaqueRawFields = (
@@ -135,19 +137,28 @@ const inspectAuthenticatedMediaBoundary = (
 };
 
 const inspectEncryptedRecoveryLocator = (
-  journal: RequiredSource, journalEvidence: RequiredSource, journalReplay: RequiredSource,
+  journal: RequiredSource, journalEvidence: RequiredSource, journalReplay: RequiredSource, locator: RequiredSource,
   findings: InspectorFinding[], lawId: string,
 ): void => {
   for (const [filePath, source, required] of [
     [sourcePaths[7], journal, "sealProviderRecoveryPayload("],
     [journalEvidencePath, journalEvidence, "unsealProviderRecoveryPayload("],
-    [journalEvidencePath, journalEvidence, "requireCanonicalGptConversationUrl(canonicalConversationUrl)"],
+    [journalEvidencePath, journalEvidence, "readSubmittedConversationLocator(envelope"],
     [journalReplayPath, journalReplay, "unsealProviderRecoveryPayload("],
-    [journalReplayPath, journalReplay, "requireCanonicalGptConversationUrl(value.canonicalConversationUrl)"],
+    [journalReplayPath, journalReplay, "readSubmittedConversationLocator(envelope"],
+    [locatorPath, locator, "requireCanonicalGptConversationUrl(value.canonicalConversationUrl)"],
+    [locatorPath, locator, "assertSubmitRecoveryPayload(envelope.terminalPayload, identity)"],
+    [locatorPath, locator, "input.assertCurrent()"],
+    [locatorPath, locator, "and provider_recovery_payload=?"],
   ] as const) if (!source.getFullText().includes(required)) findings.push(createLocalFinding({
     checkId: "browser-authority/closed-invocation-payload", lawId, filePath,
     message: `The encrypted Provider recovery locator boundary is missing ${required}.`,
   }));
+  const writes = [...locator.getFullText().matchAll(/update\s+browser_mutations\s+set\s+([\s\S]*?)\s+where/giu)];
+  if (writes.length !== 1 || writes[0]![1]!.replace(/\s/gu, "") !== "provider_recovery_payload=?") {
+    findings.push(createLocalFinding({ checkId: "browser-authority/closed-invocation-payload", lawId,
+      filePath: locatorPath, message: "Locator binding must update only the original encrypted payload, leaving every terminal field unchanged." }));
+  }
 };
 
 const inspectDiagnosticPayloadBoundary = (
@@ -177,7 +188,7 @@ const inspectClosedInvocationPayloadBoundary = (
   findings: InspectorFinding[],
   lawId: string,
 ): void => {
-  const { transport, extensionActor, extensionCrypto, journal, journalEvidence, journalReplay, commandLogging,
+  const { transport, extensionActor, extensionCrypto, journal, journalEvidence, journalReplay, locator, commandLogging,
     commandDiagnostic, frameDiagnostic } = sources;
   const requiredByFile = [
     [sourcePaths[0], transport.getFullText(), [
@@ -226,7 +237,7 @@ const inspectClosedInvocationPayloadBoundary = (
       message: `Browser durable state or diagnostics retain forbidden invocation payload field ${leaked}.`,
     }));
   }
-  inspectEncryptedRecoveryLocator(journal, journalEvidence, journalReplay, findings, lawId);
+  inspectEncryptedRecoveryLocator(journal, journalEvidence, journalReplay, locator, findings, lawId);
   inspectDiagnosticPayloadBoundary([commandLogging, commandDiagnostic, frameDiagnostic], findings, lawId);
 };
 
@@ -239,6 +250,7 @@ export const inspectOpaqueAuthorityBoundary = (
   const journal = requireSource(context, findings, lawId, sourcePaths[7]);
   const journalEvidence = requireSource(context, findings, lawId, journalEvidencePath);
   const journalReplay = requireSource(context, findings, lawId, journalReplayPath);
+  const locator = requireSource(context, findings, lawId, locatorPath);
   const broker = requireSource(context, findings, lawId, sourcePaths[18]);
   const supervisor = requireSource(context, findings, lawId, sourcePaths[3]);
   const targetAuthority = requireSource(context, findings, lawId, targetAuthorityPath);
@@ -252,7 +264,7 @@ export const inspectOpaqueAuthorityBoundary = (
   const commandLogging = requireSource(context, findings, lawId, commandLoggingPath);
   const commandDiagnostic = requireSource(context, findings, lawId, commandDiagnosticPath);
   const frameDiagnostic = requireSource(context, findings, lawId, frameDiagnosticPath);
-  if (!transport || !journal || !journalEvidence || !journalReplay || !broker || !supervisor || !targetAuthority || !commandRuntime
+  if (!transport || !journal || !journalEvidence || !journalReplay || !locator || !broker || !supervisor || !targetAuthority || !commandRuntime
     || !authenticatedMediaRuntime || !leaseManager
     || !extensionActor || !extensionCrypto
     || !commandLogging || !commandDiagnostic || !frameDiagnostic) return;
@@ -270,7 +282,7 @@ export const inspectOpaqueAuthorityBoundary = (
   inspectAuthenticatedMediaBoundary(targetAuthority, commandRuntime, authenticatedMediaRuntime,
     leaseManager, findings, lawId);
   inspectClosedInvocationPayloadBoundary(
-    { transport, extensionActor, extensionCrypto, journal, journalEvidence, journalReplay,
+    { transport, extensionActor, extensionCrypto, journal, journalEvidence, journalReplay, locator,
       commandLogging, commandDiagnostic, frameDiagnostic },
     findings, lawId,
   );

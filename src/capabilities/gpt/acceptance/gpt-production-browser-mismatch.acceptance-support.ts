@@ -1,3 +1,4 @@
+import { readSubmittedConversationLocator } from "../../../lib/browser/exact-target/browser-submitted-conversation-locator.js";
 import { governanceAssert as assert } from "../../../../scripts/audit/shared/governance-exam-assert.js";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -59,7 +60,9 @@ try {
   const payload = (jobId: string) => ({ canonicalConversationUrl: "https://chatgpt.com/c/historical-confirmed", promptHash: HASH_A,
     userTurnId: "00000000-0000-4000-8000-000000000001", exactCallIdentityHash: originalHash(jobId), observationRevisionHash: HASH_A,
     targetRefHash: HASH_A, documentRefHash: HASH_B, rawCount: 1, eligibleCount: 1 });
-  const outcome = (jobId: string) => ({ ...originalMutation, state: "confirmed" as const, terminalPayload: payload(jobId) });
+  const outcome = (jobId: string) => ({ ...originalMutation, state: "confirmed" as const, terminalPayload: payload(jobId),
+    conversationLocator: readSubmittedConversationLocator({ terminalPayload: payload(jobId) },
+      { exactCallIdentityHash: originalHash(jobId), providerEffectIdentityHash: effectHash }) });
   const original = (jobId: string) => ({ exactCallIdentityHash: originalHash(jobId), inputHash, mutation: originalMutation, confirmedOutcome: outcome(jobId) });
   const checkpoint = { ...historicalCall, child: "checkpoint_gpt_text_response" as const, callId: "readback", actionOrdinal: 2,
     input: { canonicalConversationUrl: payload("unused").canonicalConversationUrl, userTurnId: payload("unused").userTurnId,
@@ -147,7 +150,10 @@ try {
     readProviderEffectStepCallFact: () => original(mismatchJob), countProviderTurnDispatches: () => 0,
     acquireJobBoundTargetLease: async () => { throw dialogFailure(mismatchFact, "BROWSER_GPT_DIALOG_UNRECOGNIZED"); },
   } as never, logger("confirmed-mismatch"), noControl).createExecution(execution(mismatchJob));
-  await mismatch.tools.readConfirmedSubmit(historicalCall);
+  const locate = async (active: typeof mismatch) => active.tools.execute({ ...historicalCall,
+    child: "get_submitted_gpt_conversation_url", callId: "conversation-url", actionOrdinal: 2,
+    input: { submitCallId: historicalCall.callId, providerEffectIdentityHash: effectHash, timeoutMs: 15_000 } });
+  await mismatch.tools.readConfirmedSubmit(historicalCall); await locate(mismatch);
   const mismatchError = typedGptExecutionFailure(await captureFailure(() => mismatch.tools.execute(checkpoint)));
   assert.equal(mismatchError?.code, "BROWSER_GPT_DIALOG_UNRECOGNIZED");
   assert.equal(mismatchError?.browserEffect?.providerEffectIdentityHash, effectHash);
@@ -175,7 +181,7 @@ try {
       executeDomIntent: async () => { throw dialogFailure(exactFact, "BROWSER_KNOWN_GPT_RATE_LIMIT"); }, park: async () => {},
     }; },
   } as never, logger("confirmed-exact"), controls);
-  const exactExecution = exactOwner.createExecution(execution(exactJob)); await exactExecution.tools.readConfirmedSubmit(historicalCall);
+  const exactExecution = exactOwner.createExecution(execution(exactJob)); await exactExecution.tools.readConfirmedSubmit(historicalCall); await locate(exactExecution);
   const exactError = typedGptExecutionFailure(await captureFailure(() => exactExecution.tools.execute(checkpoint)));
   assert.equal(exactError?.code, "BROWSER_KNOWN_GPT_RATE_LIMIT");
   assert.equal(exactError?.browserEffect?.providerEffectIdentityHash, effectHash);
@@ -183,7 +189,7 @@ try {
   assert.deepEqual([incidents, clearances, gateClosed, exactAcquisitions], [1, 1, true, 1]);
   gateClosed = false; exactAcquisitions = 0; persistenceFails = true;
   exactFact = await detectedKnownGptRateLimitExactFact();
-  const persistenceExecution = exactOwner.createExecution(execution(exactJob)); await persistenceExecution.tools.readConfirmedSubmit(historicalCall);
+  const persistenceExecution = exactOwner.createExecution(execution(exactJob)); await persistenceExecution.tools.readConfirmedSubmit(historicalCall); await locate(persistenceExecution);
   const persistenceError = typedGptExecutionFailure(await captureFailure(() => persistenceExecution.tools.execute(checkpoint)));
   assert.deepEqual([persistenceError?.code, persistenceError?.mutationOutcome, persistenceError?.browserEffect?.providerEffectIdentityHash, gateClosed],
     ["PROVIDER_COOLDOWN_OUTBOX_WRITE_FAILED", "confirmed", effectHash, false]);

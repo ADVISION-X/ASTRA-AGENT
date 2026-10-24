@@ -2,8 +2,9 @@ import { gptAttachmentProviderDisplayName } from "../../capabilities/gpt/index.j
 import type { SharedExecutionContext, WebsiteAgentTask } from "../../mediator/product-plugin-contract.js";
 
 export function zejiPrompt(task: WebsiteAgentTask, context: SharedExecutionContext, marker: string): string {
-  const files = [...context.materials].sort((a, b) => a.ordinal - b.ordinal).map(material => ({
+  const files = [...context.materials].sort((left, right) => left.ordinal - right.ordinal).map(material => ({
     ordinal: material.ordinal, role: material.role, material_id: material.material_id,
+    original_name: material.display_name,
     name: gptAttachmentProviderDisplayName(material.display_name, context.gpt.jobId, material.material_id),
     media_type: material.media_type, sha256: material.sha256, bytes: material.bytes,
     trust_class: material.trust_class, may_issue_instruction: material.may_issue_instruction,

@@ -6,7 +6,7 @@ import { join } from "node:path";
 
 type EncryptedPayload = Readonly<{ nonce: string; ciphertext: string; tag: string }>;
 
-export type ProviderRecoveryPayload = Readonly<{ terminalPayload: unknown }>;
+export type ProviderRecoveryPayload = Readonly<{ terminalPayload: unknown; locatorPayload?: unknown }>;
 
 export const browserMutationPayloadKey = (dataDir: string): Buffer => {
   const directory = join(dataDir, "browser");

@@ -193,12 +193,16 @@ const checkpointSubmittedTurn = async (
   submit: ProductGptChildResult<"submit_exact_gpt_turn_once">,
   ordinals: readonly [number, number, number],
 ): Promise<Checkpoint> => {
-  const canonicalConversationUrl = submit.value.canonicalConversationUrl;
+  const locator = await flow.execute({ productStepId: stepId, callId: "conversation-url",
+    child: "get_submitted_gpt_conversation_url", actionOrdinal: ordinals[0], input: {
+      submitCallId: "turn-submit", providerEffectIdentityHash: hashValue(submit.effectReceipt?.providerEffectIdentityHash,
+        "PRODUCT_PROVIDER_EFFECT_IDENTITY_MISSING"), timeoutMs: 15_000 } }) as ProductGptChildResult<"get_submitted_gpt_conversation_url">;
+  const { canonicalConversationUrl, userTurnId } = locator.value;
     const checkpointCall = {
       productStepId: stepId, callId: "text-checkpoint", child: "checkpoint_gpt_text_response",
       actionOrdinal: ordinals[0], input: {
         probeBudgetMs: WAIT_TIMEOUT_MS, canonicalConversationUrl,
-        userTurnId: submit.value.userTurnId, turnMarker: marker,
+        userTurnId, turnMarker: marker,
       },
     } as const;
     const checkpointResult = await flow.execute(checkpointCall);

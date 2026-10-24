@@ -2,7 +2,6 @@ import { executionFailure } from "../../../../lib/execution-failure.js";
 
 import type { GptChildCapabilityIntent } from "../../contract.js";
 import { arrayInput, stringInput } from "../../web/child-handler.js";
-import { canonicalGptConversationUrl } from "../../web/contracts/target-document.contract.js";
 
 const HASH = /^sha256:[a-f0-9]{64}$/u;
 
@@ -36,7 +35,3 @@ export const composerFilesInput = (
     return Object.freeze({ providerDisplayName: value.providerDisplayName.normalize("NFC") });
   }),
 );
-
-export const canonicalConversationOrNull = (value: string): string | null => {
-  try { return canonicalGptConversationUrl(value); } catch { return null; }
-};

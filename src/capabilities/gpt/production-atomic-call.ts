@@ -9,6 +9,7 @@ import { projectBrowserFact } from "./web/child-handler.js";
 type AtomicGptCallInput = Readonly<{ dataDir: string; gpt: GptAbilityGroup; browsers: ProductionGptBrowserLifecycle;
   intent: GptAnyChildCapabilityIntent; browserCall: ProductionGptBrowserCall | undefined; signal: AbortSignal;
   confirmedProviderEffectReadback?: GptExecutionContext["confirmedProviderEffectReadback"];
+  submittedConversationLocator?: GptExecutionContext["submittedConversationLocator"];
   resultRevision: number; browserAtomicIdentity?: BrowserAtomicStepIdentity; assertProviderInputAllowed?: () => void;
   rateLimitAckDispatchNotAfter?: number; recordConfirmedProviderEffectReadback?: NonNullable<GptExecutionContext["recordConfirmedProviderEffectReadback"]> }>;
 export type ProductionGptAtomicCallResult = GptChildCapabilityResult;
@@ -21,6 +22,7 @@ export const productionGptAtomicIdentity = (intent: GptAnyChildCapabilityIntent,
 };
 const executionContext = (input: AtomicGptCallInput, browser: ProductionGptBrowserCall["facade"] | undefined,
   browserAtomicIdentity?: BrowserAtomicStepIdentity): GptExecutionContext => ({ dataDir: input.dataDir, signal: input.signal,
+  ...(input.submittedConversationLocator ? { submittedConversationLocator: input.submittedConversationLocator } : {}),
   ...(input.confirmedProviderEffectReadback ? { confirmedProviderEffectReadback: input.confirmedProviderEffectReadback } : {}),
   ...(browser ? { browser } : {}), ...(browserAtomicIdentity ? { browserAtomicIdentity } : {}),
   ...(input.assertProviderInputAllowed ? { assertProviderInputAllowed: input.assertProviderInputAllowed } : {}),

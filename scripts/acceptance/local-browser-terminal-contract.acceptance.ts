@@ -48,30 +48,31 @@ try {
   const logger = createRuntimeLogger({ producer: "browser-actor-acceptance", producerRunId: "terminal-rebuild", owner: "browser-session",
     component: "browser-command", terminalEnabled: false, fileSink: { directoryPath: join(root, "logs"), maxTotalBytes: 1_048_576 } });
   const actorFor = createBrowserActorFactory(store, logger), click = createClickCommand(), match = createMatchClickCommand();
-  const exactFailedCommand = { kind: "dom-intent" as const, intent: { kind: "click" as const, selector: "button", expectedMatches: 1,
+  const exactMessageCommand = { kind: "dom-intent" as const, intent: { kind: "click" as const, selector: "button", expectedMatches: 1,
     preClickExactOutgoingTurn: { composerSelector: "composer", composerFormSelector: "form", attachmentSelector: "attachment",
       userTurnSelector: "[data-turn-key]", expectedPromptHash: hash, expectedAttachmentLabels: [] },
     postClickObservation: { timeoutMs: 1_500, queries: [
       { queryId: "model", selector: "[data-turn-key]", maxMatches: 1, fields: ["turnKey", "exactGptUserPromptHash"] as const, latestGptUserTurn: true as const, expectedEligibleCount: 1 },
       { queryId: "composer", selector: "composer[contenteditable='true']:has(> p[data-empty-paragraph='true'] > br.ProseMirror-trailingBreak)", maxMatches: 1, fields: [] as const, expectedEligibleCount: 1 }] } } };
   for (const currentUrl of ["https://chatgpt.com/", "https://chatgpt.com/c/legal%20opaque"]) {
-    const candidate = permit(`exact-postcondition-${currentUrl.endsWith("/") ? "home" : "opaque"}`);
-    const failed = actorFor(async (current, _command, dispatch) => {
+    const candidate = { ...permit(`exact-postcondition-${currentUrl.endsWith("/") ? "home" : "opaque"}`),
+      childCapabilityId: "submit_exact_gpt_turn_once", replayPolicy: "provider-effect-once" as const };
+    const messageConfirmed = actorFor(async (current, _command, dispatch) => {
       dispatch?.(); const packet = packetFor(current, { turnKey: "00000000-0000-4000-8000-000000000001", exactGptUserPromptHash: hash });
       const queries = [...packet.queries, { ...packet.queries[0]!, queryId: "composer", matches: [{ candidateIndex: 0 }] }];
       const observation = { ...packet, currentUrl, queries, observationRevisionHash: exactHash(canonicalizeBrowserAuthorityValue({
         targetRefHash: packet.targetRefHash, documentRefHash: packet.documentRefHash, currentUrl, observedAt: packet.observedAt, queries })) };
       return { replyChannelToken: current.replyChannelToken, transportSequence: 1, permitSequence: current.sequence,
-        result: { clicked: true, candidateCount: 1, identityRevalidated: true, mutationCount: 1, postconditionVerified: false,
-          postconditionObservation: observation, failureCode: "BROWSER_POSTCONDITION_FAILED", nativeCauseCode: "BROWSER_DOM_CANDIDATE_MISSING" } };
+        result: { clicked: true, candidateCount: 1, identityRevalidated: true, mutationCount: 1, postconditionVerified: true,
+          postconditionObservation: observation } };
     });
-    await assert.rejects(failed.execute(candidate, exactFailedCommand), /BROWSER_POSTCONDITION_FAILED/u);
+    await assert.doesNotReject(messageConfirmed.execute(candidate, exactMessageCommand));
     const settled = store.readCommand(candidate.commandId)!;
-    assert.equal(settled.state, "REJECTED");
+    assert.equal(settled.state, "CONFIRMED");
     const fact = store.readExactCallMutationFact({ jobId: settled.identity.jobId, attemptId: settled.identity.attemptId,
       exactCallIdentityHash: settled.identity.exactCallIdentityHash, actionOrdinal: settled.identity.actionOrdinal })!;
     assert.equal(fact.mutationOutcome, "confirmed"); assert.equal(fact.physicalInputCount, 1);
-    assert.equal(fact.nativeFailureCode, "BROWSER_DOM_CANDIDATE_MISSING");
+    assert.equal(fact.nativeFailureCode, null);
   }
   const initial = permit("confirmed"), envelope = absentPreflightEnvelope(initial, { ok: true });
   assert.deepEqual(decodeKnownGptRateLimitPreflightReply(initial, click, envelope).commandResult, { ok: true });

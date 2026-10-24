@@ -45,7 +45,7 @@ export class ProductionGptSourceReuse {
       source.productStepId === productStepId && !this.completedKeys.has(key));
   }
 
-  public readConfirmedSubmit(call: ConfirmedSubmitCall): ProductGptChildResult<"submit_exact_gpt_turn_once"> | null {
+  public readConfirmedSubmit(call: ConfirmedSubmitCall, recordIdentity: (identity: import("../../lib/browser/browser-authority-api.js").BrowserAtomicStepIdentity) => void): ProductGptChildResult<"submit_exact_gpt_turn_once"> | null {
     const key = productionCallKey({ productStepId: call.productStepId,
       callId: call.callId, childCapabilityId: call.child });
     const reusable = this.calls.get(key);
@@ -61,6 +61,7 @@ export class ProductionGptSourceReuse {
       effectIdentityHash: reusable.effectIdentityHash,
       walAuthorityHash: reusable.walAuthorityHash,
     });
+    const locator = original.conversationLocator;
     const raw = original.terminalPayload;
     const value = raw && typeof raw === "object" && !Array.isArray(raw)
       ? raw as Readonly<Record<string, unknown>> : null;
@@ -68,18 +69,20 @@ export class ProductionGptSourceReuse {
       `sha256:${createHash("sha256").update(text).digest("hex")}`;
     if (!value || original.actionOrdinal !== call.actionOrdinal
       || value.promptHash !== reusable.submitPromptHash
-      || typeof value.canonicalConversationUrl !== "string"
+      || !locator
       || typeof value.userTurnId !== "string"
       || value.exactCallIdentityHash !== original.exactCallIdentityHash
       || value.rawCount !== 1 || value.eligibleCount !== 1
-      || digest(value.canonicalConversationUrl) !== reusable.canonicalConversationHash
+      || digest(locator.canonicalConversationUrl) !== reusable.canonicalConversationHash
       || digest(value.userTurnId) !== reusable.userTurnHash) {
       throw executionFailure("failed", "PRODUCTION_SOURCE_REUSE_IDENTITY_MISMATCH");
     }
+    recordIdentity(Object.freeze({ resultRevision: reusable.sourceResultRevision,
+      productStepId: call.productStepId, callId: call.callId, childCapabilityId: call.child,
+      actionOrdinal: original.actionOrdinal, inputHash: original.inputHash, replayPolicy: "provider-effect-once" }));
     const result = Object.freeze({
       value: Object.freeze({ status: "CONFIRMED" as const,
         promptHash: reusable.submitPromptHash, mutationSent: true as const,
-        canonicalConversationUrl: value.canonicalConversationUrl,
         userTurnId: value.userTurnId }),
       evidenceRef: original.authorityRef, evidenceHash: original.authorityHash,
       sourceAttemptId: reusable.sourceAttemptId,
@@ -94,8 +97,7 @@ export class ProductionGptSourceReuse {
       }),
     });
     this.pendingByStep.set(`${call.sessionKey}\u0000${call.productStepId}`,
-      Object.freeze({ key, source: reusable,
-        canonicalConversationUrl: value.canonicalConversationUrl,
+      Object.freeze({ key, source: reusable, canonicalConversationUrl: locator!.canonicalConversationUrl,
         userTurnId: value.userTurnId }));
     return result;
   }

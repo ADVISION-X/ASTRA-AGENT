@@ -26,8 +26,10 @@ export const acquireProductionBrowserCall = async (
 ): Promise<ProductionGptBrowserCall | undefined> => {
   if (requiredTargetKind !== "chatgpt") return undefined;
   if (confirmedSubmission) {
-    const active = await browsers.browserForConfirmedReadback(call.sessionKey, call.productStepId, call.callId,
-      confirmedSubmission.providerEffectIdentityHash!);
+    const active = call.child === "get_submitted_gpt_conversation_url"
+      ? await browsers.browserForRateLimitRecovery(call.sessionKey, call.productStepId, call.callId)
+      : await browsers.browserForConfirmedReadback(call.sessionKey, call.productStepId, call.callId,
+        confirmedSubmission.providerEffectIdentityHash!);
     await browsers.recordConfirmedProviderEffect(active, confirmedSubmission, confirmedSubmission.submitIdentity,
       confirmedSubmission.canonicalConversationUrl, confirmedSubmission.userTurnId);
     return active;
@@ -63,6 +65,7 @@ export const runProductionAtomicPhase = async (input: Readonly<{
   intent: GptAnyChildCapabilityIntent; browserCall: ProductionGptBrowserCall | undefined;
   signal: AbortSignal; resultRevision: number; childCapabilityId: GptChildCapabilityId;
   confirmedProviderEffectReadback?: import("./contract.js").GptExecutionContext["confirmedProviderEffectReadback"];
+  submittedConversationLocator?: import("./contract.js").GptExecutionContext["submittedConversationLocator"];
   browserAtomicIdentity?: BrowserAtomicStepIdentity;
   assertProviderInputAllowed: () => void; rateLimitAckDispatchNotAfter?: number;
   recordConfirmedProviderEffectReadback?: NonNullable<
@@ -71,6 +74,7 @@ export const runProductionAtomicPhase = async (input: Readonly<{
 }>): Promise<ProductionGptAtomicCallResult> => executeProductionGptAtomicCall({
   dataDir: input.dataDir, gpt: input.gpt, browsers: input.browsers, intent: input.intent,
   browserCall: input.browserCall, signal: input.signal, resultRevision: input.resultRevision,
+  ...(input.submittedConversationLocator ? { submittedConversationLocator: input.submittedConversationLocator } : {}),
   ...(input.confirmedProviderEffectReadback ? { confirmedProviderEffectReadback: input.confirmedProviderEffectReadback } : {}),
   ...(input.browserAtomicIdentity ? { browserAtomicIdentity: input.browserAtomicIdentity } : {}),
   ...(input.childCapabilityId === "submit_exact_gpt_turn_once"

@@ -1,6 +1,7 @@
 import {
   buildGptExecutionProfile,
 } from "../../capabilities/gpt/index.js";
+import type { ProductGptChildResult } from "../../capabilities/gpt/index.js";
 import type { WebsiteAgentTask } from "../../mediator/product-plugin-contract.js";
 import type {
   SharedExecutionContext,
@@ -107,7 +108,11 @@ export type SeoTextTurnInput = Readonly<{
   input: SeoTextTurnInput,
   submit: SeoConfirmedSubmit,
 ): Promise<SeoTurnCheckpoint> => {
-    const { canonicalConversationUrl, userTurnId } = submit.value;
+    const locator = await input.flow.execute({ sessionKey: "", productStepId: input.stepId, callId: "conversation-url",
+      child: "get_submitted_gpt_conversation_url", actionOrdinal: input.ordinals[4], input: { submitCallId: "turn-submit",
+        providerEffectIdentityHash: hashValue(submit.effectReceipt?.providerEffectIdentityHash,
+          "SEO_PROVIDER_EFFECT_IDENTITY_MISSING"), timeoutMs: 15_000 } }) as ProductGptChildResult<"get_submitted_gpt_conversation_url">;
+    const { canonicalConversationUrl, userTurnId } = locator.value;
     const checkpointCall = {
       productStepId: input.stepId, callId: "text-checkpoint",
       child: "checkpoint_gpt_text_response", actionOrdinal: input.ordinals[4],

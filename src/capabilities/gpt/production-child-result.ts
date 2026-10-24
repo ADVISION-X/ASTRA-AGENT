@@ -68,12 +68,12 @@ const recordConfirmedSubmission = async (
   if (effect?.effectScope !== "provider_effect" || effect.browserOutcome !== "CONFIRMED"
     || !effect.providerEffectIdentityHash) throw executionFailure("failed", "GPT_PROVIDER_EFFECT_IDENTITY_MISSING");
   const payload = result.value as Readonly<Record<string, unknown>>;
-  if (typeof payload.canonicalConversationUrl !== "string" || typeof payload.userTurnId !== "string") {
+  if (typeof payload.userTurnId !== "string") {
     throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_READBACK_INVALID");
   }
   if (browserCall) await browsers.recordConfirmedProviderEffect(
     browserCall, effect, browserAtomicIdentity ?? productionGptAtomicIdentity(intent, execution.resultRevision),
-    payload.canonicalConversationUrl, payload.userTurnId,
+    null, payload.userTurnId,
   );
 };
 
