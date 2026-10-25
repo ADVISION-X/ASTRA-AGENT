@@ -16,41 +16,19 @@ const calls = (node: Node | undefined, expression: string) => node?.getDescendan
 const before = (body: string, first: string, last: string): boolean => body.indexOf(first) >= 0 && body.indexOf(last) > body.indexOf(first);
 const objectKeys = (node: Node | undefined): string[] => Node.isObjectLiteralExpression(node) ? node.getProperties().flatMap(property =>
   Node.isPropertyAssignment(property) || Node.isShorthandPropertyAssignment(property) ? [property.getName()] : []).sort() : [];
-const inspectProviderObservationTerminal = (context: InspectorContext, findings: InspectorFinding[], finding: FindingFactory): void => {
-  const actor = sourceFor(context, "src/lib/browser/exact-target/browser-command-actor.ts")?.getClass("BrowserCommandActor")?.getMethod("execute");
-  const dispatch = calls(actor, "this.port.send")[0]?.getArguments()[2]?.getText() ?? "";
-  const actorTerminal = actor?.getDescendantsOfKind(SyntaxKind.TryStatement)
-    .some(node => calls(node.getFinallyBlock(), "this.onProviderObservationTerminal").length === 1) ?? false;
-  const actorBody = actor?.getText() ?? "";
-  const wiring = text(context, "src/lib/browser/infrastructure/browser-infrastructure-supervisor.ts");
-  const transport = sourceFor(context, "src/lib/browser/transport/browser-authority-websocket.ts")?.getClass("BrowserAuthorityWebSocket")?.getMethod("send");
-  const timeoutBudget = calls(transport, "setTimeout")[0]?.getArguments()[1]?.getText() ?? "";
-  check(actorBody.includes('command.kind === "authenticated-media"')
-    && actorBody.includes('command.intent.kind === "readExactAssistantTurn"')
-    && dispatch.includes("observationDispatched = true") && actorTerminal
-    && actorBody.includes("if (observationDispatched) this.onProviderObservationTerminal?.()")
-    && wiring.includes("() => this.lane.notifyProviderObservationTerminal()")
-    && timeoutBudget.includes('permit.mutationClass === "mutation"') && !timeoutBudget.includes("onDispatched"),
-  "gpt/no-browser-poll-scheduler", LANE, "Only a dispatched Provider observation notifies the one clock; observation hooks do not extend mutation grace.", findings, finding);
-};
-
-const inspectGlobalObservationLane = (context: InspectorContext, findings: InspectorFinding[], finding: FindingFactory): void => {
+const inspectObservationLane = (context: InspectorContext, findings: InspectorFinding[], finding: FindingFactory): void => {
   const lane = sourceFor(context, LANE), owner = lane?.getClass("BrowserLaneCoordinator"), laneText = lane?.getFullText() ?? "";
-  const park = owner?.getMethod("withLifecycle"), parkText = park?.getText() ?? "", samples = calls(lane, "Math.random");
-  const terminal = owner?.getMethod("notifyProviderObservationTerminal");
-  const eligible = ["nextWaiter", "scheduleWake"].every(name => {
-    const body = owner?.getMethod(name)?.getText() ?? "";
-    return body.includes("Math.max(waiter.eligibleAt, this.observationNotBefore)") && body.includes('waiter.requestKind === "provider-observation"');
-  });
-  check(laneText.includes("private readonly queue: LaneWaiter[] = []") && laneText.includes("PROVIDER_OBSERVATION_MIN_INTERVAL_MS = 70_000")
-    && laneText.includes("PROVIDER_OBSERVATION_RANDOM_SPAN_MS = 20_001") && samples.length === 1
-    && samples[0]?.getFirstAncestorByKind(SyntaxKind.MethodDeclaration) === terminal
-    && !parkText.includes("observationNotBefore") && eligible
+  const parkText = owner?.getMethod("withLifecycle")?.getText() ?? "";
+  const lifecycle = sourceFor(context, LIFECYCLE), lifecycleText = lifecycle?.getFullText() ?? "";
+  check(laneText.includes("private readonly queue: LaneWaiter[] = []")
+    && owner?.getMethod("nextWaiter")?.getText().includes("waiter.eligibleAt <= now") === true
+    && owner?.getMethod("scheduleWake")?.getText().includes("Math.min(expiresAt, waiter.eligibleAt)") === true
+    && calls(lane, "Math.random").length === 0
+    && !/observationNotBefore|requestKind|notifyProviderObservationTerminal/u.test(laneText)
+    && lifecycle?.getVariableDeclaration("PROVIDER_OBSERVATION_MIN_INTERVAL_MS")?.getInitializer()?.getText() === "70_000"
     && owner?.getProperties().filter(property => /Timer$/u.test(property.getName())).length === 1,
-  "gpt/no-browser-poll-scheduler", LANE, "The one clock advances once at a dispatched real observation terminal, never at park.", findings, finding);
-  inspectProviderObservationTerminal(context, findings, finding);
+  "gpt/no-browser-poll-scheduler", LANE, "One FIFO and wake timer serve eligible requests without a cross-job observation clock; each GPT request retains 70 seconds.", findings, finding);
   check(parkText.includes("new Proxy(lease") && !laneText.includes("...lease"), "gpt/live-browser-document", LANE, "The wrapper must retain the live Document getter.", findings, finding);
-  const lifecycleText = text(context, LIFECYCLE);
   check(!existsSync(resolve(context.sealedRoot, `${ROOT}/provider-wait-cross-conversation-cadence.ts`))
     && !/provider-probe|nextProviderProbeEligibleAt|startProviderProbeCooldown|waiter\.purpose/u.test(laneText)
     && !/Math\.random|yieldForProviderProbe|yieldForProviderWait|waitForDelay|yieldAndReacquire|productionGptCrossConversationPollCadence|"provider-probe"|startProviderProbeCooldown/u.test(lifecycleText),
@@ -60,7 +38,7 @@ const inspectGlobalObservationLane = (context: InspectorContext, findings: Inspe
 export const inspectGptProviderProbeOwnerContract = (context: InspectorContext, findings: InspectorFinding[], finding: FindingFactory): void => {
   check(textResponseTwoGateSettlementIsFrozen(text(context, TEXT)),
     "gpt/provider-observation-gate-first", TEXT, "Text readback must execute the sole frozen observation gate and exact response settlement.", findings, finding);
-  inspectGlobalObservationLane(context, findings, finding);
+  inspectObservationLane(context, findings, finding);
   const lifecycleOwner = sourceFor(context, LIFECYCLE)?.getClass("ProductionGptBrowserLifecycle");
   const lifecycleText = text(context, LIFECYCLE);
   const wait = lifecycleOwner?.getMethod("waitForProviderObservation"), waitText = wait?.getText() ?? "", settlement = lifecycleOwner?.getMethod("parkActive");

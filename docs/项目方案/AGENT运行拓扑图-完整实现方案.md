@@ -2,7 +2,7 @@
 
 ## 0. 方案状态与唯一结论
 
-状态：**v8 按本轮授权迭代后重新冻结；v2–v7 历史由 Git 保留**。本轮重画 Demand→Result→Admission 主轴；冻结只建立施工对照锚点，不证明代码或动态工单已通过。
+状态：**v9按2026-10-25授权仅对齐I11/T07节拍；主Codex双遍规范自检完成后重新冻结；v2–v8历史由Git保留**。本轮重画 Demand→Result→Admission 主轴；冻结只建立施工对照锚点，不证明代码或动态工单已通过。
 
 **唯一结论**：Website 已接受且未完成、未明确取消/删除/撤权的 job 是持续业务债务。任意普通失败之后都必须有自动下一动作；局部动作因证据不足而失败关闭，不得把 job 永久停住。按法案与施工图双仓对齐、主 Codex 两轮审计、代码与质检、独立审计、CI-FULL 的顺序推进：
 
@@ -184,7 +184,7 @@ Website `job-failure-history.ts::ensureSameFailure` 对同一 `(job_id, attempt_
 | I08 | DOM candidate missing/ambiguous/not actionable、transient DOM、`BROWSER_POSTCONDITION_FAILED` | P5/P6 | `CURRENT-GUARDED` | 每个 Child 的负向封闭集与 direct postcondition |
 | I09 | GPT model/profile/reasoning 候选不唯一或失效，如 `GPT_MODEL_SELECTION_V2_CANDIDATE_INVALID` | P4/P5/P6 | `CURRENT-OPEN`（现场发生） | 对应原子 Child；首个 typed failure 不得被 Runtime 泛化 |
 | I10 | 附件尚未物化、exact set 不等、文件名数字后缀、deadline 内节拍漂移 | P4/P5 | `CURRENT-GUARDED` | attachment 2/3/5/7/9/11 秒确认策略 |
-| I11 | Provider 首次观察绕过全局节拍、N-TAB 轮转延迟、Tab 已完成但未获 lane、deadline 误判为死等 | P5/P6 | `CURRENT-GUARDED` | 单 FIFO、eligibleAt、唯一 wake timer、70–90 秒节拍、deadline |
+| I11 | Provider观察的跨任务等待放大、Tab已完成但未获lane、deadline被误判为死等 | P5/P6 | `CURRENT-GUARDED` | 单FIFO、本请求至少70秒eligibleAt、原单lane占用、唯一wake timer与deadline；无跨任务随机等待 |
 | I12 | checkpoint 观察必须是 `bounded-observation`；有效持久 checkpoint 增量页面观察为 0，缺失时只做首次观察，损坏时在 Browser 观察前失败 | P5/P6 | `CURRENT-GUARDED` | `contract.ts` 与 artifact-recovery acceptance 已限定读取面；禁止新增持续 watcher |
 | I13 | adjacent assistant 缺失、stop present 但正文空、`RESULT_SETTLED_UNUSABLE` | P4/P5/P6 | `CURRENT-OPEN`（现场发生） | text checkpoint 两道门、stopped-empty 20 分钟、Product usable 判定 |
 | I14 | “请求过于频繁”弹窗 `exact_present/mismatch/absent`，确认按钮动作、clearance 与全局 cooldown | P2/P5/P6 | `CURRENT-OPEN` | rate-limit observation→ack→cooldown→clearance 子图 |
@@ -403,7 +403,7 @@ ID 一旦进入冻结版本即永久保留语义，禁止改号复用。删除�
 | T04 | 已知限流弹窗 ack dispatch | exact dialog `observedAt` 后不晚于 1,000ms 进入唯一点击；随后 T03 | Browser/WAL | exact absent clearance 或 zero-action absent | 超时/仍 present 写 `not_cleared`，submit gate 保持关闭 |
 | T05 | Browser command deadline | 默认 30,000ms；Runtime permit 受 lease 预算压到至多 20,000ms | Browser/Runtime | command pending 不重复派发；成功写 terminal receipt | typed timeout，不自动再发 |
 | T06 | submit 后静默门 | 40,000ms | Browser lane | 到期后才可服务后续 lane | 继续等待 Provider，不创建第二状态 |
-| T07 | Provider 回答/图片观察 | 每次请求先至少 70,000ms；全局相邻真实观察 70,000–90,000ms | GPT 给 deadline；Browser lane 给节拍 | pending 只 park/reobserve；成功为 exact adjacent turn 或 authenticated media proof | deadline 为 `GPT_RESPONSE_TIMEOUT` / `GPT_IMAGE_TIMEOUT` |
+| T07 | Provider回答/图片观察 | 每个正常请求先至少70,000ms；不同job已具资格观察可在原单lane连续执行 | GPT给原请求资格/deadline；Browser lane给唯一排队/唤醒 | 填写/上传/结算不被到期抢占；pending只park/reobserve；成功为exact adjacent turn或authenticated media proof | deadline为`GPT_RESPONSE_TIMEOUT` / `GPT_IMAGE_TIMEOUT` |
 | T08 | stopped-empty 确认 | exact assistant 已停止且持续空内容 20 分钟 | GPT | 期间仍为 WAIT；成功写 `ProviderStoppedEmptyProof` | `GPT_RESPONSE_STOPPED_EMPTY`，交 Website 裁决 result revision |
 | T09 | attachment settlement | 2s、3s、5s、7s、9s、11s，之后固定 11s，截止于 Product `timeoutMs` | GPT Child | pending 记录同一 expected set；成功写 exact approved set proof | 集合差异在等待预算内继续观察；最终 settled 不等为 mismatch，仍上传中且预算耗尽为 timeout |
 | T10 | exact-turn 虚拟列表物化 | 最多 48 步、每步 400ms、总预算至多 12s，command deadline 前保留 3s | Browser | 成功为 exact user turn 可观察 | unavailable/pending，不扩大 selector |
@@ -562,7 +562,7 @@ O09–O16 的 ID 保留供原始事故和质检引用；下表是 v6 语义。�
 | O15 | Website 明确拒绝当前 result revision | Website 按原 rejection/source handoff 签下一 revision；旧 effect 留历史，当前 revision 的后续技术失败按 O09/O10 重新判当前来源 attempt 输入 | 由新身份与授权决定 |
 | O16 | staged/terminal 存在但无 admission receipt | 原 Outbox/terminal/Domain Consumer/admission 自动读回或交付 | 0 |
 
-Website 的 observation 与实际 claim 使用同一持久谓词和有限再检查时间。Website 在签任何新 attempt 前于同一行锁事务核 AGENT 已鉴权 `source_evidence[]` 与 Website 原结果/receipt；可恢复 READY 必须继续旧结果。对于原答案经有界读回仍不可得、旧 DISPATCHED 物理输入未决且准备切换的危险旧 Target，Browser 证明旧 Target 物理缺席或旧 handler/CDP 输入静止之前，同 job 新 attempt 与其他 job 均不得在新 Target 输入；正常已确认且仍绑定的轮询 Tab 继续按唯一 FIFO/lane 与全局观察节拍交错，不要求关闭。风险 grant 的新 result revision 与 grant hash 由 Website 原 job event/claim receipt 持久签发，Browser 原 WAL 原位一次性绑定；结果归 Website 唯一 Domain Consumer 接纳。
+Website 的 observation 与实际 claim 使用同一持久谓词和有限再检查时间。Website 在签任何新 attempt 前于同一行锁事务核 AGENT 已鉴权 `source_evidence[]` 与 Website 原结果/receipt；可恢复 READY 必须继续旧结果。对于原答案经有界读回仍不可得、旧 DISPATCHED 物理输入未决且准备切换的危险旧 Target，Browser 证明旧 Target 物理缺席或旧 handler/CDP 输入静止之前，同 job 新 attempt 与其他 job 均不得在新 Target 输入；正常已确认且仍绑定的轮询Tab按原请求至少70秒资格、唯一FIFO/lane空闲条件交错，不保留跨任务全局观察等待，也不要求关闭。风险 grant 的新 result revision 与 grant hash 由 Website 原 job event/claim receipt 持久签发，Browser 原 WAL 原位一次性绑定；结果归 Website 唯一 Domain Consumer 接纳。
 
 ### 8.3 操作频繁弹窗与 409 分支
 
@@ -625,7 +625,7 @@ H01–H24 只描述相邻 Owner 的事实交付，不执行步骤、不安排 ti
 | I08 | T01–T03、N10/N11、G02–G11 | DOM missing/ambiguous/transient/postcondition 具有封闭 typed result |
 | I09 | G03、G07、G15–G17、O02、H10 | model/profile/reasoning first failure 原样传递；G04–G06 只保留 v2 历史语义，不进入新执行链 |
 | I10 | T09、G09/G10 | exact attachment set、节拍和 deadline 同一绑定 |
-| I11 | T01/T07、G13/G14、N07/N10 | 首次观察、全局 lane、eligibleAt 与 deadline 使用同一现役政策 |
+| I11 | T01/T07、G13/G14、N07/N10 | 首次/后续请求资格、原lane占用与deadline使用同一现役政策；无跨任务全局等待 |
 | I12 | G13/G14、T07、H08 | checkpoint 使用 bounded observation；不得新增持续 DOM watcher |
 | I13 | T07/T08、G13、O02 | adjacent turn、stopped-empty 与 Product usable 分层裁决 |
 | I14 | S10/S18/S22、T03/T04、G01、N16/N23/N24、O17–O20、H16/H19 | 弹窗观察、ack、clearance、cooldown 完整分层且不自行制造 attempt failure |
@@ -680,18 +680,19 @@ H01–H24 只描述相邻 Owner 的事实交付，不执行步骤、不安排 ti
 ## 12. 文档身份与冻结记录
 
 - 唯一路径：`docs/项目方案/AGENT运行拓扑图-完整实现方案.md`
-- 表单版本：`agent-runtime-topology-form.v8`（本轮重新冻结）
-- supersedes：`agent-runtime-topology-form.v7`（历史由 Git 保留）
-- 状态：`FROZEN / v8 两轮主 Codex 文档自审完成 / 仅作施工对照锚点`
+- 表单版本：`agent-runtime-topology-form.v9`（本轮节拍对齐后重新冻结）
+- supersedes：`agent-runtime-topology-form.v8`（历史由Git保留）
+- 状态：`FROZEN / v9主Codex两遍规范自检完成 / 仅作施工对照锚点`
 - 批准人：`授权人（本会话）`
-- 批准时间：`2026-09-24T00:06:42+04:00`（本轮解冻授权后重新冻结）
-- 冻结 hash 规范：UTF-8 原文仅删除以 `- v8 冻结规范化 SHA-256：` 和 `- 当前文档规范化 SHA-256：` 开头的两行后执行 SHA-256；v2/v3/v4/v5/v6/v7 历史 hash 行保留。
+- 批准时间：`2026-10-25`（Asia/Dubai；本会话批准既定方案的精确节拍修订）
+- 冻结 hash 规范：UTF-8 原文仅删除以 `- v9 冻结规范化 SHA-256：` 和 `- 当前文档规范化 SHA-256：` 开头的两行后执行 SHA-256；v2/v3/v4/v5/v6/v7/v8历史hash行保留。
 - v2 历史冻结规范化 SHA-256：`74d8b9d3ef88f7290bb7309447064f9da1568b3e9f5dba4bff64d46b23ff6283`
 - v3 历史冻结规范化 SHA-256：`d94d4051b586554b3f7fcde92976db193dd3220a766fd6461f571ce25fcc094f`
 - v4 冻结规范化 SHA-256：`fe29741381ecb628232817cfd4679b0f66edc2694d0ed6d145208b0d27d9ab62`
 - v5 历史冻结规范化 SHA-256：`c596502cba50cc1934dcdf067ac169acd02014c17eed32ff9cfd874184755a23`
 - v6 历史冻结规范化 SHA-256：`0d40eae193ebedbeb6647d1551eb9562b74dcf9d3b8e150212193d8daaf28275`
 - v7 历史冻结规范化 SHA-256：`b1f5411a27d55980cbc6533559780d430cf99c602d3f2381779803cd80dcde7a`
-- v8 冻结规范化 SHA-256：`1f0f55fe1f1297fe438f3e0fb5807ecbe7e0f25782570219e42850d3a2652f5a`
-- 当前文档规范化 SHA-256：`1f0f55fe1f1297fe438f3e0fb5807ecbe7e0f25782570219e42850d3a2652f5a`
-- 本文件在 v8 重新冻结后才是施工前唯一现役拓扑事实基线，不是 runtime state、运行时合同、quality verdict、CHANGE、READY、RELEASE 或生产完成证据。具体施工差异与验收只由本轮唯一完整实现方案承载。
+- v8 历史冻结规范化 SHA-256：`1f0f55fe1f1297fe438f3e0fb5807ecbe7e0f25782570219e42850d3a2652f5a`
+- v9 冻结规范化 SHA-256：`fcc6f8f2d2adda4e164e304dd7273334d812ffcfedf2efe0d50fbef3dc65ab59`
+- 当前文档规范化 SHA-256：`fcc6f8f2d2adda4e164e304dd7273334d812ffcfedf2efe0d50fbef3dc65ab59`
+- 本文件在v9完成本轮主Codex双遍自检并重新冻结后才是施工前唯一现役拓扑事实基线，不是 runtime state、运行时合同、quality verdict、CHANGE、READY、RELEASE 或生产完成证据。具体施工差异与验收只由本轮唯一完整实现方案承载。

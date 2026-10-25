@@ -120,7 +120,7 @@ const assertAttachmentInspectorCounterexamples = (baseUrl: string): void => {
   files.push("src/lib/browser/chrome-extension/extension-file-input-runtime.ts",
     "src/lib/browser/exact-target/browser-target-lease.ts");
   for (const path of files) project.createSourceFile(resolve(root, path), readFileSync(resolve(root, path), "utf8"));
-  const lawId = "LAW-GPT-002-V32", context: InspectorContext = { project, sealedRoot: root, selectedLawId: lawId,
+  const lawId = "LAW-GPT-002-V33", context: InspectorContext = { project, sealedRoot: root, selectedLawId: lawId,
     targetPaths: files, targetSet: { queryRef: "gpt-attachment-helper-counterexamples", count: files.length },
     lawRequirements: [], generatedPlan: [], planEntry: { capabilityDomain: "gpt", executionGroup: "domain", lawIds: [lawId],
       manifestPath: "scripts/audit/domains/gpt/manifest.json", ownerInspectorPath: "scripts/audit/domains/gpt/inspector.ts" } };

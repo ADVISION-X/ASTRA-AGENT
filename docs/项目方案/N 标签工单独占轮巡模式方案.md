@@ -1,12 +1,12 @@
 ---
 document_type: project_scheme
 scheme_id: N_TAB_EXCLUSIVE_ROTATION
-scheme_name: N 标签工单独占轮巡模式／快速获取成果
-status: 代码施工完成，质量结果以原生裁决为准
+scheme_name: N 标签工单独占轮巡模式／取消跨任务全局等待
+status: 可施工
 created_at: 2026-09-13
-updated_at: 2026-10-23
-implementation_status: IMPLEMENTED_PENDING_NATIVE_QUALITY
-test_status: FOCUSED_CHECKS_PASS_NATIVE_PENDING
+updated_at: 2026-10-25
+implementation_status: 第24节AGENT代码及对应质检已构建，建设审查无前置阻断，待原生CI-FULL
+test_status: 第24节lane/GPT类型/附件与生命周期/Browser反例局部验收退出0，尚未READY
 release_status: NOT_RELEASED
 ---
 
@@ -14,7 +14,7 @@ release_status: NOT_RELEASED
 
 ## 0. 文档身份与当前裁决
 
-本轮主题：**动态业务容量上限扩展至6**。第23节为本轮容量升级的唯一方案；第22节恢复与交付不变量继续保留，第1—22节的执行记录只证明各自原候选。本轮只做同一容量合同的局部修改，不重复第22节的片区重建；生产配置、真实运行和原生质量分别核真。最新授权范围以第23.6节为准。
+本轮主题：**只取消任务之间的全局70—90秒等待，保留原单任务70秒资格及现有结构**。第24节为2026-10-25本轮唯一目标方案，授权人已批准按本节施工并完成CI-FULL至READY。当前状态及规范复核、三个方法片区重建、并行来源漂移阻断和未完成项以24.9为准；不把先前规范投影成功沿用到当前失败候选。第1—23节及其容量切换、质量和生产记录只证明各自原任务，不自动进入本轮。生产切换、部署、RELEASE尚未执行。
 
 ## 1. 模式定义
 
@@ -2059,3 +2059,280 @@ AGENT施工基线已重新绑定main fd058b6bbc4eb45a67d52a4578ab316c4877b600；
 0199已先在真实PostgreSQL临时表验证六job/baseline6合法、七job/baseline7拒绝、原降至1再恢复6与原字节预算；临时事务回滚。执行前只读盘点原账本：仅0199待执行，所有已执行SQL哈希无漂移。2026-10-23 00:57:25 Asia/Dubai通过原npm run db:migrate:commercial -- --through=0199_ai_production_business_capacity_six.sql执行，原runner仅应用0199；同事务账本Owner=ai-acceptance，migration_hash=sha256:da50117621fcaae7cd1c9a841556640d1122f975444dbd8864c060fe35ce1fd5。随后原--verify全量通过，201份commercial迁移，head=0199；pg_constraint三项均回读为6，实际设备仍N3/level0。没有通过手工SQL绕过账本，也没有改古籍或业务结果。该迁移不再是待执行启动阻断。
 
 Website已执行的V6 Exam为87通过、0失败、7跳过，不能冒充跳过的数据库用例或N6 Provider proof。Website原生CHANGE先遇授权环境名不匹配，正确使用该仓GOVERNANCE_LAW_AMENDMENT_AUTHORIZED后因生产索引写入导致CANDIDATE_DRIFT；不将其记为通过。AGENT第一轮原生CHANGE已运行相关类型、Runtime、GPT、Browser等验收，但期间他项责任域方案变化导致CANDIDATE_DRIFT，结果失效，须在最终本轮差异稳定后重跑。实际N及运行合同切换仍不宣称已完成；当前设备N由Website唯一管理，本任务不增AGENT本地N配置或绕过合同版本门。
+
+## 24. 取消跨任务全局等待，保留单任务70秒资格（2026-10-25）
+
+### 24.1 任务、授权、唯一方案与终点
+
+**方案状态：可施工。** 2026-10-25授权人已明确授权按既定方案实施两仓法案、施工图、代码、质检及必要数据库操作，并要求最后执行冻结CI-FULL至READY；该授权覆盖本节列明的节拍条款、依赖身份传播和原冻结拓扑对应条目的精准替换。主Codex首次规范自检漏三处旧节拍总述，已如实暂停代码、回规范阶段补正并重做两遍核对，不能把首次自检说成完整无漏。重跑时Website并行择日建设改变同一法案/Manifest并暂时声明缺席的0203迁移，原生生成/投影失败；原任务随后落盘该迁移并同步law004-V36/013-V32依赖，主Codex重新绑定后，两仓当前原生成/投影均退出0，现接回本轮质检同步。用户要求的98%准入只以本节有限分母无未决项落实，不建立评分器或以自评分替代原生结果。生产切换、部署、RELEASE仍未授权。
+
+**最新授权范围收束：授权人随后明确“只处理AGENT侧，网站侧不管”。** 从该指令起，本任务只继续AGENT源码、规范、质检、审查及CI-FULL；不再修改、运行质检、提交或推送Website。前阶段已授权写入Website的节拍/引用差异保留现场，由其原Owner接管，不回退、覆盖或替其宣布完成。AGENT仅核现役跨仓dependency及其必要canonical合同兼容；最终READY只报告AGENT，不以Website独立施工或其全仓CI作为额外门。
+
+本轮唯一文档是本文第24节；只改本文的当前状态入口和新增本节，不新建竞争方案、台账、治理文件、质量报告或实现。第1—23节保留为各自原任务的设计/实施记录；它们的旧容量、全局节拍、施工授权、固定审查轮数和完成表述均不自动成为本轮授权。现役规范仍只来自两仓当前法案、施工图与合同。
+
+用户痛点是“回答约2分钟已经完成，却约10分钟后才被读取”。本轮只消除其中可由代码证明的跨任务时间累加：**A检查结束后，不再强迫已经满足自身资格的B额外等一个全局70—90秒。** 接受的唯一行为变化是多个任务下账号总检查频率可以随现有在途任务数增加；不再声称“总频率不随N增长”。
+
+功能终点分两层核实：首先同一任务的合法回答在其下一次具备资格、排到车道的检查中立即读取、保存并读回验真，交给原Product；随后只沿原流程上传、核Website对同一job/attempt/result hash的完整结果接收回执并完成AGENT任务。当前 `LAW-AGENT-PRODUCTION-RUNTIME-004-V46` 不允许把网站后续领域接纳、发布、付款、PDF或Browser收尾再当AGENT完工门。最终用户业务结果仍由原领域Owner裁决，本轮不更改其合同，也不承诺解决所有排队、标签残留或外部限流问题。
+
+本节依本次明确授权执行CHANGE、提交/首推、完整READY及第二推；不启动RELEASE、生产发布、Chrome操作、建单、业务重试、重启或停止服务。
+
+### 24.2 来源绑定与当前修改保护
+
+- 需求Owner在AGENT；运行决定Owner为 `local-browser-session / BrowserLaneCoordinator`。GPT只产生本请求资格，Product不决定Browser节拍。本文由现役architecture-boundary Manifest拥有，不新增Owner或Manifest路径。
+- AGENT真实根为 `/Users/nexgen/Documents/AGENT`，当前分支 `main`、tracking `origin/main`；Website真实根为 `/Users/nexgen/Documents/xuanxue-web`，`origin`已核为`ADVISION-X/xuanxue-web`，分支`main`、tracking`origin/main`。本轮两仓均按当前明确授权进入CHANGE并以READY为目标；Website只改本节精确规范/质检引用及原生成物，生产实现和数据库无差异。
+- 当前HEAD、tracking对象及完整dirty状态已在本任务上下文只读核实；依冻结说明书§36不将本次质量候选HEAD写成任务回执。未来执行者必须重新取得原生Git状态，在当前上下文重绑，不能用本文的源码阅读锚替代质量候选。
+- AGENT已有 `src/plugins/zeji-personal-selection/SKILL.md` 未提交修改，保持原样。目标方案写前clean。Website有多项并行建设，其中功能法案、SYSTEM与AI施工图本身也有用户改动；未来不得直接覆盖这些文件、reset、stash、移动改动或以另一个工作树绕过。已核AI-ACCEPTANCE-013-V31的forbidden:4与其HEAD正文相同；这只证明所读节拍条款未漂移，不授予修改整个dirty文件的权限。
+- 本轮完整取得 `closed-loop-implementation-design/SKILL.md` 正文两遍；按 `frozen-spec-index` 回读等级、实施/规范边界及证据要求，沿已激活的 `agent-flow-boundary-gatekeeper` 保持基础设施冻结边界。未委派子智能体，也不继承历史任务的三人审查安排。
+- 设计阅读锚如下，供写前只重算真正漂移的片区；它们不是质量报告、第二registry或运行持久状态。方案自身的写前/写后hash只在本任务上下文记录，不写自哈希。
+
+| 已核源码 | 本轮读取字节SHA-256 |
+|---|---|
+| `src/lib/browser/infrastructure/browser-lane-coordinator.ts` | `6ffab864b1344be662822be72cdb1a0604b5d038d5a67e043ceedf41d1d68f79` |
+| `src/lib/browser/exact-target/browser-command-actor.ts` | `0f212ed5ba3295cd82cc995cee25f00043d3de9664fd0eb7ab654ccbd8b10695` |
+| `src/lib/browser/infrastructure/browser-infrastructure-supervisor.ts` | `975f7c6700068132938cede97d2b80c55555667d684eaf7e8a77a788bb50fe82` |
+| `src/capabilities/gpt/production-browser-lifecycle.ts` | `34792233ce76855270d1dc9e791aaf499da70f22486d9a6de2cb62db1383ff76` |
+| `src/capabilities/gpt/children/checkpoint_gpt_text_response/handler.ts` | `11e87b7eb8a484c1e511f1883c4dec6c970a2b4af1c675fb34e5d2ef1e58dd13` |
+| `src/capabilities/gpt/children/checkpoint_gpt_generated_image/handler.ts` | `5b8c3ba461081b9af38637b024cbe99b4f3caf6a07982a5ca20d637a9580a9ce` |
+| `src/lib/browser/exact-target/browser-command-postcondition.ts` | `efa1cbbfb0c432810a3195564ae52d0d036c4cd35e52de460723ed7e08c75773` |
+| `src/lib/browser/chrome-extension/chatgpt-page-access-gate.ts` | `4f9ae1091b43bdfe6b380c6376a9471a125e7398e15a6cdfa48f75a8f5cc7b56` |
+| `src/lib/local-runtime/production/runtime-business-admission.ts` | `4b040bebb73a45a01ad2355554c2064389b4dd87b971564b2d3d2725d1b79062` |
+| `src/mediator/product-plugin-catalog.ts` | `10032b9fdaae768e091403b527648a105f4c03a216cff9595b73ca9e3c811084` |
+
+跨仓公开合同仍为 `ai-acceptance.xuanxue-ai-production-v6@47`。AGENT dependency为 `docs/specs/agent-production-runtime/xuanxue-ai-production-v6.dependency.spec.json`，provider为Website `docs/specs/ai-acceptance/xuanxue-ai-production-v6.contract.spec.json`。已核这些机器合同与Browser wire/schema没有本次全局等待数值字段；本轮不增字段、不改transport payload、不改版本47、task/result版本或能力分母。provider规范文件若因lawId传播只改外层lawIds，contract对象必须原字节保持；如实际必须改变contract规范内容，立即停止并重新界定跨仓范围，不能偷偷保持同版本改语义。
+
+### 24.3 当前事实、交叉发现与前轮连续性
+
+第一直接断裂是当前实现与用户新需求之间的节拍冲突，不把现役合法实现称为未经授权的代码错误：
+
+1. `production-browser-lifecycle.ts::waitForProviderObservation` 在每次正常文字/图片检查前计算 `eligibleAt=Date.now()+70_000`；不足70秒预算就返回deadline，不park/reacquire。这一层保留原字节。
+2. `browser-lane-coordinator.ts::nextWaiter` 与 `scheduleWake` 又同时使用 `max(waiter.eligibleAt, observationNotBefore)`；`notifyProviderObservationTerminal` 在全局设为“检查终结时刻+70—90秒”。这使已经等够的兄弟任务继续等待。
+3. 该全局钟由 `BrowserCommandActor.execute` 的观察dispatch/finally回调推进，Supervisor为其唯一生产装配者。分类位 `requestKind`、观察专属dispatch标记、回调与随机常量均只服务这一个全局门。
+4. 单队列、已具资格的原入队顺序、未到期请求可被跳过、单active车道、busy时队列到期唤醒、release三相预算及40秒提交静默与该钟是独立职责，全部保留。
+5. 当前结果完成判定/持久化不需要这一全局钟：文字同次确认本轮对应回答的停止按钮为0且正文非空即返回；图片沿原资源发现及原图字节校验返回；之后Forensics、Product解析、Runtime上传与接收回执不因撤钟改合同。取回后的上传/回执仍可能暂持车道，不能把所有长等待都归因于全局钟或纳入本轮修复。
+
+影响范围用不同发现源交叉核对：
+
+- 符号/字段反向引用：全量查 `observationNotBefore`、`notifyProviderObservationTerminal`、`onProviderObservationTerminal`、`observationDispatched`、`requestKind`，得到24.5的生产与检查消费者。
+- 实际装配与注册：`workbench-browser-authority-support.ts → BrowserInfrastructureSupervisor → BrowserLaneCoordinator`；唯一生产 `new BrowserCommandActor` 在Supervisor。Gpt的唯一生产acquire调用位于 `ProductionGptBrowserLifecycle`；文字/图片handler由现役handler-registry注册。
+- 合同与持久化：BrowserTargetLeaseWait仍只消费原 `targetMode/eligibleAt/signal/remainingMs`，不把私有requestKind搬到公开合同；现役WAL、Forensics、Outbox和Website结果回执分别核其原身份、写入及读回。
+- 规范与历史：两仓法案/Blueprint、现役Manifest/registry以及已有方案和有限Git历史共同定位同一节拍。没有发现需要新调度器、timer、配置或存储的GAP。
+
+冻结拓扑的同一问题已经归在 `docs/项目方案/AGENT运行拓扑图-完整实现方案.md` 的I11、P5/P6、T07、G13/G14与N07/N10，不新建节点或问题族。其T07仍写“每次请求先至少70,000ms；全局相邻真实观察70,000—90,000ms”，I11与§9交叉索引也依赖该政策；因此未来必须在精确解冻授权下同步这些既有条目及§12原冻结记录，不能只改Blueprint而留下另一份现役全局义务。Demand→Result→Admission主轴、Owner、其余时钟和handoff均不改变，本轮不修改该冻结文件。
+
+横向全部直接Product调用面已与catalog的13个已注册Plugin交叉核对：八字三类、合婚两类、奇门两类、起名两类、本地化、公开知识、付款截图和择吉。文字/图片checkpoint的14个直接源位置精确为：
+
+- `src/plugins/bazi-chart-interpretation/product-turn.ts`
+- `src/plugins/bazi-ai-full-analysis/product-turn.ts`
+- `src/plugins/bazi-report-followup/product-turn.ts`
+- `src/plugins/hehun-ai-analysis/flow.ts`
+- `src/plugins/hehun-report-followup/flow.ts`
+- `src/plugins/qimen-professional-answer/flow.ts`
+- `src/plugins/qimen-report-followup/flow.ts`
+- `src/plugins/naming-commercial/flow.ts`
+- `src/plugins/naming-from-existing-bazi-report/flow.ts`
+- `src/plugins/localization-production/flow.ts`
+- `src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts`
+- `src/plugins/public-knowledge-article-pipeline/seo-image-call.ts`
+- `src/plugins/payment-screenshot-observation/flow.ts`
+- `src/plugins/zeji-personal-selection/flow.ts`
+
+这些消费者全部直接复用：各自Prompt、附件、模型、Child顺序、结果Schema与身份不变；只改变合法检查在共享队伍中的可执行时刻。进入具体领域的输入、授权、内容和接收合同未变，因此在这一已验证公共边界停止扩查，不重做13个产品或网站领域审计。
+
+| 相关前轮 | 当前事实与本轮裁决 |
+|---|---|
+| 本文§19.10、§21.5及历史提交 `368b3329b` | 确曾把全局间隔从60秒收紧为70—90秒，并保留自身70秒资格。本轮明确提出退役跨任务全局门，不把降低一个常量冒充新设计，也不改回旧60秒全球门 |
+| §1—21中的旧3/10模式反证 | 旧跨任务共用Target、会话切换与高频访问不能恢复；历史材料没有独立证明“任意两任务间必须70—90秒”是Provider公开硬限。本轮不宣称提频不会触发限制 |
+| §22与现役actor的观察终结通知 | 前轮“只有真实dispatch才推进全局钟”曾有真实消费者；撤钟后其专属回调不再有消费者，必须同时退役，不能留no-op回调或空函数。mutation的dispatch/WAL/收据保护继续存在 |
+| §22成果优先、同effect零提交恢复 | 原始回答保存、hash/readback、结果优先运输和Website精确风险授权保持；不把撤钟当重新提交资格 |
+| §23容量扩至6 | 当前协议上限6与Website唯一当前N Owner保持，不改设备N、不再扩容、也不重跑其数据库迁移或旧Gate全套任务 |
+| GPT频率限制排空冷却方案的DOM识别增量 | 它处理弹窗识别，属于另一GAP；不更新其未完成工单，不借本轮更改detector、ack或cooldown。它的历史全局70—90秒描述仅为本轮精确解冻的关联来源线索，不能授权本轮施工 |
+
+本轮依2026-10-25最新授权执行精确片区删除后重构，不扩大为整文件重建，也不借§22旧五文件纪律扩大范围。Coordinator的nextWaiter/scheduleWake和Actor的execute是本次重建片区：先从目标合同推导仅按请求资格放行的选择/唤醒及mutation专属dispatch链；物理删除这些旧方法及只为全局钟存在的字段/通知/分类，立即核验缺席，再从该目标合同重写原方法。不得保存旧方法后机械删词写回。三文件中经24.5证明不可删除的独立队列、pump占用、lease生命周期、WAL/receipt/预算及Supervisor其它装配原位直接复用；构造参数和唯一装配点为片区外必要局部删除。拟改生产文件当前为Coordinator228行、Actor250行、Supervisor407行；零新增生产文件/抽象。仍按基础法案500行/函数75行、7参数、8返回、5层、16复杂度、10 await上限核实际差异；发现结构问题只处理本次改动不可分割的片区，不移函数或新建wrapper逃预算。
+
+### 24.4 四维对齐与精确规范缺口
+
+源头冻结说明书不修改。以下为本次已经明确授权的封闭目标差异；只有实际完成源文件及原投影替换才取得对应状态，方案落盘自身不改变规范：
+
+| 维度/Owner | 允许的目标差异 | 保留与验收落点 |
+|---|---|---|
+| AGENT GPT规范 | LAW-GPT-001-V66 forbidden:5去掉全局节拍与eligibleAt双重资格；LAW-GPT-002-V32 forbidden:5、8只退役跨任务70—90秒/总频率不随N增长及专属钟，保留自身70秒资格 | 原发送前置、marker/紧邻回答、停止/正文两门、20分钟停空、locator、effect身份、恢复授权、1.5/2.5/40秒均保持 |
+| AGENT Browser规范 | LAW-LOCAL-BROWSER-SESSION-003-V47 forbidden:14去掉图片全局至少60秒门，明确沿原请求自身至少70秒资格进唯一FIFO | 不建图片专属waiter/timer/下载链；原Tab归属、激活、原图字节、单lane与零重复输入保持 |
+| Website ai-acceptance规范 | LAW-AI-ACCEPTANCE-013-V31 forbidden:4同步删除全局70—90秒，只承认AGENT原请求资格/原FIFO；未来相邻major为V32 | 不下发/保存Browser节拍、URL、Target或位置，不修改Website运行代码、V6.47或恢复授权算法 |
+| 施工图 | AGENT GPT、Browser、WEBSITE-AGENT三图对应节拍段；Website AI图408附近冻结段及物理动作行；SYSTEM只改必要lawId引用 | 唯一计时执行Owner仍是原Coordinator/原wakeTimer；不存在全局观察not-before/随机推进和按N扩建timer |
+| 现役冻结拓扑 / architecture-boundary | 只同步原拓扑I11、T07、§9中I11及§8.2正文对应节拍说明，按其§12更新必要文档身份/冻结记录；本轮精准修订已获授权 | 保留既有P5/P6、G13/G14、N07/N10定位；不增删节点、边、状态、主轴或其它时钟，不继承其历史施工授权 |
+| 实现 | 24.5三个生产文件的专属全局门及回调局部退役 | 其它生产路径原字节保留，私有构造参数消失不改变Browser wire/permit/Store/API |
+| 质检 | 24.6既有inspector/行为用例/动态声明替换同一节拍断言；对应lawId引用随版本传播 | 不删单任务70秒、安全身份、单lane、mutation收据或Provider warning保护；原生唯一quality入口 |
+
+依母本§12，law语义或dependsOnLawIds变化必须逐major升级，不能只改引用却保持旧lawId。因此AGENT有3条直接节拍修订及7条依赖身份传播；后7条不改任何Runtime行为要求：
+
+| 当前lawId | 无额外漂移时的下一major | 允许变化 |
+|---|---|---|
+| `LAW-AGENT-PRODUCTION-RUNTIME-001-V79` | `LAW-AGENT-PRODUCTION-RUNTIME-001-V80` | 仅 dependsOnLawIds、lawId、supersedesLawId 的机械传播；其它正文不变 |
+| `LAW-AGENT-PRODUCTION-RUNTIME-003-V49` | `LAW-AGENT-PRODUCTION-RUNTIME-003-V50` | 仅 dependsOnLawIds、lawId、supersedesLawId 的机械传播；其它正文不变 |
+| `LAW-AGENT-PRODUCTION-RUNTIME-004-V46` | `LAW-AGENT-PRODUCTION-RUNTIME-004-V47` | 仅 dependsOnLawIds、lawId、supersedesLawId 的机械传播；其它正文不变 |
+| `LAW-AGENT-PRODUCTION-RUNTIME-005-V43` | `LAW-AGENT-PRODUCTION-RUNTIME-005-V44` | 仅 dependsOnLawIds、lawId、supersedesLawId 的机械传播；其它正文不变 |
+| `LAW-AGENT-PRODUCTION-RUNTIME-006-V47` | `LAW-AGENT-PRODUCTION-RUNTIME-006-V48` | 仅 dependsOnLawIds、lawId、supersedesLawId 的机械传播；其它正文不变 |
+| `LAW-AGENT-PRODUCTION-RUNTIME-007-V47` | `LAW-AGENT-PRODUCTION-RUNTIME-007-V48` | 仅 dependsOnLawIds、lawId、supersedesLawId 的机械传播；其它正文不变 |
+| `LAW-AGENT-PRODUCTION-RUNTIME-008-V48` | `LAW-AGENT-PRODUCTION-RUNTIME-008-V49` | 仅 dependsOnLawIds、lawId、supersedesLawId 的机械传播；其它正文不变 |
+| `LAW-GPT-001-V66` | `LAW-GPT-001-V67` | 仅本节列明的节拍语义及必要引用 |
+| `LAW-GPT-002-V32` | `LAW-GPT-002-V33` | 仅本节列明的节拍语义及必要引用 |
+| `LAW-LOCAL-BROWSER-SESSION-003-V47` | `LAW-LOCAL-BROWSER-SESSION-003-V48` | 仅本节列明的节拍语义及必要引用 |
+
+Website仅013-V31→V32的本条语义和必要引用，不改其003/004/012等相邻规范。AGENT两个功能域Manifest和Runtime Manifest、相关Blueprint/spec lawIds及inspector/producer映射按原Owner机械对齐，registry只由各仓原builder生成。不得手改registry、手改质量报告、复制另一仓registry或全仓替换历史lawId。
+
+当前精确lawId消费者如下；这里只许可原映射/metadata中的身份更新，除24.5—24.6列明的节拍片区外不得改函数逻辑。历史说明/fixture若明确验证旧版本则保留其历史意义，不能机械改错分母；实际active producer/inspector必须指向新active major。
+
+AGENT：
+- `docs/项目方案/AGENT运行拓扑图-完整实现方案.md`（仅上述节拍条目及原冻结记录；不是lawId机械传播文件）
+- `docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md`
+- `docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md`
+- `docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md`
+- `docs/specs/agent-production-runtime/agent-route-capability-manifest.provider.spec.json`
+- `docs/specs/agent-production-runtime/website-agent-task-result.dependency.spec.json`
+- `docs/specs/agent-production-runtime/xuanxue-ai-production-v6.dependency.spec.json`
+- `scripts/acceptance/agent-production-runtime-ledger.acceptance.ts`
+- `scripts/acceptance/agent-production-runtime-recovery-boundary.acceptance-support.ts`
+- `scripts/acceptance/agent-production-runtime-startup.acceptance.ts`
+- `scripts/acceptance/agent-production-runtime.acceptance.ts`
+- `scripts/acceptance/agent-production-runtime.real-proof.ts`
+- `scripts/acceptance/agent-route-contract.acceptance.ts`
+- `scripts/acceptance/gpt.real-proof.ts`
+- `scripts/acceptance/local-browser-proof-support.ts`
+- `scripts/acceptance/local-browser.real-proof.ts`
+- `scripts/audit/domains/agent-production-runtime/contract-inspection.ts`
+- `scripts/audit/domains/agent-production-runtime/manifest.json`
+- `scripts/audit/domains/gpt/gpt-frozen-attempt-inspection.ts`
+- `scripts/audit/domains/gpt/inspector.ts`
+- `scripts/audit/domains/gpt/manifest.json`
+- `scripts/audit/domains/local-browser-session/inspector.ts`
+- `scripts/audit/domains/local-browser-session/manifest.json`
+- `src/capabilities/gpt/acceptance/gpt-exact-target-source-support.ts`
+- `src/capabilities/gpt/acceptance/gpt-production-browser-lifecycle.acceptance.ts`
+- `tests/governance/quality-contract.test.ts`
+
+Website：
+- `docs/blueprints/SYSTEM-BLUEPRINT.md`
+- `docs/blueprints/domains/ai-acceptance/AI-ACCEPTANCE-BLUEPRINT.md`
+- `docs/specs/ai-acceptance/xuanxue-ai-production-v6.contract.spec.json`
+- `scripts/audit/domains/ai-acceptance/check.ts`
+- `scripts/audit/domains/ai-acceptance/manifest.json`
+- `scripts/exam/domains/ai-acceptance/declarations.ts`
+
+两个 `scripts/audit/reports/law-quality.report.json` 只是本轮搜索命中的旧输出，排除手工修改；只允许未来原生命令自然重建。母本、治理框架、质量路由、lawId算法、source allowlist、公开服务接口、环境变量、依赖、表/列/迁移、权限和第二Owner均无新增必要性，全部排除。
+
+### 24.5 唯一目标链与生产存在性裁决
+
+目标链保持：
+
+```text
+Website原grant/租约
+→ Product原checkpoint调用
+→ GPT原effect核验与eligibleAt=now+70秒
+→ park并进入原FIFO
+→ 原Coordinator按本请求eligibleAt/原预算、取消与单lane放行
+→ 原40秒静默及当前Target/Document/permit核验
+→ fresh读取原对应回答/原图
+→ pending沿原同一Child再次给70秒资格
+  或完成后原Forensics保存/readback→原Product→原上传/Website接收回执
+```
+
+“每任务70秒”精确指原 `waitForProviderObservation` 产生的正常文字/图片检查资格，不给原本没有该等待的元数据、已存artifact回读、准备或恢复acquisition强加新的70秒门。所有原waiter仍使用自己的原 `eligibleAt`、`remainingMs` 和signal，不自制每job计时状态。
+
+| 精确对象 | 必要性、真实consumer和处理决定 |
+|---|---|
+| `browser-lane-coordinator.ts` 两个观察间隔常量、`observationNotBefore`、`notifyProviderObservationTerminal` | 唯一消费者是本次退役全局门；全部物理删除，不设为0、不留禁用分支或no-op |
+| 同文件 `AcquireLaneWaiter.requestKind` 及acquire中的派生赋值 | 只为决定是否套全局门，撤门后无生产消费者；删除，不搬到公开lease合同 |
+| 同文件 `nextWaiter` 和 `scheduleWake` | 两处同时只按原waiter.eligibleAt决定资格/唤醒；只改其中一处会留下旧等待或反复空唤醒，因此为不可分割修改 |
+| 同文件 queue、active/activeJobRefHash、withLifecycle/Proxy、wakeTimer、expiry/release/pump | 分别维持唯一串行、实时Document getter、原预算及取消、正常关闭；直接保留。删除wakeTimer会失去自身70秒/到期唤醒，不能以撤全局钟为由删它 |
+| `browser-command-actor.ts::constructor/execute` | 删除可选`onProviderObservationTerminal`、`observation`/`observationDispatched`及仅观察的通知；send回调只保留mutation实际dispatch→WAL/日志，内层冗余mutation判断就地简化。保留原mutation prepare/receipt verify/readback、异常语义和budget.leave的finally |
+| `browser-infrastructure-supervisor.ts` 唯一 `new BrowserCommandActor` 装配 | 移除上述第六个专属回调参数，保留全部连接/guard/logger/Store及其它装配 |
+| `browser-authority-websocket.ts::send` 的onDispatched接口和mutation grace | mutation仍是实际consumer，删除会破坏effect-once及原终态预算；完全保留，不改wire或transport函数 |
+| `production-browser-lifecycle.ts`、文字/图片handler、lease manager、Target acquisition、40秒门、1.5秒门、2.5秒门 | 原任务资格、读取/身份与物理安全的真实消费者仍在；原位保留，不通过新helper/常量迁移改变它们 |
+| Product、Mediator、Runtime、Forensics、Website生产实现 | 公共输入/输出、身份、状态和副作用均未变化；本轮不引入其生产diff。上传持有车道等相邻等待仅说明限制，不顺手处理 |
+
+只有上述三个方法片区删除后重建；无整文件删除、新文件、服务、配置、timer、监听器、队列、存储、兼容桥或恢复链。已讨论的固定更短全局间隔、按N自适应间隔、每Tab timer和完成事件监听均不进入目标方案。填写提示词及其读回、附件上传和reconcile期间的browser.wait继续占用原lane；B轮询到期只具备排队资格，不能切换或取消A。原lane验收必须覆盖填写/上传占用中兄弟请求已到期、active期间仅处理queued expiry、不dispatch也不改active owner的具体反例。
+
+### 24.6 质检对象先裁决与有限功能分母
+
+先裁决原有保护再改生产，不能先改代码、等失败后放宽所有检查：
+
+| 原有检查对象 | 留/删/改与可证伪错误 |
+|---|---|
+| `scripts/audit/domains/gpt/gpt-provider-contract-inspection.ts::inspectGlobalObservationLane/inspectProviderObservationTerminal` | 删除只证明全局随机钟/终结回调存在的条件及无消费者helper；在同一原检查入口保留唯一queue、唯一wakeTimer、Proxy实时Document、GPT自身70秒/短预算、原park/reacquire身份与无第二scheduler。错误实现重新加global not-before或把自身70改0必须失败 |
+| 该helper内transport grace条件 | 不为保留已退役helper留重复检查；它已有 `local-browser-session/transport-inspector.ts::transportReplyBindingsAreExact` 的完整send AST及quality-contract原mutationClass/grace反例覆盖，直接复用这些原件，不改transport实现/准入 |
+| `scripts/audit/domains/local-browser-session/target-claim-inspection.ts::inspectAdmission/inspectProductReleaseIsolation` 相应片区 | 只去掉inspectAdmission中requestKind必须存在、inspectProductReleaseIsolation中observationNotBefore必须存在两项；原acquisition截止、普通TTL、private/public边界、park不关页、历史unknown不堵兄弟、busy expiry/quiet后signal检查全部保留，不扩大重写该文件 |
+| `local-browser-session/mutation-atomicity-inspection.ts::verifiedTerminalReadbackIsExact` | 只同步Actor execute模板中专属观察通知消失与mutation callback简化；completeMutation的可信receipt、原WAL CAS/readback以及其反例不变。不得用删除整份AST保护使代码凑通过 |
+| `scripts/acceptance/browser-lane-fifo.acceptance.ts` | 物理删除随机采样、observer callback计数、全局门阻兄弟等旧期望及专属fixture。复用现有Coordinator/虚拟时间与Browser夹具，验证下表B01—B08；保留现有单lane、关闭/原预算、historical-WAL、live getter、真实错误与日志失败传播保护。专属旧fixture中的故障若已由其它原用例保护则直接复用；本文件只保留与新分母有真实关系的独立断言 |
+| `scripts/acceptance/browser-lane-fifo-support.ts::queuedAcquireDeadlines` 的现役虚拟时钟夹具 | 直接复用原tick/advance/timers和原Coordinator夹具，增加一个同文件有界用例承载六个请求的future资格跳过、active占用跨资格到期不可抢占、释放后同一虚拟时点FIFO连续取得；其余取消、到期、release和旧输入事实反例原样保留。不新建时钟夹具、验收文件或入口；这是真实既有消费者对B02/B03/B04的承载补齐 |
+| `tests/governance/quality-contract.test.ts` Actor反例数组 | 删除/替换只破坏observationDispatched及回调的退役mutant；保留receipt篡改、错WAL状态、重复结算、bindingHash仅mutation、grace不能以hook或无条件放宽等真实反例。观察“不应进mutation结算”的反例改为明确把非mutation也送入completeMutation，不依赖已删除的局部变量名 |
+| GPT现有browser-wait/handler/artifact/stopped-empty验收 | 继续执行原用例。尤其保留首次及后续eligibleAt≥70秒、短预算不park/acquire、文字/图片原call identity、pending让车、完成当次收取、20分钟停空、已有artifact零页面恢复；无行为必要性不改测试实现 |
+| `scripts/acceptance/gpt.real-proof.ts`、`local-browser.real-proof.ts` | 全局minimum-gap旧谓词退役：GPT-001 forbidden:5与Browser-003 forbidden:14改为`/facts/provider_observation_per_job_minimum_gap_ms >= 70000`；GPT-001同一claim补`/facts/cross_job_observation_under_70s_count >= 1`验证真实跨任务提频。Browser-004 forbidden:0的`gate_b_n2_provider_observation_minimum_gap_ms`不是其effect-once义务，删除这个重复/错位节拍谓词，保留同项全部单lane、零重复输入与其它动态义务。三处不再将旧字段改名后伪称同一全局测量 |
+
+上述新fact仅为现有owner动态声明中的两项本需求测量，不进入生产wire、日志字段、数据库或新proof schema/producer。原`provider_observation_unpaced_count`仅在GPT该旧claim声明中出现，无独立producer/consumer或不同于minimum-gap的保护依据；它随同一旧全局节拍断言退役，由本请求minimum-gap完整承接，不再新增同义计数。per-job测量以同job/attempt/正常checkpoint的相邻真实读取终结→下一次真实读取dispatch计算，样本不足不能默认0或PASS；cross-job计数须为不同job、各自已具资格、原串行lane中的真实检查间距小于70秒。原warning覆盖、无串页、单lane、零重复输入等证据继续由原producer取得，不复制另一Owner的报告。现有排队/Child等待日志不等于真实dispatch，当前阅读也不证明已有可接纳证据链能交付上述全部时间与身份；届时无法取得就按RELEASE_EVIDENCE_MISSING停止对应动态结论，不补生产埋点、第二producer或新存储来凑证据。
+
+| 分母 | 必须取得的结果及证据落点 |
+|---|---|
+| B01 单任务、首次/后续文字及图片 | 原GPT70秒资格保持，预算不足不park/acquire；复用原GPT browser-wait用例，禁止把阈值改低 |
+| B02 两个已具资格兄弟 | A读完并park后B立刻按队伍下一项获准，不新增70—90秒；在原lane acceptance用同一虚拟时钟验证，不靠sleep耗时蒙混 |
+| B03 六任务均pending/有ready混合 | 保留FIFO顺序、一次最多一项物理动作；ready在当轮保存，pending重新提交原70秒资格，不能零延迟自转或挤占其它已具资格项 |
+| B04 不同eligibleAt与取消/到期 | 未具资格A可被跳过，已具资格B能走；timer准确唤醒最早资格/原expiry，取消和短deadline按原错误退出，无1ms空唤醒循环 |
+| B05 active lane与release | active时原queued expiry继续有效；release仍queued30秒→出队等待40秒quiet→完整dispatch30秒，并保留quiet后abort重核；不让撤钟变成取消失效、插队或并行 |
+| B06 文本/图片成功、pending及typed失败 | 原身份、正文/stop/20分钟、图片源及字节、artifact读回/已有结果恢复不变；旧观察失败不再产生全局钟，同时原异常和guard仍有效 |
+| B07 mutation与传输故障 | 保留WAL先行、mutation实际dispatch标记、exact收据、失败/断线/日志错误的原处理；原grace与非mutation约束不弱化，不重放已发/未知effect |
+| B08 公共consumer与交付 | catalog13个Plugin/14处checkpoint调用继续消费原合同；以当前静态翻译走完整回答→artifact→JSON解析→上传→同身份Website接收回执，检查提频不改变result hash/输入或AGENT完成边界 |
+
+这些分支各自沿原Owner处理成功、拒绝、失败、取消和未知。未知WAL仍由Browser保留原事实，Website仍独占恢复授权；本轮不增加失败状态、自动重试或新attempt。B03的全pending不是固定六job真实生成负荷命令，设计阶段只做原fixture确定性证明；实际Provider验证受24.8的明确运行授权约束。
+
+### 24.7 原子施工工单
+
+以下是本轮原定执行单，实际进度及尚未完成项以24.9为准。各单共同保留24.5已论证的原件，禁止整文件删除重构、恢复旧骨架、换名wrapper、配置为0、兼容分支和额外日志/状态；只允许列明的三个方法片区删除后重建及专属附属结构清退，不新增文件或运行结构。
+
+**N-A／AGENT规范Owner：精确解冻与引用对齐。** 输入为用户对24.4逐条语义和3+7条版本传播的明确law-amendment授权、冻结拓扑对应条目的精确解冻授权、当前源码/overlay重绑。先改功能法案上述精确条款，逐major替换并改必要dependsOn引用；原法案其它正文、基础法案和母本保留。同步三份AGENT Blueprint、24.4列出的现役身份映射/metadata、原registry builder；由原architecture-boundary Owner仅同步冻结拓扑I11、T07、§9对应行、§8.2对应节拍说明及§12必要冻结记录，不重画拓扑。输出为一份无悬空active引用的目标规范；不能把法案仅改版本而旧全局义务仍在，不能借Runtime法条版本传播改Runtime生产。验收源头语义diff、依赖图/原projection、保留条款逐字核对；未授权、dirty保护不成立或传播出现未列行为变化就停止依赖施工。本单规范源及原生成物已实际修改，代码内lawId引用在第二阶段同步，不冒称整个方案完成。
+
+**N-W／Website ai-acceptance Owner：前阶段镜像差异，现退出本任务后续施工。** 前阶段按已取得授权只修订013 forbidden:4及本节精确引用，保留contract对象与version47；旧候选曾取得该仓原生成/投影退出0，未取得其READY。最新“网站侧不管”指令后，现有Website差异由原Owner接管，本任务不再修订、质检、提交、推送或替其收尾；此单不授权消息、另开任务或兼容桥。AGENT只按自身原生入口核真实机器合同兼容，实际不兼容如实阻断，Website其它建设不被收编为本轮。
+
+**P-B／Browser Owner：撤掉全局门的唯一实现。** N-A/N-W所需规范准入闭合后，在24.5三个生产文件原位实施：同时删取队/唤醒全局条件、只保留waiter资格；删除专属字段/分类/随机常量、Actor观察回调与Supervisor装配；保留mutation callback、所有原安全门及唯一队列/车道/timer。删除后立即搜索专属符号与同义替代，原声明/调用/构造参数均零残留，再核实际函数预算和公开合同字节。输出是同一现役链的减法版本，零新文件/新Owner。失败保持未决与结果事实，停止进一步依赖改动；未获回退授权不恢复文件或运行旧输入，不通过改无关模块使检查通过。
+
+**Q-G／GPT检查Owner：新旧节拍义务准确执法。** 只修改24.6中GPT inspector的全局门/终结回调检查片区，原位保留自身70秒、两门、身份、恢复及单scheduler禁止项；删除无消费者helper，transport grace直接复用原Browser检查。机械lawId映射仅限24.4清单。输出是能抓住“残留全局门”和“自身70被删”两种不同错误的原检查入口；不得只检查字符串不存在而遗漏功能分母。以原治理反例和B01/B02相互核证，异常不能变PASS。
+
+**Q-B／Browser检查Owner：行为与收据保护。** 在24.6列明的target-claim、mutation-atomicity、lane acceptance和quality-contract原片区分别同步；B01—B08的既有保护与新增真实差异尽量共用原fixture，不增验收文件或第二入口。Actor模板只退役观察通知，mutation收据模板保持。先确认应删旧断言与已存在等价保护，再改，保留必要故障用例；输出是原lane/receipt质量链，不能把删测试当通过。新增函数/断言同样守现役预算，不把接近红线作为新模块理由。
+
+**D-G/D-B／各动态证据Owner：原声明与真实读回。** 各自只替换24.6明确的动态谓词/active身份，并在未来获准运行时从自身现役日志/证据取得对应fact；不改通用proof框架、不把另一Owner结果复制成自己的证明。两个脚本当前末尾仍拒绝孤立Owner RELEASE proof，故改声明不证明动态准入或RELEASE：若原生通道仍不可接纳，就明确 `RELEASE_EVIDENCE_MISSING` 并停止该等级，不把修证据基础设施纳入本轮。
+
+工单依赖只规定本次单一变更顺序，不建立运行Flow/新的调度Owner。AGENT规范与本轮必需机器合同兼容未闭合前不能实施提频；不能为取得“可施工”而提前改冻结源。最新授权收束后，不等待Website独立业务建设或替其运行全仓CI，亦不绕过AGENT原生入口对真实合同不兼容的失败。
+
+### 24.8 验收、运行切换与停止
+
+设计阶段事实等级：源码/权威与引用已只读核实；前文聊天的时序模拟仅说明可能的排队放大，假设六任务t=0申请、t=120秒完成、检查耗时5秒、全局取80秒且无其它动作；A从9分45秒变2分30秒、六项最晚2分55秒不是真实SLA或已证收益。真实页面生成完成时间、额外四个标签归属和提频后的Provider限制均未实证，本轮不补造证据。
+
+未来施工验证顺序：
+
+1. 原文/实际差异核验先于代码运行：恢复当前根、AGENTS、Skill、冻结说明书§35/37—47、全部命中law/Manifest/Blueprint；重核本节绑定、脏文件与用户授权。不得自动触发历史CI-FULL或RELEASE。
+2. 使用现役Node>=24，执行与实际差异相交的类型/原lane acceptance、GPT acceptance与治理反例。原生入口仍为各仓 `npm run quality:check -- CHANGE`，registry仍由各仓 `npm run audit:build` 与 `npm run audit:projection:check` 验真。真实law授权取得后，AGENT使用其现役 `GRASSEYE_LAW_AMENDMENT_AUTHORIZED`，Website使用其现役授权门；环境标记只表达已取得授权，不能产生授权。不改package/测试命令/quality路由，不修与本节无关的失败。
+3. 本轮已明确要求AGENT READY，须使用原生clean commit完成全部required Static/Exam；本轮方案文档检查或普通用例不冒充该等级。未来明确要求RELEASE才依各自active evidenceModes、可接纳的原生producer及必要参与仓完成真实证据，不以模拟、旧报告或手工填fact代替。
+4. 运行切换必须另获明确授权。复用现役停止新领、让accepted执行/未决输入/结果交付沿原链收束的流程；不清job/lease、WAL、Outbox、Target或结果来“造空场”。确认旧实例当前物理调用退出、必要结果已持久后才能停止旧进程、启用同一新候选。Website运行代码/数据库不变，不部署Website；Browser wire和V6不变，不造双版本兼容。不能安全收束时保留现场并停止切换，不临时重写stop/recovery。
+5. 获准的真实验证先看N=1原链，再在原Owner批准的六个有效在途任务上观察；本方案不授权设置N、建新任务、增加Provider回合或调用未批准的数据。按原job/attempt/result revision/product step/call/Child/effect身份关联Browser command起止、GPT Child terminal、Forensics保存/readback及Website结果接收回执。
+6. 采集的是“真实检查dispatch/terminal”，不是 `GPT_PROVIDER_WAIT_INITIAL_OBSERVATION` 或排队日志。需要比较页面完成至收取延迟时，只在获准Chrome QA中由操作者记录停止按钮消失且正文非空的可见时点，并与同一回答的既有命令/原始artifact关联；没有这个独立时点就只报告已测检查间隔/取得时间，不能声称精确完成延迟。不加生产监听器、额外页面轮询、持久测量表或新日志字段来取证。
+7. 任一操作频繁/usage限制、错误身份、重复输入、车道并行、异常空唤醒或证据缺席，停止扩大运行验证，沿现役控制/收尾链保留原effect/答案/结果。不能自动改N、缩短自身70秒、40秒保护或20分钟窗口来续跑，也不能新建节流算法“修好”本轮。回退只有获准后恢复本次软件差异；绝不回退业务/WAL/接收回执，不自动重发Provider。
+
+施工纪律和功能质量分别汇报：纪律核本轮只有允许的局部删除/修改、保留原件有证据、专属符号无替代壳、无新增结构/授权外差异；功能核B01—B08、真实提频与原安全/接收事实。无整片重建就报告“无真正重建”，无回退就报告“无失败回退”。任何未取得的动态/READY/RELEASE结果明确列为尚未完成。
+
+### 24.9 双遍反向核对与当前结论
+
+第1遍从新需求向下核对：现役全局钟确为可独立删除的第二时间门；其全部生产通知链、两个取队/唤醒consumer、检查器、AST模板、反例、动态谓词及跨仓冻结来源均已在本节逐项留删。自身70秒、单lane、唯一timer、40秒、1.5/2.5秒和原结果身份/保存/接收不依赖该钟，保留理由成立。
+
+第2遍从原结果接收终点反查：提频只提前合法检查，不签submit/恢复资格，不改变原回答及result hash、原Forensics/Outbox/Website回执；失败、取消、unknown都回原Owner。发现并明确处理了两项遗漏风险：只删nextWaiter或只删scheduleWake不闭合；只删Coordinator而保留Actor观察回调/AST模板/动态全局阈值不闭合。三个生产文件外的Runtime代码、Product流程、Website服务、数据库与关页链均无变更必要性，排除依据是其公共身份/输入输出/状态与副作用合同未变。
+
+本次规范阶段由主Codex独立执行，未使用子智能体：全量解析两仓两份law源（AGENT39条、Website510条）与所有现役blueprint记录，核全部依赖和source对应；人工回读四份产品源头全文及命中的冻结正文。第一遍正向核需求→源头→精确条款/版本→Blueprint/Owner：AGENT只有GPT001 forbidden:5、GPT002 forbidden:5/8、Browser003 forbidden:14改变语义，七条Runtime仅身份传播；Website本轮只改013 forbidden:4，其已有八字/本地化等用户改动保持。母本、四份源头及V6.47 provider contract原始contract对象未变。第二遍由结果接收反向核identity/WAL、单lane、原70秒资格、1.5/2.5/40秒、20分钟停空、填写/上传独占及无新增结构：相关原义务保留、全部active依赖可解析，两仓原生audit:build与audit:projection:check均退出0；旧全局70—90秒义务在现役Blueprint中无残留。这只关闭规范准入，不证明待建代码或真实运行。
+
+拓扑原v8自带hash与其当前HEAD正文不一致：原声明为1f0f55fe1f1297fe438f3e0fb5807ecbe7e0f25782570219e42850d3a2652f5a，按其规则实际为f54057d7201b29601570a13c4c773bc3ab7a20af00f9f13410035723f24b4af9。本轮不宣称v8曾验真通过，旧声明作为历史保留；按本轮既定精准解冻只改I11/T07及对应索引/原冻结身份，318条其它表格行逐字保持，v9按当前正文重新计算原规范化hash。它不新增质量门或候选体系。
+
+首次规范查漏未覆盖Browser施工图“一个全局Provider observation节拍”总述、拓扑§8.2的同义正文及Website AI图“ N不增总频率”物理动作行；子审提出前两处，主Codex扩大到这些原文件内所有节拍/观察/总频率同义表述后发现第三处，均只按本轮目标原位补正。此后主Codex重新做正向旧义务清退与反向源/依赖核对；AGENT原生成和投影退出0。Website原生成/投影此时因并行任务新增`data/migrations/commercial/0203_zeji_paid_research_priority_index.sql`声明而文件缺席，分别退出1（SOURCE_PARSE_FAILED），不同于先前两仓投影退出0的候选；不得沿用先前结果放行当前状态。该择日优先级law004/迁移属于另一任务，不删其条目、不造占位SQL、不改其业务要求。本轮代码在该阻断发现后停止修改。
+
+并行任务已落盘0203迁移并将law013-V32依赖同步到law004-V36；这些择日业务差异不属于本轮。主Codex重核全部active依赖与旧节拍表述，按当时来源重跑两仓原生成/投影，均退出0；这只关闭当时的规范投影阻断，不构成两仓质量或稳定候选结论。随后最新授权收束为仅AGENT，本任务停止Website后续动作。
+
+AGENT建设后主Codex两遍自检分别核：需求→三方法实际diff→原lane/lease/Actor/transport消费者，及原结果身份/保留源码→取消到期/上传独占/本请求70秒→既有负向反例与旧链零残留。Gpt lifecycle、填写、附件attach/reconcile、文字/图片handler、transport源字节与HEAD一致；生产diff仍只有三文件。Node24下原lane验收（含六请求虚拟时间、active跨到期不抢占、同一时点FIFO续取）、GPT类型、附件、生命周期、Browser rule mutants及两项receipt/transport治理反例均退出0。当前仅普通验证，不冒称真实Provider提频、真实上传/PDF交付、原生CHANGE或READY；仍须子智能体审实际建设和AGENT唯一原生CI链。
+
+第三阶段由原只读审查者连续核查实际生产、检查器、既有夹具、负向反例、动态声明与必要消费者，未发现进入AGENT唯一原生CI前须修正的建设阻断；该审查不是新盲审，也未重跑测试或发布项目质量结论。Browser006正文仍引用003-V47的原始媒体bytes许可，该许可在003-V48未变，未发现实际consumer据其选择旧节拍，不据一处文本版本残留扩大修订。删除→即时缺席→合同重建过程依主Codex本次工具原件核对；只读审查者明确最终diff无法独立证明过程，不能把代码审查结论当成独立施工过程证明。
+
+**当前结论：AGENT代码、对应质检及两遍主自检、建设子审已完成，尚未取得原生CHANGE或READY。** 接回AGENT唯一原生CI-FULL，Website后续交原Owner。AGENT仍有任务外择日Skill dirty，clean commit/READY资格不能靠夹带提交、reset、stash、搬移或工作树伪造。真实运行与RELEASE证据未取得，现役孤立proof准入缺口不在本轮另建机制修复。

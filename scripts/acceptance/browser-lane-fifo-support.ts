@@ -297,6 +297,7 @@ const queuedAcquireDeadlines = async (): Promise<void> => {
       },
     } as never, { current: () => ({ kind: "PRESENT", authority: { authorityEpoch: 1 } }) } as never, state as never);
     const controller = new AbortController();
+    await eligibleObservationOrder(lane, controller, { now: () => now, advance, tick, timers, dispatches: () => dispatches });
     const holding = await lane.acquire(binding("a") as never, "owner", { targetMode: "fresh", eligibleAt: now,
       remainingMs: () => 100_000, signal: controller.signal });
     const heldHash = Reflect.get(lane, "activeJobRefHash"), baseline = dispatches;
@@ -332,6 +333,42 @@ const queuedAcquireDeadlines = async (): Promise<void> => {
       remainingMs: () => 0, signal: controller.signal }), /V6_DEADLINE_BUDGET_EXHAUSTED/u);
     assert.equal(timers.size, 0);
   } finally { Date.now = original.now; globalThis.setTimeout = original.setTimeout; globalThis.clearTimeout = original.clearTimeout; }
+};
+
+const eligibleObservationOrder = async (lane: BrowserLaneCoordinator, controller: AbortController,
+  clock: Readonly<{ now(): number; advance(ms: number): Promise<void>; tick(): Promise<void>;
+    timers: Map<number, { at: number; run: () => void }>; dispatches(): number }>,
+): Promise<void> => {
+  const started = clock.now(), deadline = started + 200_000, baseline = clock.dispatches();
+  const digits = ["a", "b", "c", "d", "e", "f"], order: string[] = [];
+  const pending = digits.map(digit => lane.acquire(binding(digit) as never, "owner", {
+    targetMode: "confirmed-readback", eligibleAt: started + (digit === "a" ? 70_000 : 0),
+    remainingMs: () => deadline - clock.now(), signal: controller.signal,
+  }).then(lease => { order.push(digit); return lease; }));
+  await clock.tick();
+  const holding = await pending[1]!;
+  assert.deepEqual(order, ["b"], "a future observation cannot block an already eligible sibling");
+  const activeOwner = Reflect.get(lane, "activeJobRefHash");
+  await clock.advance(70_000);
+  assert.deepEqual(order, ["b"], "an observation becoming eligible cannot preempt a lease held for filling or attachment upload");
+  assert.equal(lane.readState(), "busy");
+  assert.equal(Reflect.get(lane, "activeJobRefHash"), activeOwner);
+  assert.equal(clock.dispatches(), baseline + 1);
+  assert.equal(clock.timers.size, 1);
+  assert.equal([...clock.timers.values()][0]!.at, deadline, "busy wake tracks expiry instead of spinning on eligibility");
+  await holding.park({ reason: "fixture-complete", mode: "product-call-settlement" });
+  for (const digit of ["a", "c", "d", "e", "f"]) {
+    const lease = await pending[digits.indexOf(digit)]!;
+    assert.equal(lease.document.documentRef, binding(digit).jobRefHash);
+    assert.equal(clock.now(), started + 70_000, "eligible siblings acquire without another cross-job waiting period");
+    await lease.park({ reason: "fixture-complete", mode: "product-call-settlement" });
+  }
+  await clock.tick();
+  assert.deepEqual(order, ["b", "a", "c", "d", "e", "f"]);
+  assert.equal(clock.dispatches(), baseline + digits.length);
+  assert.equal(lane.readState(), "idle");
+  assert.equal(clock.timers.size, 0);
+  assert.equal(getEventListeners(controller.signal, "abort").length, 0);
 };
 
 const expireAcquireModes = async (lane: BrowserLaneCoordinator,

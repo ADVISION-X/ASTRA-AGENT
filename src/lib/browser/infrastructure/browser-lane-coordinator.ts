@@ -17,27 +17,23 @@ type AcquireLaneWaiter = LaneWaiterBase & Readonly<{
   remainingMs(): number;
   kind: "acquire"; binding: BrowserExecutionBinding; ownerId: string;
   targetMode: BrowserTargetLeaseWait["targetMode"]; parentJobId?: string; parentAttemptId?: string;
-  requestKind: "interaction" | "provider-observation";
 }>;
 type ReleaseLaneWaiter = LaneWaiterBase & Readonly<{
   kind: "release"; jobId: string; releaseAuthority: BrowserTargetReleaseAuthority; queueDeadlineAt: number;
 }>;
 type LaneWaiter = AcquireLaneWaiter | ReleaseLaneWaiter;
 type LaneState = ReturnType<typeof createBrowserInfrastructureState>;
-const PROVIDER_OBSERVATION_MIN_INTERVAL_MS = 70_000;
-const PROVIDER_OBSERVATION_RANDOM_SPAN_MS = 20_001;
 const waiterExpiryCode = (waiter: LaneWaiter): string | null => waiter.signal.aborted
   ? "BROWSER_WAIT_ABORTED" : (waiter.kind === "release" ? waiter.queueDeadlineAt - Date.now()
     : waiter.remainingMs()) < 1 ? "V6_DEADLINE_BUDGET_EXHAUSTED" : null;
 
-/** One FIFO admission and one global Provider observation cadence. */
+/** One FIFO admission for eligible requests on one physical lane. */
 export class BrowserLaneCoordinator {
   private readonly queue: LaneWaiter[] = [];
   private readonly targetAcquirer: BrowserTargetAcquirer;
   private active = false;
   private activeJobRefHash: `sha256:${string}` | null = null;
   private wakeTimer: ReturnType<typeof setTimeout> | null = null;
-  private observationNotBefore = 0;
 
   public constructor(
     private readonly resolveBroker: () => BrowserAuthorityBroker,
@@ -61,7 +57,6 @@ export class BrowserLaneCoordinator {
       const waiter: AcquireLaneWaiter = {
         kind: "acquire", binding, ownerId, jobRefHash: binding.jobRefHash, targetMode: wait.targetMode,
         ...(wait.targetMode === "authorized-continuation" ? { parentJobId: wait.parentJobId, parentAttemptId: wait.parentAttemptId } : {}),
-        requestKind: wait.targetMode === "confirmed-readback" ? "provider-observation" : "interaction",
         eligibleAt: wait.eligibleAt, signal: wait.signal, remainingMs: wait.remainingMs,
         stopAbortMonitor: () => wait.signal.removeEventListener("abort", abort),
         complete: lease => finish(lease), reject: error => finish(undefined, error),
@@ -128,22 +123,6 @@ export class BrowserLaneCoordinator {
   public resolvePending(action: "acquire" | "release", jobRefHash: string): void { this.targetAcquirer.resolvePending(action, jobRefHash); }
   public rejectPending(reasonCode: string, refs?: Readonly<Record<string, string>>): void { this.targetAcquirer.rejectPending(reasonCode, refs); }
 
-  private nextWaiter(): LaneWaiter | null {
-    const now = Date.now();
-    for (let index = 0; index < this.queue.length;) {
-      const waiter = this.queue[index]!;
-      const expired = waiterExpiryCode(waiter);
-      if (expired) { this.queue.splice(index, 1); waiter.reject(browserExecutionFailure(new Error(expired))); continue; }
-      const eligibility = waiter.kind === "acquire" && waiter.requestKind === "provider-observation"
-        ? Math.max(waiter.eligibleAt, this.observationNotBefore) : waiter.eligibleAt;
-      if (eligibility > now) { index += 1; continue; }
-      this.queue.splice(index, 1);
-      waiter.stopAbortMonitor();
-      return waiter;
-    }
-    return null;
-  }
-
   private expireQueuedWaiters(): void {
     for (const waiter of [...this.queue]) {
       const code = waiterExpiryCode(waiter);
@@ -151,6 +130,34 @@ export class BrowserLaneCoordinator {
       this.queue.splice(this.queue.indexOf(waiter), 1);
       waiter.reject(browserExecutionFailure(new Error(code)));
     }
+  }
+
+  private nextWaiter(): LaneWaiter | null {
+    this.expireQueuedWaiters();
+    const now = Date.now();
+    const index = this.queue.findIndex(waiter => waiter.eligibleAt <= now);
+    if (index < 0) return null;
+    const waiter = this.queue.splice(index, 1)[0]!;
+    waiter.stopAbortMonitor();
+    return waiter;
+  }
+
+  private scheduleWake(): void {
+    if (this.wakeTimer) clearTimeout(this.wakeTimer);
+    this.wakeTimer = null;
+    const now = Date.now();
+    let nextAt = Number.POSITIVE_INFINITY;
+    for (const waiter of this.queue) {
+      const expiresAt = waiter.kind === "release"
+        ? waiter.queueDeadlineAt : now + Math.max(0, waiter.remainingMs());
+      const wakeAt = this.active ? expiresAt : Math.min(expiresAt, waiter.eligibleAt);
+      nextAt = Math.min(nextAt, wakeAt);
+    }
+    if (!Number.isFinite(nextAt)) return;
+    this.wakeTimer = setTimeout(() => {
+      this.wakeTimer = null;
+      void this.pump();
+    }, Math.max(1, Math.ceil(nextAt - now)));
   }
 
   private async pump(): Promise<void> {
@@ -204,25 +211,4 @@ export class BrowserLaneCoordinator {
       return typeof value === "function" ? value.bind(target) : value;
     } });
   }
-  public notifyProviderObservationTerminal(): void {
-    this.observationNotBefore = Date.now() + PROVIDER_OBSERVATION_MIN_INTERVAL_MS
-      + Math.floor(Math.random() * PROVIDER_OBSERVATION_RANDOM_SPAN_MS);
-  }
-
-  private scheduleWake(): void {
-    if (this.wakeTimer) clearTimeout(this.wakeTimer);
-    this.wakeTimer = null;
-    const now = Date.now();
-    let nextAt = Number.POSITIVE_INFINITY;
-    for (const waiter of this.queue) {
-      const expiry = waiter.kind === "release" ? waiter.queueDeadlineAt : now + Math.max(0, waiter.remainingMs());
-      if (this.active) { nextAt = Math.min(nextAt, expiry); continue; }
-      const eligibility = waiter.kind === "acquire" && waiter.requestKind === "provider-observation"
-        ? Math.max(waiter.eligibleAt, this.observationNotBefore) : waiter.eligibleAt;
-      nextAt = Math.min(nextAt, expiry, eligibility);
-    }
-    if (!Number.isFinite(nextAt)) return;
-    this.wakeTimer = setTimeout(() => { this.wakeTimer = null; void this.pump(); }, Math.max(1, Math.ceil(nextAt - now)));
-  }
-
 }

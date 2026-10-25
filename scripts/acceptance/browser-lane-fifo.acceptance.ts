@@ -120,8 +120,6 @@ const verifyInteractionLane = async (root: string): Promise<void> => {
 
 const laneText = readFileSync("src/lib/browser/infrastructure/browser-lane-coordinator.ts", "utf8");
 assert.match(laneText, /private readonly queue: LaneWaiter\[\] = \[\]/u);
-assert.match(laneText, /PROVIDER_OBSERVATION_MIN_INTERVAL_MS = 70_000/u);
-assert.match(laneText, /PROVIDER_OBSERVATION_RANDOM_SPAN_MS = 20_001/u);
 assert.doesNotMatch(laneText, /settleRetiredTargetLocal|allDispatchedTargetsSettled|mayCrossUnresolved/u);
 assert.doesNotMatch(readFileSync("src/lib/browser/infrastructure/browser-target-acquirer.ts", "utf8"), /expectedTargetRef|unreleasedTargetClaims/u);
 assert.doesNotMatch(readFileSync("src/lib/browser/exact-target/browser-mutation-schema.ts", "utf8"), /browser_target_claims/u);
@@ -154,12 +152,12 @@ try {
   assert.equal(creations, 1); assert.ok(deadline >= before && deadline <= Date.now() + 5_000);
   const coordinator = Object.create(BrowserLaneCoordinator.prototype) as Record<string, unknown>;
   const waiter = { kind: "acquire", binding: original, jobRefHash: original.jobRefHash, targetMode: "fresh",
-    requestKind: "interaction", eligibleAt: Date.now(), signal: new AbortController().signal,
+    eligibleAt: Date.now(), signal: new AbortController().signal,
     remainingMs: () => 5_000, stopAbortMonitor: () => undefined, complete: () => undefined, reject: () => undefined };
-  Object.assign(coordinator, { queue: [waiter], active: false, observationNotBefore: 0, infrastructure: { mutationState: store } });
+  Object.assign(coordinator, { queue: [waiter], active: false, infrastructure: { mutationState: store } });
   const next = (): unknown => (coordinator.nextWaiter as () => unknown).call(coordinator);
   assert.equal(next(), waiter); assert.equal((coordinator.queue as unknown[]).length, 0);
-  const readbackWaiter = { ...waiter, targetMode: "confirmed-readback", requestKind: "provider-observation" };
+  const readbackWaiter = { ...waiter, targetMode: "confirmed-readback" };
   coordinator.queue = [readbackWaiter]; assert.equal(next(), readbackWaiter);
   const sameRelease = { ...waiter, kind: "release", queueDeadlineAt: Date.now() + 30_000, jobId: original.jobId, releaseAuthority: "business-admitted" };
   const otherRelease = { ...sameRelease, jobId: "other-job" }, adminRelease = { ...sameRelease, releaseAuthority: "website-admin-deletion" };
@@ -173,49 +171,37 @@ try {
   assert.throws(() => store.purgeJob(original.jobId, undefined as never), /BROWSER_TARGET_INVALID/u);
   store.purgeJob(original.jobId, "website-admin-deletion");
   assert.equal(store.hasMutationForJob(original.jobId), false); assert.equal(store.readCommand("retained")?.state, "PREPARED");
-  coordinator.queue = [{ ...waiter, requestKind: "provider-observation" }, { ...waiter, binding: binding("b"), jobRefHash: hash("b") }];
-  coordinator.observationNotBefore = Date.now() + 70_000;
-  const readyInteraction = (coordinator.queue as unknown[])[1];
-  assert.equal(next(), readyInteraction);
-  assert.equal(next(), null);
+  const sibling = { ...readbackWaiter, binding: binding("b"), jobRefHash: hash("b") };
+  coordinator.queue = [readbackWaiter, sibling];
+  assert.equal(next(), readbackWaiter);
+  assert.equal(next(), sibling, "an eligible sibling does not inherit a completed observation's waiting period");
   coordinator.queue = []; coordinator.wakeTimer = null; coordinator.resolveBroker = () => ({});
-  let samples = 0;
-  const random = Math.random;
-  Math.random = () => { samples += 1; return 0.5; };
-  try {
-    let epoch = 1; const originalLease = { get document() { return { navigationEpoch: epoch }; }, park: async () => undefined };
-    const wrapped = (coordinator.withLifecycle as (lease: unknown) => typeof originalLease).call(coordinator, originalLease);
-    epoch = 2; assert.equal(wrapped.document.navigationEpoch, 2);
-    const priorNotBefore = coordinator.observationNotBefore;
-    await wrapped.park(); await wrapped.park();
-    assert.equal(samples, 0, "park and receipt-only recovery cannot delay another eligible observation");
-    assert.equal(coordinator.observationNotBefore, priorNotBefore);
-    const start = Date.now();
-    (coordinator.notifyProviderObservationTerminal as () => void).call(coordinator);
-    assert.equal(samples, 1); assert.ok((coordinator.observationNotBefore as number) >= start + 70_000);
-    assert.ok((coordinator.observationNotBefore as number) <= Date.now() + 90_000);
-    const notBefore = coordinator.observationNotBefore;
-    await wrapped.park(); assert.equal(samples, 1); assert.equal(coordinator.observationNotBefore, notBefore);
-  } finally { Math.random = random; }
+  let epoch = 1;
+  const originalLease = { get document() { return { navigationEpoch: epoch }; }, park: async () => undefined };
+  const wrapped = (coordinator.withLifecycle as (lease: unknown) => typeof originalLease).call(coordinator, originalLease);
+  epoch = 2; assert.equal(wrapped.document.navigationEpoch, 2);
+  await wrapped.park(); await wrapped.park();
+  assert.equal((coordinator.queue as unknown[]).length, 0);
   const logger = createRuntimeLogger({ producer: "observation-terminal", owner: "browser-session", component: "exact-target",
     terminalEnabled: false, fileSink: { directoryPath: join(root, "logs") } });
-  let terminals = 0, dispatches = 0, deny = false, dispatch = true;
+  let dispatches = 0, deny = false, dispatch = true;
   const actor = new BrowserCommandActor(new BrowserCommandAdmissionBudget(), { send: async (_permit, _command, onDispatched) => {
-    if (dispatch) { onDispatched?.(); dispatches += 1; }
+    assert.equal(onDispatched, undefined);
+    if (dispatch) dispatches += 1;
     throw new Error("BROWSER_EXTENSION_CHANNEL_UNAVAILABLE");
   } }, store, { assertCurrentAuthority: () => { if (deny) throw new Error("BROWSER_LIVENESS_EXPIRED"); } },
-  logger, () => { terminals += 1; });
+  logger);
   const observedPermit = { ...permit("observed-media"), capabilityId: "browser.authenticated-media.v1" as const,
     mutationClass: "observation" as const, replayPolicy: "observation-only" as const };
   const media = { kind: "authenticated-media" as const, canonicalConversationUrl: "https://chatgpt.com/c/original",
     userTurnId: "00000000-0000-4000-8000-000000000001", semanticMediaId: "gpt-generated-image-main" as const };
   await assert.rejects(actor.execute(observedPermit, media));
-  assert.equal(terminals, 1, "a dispatched failed observation still protects subsequent page access");
+  assert.equal(dispatches, 1); assert.equal(store.readCommand(observedPermit.commandId), null);
   deny = true; await assert.rejects(actor.execute({ ...observedPermit, commandId: "denied-observation" }, media));
-  assert.equal(terminals, 1); assert.equal(dispatches, 1);
+  assert.equal(dispatches, 1);
   deny = false; dispatch = false;
   await assert.rejects(actor.execute({ ...observedPermit, commandId: "predispatch-failure" }, media));
-  assert.equal(terminals, 1, "predispatch failures are not page observations");
+  assert.equal(dispatches, 1);
   const textIntent = { kind: "readExactAssistantTurn" as const, canonicalConversationUrl: media.canonicalConversationUrl, turnMarker: "observed-text" };
   const sha = (value: string): `sha256:${string}` => `sha256:${createHash("sha256").update(value).digest("hex")}`;
   const textPermit = { ...observedPermit, commandId: "observed-text", capabilityId: "browser.dom.read-text.v1" as const };
@@ -229,19 +215,19 @@ try {
     return result.ok && logFails ? { ...result, event: { ...result.event, terminal: () => ({ ok: false as const, code: "RUNTIME_LOG_SINK_WRITE_FAILED" as const }) } } : result;
   } };
   const textActor = new BrowserCommandActor(new BrowserCommandAdmissionBudget(), { send: async (candidate, _command, onDispatched) => {
-    onDispatched?.(); return { replyChannelToken: candidate.replyChannelToken, permitSequence: candidate.sequence, transportSequence: 1,
+    assert.equal(onDispatched, undefined); return { replyChannelToken: candidate.replyChannelToken, permitSequence: candidate.sequence, transportSequence: 1,
       result: absentPreflightEnvelope(candidate, replyValue), mutationReceipt: null };
-  } }, store, { assertCurrentAuthority: () => undefined }, terminalLogger as never, () => { terminals += 1; });
+  } }, store, { assertCurrentAuthority: () => undefined }, terminalLogger as never);
   await textActor.execute(textPermit, { kind: "dom-intent", intent: textIntent });
-  assert.equal(terminals, 2, "successful dispatched text observation samples once");
+  assert.equal(store.readCommand(textPermit.commandId), null);
   logFails = true; await assert.rejects(textActor.execute({ ...textPermit, commandId: "text-log-failed" }, { kind: "dom-intent", intent: textIntent }));
-  assert.equal(terminals, 3, "terminal log failure after dispatch still protects the observation interval");
+  assert.equal(store.readCommand("text-log-failed"), null);
   const abort = new AbortController();
   const abortedActor = new BrowserCommandActor(new BrowserCommandAdmissionBudget(), { send: async (_candidate, _command, onDispatched) => {
-    onDispatched?.(); abort.abort("BROWSER_COMMAND_REVOKED"); throw new Error(String(abort.signal.reason));
-  } }, store, { assertCurrentAuthority: () => undefined }, logger, () => { terminals += 1; });
+    assert.equal(onDispatched, undefined); abort.abort("BROWSER_COMMAND_REVOKED"); throw new Error(String(abort.signal.reason));
+  } }, store, { assertCurrentAuthority: () => undefined }, logger);
   await assert.rejects(abortedActor.execute({ ...textPermit, commandId: "text-aborted" }, { kind: "dom-intent", intent: textIntent }));
-  assert.equal(terminals, 4, "a dispatched revoked text observation samples once");
+  assert.equal(abort.signal.aborted, true); assert.equal(store.readCommand("text-aborted"), null);
   await verifyInteractionLane(root);
   store.close();
 } finally { await rm(root, { recursive: true, force: true }); }

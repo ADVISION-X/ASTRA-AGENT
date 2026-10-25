@@ -483,7 +483,7 @@ try {
 
 for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) {
   emitQualityProofObservation({
-    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-005-V43",
+    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-005-V44",
     evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "forbidden:3", "summary"],
     locator: `acceptance:agent-production-runtime:three-table-authority:${evidenceMode}`,

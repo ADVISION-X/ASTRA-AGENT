@@ -3,7 +3,7 @@ void String.raw`
 {
   "schema_version": "producer-dynamic-claim-contract.v1",
   "routes": {
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V79:dynamic.service": {
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V80:dynamic.service": {
       "claims": {
         "summary": [
           {
@@ -64,7 +64,7 @@ void String.raw`
         ]
       }
     },
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V79:dynamic.database": {
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V80:dynamic.database": {
       "claims": {
         "forbidden:0": [
           {
@@ -82,7 +82,7 @@ void String.raw`
         ]
       }
     },
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V79:dynamic.storage": {
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V80:dynamic.storage": {
       "claims": {
         "forbidden:2": [
           {
@@ -129,7 +129,7 @@ void String.raw`
         ]
       }
     },
-    "LAW-AGENT-PRODUCTION-RUNTIME-004-V46:dynamic.service": {
+    "LAW-AGENT-PRODUCTION-RUNTIME-004-V47:dynamic.service": {
       "claims": {
         "forbidden:0": [
           {
@@ -179,7 +179,7 @@ void String.raw`
         ]
       }
     },
-    "LAW-AGENT-PRODUCTION-RUNTIME-005-V43:dynamic.database": {
+    "LAW-AGENT-PRODUCTION-RUNTIME-005-V44:dynamic.database": {
       "claims": {
         "forbidden:0": [
           {
@@ -197,7 +197,7 @@ void String.raw`
         ]
       }
     },
-    "LAW-AGENT-PRODUCTION-RUNTIME-006-V47:dynamic.storage": {
+    "LAW-AGENT-PRODUCTION-RUNTIME-006-V48:dynamic.storage": {
       "claims": {
         "forbidden:0": [
           {
@@ -222,7 +222,7 @@ void String.raw`
         ]
       }
     },
-    "LAW-AGENT-PRODUCTION-RUNTIME-008-V48:dynamic.service": {
+    "LAW-AGENT-PRODUCTION-RUNTIME-008-V49:dynamic.service": {
       "claims": {
         "forbidden:0": [
           {
@@ -240,7 +240,7 @@ void String.raw`
         ]
       }
     },
-    "LAW-AGENT-PRODUCTION-RUNTIME-008-V48:dynamic.database": {
+    "LAW-AGENT-PRODUCTION-RUNTIME-008-V49:dynamic.database": {
       "claims": {
         "forbidden:0": [
           {
@@ -251,7 +251,7 @@ void String.raw`
         ]
       }
     },
-    "LAW-AGENT-PRODUCTION-RUNTIME-008-V48:dynamic.storage": {
+    "LAW-AGENT-PRODUCTION-RUNTIME-008-V49:dynamic.storage": {
       "claims": {
         "forbidden:0": [
           {
@@ -262,7 +262,7 @@ void String.raw`
         ]
       }
     },
-    "LAW-AGENT-PRODUCTION-RUNTIME-008-V48:dynamic.authorization": {
+    "LAW-AGENT-PRODUCTION-RUNTIME-008-V49:dynamic.authorization": {
       "claims": {
         "forbidden:1": [
           {

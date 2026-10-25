@@ -181,8 +181,8 @@ const inspectAdmission = (s: Sources, findings: InspectorFinding[], lawId: strin
     && !acquire.includes("setTimeout(")
     && ordered(operation, ['action === "acquire" ? BROWSER_TARGET_ACQUISITION_MAX_WAIT_MS : BROWSER_COMMAND_DEFAULT_DEADLINE_MS',
       "const deadlineAt = Date.now() + Math.min(budgetMs, maximum)", "pendingJobBoundTargetAcquisition = pending", "dispatch(deadlineAt)"])
-    && !s.lease.getText().includes("requestKind") && s.lane.getText().includes('requestKind: wait.targetMode === "confirmed-readback"'),
-  findings, lawId, paths.acquirer, "Loading consumes remaining authorization and the independent maximum; queue classification and ordinary command TTL stay private and unchanged.");
+    && !s.lease.getText().includes("requestKind") && !s.lane.getText().includes("requestKind"),
+  findings, lawId, paths.acquirer, "Loading consumes remaining authorization and the independent maximum; ordinary command TTL stays unchanged without an observation queue class.");
   inspectAcquisitionDeadline(s, findings, lawId);
   requireContract(includesAll(s.supervisor.getText(), ["shouldRestoreBrowserHostVisibility",
     'reasonCode === "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE"', '"peer_close", "tcp_close", "tcp_error"',
@@ -295,7 +295,7 @@ const inspectProductReleaseIsolation = (s: Sources, context: InspectorContext, f
     && lease.includes("pendingMutationCount: () => this.commandActor.pendingMutationCommandIds(this.executionBinding).length")
     && admission.includes('value.kind !== "park-target"') && !lease.includes("close: async") && !close
     && ordered(lifecycle, ["finally", "this.active = false"])
-    && includesAll(lane, ["index += 1", "waiter.eligibleAt", "observationNotBefore"])
+    && includesAll(lane, ["this.expireQueuedWaiters()", "this.queue.findIndex(waiter => waiter.eligibleAt <= now)"])
     && !body(s.lane, "BrowserLaneCoordinator", "nextWaiter").includes("hasUnresolvedMutation")
     && !body(s.lane, "BrowserLaneCoordinator", "nextWaiter").includes("countDispatched")
     && !/settleRetiredTargetLocal|allDispatchedTargetsSettled|website-permanent-revocation/u.test(lane),
@@ -307,12 +307,12 @@ const inspectProductReleaseIsolation = (s: Sources, context: InspectorContext, f
   const expiryLoop = expiry?.getDescendantsOfKind(SyntaxKind.ForOfStatement)[0];
   const wakeLoop = wake?.getDescendantsOfKind(SyntaxKind.ForOfStatement)[0];
   const expiryBody = expiryLoop?.getStatement(), wakeBody = wakeLoop?.getStatement();
-  const busy = Node.isBlock(wakeBody) ? wakeBody.getStatements()[1] : undefined;
-  const busyBody = Node.isIfStatement(busy) ? busy.getThenStatement() : undefined;
+  const busy = wake?.getDescendantsOfKind(SyntaxKind.VariableDeclaration).find(node => node.getName() === "wakeAt")?.getInitializer();
+  const expiryAt = wake?.getDescendantsOfKind(SyntaxKind.VariableDeclaration).find(node => node.getName() === "expiresAt")?.getInitializer();
   const writesActive = expiry?.getDescendantsOfKind(SyntaxKind.BinaryExpression).some(node =>
     ["this.active", "this.activeJobRefHash"].includes(node.getLeft().getText())) ?? false;
   const queuedExpiryIsSafe = (): boolean => !!expiryLoop && Node.isBlock(expiryBody)
-    && Node.isIfStatement(busy) && Node.isBlock(busyBody) && [
+    && Node.isConditionalExpression(busy) && Node.isConditionalExpression(expiryAt) && [
     expiryLoop.getExpression().getText() === "[...this.queue]",
     expiryBody.getStatements().length === 4,
     expiryBody.getStatements()[0]?.getText() === "const code = waiterExpiryCode(waiter);",
@@ -321,11 +321,13 @@ const inspectProductReleaseIsolation = (s: Sources, context: InspectorContext, f
     !expiry?.getText().includes("waiter.kind"),
     expiry?.getDescendantsOfKind(SyntaxKind.CallExpression).every(call =>
       ["waiterExpiryCode", "this.queue.splice", "this.queue.indexOf", "waiter.reject", "browserExecutionFailure"].includes(call.getExpression().getText())),
-    busy.getExpression().getText() === "this.active",
-    busyBody.getStatements().length === 2,
-    busyBody.getStatements()[0]?.getText() === "nextAt = Math.min(nextAt, expiry);",
-    Node.isContinueStatement(busyBody.getStatements()[1]),
-    wake?.getText().includes('waiter.kind === "release" ? waiter.queueDeadlineAt : now + Math.max(0, waiter.remainingMs())'),
+    busy.getCondition().getText() === "this.active",
+    busy.getWhenTrue().getText() === "expiresAt",
+    busy.getWhenFalse().getText() === "Math.min(expiresAt, waiter.eligibleAt)",
+    expiryAt.getCondition().getText() === 'waiter.kind === "release"',
+    expiryAt.getWhenTrue().getText() === "waiter.queueDeadlineAt",
+    expiryAt.getWhenFalse().getText() === "now + Math.max(0, waiter.remainingMs())",
+    Node.isBlock(wakeBody) && wakeBody.getStatements()[2]?.getText() === "nextAt = Math.min(nextAt, wakeAt);",
     wake?.getDescendantsOfKind(SyntaxKind.CallExpression).filter(call => call.getExpression().getText() === "setTimeout").length === 1,
     busyPump?.getText()
       === "if (this.active) { this.expireQueuedWaiters(); this.scheduleWake(); return; }",

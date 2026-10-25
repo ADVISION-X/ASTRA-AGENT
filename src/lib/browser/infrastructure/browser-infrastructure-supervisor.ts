@@ -384,7 +384,7 @@ export class BrowserInfrastructureSupervisor {
     return new BrowserTargetLeaseManager(
       current.authority, binding,
       new BrowserCommandActor(new BrowserCommandAdmissionBudget(), this.websocket, mutationState,
-        guard, this.options.runtimeLogger, () => this.lane.notifyProviderObservationTerminal()),
+        guard, this.options.runtimeLogger),
       this.issuer, this.state.workspace, resolveCurrentTarget,
       { resolveGrantPaths, issueApprovedArtifactGrants },
     );
