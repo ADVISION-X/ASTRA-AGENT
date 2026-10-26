@@ -129,27 +129,33 @@ export async function downloadProductionMaterials(
   session: ProductionWorkerSession,
   job: ClaimedProductionTask,
   materialDir: string,
+  signal: AbortSignal,
 ): Promise<readonly LocalProductionMaterial[]> {
+  signal.throwIfAborted();
   await mkdir(materialDir, { recursive: true, mode: 0o700 });
-  const result: LocalProductionMaterial[] = [];
-  for (const material of [...job.material_refs].sort((left, right) => left.ordinal - right.ordinal)) {
+  const verified: LocalProductionMaterial[] = [];
+  const ordered = [...job.material_refs].sort((a, b) => a.ordinal - b.ordinal);
+  for (const reference of ordered) {
+    signal.throwIfAborted();
+    const headers = await session.authorizationHeaders(fenceHeaders(job));
+    signal.throwIfAborted();
     const response = await productionCloudFetch(
-      `${session.device.server_base_url.replace(/\/+$/u, "")}/internal/ai-production/v6/jobs/${encodeURIComponent(job.job_id)}/materials/${encodeURIComponent(material.material_id)}`,
-      {
-        headers: await session.authorizationHeaders(fenceHeaders(job)),
-        signal: AbortSignal.timeout(120_000),
-      },
+      `${session.device.server_base_url.replace(/\/+$/u, "")}/internal/ai-production/v6/jobs/${encodeURIComponent(job.job_id)}/materials/${encodeURIComponent(reference.material_id)}`,
+      { headers, signal: AbortSignal.any([signal, AbortSignal.timeout(120_000)]) },
     );
     if (!response.ok) await throwMaterialDownloadFailure(response);
     const bytes = new Uint8Array(await response.arrayBuffer());
-    if (bytes.byteLength !== material.bytes || sha256(bytes) !== material.sha256) {
-      throw executionFailure("failed", `MATERIAL_DOWNLOAD_IDENTITY_MISMATCH:${material.material_id}`);
+    signal.throwIfAborted();
+    if (bytes.byteLength !== reference.bytes || sha256(bytes) !== reference.sha256) {
+      throw executionFailure("failed", `MATERIAL_DOWNLOAD_IDENTITY_MISMATCH:${reference.material_id}`);
     }
-    const destination = path.join(materialDir, material.display_name);
-    await writeProductionMaterial(destination, bytes);
-    result.push({ ...material, local_path: destination });
+    const localPath = path.join(materialDir, reference.display_name);
+    await writeProductionMaterial(localPath, bytes);
+    signal.throwIfAborted();
+    verified.push({ ...reference, local_path: localPath });
   }
-  return Object.freeze(result);
+  signal.throwIfAborted();
+  return Object.freeze(verified);
 }
 
 export async function renewProductionLease(

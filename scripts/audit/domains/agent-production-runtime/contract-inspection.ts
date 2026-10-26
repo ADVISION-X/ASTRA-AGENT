@@ -248,6 +248,7 @@ export const runtimeManifestOwnershipDrift = (paths: readonly string[]): string[
   !(path === "docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md"
     || path.startsWith("docs/specs/agent-production-runtime/")
     || path === "docs/项目方案/旧交付记录账本误阻断-完整实现方案.md"
+    || path === "docs/项目方案/长材料下载租约边界-完整实现方案.md"
     || path.startsWith("scripts/audit/domains/agent-production-runtime/")
     || path.startsWith("scripts/acceptance/agent-production-runtime")
     || path === "scripts/acceptance/agent-route-contract.acceptance.ts"

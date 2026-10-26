@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import {
-  acceptClaim, completeClaim, downloadClaimMaterials, executeAndUpload,
+  acceptClaim, completeClaim, executeAndUpload,
   handleRuntimeBoundaryFailure,
 } from "./runtime-claim-operations.js";
 
@@ -255,67 +255,47 @@ const handleProductExecutionFailure = async (
 export const executeClaim = async (state: RuntimeState, job: ClaimedProductionTask): Promise<void> => {
   const abort = state.activeAbort.get(job.job_id)!;
   const acceptance: { durable: "unknown" | "unaccepted" | "accepted" } = { durable: "unknown" };
-  const materialDir = join(productionRuntimeTaskPath(state.dataDir, job.job_id), "materials");
   const jobSpan = requireRuntimeLogWrite(state.runtimeLogger.startSpan({
     traceId: job.job_id, boundaryId: job.grant.claim_batch_id, owner: "production-runtime",
     component: "production-runtime", operation: "job.execute", typedIdentity: jobIdentity(job),
   }));
   try {
     acceptance.durable = "unaccepted";
-    const remote = await readClaimAuthority(state, job, jobSpan);
-    if (!remote) return;
-    if (recoverMissingLocalTask(state, job, remote, acceptance, jobSpan)) return;
-    restoreStagedResult(state, job, remote);
+    const authority = await readClaimAuthority(state, job, jobSpan);
+    if (!authority) return;
+    if (recoverMissingLocalTask(state, job, authority, acceptance, jobSpan)) return;
+    restoreStagedResult(state, job, authority);
     if (await deliverExistingResult(state, job, acceptance, jobSpan)) return;
-    if (job.grant.delivery_only) {
-      throw executionFailure("failed", "PRODUCTION_DELIVERY_ONLY_RESULT_PENDING");
-    }
-    const failureReconciliation = await reconcileClaimAttemptFailure(
-      state, job, remote, jobSpan.spanId, applyRemoteFailureDisposition,
-    );
-    if (failureReconciliation.stopBeforeProduct) {
+    if (job.grant.delivery_only) throw executionFailure("failed", "PRODUCTION_DELIVERY_ONLY_RESULT_PENDING");
+    const recovery = await reconcileClaimAttemptFailure(state, job, authority, jobSpan.spanId, applyRemoteFailureDisposition);
+    if (recovery.stopBeforeProduct) {
       requireRuntimeLogWrite(jobSpan.terminal({ outcome: "succeeded" }));
       return;
     }
-    const claim = acceptClaim(
-      state, job, abort, jobSpan, failureReconciliation.reconciledFailure,
-      failureReconciliation.readbackOnlyCalls,
-    );
+    const accepted = acceptClaim(state, job, abort, jobSpan, recovery.reconciledFailure, recovery.readbackOnlyCalls);
     acceptance.durable = "accepted";
     state.store.markExecuting(job.job_id);
-    const materials = await downloadClaimMaterials(state, job, materialDir, jobSpan);
+    const materialDir = join(productionRuntimeTaskPath(state.dataDir, job.job_id), "materials");
     let result: Awaited<ReturnType<typeof executeAndUpload>>;
     try {
-      result = await executeAndUpload({
-        state, job, task: claim.task, budget: claim.budget,
-        materials, abort, jobSpan,
-      });
+      result = await executeAndUpload({ state, job, task: accepted.task, budget: accepted.budget, materialDir, abort, jobSpan });
     } catch (error) {
-      await handleProductExecutionFailure(
-        state, job, error, jobSpan,
-        failureReconciliation.reconciledFailure !== null
-          || job.grant.same_accepted_attempt
-            && state.browserAuthority.readJobPhysicalInputState(job.job_id) !== "zero",
-      );
+      await handleProductExecutionFailure(state, job, error, jobSpan,
+        !(error instanceof ProductionRuntimeBoundaryError) && (recovery.reconciledFailure !== null
+          || job.grant.same_accepted_attempt && state.browserAuthority.readJobPhysicalInputState(job.job_id) !== "zero"));
       return;
     }
-    await completeClaim({ state, job, ...result, materialDir, jobSpan });
+    await completeClaim({ state, job, result, jobSpan });
   } catch (error) {
     if (websiteJobAbsent(error)) {
       try {
         await purgeDeletedJob(state, job.job_id);
         requireRuntimeLogWrite(jobSpan.terminal({ outcome: "succeeded" }));
         return;
-      } catch (purgeError) {
-        error = purgeError;
-      }
+      } catch (purgeError) { error = purgeError; }
     }
-    const failureEvent = terminalSpanFailure(
-      jobSpan, error, runtimeLogCauseEventId(error), "JOB_RUNTIME_BOUNDARY_FAILED",
-    );
-    await handleRuntimeBoundaryFailure({
-      state, job, durability: acceptance.durable, error, parentSpanId: jobSpan.spanId,
-      causeEventId: failureEvent.eventId,
-    });
+    const failure = terminalSpanFailure(jobSpan, error, runtimeLogCauseEventId(error), "JOB_RUNTIME_BOUNDARY_FAILED");
+    await handleRuntimeBoundaryFailure({ state, job, error, durability: acceptance.durable,
+      parentSpanId: jobSpan.spanId, causeEventId: failure.eventId });
   }
 };

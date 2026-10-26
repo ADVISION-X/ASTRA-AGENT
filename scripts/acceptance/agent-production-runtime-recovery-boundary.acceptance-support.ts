@@ -257,6 +257,7 @@ const exerciseManifestAndLawOwnership = async (): Promise<void> => {
   assert.deepEqual(runtimeManifestOwnershipDrift([
     "docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md",
     "docs/项目方案/旧交付记录账本误阻断-完整实现方案.md",
+    "docs/项目方案/长材料下载租约边界-完整实现方案.md",
     "docs/specs/agent-production-runtime/**",
     "scripts/acceptance/agent-production-runtime.acceptance.ts",
     "scripts/audit/domains/agent-production-runtime/**",
@@ -267,6 +268,10 @@ const exerciseManifestAndLawOwnership = async (): Promise<void> => {
     "docs/项目方案/AGENT原attempt无失败事实恢复-完整实现方案.md",
   ]), ["docs/项目方案/相邻产品-完整实现方案.md", "docs/项目方案/AGENT原attempt无失败事实恢复-完整实现方案.md"],
   "the current Runtime plan must not grant ownership over other or historical schemes");
+  const copy = "docs/项目方案/长材料下载租约边界-副本.md";
+  assert.ok(runtimeManifest.ownedPaths.includes("docs/项目方案/长材料下载租约边界-完整实现方案.md"));
+  assert.deepEqual(runtimeManifestOwnershipDrift([copy]), [copy],
+    "the admitted current plan does not authorize same-name copies or a plan-directory prefix");
 
   const runtimeLawSource = await readFile(
     new URL("../../.github/instructions/agent-rules/功能法案.md", import.meta.url), "utf8",

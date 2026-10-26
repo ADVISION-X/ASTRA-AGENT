@@ -113,20 +113,21 @@ export const exerciseFirstTerminalBeforeProducerCleanup = async (store: Producti
           return { record: store.readTask(job.job_id), result, providerEffectReadbackProof: null };
         } },
       };
-      const api: Record<string, (input: unknown) => Promise<{ execution: { result: unknown } }>> = {};
+      const api: Record<string, (input: unknown) => Promise<unknown>> = {};
       runInNewContext(code, { exports: api, heartbeatWhileRunning,
+        downloadProductionMaterials: async () => [],
         uploadProductionResult: async () => ({ envelope: result, artifact_receipts: receipts }),
         buildTerminalProductionIntent, deliverTerminalProductionIntent, hashCanonical, executionFailure, ProductionRuntimeBoundaryError,
         requireRuntimeLogWrite: (write: { event: unknown }) => write.event, runRuntimeSpan: ({ action }: { action: () => unknown }) => action(),
         jobIdentity: () => ({}), failureCode: (error: { code?: string }, fallback: string) => error.code ?? fallback,
         safeReason: (error: Error) => error.message, isResultTransportBoundary: () => false,
       });
-      const execution = api.executeAndUpload!({ state, job: claim, task: job, budget: {}, materials: [], abort: controller, jobSpan: { spanId: "span:fixture" } });
+      const execution = api.executeAndUpload!({ state, job: claim, task: job, budget: {}, materialDir: "fixture:materials", abort: controller, jobSpan: { spanId: "span:fixture" } });
       if (controlled) await settleControlReceipt({ timers, order, jobId: job.job_id,
         start: () => { assert.ok(start); start(); }, reply: value => { assert.ok(renewReply); renewReply(value); },
         intent: mode === "cancel" ? "cancel_requested" : "pause_requested" });
       if (mode === "stage-failure" || mode.startsWith("foreign-")) await assert.rejects(execution);
-      else assert.deepEqual((await execution).execution.result, result);
+      else assert.deepEqual(await execution, result);
       verifyFirstTerminalReadback({ mode, controlled, order, timers, controller, store,
         jobId: job.job_id, result, terminalId });
     } finally { globalThis.setTimeout = priorTimer; globalThis.clearTimeout = priorClear; }

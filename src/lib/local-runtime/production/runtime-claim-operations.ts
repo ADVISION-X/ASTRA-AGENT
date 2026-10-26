@@ -10,7 +10,7 @@ import {
 } from "./cloud-client.js";
 import { buildTerminalProductionIntent, deliverTerminalProductionIntent } from "./cloud-terminal-intent.js";
 import { productionCatalogHash } from "./catalog.js";
-import { hashCanonical, type ProductionExecutionLease, type WebsiteAgentTask } from "./contracts.js";
+import { hashCanonical, type ProductionExecutionLease, type WebsiteAgentTask, type WebsiteAgentResult } from "./contracts.js";
 import { heartbeatWhileRunning, ProductionRuntimeBoundaryError } from "./runtime-execution-heartbeat.js";
 import { releaseLeaseWithLog, runRuntimeSpan, runRuntimeSpanSync } from "./runtime-logging.js";
 import { jobIdentity, leaseBudget, safeReason, type RuntimeState } from "./runtime-state.js";
@@ -177,23 +177,6 @@ export const acceptClaim = (
   };
   return { task, budget, record };
 };
-
-export const downloadClaimMaterials = async (
-  state: RuntimeState,
-  job: ClaimedProductionTask,
-  materialDir: string,
-  jobSpan: RuntimeSpanHandle,
-) => {
-  const span = requireRuntimeLogWrite(state.runtimeLogger.startSpan({
-    traceId: job.job_id, parentSpanId: jobSpan.spanId, owner: "production-runtime",
-    component: "production-materials", operation: "material.download-verify", typedIdentity: jobIdentity(job),
-  }));
-  return runRuntimeSpan({
-    span, failureCode: "MATERIAL_DOWNLOAD_VERIFY_FAILED",
-    action: () => downloadProductionMaterials(state.session, job, materialDir),
-  });
-};
-
 export const handleRuntimeBoundaryFailure = async (input: Readonly<{
   state: RuntimeState;
   job: ClaimedProductionTask;
@@ -256,9 +239,25 @@ const sendStagedTerminal = async (input: Readonly<{ state: RuntimeState; job: Cl
 type ExecuteAndUploadInput = Readonly<{
   state: RuntimeState; job: ClaimedProductionTask; task: WebsiteAgentTask;
   budget: ProductionExecutionLease;
-  materials: Awaited<ReturnType<typeof downloadProductionMaterials>>;
+  materialDir: string;
   abort: AbortController; jobSpan: RuntimeSpanHandle;
 }>;
+
+const downloadClaimMaterials = async (
+  state: RuntimeState, job: ClaimedProductionTask, materialDir: string,
+  jobSpan: RuntimeSpanHandle, signal: AbortSignal,
+) => {
+  try {
+    const span = requireRuntimeLogWrite(state.runtimeLogger.startSpan({
+      traceId: job.job_id, parentSpanId: jobSpan.spanId, owner: "production-runtime",
+      component: "production-materials", operation: "material.download-verify", typedIdentity: jobIdentity(job),
+    }));
+    return await runRuntimeSpan({ span, failureCode: "MATERIAL_DOWNLOAD_VERIFY_FAILED",
+      action: () => downloadProductionMaterials(state.session, job, materialDir, signal) });
+  } catch (error) {
+    throw new ProductionRuntimeBoundaryError(error);
+  }
+};
 
 const uploadAndStageResult = async (input: ExecuteAndUploadInput,
   output: Parameters<typeof uploadProductionResult>[0]["output"],
@@ -280,28 +279,32 @@ const uploadAndStageResult = async (input: ExecuteAndUploadInput,
     attemptId: input.job.grant.attempt_id, result: uploaded.envelope, terminal: terminalIntent.write });
   return { uploaded, terminalIntent };
 };
-
-export const executeAndUpload = async (input: ExecuteAndUploadInput) => {
+export const executeAndUpload = async (input: ExecuteAndUploadInput): Promise<WebsiteAgentResult> => {
   let staged: Awaited<ReturnType<typeof uploadAndStageResult>> | undefined;
-  let uploadBoundaryFailure: unknown | undefined;
-  const generatedImageReceipts: Awaited<ReturnType<typeof uploadProductionGeneratedImage>>["transportReceipt"][] = [];
-  let execution: Awaited<ReturnType<RuntimeState["executor"]["execute"]>>;
+  let uploadBoundaryFailure: unknown;
+  const imageReceipts: Awaited<ReturnType<typeof uploadProductionGeneratedImage>>["transportReceipt"][] = [];
   try {
-    execution = await heartbeatWhileRunning({ state: input.state, job: input.job, budget: input.budget,
-      execute: stopAndJoinRenewal => input.state.executor.execute(input.task, input.materials, input.budget, input.jobSpan.spanId,
-        async output => {
-          try { staged = await uploadAndStageResult(input, output, generatedImageReceipts); }
-          catch (error) { if (isResultTransportBoundary(error)) uploadBoundaryFailure = error; throw error; }
-          await stopAndJoinRenewal();
-          await sendStagedTerminal({ state: input.state, job: input.job, jobSpan: input.jobSpan,
-            terminalIntent: staged.terminalIntent });
-          return staged.uploaded.envelope;
-        }, async artifact => {
-          const image = await uploadProductionGeneratedImage(input.state.session, input.state.store, input.job, artifact);
-          generatedImageReceipts.push(image.transportReceipt);
-          return image.receipt;
-        }),
+    await heartbeatWhileRunning({ state: input.state, job: input.job, budget: input.budget,
       abort: input.abort, parentSpanId: input.jobSpan.spanId,
+      execute: async stopAndJoinRenewal => {
+        const materials = await downloadClaimMaterials(
+          input.state, input.job, input.materialDir, input.jobSpan, input.abort.signal,
+        );
+        if (input.abort.signal.aborted) throw new ProductionRuntimeBoundaryError(input.abort.signal.reason);
+        return input.state.executor.execute(input.task, materials, input.budget, input.jobSpan.spanId,
+          async output => {
+            try { staged = await uploadAndStageResult(input, output, imageReceipts); }
+            catch (error) { if (isResultTransportBoundary(error)) uploadBoundaryFailure = error; throw error; }
+            await stopAndJoinRenewal();
+            await sendStagedTerminal({ state: input.state, job: input.job, jobSpan: input.jobSpan,
+              terminalIntent: staged.terminalIntent });
+            return staged.uploaded.envelope;
+          }, async artifact => {
+            const uploaded = await uploadProductionGeneratedImage(input.state.session, input.state.store, input.job, artifact);
+            imageReceipts.push(uploaded.transportReceipt);
+            return uploaded.receipt;
+          });
+      },
     });
   } catch (error) {
     const durable = input.state.store.readTask(input.job.job_id);
@@ -309,30 +312,24 @@ export const executeAndUpload = async (input: ExecuteAndUploadInput) => {
     const authority = staged ? input.state.store.readOutboxAuthority(staged.terminalIntent.requestId) : null;
     if (staged && durable && result && authority?.jobId === input.job.job_id
       && durable.task.request_hash === input.task.request_hash && durable.current_attempt_id === input.job.grant.attempt_id
-      && hashCanonical(result) === hashCanonical(staged.uploaded.envelope)) {
-      execution = { record: durable, result, providerEffectReadbackProof: null };
-    } else {
-      if (uploadBoundaryFailure !== undefined) throw new ProductionRuntimeBoundaryError(uploadBoundaryFailure);
-      throw error;
-    }
+      && hashCanonical(result) === hashCanonical(staged.uploaded.envelope)) return staged.uploaded.envelope;
+    if (uploadBoundaryFailure !== undefined) throw new ProductionRuntimeBoundaryError(uploadBoundaryFailure);
+    throw error;
   }
   if (!staged) throw new Error("PLUGIN_RESULT_UPLOAD_MISSING");
-  return { execution, ...staged };
+  return staged.uploaded.envelope;
 };
 
 export const completeClaim = async (input: Readonly<{
   state: RuntimeState;
   job: ClaimedProductionTask;
-  execution: Awaited<ReturnType<RuntimeState["executor"]["execute"]>>;
-  uploaded: Awaited<ReturnType<typeof uploadProductionResult>>;
-  terminalIntent: ReturnType<typeof buildTerminalProductionIntent>;
-  materialDir: string;
+  result: WebsiteAgentResult;
   jobSpan: RuntimeSpanHandle;
 }>): Promise<void> => {
   const record = input.state.store.readTask(input.job.job_id)!;
   const result = record.staged_result ?? (record.status === "completed" ? record.result : null);
   if (record.current_attempt_id !== input.job.grant.attempt_id || !result
-    || hashCanonical(result) !== hashCanonical(input.uploaded.envelope)) throw executionFailure("failed", "PRODUCTION_TASK_COMPLETION_CONFLICT");
+    || hashCanonical(result) !== hashCanonical(input.result)) throw executionFailure("failed", "PRODUCTION_TASK_COMPLETION_CONFLICT");
   await reconcileBusinessAdmission(input.state, record);
   const current = input.state.store.readTask(input.job.job_id)!;
   requireRuntimeLogWrite(input.jobSpan.terminal({

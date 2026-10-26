@@ -8,6 +8,7 @@ import {
   heartbeatWhileRunning,
 } from "../../src/lib/local-runtime/production/runtime-execution-heartbeat.js";
 import { typedRuntimeTransportFailure } from "../../src/lib/local-runtime/production/transport-failure.js";
+import { exerciseMaterialLeaseBoundary } from "./agent-production-runtime-material-lease.acceptance-support.js";
 import {
   DeviceCredentialSchema,
   type ClaimedProductionTask,
@@ -363,25 +364,9 @@ const exerciseSessionRequestBudget = async (tick: () => Promise<void>, advance: 
     assert.equal(getEventListeners(controller.signal, "abort").length, 0);
   }
 };
-
-const exerciseRenewalCompletionJoin = async (): Promise<void> => {
-  const original = { fetch: globalThis.fetch, setTimeout: globalThis.setTimeout,
-    clearTimeout: globalThis.clearTimeout, now: Date.now };
-  const timers = new Map<number, { run: () => void; ms: number }>();
-  let id = 0, now = Date.parse("2026-09-03T00:00:00.000Z");
-  const tick = async () => { for (let turn = 0; turn < 60; turn += 1) await Promise.resolve(); };
-  const advance = async (ms: number) => {
-    const timer = [...timers].find(([, entry]) => entry.ms === ms);
-    assert.ok(timer, `missing actual timer:${ms}`);
-    timers.delete(timer![0]); now += ms; timer![1].run(); await tick();
-  };
-  Date.now = () => now;
-  globalThis.setTimeout = ((run: () => void, ms: number) => {
-    const key = ++id; timers.set(key, { run, ms }); return key;
-  }) as never;
-  globalThis.clearTimeout = ((key: number) => { timers.delete(key); }) as never;
-  try {
-    for (const mode of ["success", "retry", "fence", "schema", "control", "budget"] as const) {
+const exerciseRenewalCompletionModes = async (tick: () => Promise<void>, advance: (ms: number) => Promise<void>,
+  timers: Readonly<{ size: number }>): Promise<void> => {
+  for (const mode of ["success", "retry", "fence", "schema", "control", "budget"] as const) {
       const controller = new AbortController(), j = job();
       const responses: ((value: Response) => void)[] = [];
       let calls = 0, stage!: () => void, cleanup!: () => void, sent = false;
@@ -418,11 +403,33 @@ const exerciseRenewalCompletionJoin = async (): Promise<void> => {
       cleanup(); const result = await outcome;
       assert.equal("value" in result, success); assert.equal(calls, mode === "retry" ? 2 : 1);
     }
+};
+
+const exerciseRenewalCompletionJoin = async (): Promise<void> => {
+  const original = { fetch: globalThis.fetch, setTimeout: globalThis.setTimeout,
+    clearTimeout: globalThis.clearTimeout, now: Date.now, monotonic: performance.now };
+  const timers = new Map<number, { run: () => void; ms: number }>();
+  let id = 0, now = Date.parse("2026-09-03T00:00:00.000Z");
+  const tick = async () => { for (let turn = 0; turn < 60; turn += 1) await Promise.resolve(); };
+  const advance = async (ms: number) => {
+    const timer = [...timers].find(([, entry]) => entry.ms === ms);
+    assert.ok(timer, `missing actual timer:${ms}`);
+    timers.delete(timer![0]); now += ms; timer![1].run(); await tick();
+  };
+  Date.now = () => now;
+  performance.now = () => now - Date.parse("2026-09-03T00:00:00.000Z");
+  globalThis.setTimeout = ((run: () => void, ms: number) => {
+    const key = ++id; timers.set(key, { run, ms }); return key;
+  }) as never;
+  globalThis.clearTimeout = ((key: number) => { timers.delete(key); }) as never;
+  try {
+    await exerciseRenewalCompletionModes(tick, advance, timers);
     await exerciseExecutorRejectDuringRenew(tick, advance, timers);
     await exerciseSessionRequestBudget(tick, advance, timers);
+    await exerciseMaterialLeaseBoundary(tick, advance, timers);
   } finally {
     globalThis.fetch = original.fetch; globalThis.setTimeout = original.setTimeout;
-    globalThis.clearTimeout = original.clearTimeout; Date.now = original.now;
+    globalThis.clearTimeout = original.clearTimeout; Date.now = original.now; performance.now = original.monotonic;
   }
 };
 
