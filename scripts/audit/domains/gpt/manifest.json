@@ -16,6 +16,7 @@
     "docs/项目方案/GPT附件入口OR精确迭代-完整实现方案.md",
     "docs/项目方案/GPT页面DOM与代码差距报告.md",
     "docs/项目方案/GPT页面操作子能力实证资料.json",
+    "docs/项目方案/SEO原会话URL连续-完整实现方案.md",
     "scripts/acceptance/gpt.real-proof.ts",
     "scripts/audit/domains/gpt/**",
     "src/capabilities/gpt/**"

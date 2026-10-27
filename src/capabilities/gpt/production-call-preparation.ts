@@ -20,8 +20,7 @@ import { productChildResult } from "./production-child-result.js";
 export const acquireProductionBrowserCall = async (
   browsers: ProductionGptBrowserLifecycle,
   call: ProductGptCallInput<GptChildCapabilityId> & Readonly<{ sessionKey: string }>,
-  requiredTargetKind: "chatgpt" | "none",
-  priorEffectKnown: boolean,
+  requiredTargetKind: "chatgpt" | "none", priorEffectKnown: boolean,
   confirmedSubmission?: ProductionGptBrowserCall["confirmedProviderEffect"],
 ): Promise<ProductionGptBrowserCall | undefined> => {
   if (requiredTargetKind !== "chatgpt") return undefined;
@@ -34,11 +33,11 @@ export const acquireProductionBrowserCall = async (
       confirmedSubmission.canonicalConversationUrl, confirmedSubmission.userTurnId);
     return active;
   }
-  return priorEffectKnown && call.child === "acknowledge_known_gpt_rate_limit"
-    ? await browsers.browserForRateLimitRecovery(call.sessionKey, call.productStepId, call.callId)
-    : await browsers.browserFor(call.sessionKey, call.productStepId, call.callId);
+  if (priorEffectKnown && call.child === "acknowledge_known_gpt_rate_limit") {
+    return browsers.browserForRateLimitRecovery(call.sessionKey, call.productStepId, call.callId);
+  }
+  return browsers.browserFor(call.sessionKey, call.productStepId, call.callId, call.child === "prepare_clean_gpt_chat");
 };
-
 export const recoverPersistedCheckpoint = async <K extends GptChildCapabilityId>(input: Readonly<{
   evidenceStore: Parameters<typeof readPersistedGptTextResponse>[0]["evidenceStore"];
   execution: ExecutionInput; intent: GptChildCapabilityIntent<K>; call: ProductGptCallInput<K>; span: RuntimeSpanHandle;

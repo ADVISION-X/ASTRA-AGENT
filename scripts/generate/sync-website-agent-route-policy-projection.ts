@@ -24,7 +24,7 @@ function exact(input: Record<string, unknown>, keys: readonly string[]): void {
 const artifact = object(projection);
 exact(artifact, ["schema_version", "contract_id", "contract_version", "parameter_types", "routes"]);
 if (artifact.schema_version !== "website-agent-route-policies.v1" || artifact.contract_id !== "ai-acceptance.website-agent-task-result"
-  || artifact.contract_version !== 22 || !Array.isArray(artifact.routes) || artifact.routes.length !== 43) {
+  || artifact.contract_version !== 23 || !Array.isArray(artifact.routes) || artifact.routes.length !== 43) {
   throw new Error("WEBSITE_AGENT_ROUTE_POLICY_PROVIDER_INVALID");
 }
 const parameters = object(artifact.parameter_types);

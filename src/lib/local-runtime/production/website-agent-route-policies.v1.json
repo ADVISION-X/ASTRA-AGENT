@@ -1,7 +1,7 @@
 {
   "schema_version": "website-agent-route-policies.v1",
   "contract_id": "ai-acceptance.website-agent-task-result",
-  "contract_version": 22,
+  "contract_version": 23,
   "parameter_types": {
     "admitted_identity_catalog_hash": "sha256",
     "analysis_kind": "bazi_analysis_kind",
@@ -1473,41 +1473,21 @@
       ],
       "material_roles": [
         {
-          "role": "source_content",
+          "role": "localization_reference_archive",
           "trust_class": "locked_fact",
           "may_issue_instruction": false,
           "media_types": [
-            "application/json"
+            "application/zip"
           ],
           "storage_class": "private_owner_scoped",
           "owner_scope_policy": "required"
         },
         {
-          "role": "terminology",
-          "trust_class": "instruction",
-          "may_issue_instruction": true,
+          "role": "localization_work_archive",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
           "media_types": [
-            "application/json"
-          ],
-          "storage_class": "private_owner_scoped",
-          "owner_scope_policy": "required"
-        },
-        {
-          "role": "locale_policy",
-          "trust_class": "instruction",
-          "may_issue_instruction": true,
-          "media_types": [
-            "application/json"
-          ],
-          "storage_class": "private_owner_scoped",
-          "owner_scope_policy": "required"
-        },
-        {
-          "role": "render_policy",
-          "trust_class": "instruction",
-          "may_issue_instruction": true,
-          "media_types": [
-            "application/json"
+            "application/zip"
           ],
           "storage_class": "private_owner_scoped",
           "owner_scope_policy": "required"
@@ -1547,41 +1527,21 @@
       ],
       "material_roles": [
         {
-          "role": "source_content",
+          "role": "localization_reference_archive",
           "trust_class": "locked_fact",
           "may_issue_instruction": false,
           "media_types": [
-            "application/json"
+            "application/zip"
           ],
           "storage_class": "private_owner_scoped",
           "owner_scope_policy": "required"
         },
         {
-          "role": "terminology",
-          "trust_class": "instruction",
-          "may_issue_instruction": true,
+          "role": "localization_work_archive",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
           "media_types": [
-            "application/json"
-          ],
-          "storage_class": "private_owner_scoped",
-          "owner_scope_policy": "required"
-        },
-        {
-          "role": "locale_policy",
-          "trust_class": "instruction",
-          "may_issue_instruction": true,
-          "media_types": [
-            "application/json"
-          ],
-          "storage_class": "private_owner_scoped",
-          "owner_scope_policy": "required"
-        },
-        {
-          "role": "render_policy",
-          "trust_class": "instruction",
-          "may_issue_instruction": true,
-          "media_types": [
-            "application/json"
+            "application/zip"
           ],
           "storage_class": "private_owner_scoped",
           "owner_scope_policy": "required"
@@ -1624,11 +1584,21 @@
       ],
       "material_roles": [
         {
-          "role": "static_catalog_input",
+          "role": "localization_reference_archive",
           "trust_class": "locked_fact",
           "may_issue_instruction": false,
           "media_types": [
-            "application/json"
+            "application/zip"
+          ],
+          "storage_class": "shared_static",
+          "owner_scope_policy": "forbidden"
+        },
+        {
+          "role": "localization_work_archive",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/zip"
           ],
           "storage_class": "shared_static",
           "owner_scope_policy": "forbidden"

@@ -34,21 +34,28 @@ const executionContext = (input: AtomicGptCallInput, browser: ProductionGptBrows
 export const executeProductionGptAtomicCall = async (input: AtomicGptCallInput): Promise<ProductionGptAtomicCallResult> => {
   const browser = input.browserCall?.facade;
   if (input.confirmedProviderEffectReadback) {
-    const context = executionContext(input, undefined, input.browserAtomicIdentity);
-    const result = await readPriorAtomicOutcome({ gpt: input.gpt, intent: input.intent, context, browser: undefined,
+    const result = await readPriorAtomicOutcome({ gpt: input.gpt, intent: input.intent,
+      context: executionContext(input, undefined, input.browserAtomicIdentity), browser: undefined,
       priorOutcome: input.confirmedProviderEffectReadback.outcome });
     if (!result) throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_READBACK_INVALID");
     return result;
   }
-  if (!browser) return await input.gpt.execute(input.intent, executionContext(input, undefined));
+  if (!browser) return input.gpt.execute(input.intent, executionContext(input, undefined));
   const identity = input.browserAtomicIdentity ?? productionGptAtomicIdentity(input.intent, input.resultRevision);
   const context = executionContext(input, browser, identity), priorOutcome = browser.readAtomicStepOutcome(identity);
-  if (!priorOutcome) return await browser.runAtomicStep(identity, () => input.gpt.execute(input.intent, context));
+  if (!priorOutcome) return await browser.runAtomicStep(identity, async () => {
+    if (input.browserCall!.recoverySelectionRequired
+      && input.intent.childCapabilityId !== "acknowledge_known_gpt_rate_limit") {
+      await input.browsers.selectSettledConversation(input.browserCall!);
+    }
+    return input.gpt.execute(input.intent, context);
+  });
   const readback = await readPriorAtomicOutcome({ gpt: input.gpt, intent: input.intent, context, browser, priorOutcome });
   if (readback) return readback;
   const projected = projectBrowserFact(input.intent, context);
   throw executionFailure("failed", "GPT_ATOMIC_STEP_ALREADY_ATTEMPTED", { metadata: {
-    mutationOutcome: priorOutcome.mutationOutcome, evidence: { evidenceRef: priorOutcome.authorityRef, evidenceHash: priorOutcome.authorityHash },
+    mutationOutcome: priorOutcome.mutationOutcome,
+    evidence: { evidenceRef: priorOutcome.authorityRef, evidenceHash: priorOutcome.authorityHash },
     ...(projected ? { browserEffect: { effectScope: projected.fact.effectScope, childCapabilityId: projected.fact.childCapabilityId,
       browserOutcome: projected.fact.browserOutcome, providerEffectIdentityHash: projected.fact.providerEffectIdentityHash } } : {}) } });
 };

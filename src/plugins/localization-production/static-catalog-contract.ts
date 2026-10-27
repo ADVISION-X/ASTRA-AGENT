@@ -5,8 +5,8 @@ import {
   type WebsiteAgentTask,
 } from "../../mediator/product-plugin-contract.js";
 import { executionFailure } from "../../lib/execution-failure.js";
-
-const TARGET_LOCALES = new Set(["zh-HK", "zh-TW", "en-US", "ja-JP", "ko-KR"]);
+import { isDeepStrictEqual } from "node:util";
+import type { LocalizationReference } from "./material-archives.js";
 const HASH = /^sha256:[a-f0-9]{64}$/u;
 const PUBLIC_VALUE_AUTHORITY_REFS = ["LAW-PROJECT-GOVERNANCE-010-V1", "LAW-USER-VALUE-INTERFACE-001-V4"] as const;
 const PUBLIC_VALUE_AUTHORITY_HASHES = [
@@ -42,51 +42,20 @@ interface PublicValueBinding {
   readonly tool_role: "not_present" | "approved_disclosure_only";
 }
 
+type Sibling = Readonly<{ message_id: string; source_text: string; source_hash: ProductionHash;
+  text: string | null; text_hash: ProductionHash | null; origin_hash: ProductionHash | null }>;
 export interface ContextBundle {
-  readonly schema_version: "target-language-context-bundle.v3";
-  readonly message_syntax: "typed-placeholder-v1";
-  readonly review_kind: "target_language_translation";
+  readonly schema_version: "target-language-context-bundle.v4";
   readonly locale: TargetLocale;
-  readonly source_locale: "zh-CN";
   readonly source_catalog_hash: ProductionHash;
   readonly batch_id: string;
   readonly cohort_id: string;
   readonly cohort_message_ids: readonly string[];
   readonly ordered_pending_ids_hash: ProductionHash;
-  readonly read_only_siblings: readonly Readonly<{
-    message_id: string;
-    source_text: string;
-    source_hash: ProductionHash;
-    text: string;
-    text_hash: ProductionHash;
-    origin_hash: ProductionHash;
-  }>[];
-  readonly expression_policy_hash: ProductionHash;
-  readonly expression_policy_json: string;
-  readonly terminology_hash: ProductionHash;
-  readonly terminology_json: string;
-  readonly format_policy_hash: ProductionHash;
-  readonly format_policy_source: string;
+  readonly read_only_siblings: readonly Sibling[];
   readonly public_value_binding: PublicValueBinding;
   readonly message_items: readonly ContextItem[];
-}
-
-export interface StaticCohort {
-  readonly batch_id: string;
-  readonly context_bundle_json: string;
-  readonly context_bundle_hash: ProductionHash;
-  readonly message_count: number;
-}
-
-export interface StaticCatalogInput {
-  readonly schema_version: "localization-static-catalog-input.v1";
-  readonly target_locale: TargetLocale;
-  readonly source_resource_id: "website-fixed-copy-catalog";
-  readonly source_version: string;
-  readonly source_sha256: ProductionHash;
-  readonly policy_version: string;
-  readonly expected_message_count: number;
-  readonly context_bundles: readonly [StaticCohort];
+  readonly [key: string]: unknown;
 }
 
 export interface CandidateItem {
@@ -133,10 +102,6 @@ const sortedUnique = (values: readonly string[]): readonly string[] => [...new S
 const canonicalApprovalRef = (sourceCatalogHash: ProductionHash): string =>
   `content/zh-CN/locales/messages.json#production-approved-${sourceCatalogHash}`;
 
-function parseJsonObject(value: string, code: string): Record<string, unknown> {
-  try { return objectValue(JSON.parse(value) as unknown, code); } catch { return fail(code); }
-}
-
 export function sameStrings(left: readonly string[], right: readonly string[]): boolean {
   return left.length === right.length && left.every((item, index) => item === right[index]);
 }
@@ -164,6 +129,8 @@ function parseContextItem(value: unknown): ContextItem {
     || typeof candidate.allow_wrapping !== "boolean") fail("LOCALIZATION_STATIC_SOURCE_MECHANICS_INVALID");
   if (candidate.failure_code !== null && (typeof candidate.failure_code !== "string"
     || !/^[A-Z][A-Z0-9_]*$/u.test(candidate.failure_code))) fail("LOCALIZATION_STATIC_FAILURE_CODE_INVALID");
+  if (candidate.correction_ref !== null && (typeof candidate.correction_ref !== "string"
+    || !candidate.correction_ref.trim())) fail("LOCALIZATION_STATIC_CORRECTION_REF_INVALID");
   return { ...candidate, message_id: stringValue(candidate.message_id, "LOCALIZATION_STATIC_MESSAGE_ID_INVALID"),
     semantic_owner: stringValue(candidate.semantic_owner, "LOCALIZATION_PUBLIC_VALUE_CONTEXT_MISSING"),
     surface_ref: stringValue(candidate.surface_ref, "LOCALIZATION_PUBLIC_VALUE_CONTEXT_MISSING"),
@@ -196,114 +163,99 @@ function parsePublicValueBinding(value: unknown, items: readonly ContextItem[], 
     visible_evidence_refs: visibleEvidenceRefs, tool_role: binding.tool_role as PublicValueBinding["tool_role"] };
 }
 
-export function parseContext(cohort: StaticCohort, input: StaticCatalogInput): ContextBundle {
-  if (sha256(cohort.context_bundle_json) !== cohort.context_bundle_hash) fail("LOCALIZATION_STATIC_CONTEXT_HASH_INVALID");
-  const raw = parseJsonObject(cohort.context_bundle_json, "LOCALIZATION_STATIC_CONTEXT_JSON_INVALID");
-  if (!raw.public_value_binding) fail("LOCALIZATION_PUBLIC_VALUE_CONTEXT_MISSING");
-  exact(raw, ["schema_version", "message_syntax", "review_kind", "locale", "source_locale", "source_catalog_hash",
-    "batch_id", "cohort_id", "cohort_message_ids", "ordered_pending_ids_hash", "read_only_siblings",
-    "expression_policy_hash", "expression_policy_json", "terminology_hash", "terminology_json",
-    "format_policy_hash", "format_policy_source", "public_value_binding", "message_items"],
-  "LOCALIZATION_STATIC_CONTEXT_FIELDS_INVALID");
-  const rawItems = Array.isArray(raw.message_items) ? raw.message_items : [];
-  if (![raw.schema_version === "target-language-context-bundle.v3", raw.message_syntax === "typed-placeholder-v1",
-    raw.review_kind === "target_language_translation", raw.locale === input.target_locale, raw.source_locale === "zh-CN",
-    raw.source_catalog_hash === input.source_sha256, raw.batch_id === cohort.batch_id,
-    rawItems.length === cohort.message_count, rawItems.length > 0].every(Boolean)) fail("LOCALIZATION_STATIC_CONTEXT_IDENTITY_INVALID");
-  for (const pair of [[raw.expression_policy_json, raw.expression_policy_hash],
-    [raw.terminology_json, raw.terminology_hash], [raw.format_policy_source, raw.format_policy_hash]] as const) {
-    if (typeof pair[0] !== "string" || sha256(pair[0]) !== pair[1]) fail("LOCALIZATION_STATIC_POLICY_HASH_INVALID");
-  }
-  const items = rawItems.map(parseContextItem);
-  if (new Set(items.map((item) => item.message_id)).size !== items.length) fail("LOCALIZATION_STATIC_MESSAGE_ID_INVALID");
-  const pendingHash = hashCanonical(items.map((item) => item.message_id));
-  if (raw.ordered_pending_ids_hash !== pendingHash) fail("LOCALIZATION_STATIC_PENDING_IDS_HASH_INVALID");
-  if (!Array.isArray(raw.read_only_siblings)) fail("LOCALIZATION_STATIC_SIBLINGS_INVALID");
-  const siblings = raw.read_only_siblings.map((entry) => {
-    const sibling = objectValue(entry, "LOCALIZATION_STATIC_SIBLINGS_INVALID");
-    exact(sibling, ["message_id", "source_text", "source_hash", "text", "text_hash", "origin_hash"],
-      "LOCALIZATION_STATIC_SIBLINGS_INVALID");
-    const sourceText = stringValue(sibling.source_text, "LOCALIZATION_STATIC_SIBLINGS_INVALID");
-    const targetText = stringValue(sibling.text, "LOCALIZATION_STATIC_SIBLINGS_INVALID");
-    if (sibling.source_hash !== sha256(sourceText) || sibling.text_hash !== sha256(targetText)) {
-      fail("LOCALIZATION_STATIC_SIBLINGS_INVALID");
-    }
-    return { message_id: stringValue(sibling.message_id, "LOCALIZATION_STATIC_SIBLINGS_INVALID"),
-      source_text: sourceText, source_hash: sibling.source_hash as ProductionHash, text: targetText,
-      text_hash: sibling.text_hash as ProductionHash,
-      origin_hash: hashValue(sibling.origin_hash, "LOCALIZATION_STATIC_SIBLINGS_INVALID") };
-  });
-  const allIds = [...items.map((item) => item.message_id), ...siblings.map((item) => item.message_id)];
-  if (new Set(allIds).size !== allIds.length) fail("LOCALIZATION_STATIC_SIBLINGS_INVALID");
-  const cohortIds = stringArray(raw.cohort_message_ids, "LOCALIZATION_STATIC_COHORT_IDENTITY_INVALID");
-  if (new Set(cohortIds).size !== cohortIds.length
-    || !sameStrings([...cohortIds].sort(), [...allIds].sort())) {
-    fail("LOCALIZATION_STATIC_COHORT_IDENTITY_INVALID");
-  }
-  const sourceCatalogHash = hashValue(raw.source_catalog_hash, "LOCALIZATION_STATIC_SOURCE_HASH_INVALID");
-  return {
-    schema_version: "target-language-context-bundle.v3", message_syntax: "typed-placeholder-v1",
-    review_kind: "target_language_translation", locale: input.target_locale, source_locale: "zh-CN",
-    source_catalog_hash: sourceCatalogHash,
-    batch_id: stringValue(raw.batch_id, "LOCALIZATION_STATIC_BATCH_ID_INVALID"),
-    cohort_id: stringValue(raw.cohort_id, "LOCALIZATION_STATIC_COHORT_ID_INVALID"),
-    cohort_message_ids: cohortIds,
-    ordered_pending_ids_hash: hashValue(raw.ordered_pending_ids_hash, "LOCALIZATION_STATIC_PENDING_IDS_HASH_INVALID"),
-    read_only_siblings: siblings,
-    expression_policy_hash: hashValue(raw.expression_policy_hash, "LOCALIZATION_STATIC_POLICY_HASH_INVALID"),
-    expression_policy_json: stringValue(raw.expression_policy_json, "LOCALIZATION_STATIC_POLICY_HASH_INVALID"),
-    terminology_hash: hashValue(raw.terminology_hash, "LOCALIZATION_STATIC_POLICY_HASH_INVALID"),
-    terminology_json: stringValue(raw.terminology_json, "LOCALIZATION_STATIC_POLICY_HASH_INVALID"),
-    format_policy_hash: hashValue(raw.format_policy_hash, "LOCALIZATION_STATIC_POLICY_HASH_INVALID"),
-    format_policy_source: stringValue(raw.format_policy_source, "LOCALIZATION_STATIC_POLICY_HASH_INVALID"),
-    public_value_binding: parsePublicValueBinding(raw.public_value_binding, items, sourceCatalogHash),
-    message_items: items,
-  };
+function parseSibling(value: unknown): Sibling {
+  const code = "LOCALIZATION_STATIC_SIBLINGS_INVALID", raw = objectValue(value, code);
+  exact(raw, ["message_id", "source_text", "source_hash", "text", "text_hash", "origin_hash"], code);
+  const sourceText = stringValue(raw.source_text, code), sourceHash = hashValue(raw.source_hash, code);
+  if (sha256(sourceText) !== sourceHash) fail(code);
+  const nullable = [raw.text, raw.text_hash, raw.origin_hash];
+  const allNull = nullable.every(item => item === null);
+  if (!allNull && nullable.some(item => item === null)) fail(code);
+  const target = allNull ? null : stringValue(raw.text, code);
+  if (target !== null && raw.text_hash !== sha256(target)) fail(code);
+  return { message_id: stringValue(raw.message_id, code), source_text: sourceText, source_hash: sourceHash,
+    text: target, text_hash: allNull ? null : hashValue(raw.text_hash, code),
+    origin_hash: allNull ? null : hashValue(raw.origin_hash, code) };
 }
 
-export function parseInput(value: unknown, task: WebsiteAgentTask): StaticCatalogInput {
-  const input = objectValue(value, "LOCALIZATION_STATIC_INPUT_INVALID");
-  exact(input, ["schema_version", "target_locale", "source_resource_id", "source_version", "source_sha256",
-    "policy_version", "expected_message_count", "context_bundles"], "LOCALIZATION_STATIC_INPUT_FIELDS_INVALID");
-  if (input.schema_version !== "localization-static-catalog-input.v1"
-    || !TARGET_LOCALES.has(String(input.target_locale))
-    || input.source_resource_id !== "website-fixed-copy-catalog"
-    || !Number.isSafeInteger(input.expected_message_count) || Number(input.expected_message_count) < 1
-    || !Array.isArray(input.context_bundles) || input.context_bundles.length !== 1) {
-    fail("LOCALIZATION_STATIC_INPUT_IDENTITY_INVALID");
+function checkPolicies(raw: Record<string, unknown>, reference: LocalizationReference): void {
+  const refs = objectValue(raw.policy_refs, "LOCALIZATION_STATIC_POLICY_REF_INVALID");
+  exact(refs, ["terminology", "locale_policy", "render_policy"], "LOCALIZATION_STATIC_POLICY_REF_INVALID");
+  for (const [key, hashKey] of [["terminology", "terminology_hash"], ["locale_policy", "expression_policy_hash"],
+    ["render_policy", "format_policy_hash"]] as const) {
+    if (refs[key] !== `本地化依据/语言政策/${key}.txt` || typeof reference[key] !== "string"
+      || raw[hashKey] !== sha256(reference[key] as string)) fail("LOCALIZATION_STATIC_POLICY_HASH_INVALID");
   }
-  for (const key of ["target_locale", "source_resource_id", "source_version", "source_sha256", "policy_version"] as const) {
-    if (input[key] !== task.parameters[key]) fail("LOCALIZATION_STATIC_TASK_INPUT_MISMATCH");
+  const expected = reference.product_sources.map(({ utf8_text: _text, ...identity }) => identity);
+  if (!isDeepStrictEqual(raw.product_source_refs, expected)) fail("LOCALIZATION_STATIC_PRODUCT_REFS_INVALID");
+}
+
+function backgroundSources(values: readonly unknown[]): ReadonlyMap<string, Record<string, unknown>> {
+  const code = "LOCALIZATION_STATIC_BACKGROUND_INVALID";
+  const sources = new Map<string, Record<string, unknown>>();
+  for (const value of values) {
+    const source = objectValue(value, code), id = stringValue(source.message_id, code);
+    exact(source, ["message_id", "text", "semantic_owner", "parameter_schema", "source_hash", "occurrences", "product_context", "current_target"], code);
+    if (sources.has(id) || source.source_hash !== sha256(stringValue(source.text, code))) fail(code);
+    stringValue(source.semantic_owner, code); stringArray(source.parameter_schema, code);
+    if (!Array.isArray(source.occurrences)) fail(code);
+    if (source.current_target !== null) {
+      const target = objectValue(source.current_target, code); exact(target, ["text", "text_hash", "origin_hash"], code);
+      if (target.text_hash !== sha256(stringValue(target.text, code))) fail(code);
+      hashValue(target.origin_hash, code);
+    }
+    sources.set(id, source);
   }
-  const rawCohort = objectValue(input.context_bundles[0], "LOCALIZATION_STATIC_COHORT_INVALID");
-  exact(rawCohort, ["batch_id", "context_bundle_json", "context_bundle_hash", "message_count"],
-    "LOCALIZATION_STATIC_COHORT_FIELDS_INVALID");
-  if (!Number.isSafeInteger(rawCohort.message_count) || Number(rawCohort.message_count) < 1) {
-    fail("LOCALIZATION_STATIC_COHORT_COUNT_INVALID");
+  return sources;
+}
+
+function checkBackground(raw: Record<string, unknown>, items: readonly ContextItem[], siblings: readonly Sibling[]): void {
+  const code = "LOCALIZATION_STATIC_BACKGROUND_INVALID";
+  if (!Array.isArray(raw.source_items) || !Array.isArray(raw.page_contexts) || !raw.page_contexts.length) fail(code);
+  const sources = backgroundSources(raw.source_items);
+  const covered = new Set<string>();
+  for (const value of raw.page_contexts) {
+    const page = objectValue(value, code); exact(page, ["kind", "surface_ref", "source_refs", "ordered_message_ids"], code);
+    if (!["web_page", "operation_unit"].includes(String(page.kind)) || !stringArray(page.source_refs, code).length) fail(code);
+    stringValue(page.surface_ref, code);
+    const ids = stringArray(page.ordered_message_ids, code);
+    if (!ids.length || new Set(ids).size !== ids.length || ids.some(id => !sources.has(id))) fail(code);
+    ids.forEach(id => covered.add(id));
   }
-  const cohort: StaticCohort = {
-    batch_id: stringValue(rawCohort.batch_id, "LOCALIZATION_STATIC_BATCH_ID_INVALID"),
-    context_bundle_json: stringValue(rawCohort.context_bundle_json, "LOCALIZATION_STATIC_CONTEXT_JSON_INVALID"),
-    context_bundle_hash: hashValue(rawCohort.context_bundle_hash, "LOCALIZATION_STATIC_CONTEXT_HASH_INVALID"),
-    message_count: Number(rawCohort.message_count),
-  };
-  const parsed: StaticCatalogInput = {
-    schema_version: "localization-static-catalog-input.v1",
-    target_locale: input.target_locale as TargetLocale,
-    source_resource_id: "website-fixed-copy-catalog",
-    source_sha256: hashValue(input.source_sha256, "LOCALIZATION_STATIC_SOURCE_HASH_INVALID"),
-    source_version: stringValue(input.source_version, "LOCALIZATION_STATIC_SOURCE_VERSION_INVALID"),
-    policy_version: stringValue(input.policy_version, "LOCALIZATION_STATIC_POLICY_VERSION_INVALID"),
-    expected_message_count: Number(input.expected_message_count),
-    context_bundles: [cohort],
-  };
-  const context = parseContext(cohort, parsed);
-  if (context.message_items.length !== parsed.expected_message_count) fail("LOCALIZATION_STATIC_INPUT_DENOMINATOR_INVALID");
-  if (context.cohort_id !== task.parameters.cohort_id
-    || context.ordered_pending_ids_hash !== task.parameters.ordered_pending_ids_hash) {
-    fail("LOCALIZATION_STATIC_TASK_INPUT_MISMATCH");
+  if (!sameStrings([...covered].sort(), [...sources.keys()].sort())) fail(code);
+  for (const item of [...items, ...siblings]) {
+    const source = sources.get(item.message_id);
+    if (!source || source.text !== item.source_text || source.source_hash !== item.source_hash) fail(code);
   }
-  return parsed;
+}
+
+export function parseContext(value: unknown, reference: LocalizationReference, task: WebsiteAgentTask): ContextBundle {
+  const raw = objectValue(value, "LOCALIZATION_STATIC_CONTEXT_INVALID");
+  exact(raw, ["schema_version", "message_syntax", "review_kind", "locale", "source_locale", "source_catalog_hash",
+    "batch_id", "cohort_id", "cohort_message_ids", "ordered_pending_ids_hash", "read_only_siblings", "expression_policy_hash",
+    "terminology_hash", "format_policy_hash", "policy_refs", "product_source_refs", "page_contexts", "source_items",
+    "public_value_binding", "message_items"], "LOCALIZATION_STATIC_CONTEXT_FIELDS_INVALID");
+  if (raw.schema_version !== "target-language-context-bundle.v4" || raw.message_syntax !== "typed-placeholder-v1"
+    || raw.review_kind !== "target_language_translation" || raw.source_locale !== "zh-CN" || raw.locale !== reference.target_locale
+    || raw.source_catalog_hash !== reference.source_identity.source_sha256 || raw.cohort_id !== task.parameters.cohort_id
+    || raw.ordered_pending_ids_hash !== task.parameters.ordered_pending_ids_hash
+    || !Array.isArray(raw.message_items) || !raw.message_items.length || !Array.isArray(raw.read_only_siblings)) {
+    fail("LOCALIZATION_STATIC_CONTEXT_IDENTITY_INVALID");
+  }
+  checkPolicies(raw, reference);
+  const items = raw.message_items.map(parseContextItem), siblings = raw.read_only_siblings.map(parseSibling);
+  const ids = [...items.map(item => item.message_id), ...siblings.map(item => item.message_id)];
+  const cohortIds = stringArray(raw.cohort_message_ids, "LOCALIZATION_STATIC_COHORT_IDENTITY_INVALID");
+  if (new Set(ids).size !== ids.length || new Set(cohortIds).size !== cohortIds.length
+    || !sameStrings([...cohortIds].sort(), [...ids].sort())
+    || raw.ordered_pending_ids_hash !== hashCanonical(items.map(item => item.message_id))) fail("LOCALIZATION_STATIC_COHORT_IDENTITY_INVALID");
+  checkBackground(raw, items, siblings);
+  const sourceHash = hashValue(raw.source_catalog_hash, "LOCALIZATION_STATIC_SOURCE_HASH_INVALID");
+  return { ...raw, schema_version: "target-language-context-bundle.v4", locale: reference.target_locale as TargetLocale,
+    source_catalog_hash: sourceHash, batch_id: stringValue(raw.batch_id, "LOCALIZATION_STATIC_BATCH_ID_INVALID"),
+    cohort_id: stringValue(raw.cohort_id, "LOCALIZATION_STATIC_COHORT_IDENTITY_INVALID"), cohort_message_ids: cohortIds,
+    ordered_pending_ids_hash: hashValue(raw.ordered_pending_ids_hash, "LOCALIZATION_STATIC_PENDING_IDS_HASH_INVALID"),
+    read_only_siblings: siblings, public_value_binding: parsePublicValueBinding(raw.public_value_binding, items, sourceHash), message_items: items };
 }
 
 export function parseCandidate(

@@ -8,12 +8,12 @@ import { producerClaimRoutesFor } from "../../shared/proof-observation.js";
 export const LAWS = {
   core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V80",
   credential: "LAW-AGENT-PRODUCTION-RUNTIME-002-V12",
-  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V50",
-  admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V47",
+  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V51",
+  admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V48",
   database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V44",
-  storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V48",
-  staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V48",
-  dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V49",
+  storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V49",
+  staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V49",
+  dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V50",
 } as const;
 export const ALL_LAWS = Object.values(LAWS);
 export const RUNTIME_ROOT = "src/lib/local-runtime/production";
@@ -179,7 +179,7 @@ const inspectAdmission = (context: InspectorContext, findings: InspectorFinding[
 
 const inspectDependencies = (context: InspectorContext, findings: InspectorFinding[]): void => {
   for (const [name, id, version] of [
-    ["website-agent-task-result", "ai-acceptance.website-agent-task-result", 22],
+    ["website-agent-task-result", "ai-acceptance.website-agent-task-result", 23],
     ["xuanxue-ai-production-v6", "ai-acceptance.xuanxue-ai-production-v6", 47],
   ] as const) {
     const path = `docs/specs/agent-production-runtime/${name}.dependency.spec.json`;
@@ -194,17 +194,26 @@ const inspectDependencies = (context: InspectorContext, findings: InspectorFindi
   const projectionPath = `${RUNTIME_ROOT}/website-agent-route-policies.v1.json`;
   const projection = JSON.parse(read(context, projectionPath)) as { contract_version: number;
     parameter_types: Record<string, unknown>; routes: { product_id: string; action_id: string; relation_kind: string;
-      result_contract?: unknown; material_roles: { role: string }[]; required_parameter_keys: string[] }[] };
+      result_contract?: unknown; material_roles: { role: string; media_types: string[]; trust_class: string;
+        may_issue_instruction: boolean; storage_class: string; owner_scope_policy: string }[]; required_parameter_keys: string[] }[] };
   const identities = projection.routes.map((route) => `${route.product_id}\0${route.action_id}`);
-  const currentRoutes = projection.contract_version === 22 && projection.routes.length === 43
+  const currentRoutes = projection.contract_version === 23 && projection.routes.length === 43
     && Object.keys(projection.parameter_types).length === 43
     && projection.routes.filter((route) => route.result_contract !== undefined).length === 43
     && new Set(identities).size === 43
     && projection.routes.every((route) => route.relation_kind !== "reservation"
       && !route.material_roles.some((role) => role.role === "bazi_private_base_input"))
     && projection.routes.every((route) => new Set(route.required_parameter_keys).size === route.required_parameter_keys.length);
-  reject(findings, LAWS.route, "static.contract", projectionPath, "current-route-projection", currentRoutes,
-    "Projection must carry task-result v22 and the exact 43/43/43/0 provider denominators without a private base.");
+  const localization = projection.routes.filter(route => route.product_id.startsWith("localization_") && route.relation_kind !== "review");
+  const twoArchives = localization.length === 3 && localization.every(route => {
+    const storage = route.product_id === "localization_static_catalog" ? "shared_static" : "private_owner_scoped";
+    const owner = storage === "shared_static" ? "forbidden" : "required";
+    return same(route.material_roles.map(role => [role.role, role.media_types, role.trust_class,
+      role.may_issue_instruction, role.storage_class, role.owner_scope_policy]),
+    ["localization_reference_archive", "localization_work_archive"].map(role => [role, ["application/zip"], "locked_fact", false, storage, owner]));
+  });
+  reject(findings, LAWS.route, "static.contract", projectionPath, "current-route-projection", currentRoutes && twoArchives,
+    "Projection must carry task-result v23 and the exact 43/43/43/0 provider denominators without a private base.");
   inspectProviderGenerator(context, findings);
 };
 const providerProjectionDecodesOriginalBytes = (generator: SourceFile): boolean => {

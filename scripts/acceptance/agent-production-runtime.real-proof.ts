@@ -129,7 +129,7 @@ void String.raw`
         ]
       }
     },
-    "LAW-AGENT-PRODUCTION-RUNTIME-004-V47:dynamic.service": {
+    "LAW-AGENT-PRODUCTION-RUNTIME-004-V48:dynamic.service": {
       "claims": {
         "forbidden:0": [
           {
@@ -197,7 +197,7 @@ void String.raw`
         ]
       }
     },
-    "LAW-AGENT-PRODUCTION-RUNTIME-006-V48:dynamic.storage": {
+    "LAW-AGENT-PRODUCTION-RUNTIME-006-V49:dynamic.storage": {
       "claims": {
         "forbidden:0": [
           {
@@ -222,7 +222,7 @@ void String.raw`
         ]
       }
     },
-    "LAW-AGENT-PRODUCTION-RUNTIME-008-V49:dynamic.service": {
+    "LAW-AGENT-PRODUCTION-RUNTIME-008-V50:dynamic.service": {
       "claims": {
         "forbidden:0": [
           {
@@ -240,7 +240,7 @@ void String.raw`
         ]
       }
     },
-    "LAW-AGENT-PRODUCTION-RUNTIME-008-V49:dynamic.database": {
+    "LAW-AGENT-PRODUCTION-RUNTIME-008-V50:dynamic.database": {
       "claims": {
         "forbidden:0": [
           {
@@ -251,7 +251,7 @@ void String.raw`
         ]
       }
     },
-    "LAW-AGENT-PRODUCTION-RUNTIME-008-V49:dynamic.storage": {
+    "LAW-AGENT-PRODUCTION-RUNTIME-008-V50:dynamic.storage": {
       "claims": {
         "forbidden:0": [
           {
@@ -262,7 +262,7 @@ void String.raw`
         ]
       }
     },
-    "LAW-AGENT-PRODUCTION-RUNTIME-008-V49:dynamic.authorization": {
+    "LAW-AGENT-PRODUCTION-RUNTIME-008-V50:dynamic.authorization": {
       "claims": {
         "forbidden:1": [
           {

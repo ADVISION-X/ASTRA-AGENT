@@ -11,6 +11,8 @@ import { serializeTerminalFailure } from "../../../lib/local-runtime/production/
 import { ProductionGptExecutionSession } from "../production-execution-session.js";
 import { ProductionGptSourceReuse } from "../production-execution-source-reuse.js";
 import { ProductionGptBrowserLifecycle } from "../production-browser-lifecycle.js";
+import { acquireProductionBrowserCall } from "../production-call-preparation.js";
+import { executeProductionGptAtomicCall } from "../production-atomic-call.js";
 import { createGptAbilityGroup } from "../index.js";
 import { isProviderEffectReadbackProofV1 } from "../production-child-support.js";
 import { gptCanonicalHash, gptExactCallIdentityHash } from "../contract.js";
@@ -260,5 +262,121 @@ try {
     assert.equal(facts?.browserEffect?.browserOutcome, "CONFIRMED"); return true;
   });
   assert.equal(unlocatedAcquisitions, 1); await unlocated.settle(null);
+  corrupt.delete(textKey);
+  for (const source of [true, false]) {
+    let currentUrl = source ? url : "https://chatgpt.com/", currentDocument = "document:next-target";
+    let acquired = 0, selected = 0, navigated = 0, reached = 0;
+    let commandIdentity: BrowserAtomicStepIdentity | null = null;
+    const nextBrowser = { ...browser, get document() { return { documentRef: currentDocument }; },
+      runAtomicStep: async (identity: BrowserAtomicStepIdentity, action: () => Promise<unknown>) => {
+        commandIdentity = identity;
+        try { return await action(); } finally { commandIdentity = null; }
+      },
+      executeDomIntent: async (intent: BrowserDomIntent) => {
+        assert.equal(intent.kind, "selectExactGptConversation");
+        if (intent.kind !== "selectExactGptConversation") throw new Error("UNEXPECTED_URL_SEAM_COMMAND");
+        assert.equal(intent.canonicalConversationUrl, url); assert.equal(commandIdentity?.callId, "next-url-probe");
+        selected += 1;
+        if (currentUrl !== intent.canonicalConversationUrl) {
+          currentUrl = intent.canonicalConversationUrl; currentDocument = "document:after-exact-navigation"; navigated += 1;
+        }
+      },
+    };
+    const baseGpt = createGptAbilityGroup();
+    const probeGpt: typeof baseGpt = { execute: async (intent, context) => {
+      if (intent.callId !== "next-url-probe") return baseGpt.execute(intent, context);
+      assert.equal(currentUrl, url); assert.equal(context.browser?.document.documentRef, currentDocument);
+      assert.equal(context.browserAtomicIdentity?.productStepId, "other-step");
+      reached += 1; throw executionFailure("failed", "URL_SEAM_REACHED");
+    } };
+    const probeAuthority = { ...authority, ...sourceAuthority,
+      readProviderEffectStepCallFact: (query: { productStepId: string }) => query.productStepId === "research"
+        ? authority.readProviderEffectStepCallFact() : null,
+      acquireJobBoundTargetLease: async (_binding: unknown, _owner: string, wait: { targetMode: string }) => {
+        acquired += 1;
+        if (wait.targetMode === "fresh") currentUrl = "https://chatgpt.com/";
+        assert.equal(wait.targetMode, "confirmed-readback", "settled answer must retain its original URL for the next turn");
+        return nextBrowser;
+      },
+    };
+    const probe = new ProductionGptChildTools(join(root, `url-${source}`), A, probeGpt, evidence,
+      probeAuthority as never, logger(`url-${source}`), control).createExecution({ ...input,
+      ...(source ? { attemptId: "url-source-attempt", resultRevision: 1, leaseVersion: 2,
+        sourceReusableCalls: [grant], deliveryPriorityReplayCalls: [{ productStepId: "other-step", callId: "other-submit",
+          childCapabilityId: "submit_exact_gpt_turn_once" as const, sourceEffectSetHash: A, callGrantHash: B }] } : {}) });
+    await probe.tools.readConfirmedSubmit(submitCall); await locate(probe, source ? sourceEffect : A);
+    assert.equal((await probe.tools.execute(textCall)).artifactRefs[0], textRef);
+    assert.deepEqual([acquired, selected, navigated, reached], [0, 0, 0, 0]);
+    assert.equal(await probe.tools.readConfirmedSubmit({ ...submitCall, productStepId: "other-step", callId: "other-submit" }), null);
+    await assert.rejects(probe.tools.execute({ sessionKey, productStepId: "other-step", callId: "next-url-probe",
+      child: "write_exact_gpt_prompt", actionOrdinal: 3, input: { prompt: "next authorized turn" } }),
+    error => failureCode(error) === "URL_SEAM_REACHED");
+    assert.deepEqual([acquired, selected, navigated, reached], [1, 1, source ? 0 : 1, 1]);
+    await probe.settle(null);
+  }
   assert.ok(acquisitions > 0);
+  let conflictingUrl = url;
+  const consistent = new ProductionGptBrowserLifecycle(authority as never, logger("url-consistency"), A, input);
+  const consistentSession = new ProductionGptExecutionSession(input, consistent, evidence,
+    new ProductionGptSourceReuse(input, evidence, authority as never), () => {},
+    async call => (call.child === "get_submitted_gpt_conversation_url"
+      ? { ...restored, value: { canonicalConversationUrl: conflictingUrl, userTurnId: user } } : restored) as never,
+    async (_call, _recorder, recordIdentity) => { recordIdentity(original); return submit; }).createExecution();
+  await consistentSession.tools.readConfirmedSubmit(submitCall); await locate(consistentSession);
+  await consistentSession.tools.execute(textCall);
+  conflictingUrl = "https://chatgpt.com/c/conflicting-settled-url";
+  await consistentSession.tools.readConfirmedSubmit(submitCall); await locate(consistentSession);
+  await assert.rejects(consistentSession.tools.execute({ ...textCall, input: { ...textCall.input, canonicalConversationUrl: conflictingUrl } }), error => {
+    const decorated = consistentSession.decorateSettledResultFailure(error), facts = executionFailureMetadata(decorated);
+    assert.equal(failureCode(decorated), "GPT_CONFIRMED_SUBMIT_IDENTITY_MISMATCH");
+    assert.equal(facts?.browserEffect?.providerEffectIdentityHash, A);
+    assert.equal(facts?.settledResultPayloadHash, undefined); return true;
+  });
+  const retained = await consistent.browserFor(sessionKey, "next", "probe");
+  await consistent.selectSettledConversation(retained);
+  await consistentSession.settle(null);
+  for (const retirement of ["fresh", "session", "settle", "park-failure", "job"] as const) {
+    const modes: string[] = [];
+    let failPark = retirement === "park-failure";
+    const retireAuthority = { acquireJobBoundTargetLease: async (_binding: unknown, _owner: string, wait: { targetMode: string }) => {
+      modes.push(wait.targetMode);
+      return { ...browser, park: async () => { if (failPark) throw executionFailure("failed", "BROWSER_TARGET_INVALID"); } };
+    } };
+    const lifecycle = new ProductionGptBrowserLifecycle(retireAuthority as never, logger(`retire-${retirement}`), A, input);
+    lifecycle.recordSettledResult(A, B, { sessionKey, canonicalConversationUrl: url });
+    if (retirement === "settle" || retirement === "park-failure") {
+      if (failPark) await lifecycle.browserFor(sessionKey, "next", "before-settle");
+      if (failPark) await assert.rejects(lifecycle.settle(null), /GPT_BROWSER_LIFECYCLE_FAILED/u);
+      else await lifecycle.settle(null);
+    }
+    const target = retirement === "job" ? new ProductionGptBrowserLifecycle(retireAuthority as never,
+      logger("retire-other-job"), A, { ...input, jobId: "job:other" }) : lifecycle;
+    await acquireProductionBrowserCall(target, { ...submitCall, sessionKey: retirement === "session" ? "different-session" : sessionKey,
+      productStepId: "next", callId: "retire-probe", child: retirement === "fresh" ? "prepare_clean_gpt_chat" : "write_exact_gpt_prompt",
+      input: retirement === "fresh" ? { timeoutMs: 1_000 } : { prompt: "next" } }, "chatgpt", false);
+    assert.equal(modes.at(-1), "fresh", retirement);
+    failPark = false; await target.settle(null); if (target !== lifecycle) await lifecycle.settle(null);
+  }
+  for (const failure of [null, "BROWSER_TARGET_INVALID", "BROWSER_WAIT_ABORTED"] as const) {
+    let selected = 0, reached = 0, parked = 0;
+    const selectionError = failure ? executionFailure("failed", failure) : null;
+    const lifecycle = new ProductionGptBrowserLifecycle({ acquireJobBoundTargetLease: async () => ({ ...browser,
+      executeDomIntent: async () => { selected += 1; if (selectionError) throw selectionError; },
+      park: async () => { parked += 1; },
+    }) } as never, logger(`selection-${failure ?? "ack"}`), A, input);
+    lifecycle.recordSettledResult(A, B, { sessionKey, canonicalConversationUrl: url });
+    const active = await lifecycle.browserFor(sessionKey, "next", "probe");
+    const marker = executionFailure("failed", "URL_ATOMIC_PROBE_REACHED");
+    const atomic = (child: "write_exact_gpt_prompt" | "acknowledge_known_gpt_rate_limit") => executeProductionGptAtomicCall({
+      dataDir: root, gpt: { execute: async () => { reached += 1; throw marker; } }, browsers: lifecycle, browserCall: active,
+      signal: input.abortSignal, resultRevision: 0, intent: { executionId: "probe", jobId, attemptId, resultRevision: 0,
+        productStepId: "next", callId: "probe", childCapabilityId: child, inputHash: B, actionOrdinal: 3, input: {} } as never });
+    if (!failure) {
+      await assert.rejects(atomic("acknowledge_known_gpt_rate_limit"), error => error === marker);
+      assert.deepEqual([selected, reached, active.recoverySelectionRequired], [0, 1, true]);
+    }
+    await assert.rejects(atomic("write_exact_gpt_prompt"), error => error === (selectionError ?? marker));
+    assert.deepEqual([selected, reached, active.recoverySelectionRequired], [1, failure ? 0 : 2, failure !== null]);
+    await lifecycle.settle(selectionError); await lifecycle.settle(null); assert.equal(parked, 1);
+  }
 } finally { await rm(root, { recursive: true, force: true }); }

@@ -8,7 +8,7 @@ import { task as runtimeTask } from "./agent-production-runtime-fixtures.js";
 
 const projection = JSON.parse(await readFile(new URL(
   "../../src/lib/local-runtime/production/website-agent-route-policies.v1.json", import.meta.url), "utf8"));
-assert.equal(projection.contract_version, 22);
+assert.equal(projection.contract_version, 23);
 assert.equal(projection.routes.length, 43);
 assert.equal(Object.keys(projection.parameter_types).length, 43);
 assert.equal(projection.routes.filter((route: Record<string, unknown>) => route.result_contract !== undefined).length, 43);
@@ -57,6 +57,18 @@ for (const route of productionRoutePolicies) {
   }
 }
 assert.equal(seen.size, 43);
+const localizationPrimaries = productionRoutePolicies.filter(route =>
+  ["report_translation", "article_translation", "produce_locale_catalog"].includes(route.action_id));
+assert.equal(localizationPrimaries.length, 3);
+for (const route of localizationPrimaries) {
+  assert.deepEqual(route.material_roles.map(role => [role.role, role.media_types, role.trust_class, role.may_issue_instruction]), [
+    ["localization_reference_archive", ["application/zip"], "locked_fact", false],
+    ["localization_work_archive", ["application/zip"], "locked_fact", false],
+  ]);
+  const base = buildProductTask(route, { parameters: Object.fromEntries(route.required_parameter_keys.map(key => [key, "authorized"])) });
+  assert.throws(() => assertProductionTaskRoutePolicy({ ...base, material_refs: base.material_refs.map((entry, index) =>
+    index ? entry : { ...entry, role: "static_catalog_input", media_type: "application/json" }) }));
+}
 for (const route of productionRoutePolicies.filter(route => route.material_roles.some(role => role.repeatable))) {
   const base = buildProductTask(route, { parameters: Object.fromEntries(route.required_parameter_keys.map(key => [key, "authorized"])) });
   const grouped = (counts: readonly number[]) => {
@@ -96,9 +108,9 @@ const unresolvedJob = { job_id: "job:unresolved", product_id: "public_knowledge_
 assert.doesNotThrow(() => WorkerObservationV6Schema.parse({ ...observation, scope_total: 1, jobs: [unresolvedJob] }));
 assert.throws(() => WorkerObservationV6Schema.parse({ ...observation, scope_total: 1, jobs: [{ ...unresolvedJob, next_action_at: null }] }));
 for (const evidenceMode of ["exam.golden", "exam.property"] as const) {
-  emitQualityProofObservation({ lawId: "LAW-AGENT-PRODUCTION-RUNTIME-003-V50", evidenceMode,
-    clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "forbidden:3", "summary"],
+  emitQualityProofObservation({ lawId: "LAW-AGENT-PRODUCTION-RUNTIME-003-V51", evidenceMode,
+    clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "forbidden:3", "forbidden:4", "summary"],
     locator: `acceptance:agent-production-runtime:route-contract:${evidenceMode}`,
-    observedValue: "Current v22 projection and all forty-three routes accepted exact keys/materials/relations, rejected missing/extra wire authority, and retained Website-owned opaque parameter values; generated image transport is additionally exercised by the Runtime acceptance." });
+    observedValue: "Current v23 projection and all forty-three routes accepted exact keys/materials/relations, rejected missing/extra wire authority, and retained Website-owned opaque parameter values; generated image transport is additionally exercised by the Runtime acceptance." });
 }
-process.stdout.write("[ACCEPTANCE][agent-route-contract] v22 43/43/43/0\n");
+process.stdout.write("[ACCEPTANCE][agent-route-contract] v23 43/43/43/0\n");

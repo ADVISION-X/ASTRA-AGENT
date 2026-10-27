@@ -105,6 +105,7 @@ const assertConfirmedProviderReadback = (active: ProductionGptBrowserCall,
 
 export class ProductionGptBrowserLifecycle {
   private activeBrowser: Readonly<{ sessionKey: string; call: ProductionGptBrowserCall }> | null = null;
+  private settledConversation: Readonly<{ sessionKey: string; canonicalConversationUrl: string }> | null = null;
 
   public constructor(
     private readonly browserAuthority: GptBrowserLeaseAuthority,
@@ -113,13 +114,13 @@ export class ProductionGptBrowserLifecycle {
     private readonly execution: GptBrowserExecutionInput,
   ) {}
 
-  public async browserFor(
-    sessionKey: string,
-    productStepId: string,
-    callId: string,
-  ): Promise<ProductionGptBrowserCall> {
-    return this.browserForMode(sessionKey, productStepId, callId,
-      this.execution.providerContinuationParent ? "authorized-continuation" : "fresh");
+  public async browserFor(sessionKey: string, productStepId: string, callId: string,
+    freshConversation = false): Promise<ProductionGptBrowserCall> {
+    if (freshConversation || this.settledConversation?.sessionKey !== sessionKey) this.settledConversation = null;
+    if (this.activeBrowser?.sessionKey === sessionKey) return this.activeBrowser.call;
+    const mode = this.settledConversation ? "confirmed-readback"
+      : this.execution.providerContinuationParent ? "authorized-continuation" : "fresh";
+    return this.browserForMode(sessionKey, productStepId, callId, mode);
   }
 
   public async browserForConfirmedReadback(
@@ -229,22 +230,45 @@ export class ProductionGptBrowserLifecycle {
     }
   }
 
-  public recordSettledResult(activeOrEffect: ProductionGptBrowserCall | GptHash, payloadHash: GptHash): void {
-    const active = typeof activeOrEffect === "string"
-      ? this.activeBrowser?.call.confirmedProviderEffect?.providerEffectIdentityHash === activeOrEffect
-        ? this.activeBrowser.call : null : activeOrEffect;
-    if (!active) return;
-    if (!active.confirmedProviderEffect) {
-      throw executionFailure("failed", "GPT_SETTLED_PROVIDER_EFFECT_MISSING");
-    }
-    active.settledResultPayloadHash = payloadHash;
-  }
-
   public assertProviderTurnSettled(): void {
     const active = this.activeBrowser?.call;
     if (active?.confirmedProviderEffect && !active.settledResultPayloadHash) {
       throw executionFailure("failed", "GPT_BROWSER_SESSION_TRANSITION_UNSETTLED");
     }
+  }
+
+  public recordSettledResult(activeOrEffect: ProductionGptBrowserCall | GptHash, payloadHash: GptHash,
+    conversation?: Readonly<{ sessionKey: string; canonicalConversationUrl: string | null }>): void {
+    const active = typeof activeOrEffect === "string"
+      ? this.activeBrowser?.call.confirmedProviderEffect?.providerEffectIdentityHash === activeOrEffect
+        ? this.activeBrowser.call : null : activeOrEffect;
+    if (active && !active.confirmedProviderEffect) throw executionFailure("failed", "GPT_SETTLED_PROVIDER_EFFECT_MISSING");
+    const settled = conversation ?? (this.settledConversation && active && this.activeBrowser?.call === active
+      && active.confirmedProviderEffect?.canonicalConversationUrl ? {
+        sessionKey: this.activeBrowser.sessionKey,
+        canonicalConversationUrl: active.confirmedProviderEffect.canonicalConversationUrl,
+      } : null);
+    if (settled) {
+      if (!settled.sessionKey || !settled.canonicalConversationUrl
+        || this.settledConversation?.sessionKey === settled.sessionKey
+          && this.settledConversation.canonicalConversationUrl !== settled.canonicalConversationUrl) {
+        throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_IDENTITY_MISMATCH");
+      }
+      this.settledConversation = Object.freeze({ sessionKey: settled.sessionKey,
+        canonicalConversationUrl: settled.canonicalConversationUrl });
+    }
+    if (active) active.settledResultPayloadHash = payloadHash;
+  }
+
+  public async selectSettledConversation(active: ProductionGptBrowserCall): Promise<void> {
+    if (!active.recoverySelectionRequired || active.confirmedProviderEffect) return;
+    const current = this.activeBrowser, settled = this.settledConversation;
+    if (!current || current.call !== active || !settled || settled.sessionKey !== current.sessionKey) {
+      throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_IDENTITY_MISMATCH");
+    }
+    await active.facade.executeDomIntent({ kind: "selectExactGptConversation",
+      canonicalConversationUrl: settled.canonicalConversationUrl });
+    active.recoverySelectionRequired = false;
   }
 
   public async waitForProviderObservation(
@@ -352,14 +376,6 @@ export class ProductionGptBrowserLifecycle {
     }
   }
 
-  public async settle(error: unknown | null): Promise<void> {
-    try {
-      await this.parkActive(error ? "gpt-product-call-failed" : "gpt-product-call-settled");
-    } catch (parkError) {
-      throw new AggregateError([parkError], "GPT_BROWSER_LIFECYCLE_FAILED");
-    }
-  }
-
   private async parkActive(reason: string): Promise<void> {
     const current = this.activeBrowser;
     if (!current) return;
@@ -367,6 +383,16 @@ export class ProductionGptBrowserLifecycle {
       await current.call.browser.park({ reason, mode: "product-call-settlement" });
     } finally {
       if (this.activeBrowser === current) this.activeBrowser = null;
+    }
+  }
+
+  public async settle(error: unknown | null): Promise<void> {
+    try {
+      await this.parkActive(error ? "gpt-product-call-failed" : "gpt-product-call-settled");
+    } catch (parkError) {
+      throw new AggregateError([parkError], "GPT_BROWSER_LIFECYCLE_FAILED");
+    } finally {
+      this.settledConversation = null;
     }
   }
 

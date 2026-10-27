@@ -262,21 +262,6 @@ export class ProductionGptExecutionSession {
       ...this.activeReadback, canonicalConversationUrl: result.value.canonicalConversationUrl });
   }
 
-  private captureCheckpointHash<K extends ProductGptChildCapabilityId>(
-    call: SessionCall<K>, result: ProductGptChildResult<K>,
-  ): void {
-    const stepKey = `${call.sessionKey}\u0000${call.productStepId}`;
-    const submit = this.submittedByStep.get(stepKey);
-    if (!submit) return;
-    const value = result.value as Readonly<Record<string, unknown>>;
-    const hash = call.child === "checkpoint_gpt_text_response" ? value.semanticTextHash : value.originalSha256;
-    if (typeof hash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(hash)) {
-      throw executionFailure("failed", "GPT_SETTLED_RESULT_PAYLOAD_HASH_INVALID");
-    }
-    this.submittedByStep.set(stepKey, Object.freeze({ ...submit, settledResultPayloadHash: hash as GptHash }));
-    this.browsers.recordSettledResult(submit.providerEffectIdentityHash, hash as GptHash);
-  }
-
   private async recordCheckpoint<K extends ProductGptChildCapabilityId>(
     call: SessionCall<K>, result: ProductGptChildResult<K>,
   ): Promise<void> {
@@ -320,6 +305,21 @@ export class ProductionGptExecutionSession {
     }
     const riskKey = this.riskSubmittedByStep.get(stepKey);
     if (riskKey) { this.riskCompletedKeys.add(riskKey); this.riskSubmittedByStep.delete(stepKey); }
+  }
+
+  private captureCheckpointHash<K extends ProductGptChildCapabilityId>(
+    call: SessionCall<K>, result: ProductGptChildResult<K>,
+  ): void {
+    const key = `${call.sessionKey}\u0000${call.productStepId}`, submit = this.submittedByStep.get(key);
+    if (!submit) return;
+    const value = result.value as Readonly<Record<string, unknown>>;
+    const hash = call.child === "checkpoint_gpt_text_response" ? value.semanticTextHash : value.originalSha256;
+    if (typeof hash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(hash)) {
+      throw executionFailure("failed", "GPT_SETTLED_RESULT_PAYLOAD_HASH_INVALID");
+    }
+    this.browsers.recordSettledResult(submit.providerEffectIdentityHash, hash as GptHash,
+      { sessionKey: call.sessionKey, canonicalConversationUrl: submit.canonicalConversationUrl });
+    this.submittedByStep.set(key, Object.freeze({ ...submit, settledResultPayloadHash: hash as GptHash }));
   }
 
   private captureSubmit(sessionKey: string, productStepId: string,

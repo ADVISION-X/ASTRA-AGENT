@@ -13,7 +13,7 @@ const clauses: Record<string, Partial<Record<keyof typeof producers, string[]>>>
     "static.dependency": staticForbiddenClauses(6) },
   [LAWS.credential]: { "static.ast": staticClauses(0, 2), "static.contract": staticForbiddenClauses(1),
     "static.types": staticForbiddenClauses(0), "static.filesystem": staticForbiddenClauses(0) },
-  [LAWS.route]: { "static.ast": staticClauses(2), "static.contract": staticForbiddenClauses(0, 1, 3),
+  [LAWS.route]: { "static.ast": staticClauses(2), "static.contract": staticForbiddenClauses(0, 1, 3, 4),
     "static.types": staticForbiddenClauses(2), "static.dependency": staticForbiddenClauses(0) },
   [LAWS.admission]: { "static.ast": staticClauses(1, 2), "static.contract": staticForbiddenClauses(0),
     "static.types": staticForbiddenClauses(0) },
