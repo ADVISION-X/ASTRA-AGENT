@@ -1664,7 +1664,6 @@ test("Browser inspectors require current WAL schema without startup migration an
     [exactPath, "rawDomHtml: node ? node.outerHTML", "rawDomHtml: node ? node.innerHTML"],
     [exactPath, "const currentUrl = browserExactUrl(spec.canonicalConversationUrl);",
       "await Promise.resolve(); const currentUrl = browserExactUrl(spec.canonicalConversationUrl);"],
-    [exactPath, "matches.length === 1 && matches[0].id !== spec.observedUserTurnId", "false"],
     [exactPath, "users.length !== 1", "false"],
     [exactPath, 'matches[0].getAttribute("data-chatgpt-search-message-ids") !== id', "false"],
     [exactPath, "units[units.indexOf(user) + 1]", "units[0]"],

@@ -2,13 +2,13 @@
 
 ## 1. 目标、状态与硬边界
 
-状态：**执行已获授权**，尚不表示代码已建设、质量通过或生产问题全部解决。授权人随后明确批准按本文施工，并要求 CI-FULL 连续完成 CHANGE、提交首推、完整 READY 及再次推送；只在主仓本地 `main` 施工。工单删建、现役数据库操作、服务启停、扩展重载、部署及 RELEASE 不属于本单必要动作，不执行。
+状态：**可施工**；执行已获授权，尚不表示质量通过或生产问题全部解决。授权人随后明确批准按本文施工，并要求 CI-FULL 连续完成 CHANGE、提交首推、完整 READY 及再次推送；只在主仓本地 `main` 施工。工单删建、现役数据库操作、服务启停、扩展重载、部署及 RELEASE 不属于本单必要动作，不执行。
 
 需求及实现 Owner：`local-browser-session`；直接消费者：GPT 的 `checkpoint_gpt_text_response`。唯一目标：在原 canonical URL、原 Product marker、同一当前 Target/Document/loader 下，消除“物化阶段未观察到 user UUID，最终原子读取时该消息刚挂载，却被空身份比较误判为 BROWSER_DOCUMENT_INVALID”的竞态。已经观察到的非空 UUID 在本次读取中真正变化仍拒绝；没有取得合法候选仍走原 pending。
 
-**未来生产施工面只有 `src/lib/browser/chrome-extension/dom-exact-assistant-turn.ts` 的第 6 节指定片区；质检只有第 6 节列出的三个既有文件。** Website、Product Flow/Skill/Prompt、GPT handler、URL 连续交接、Browser FIFO/lane、激活/输入/上传、节拍、WAL、Forensics、Runtime、Outbox、数据库、协议与依赖均不改。不得增加锁、重试、等待、队列、监听器、状态、接口、存储或兼容路径；不得把所有 `BROWSER_DOCUMENT_INVALID` 改成 pending。
+**生产施工面只有 `src/lib/browser/chrome-extension/dom-exact-assistant-turn.ts` 的第 6 节指定片区；质检只有第 6 节列出的四个既有文件，其中治理测试只退休一条旧变异记录。** Website、Product Flow/Skill/Prompt、GPT handler、URL 连续交接、Browser FIFO/lane、激活/输入/上传、节拍、WAL、Forensics、Runtime、Outbox、数据库、协议与依赖均不改。不得增加锁、重试、等待、队列、监听器、状态、接口、存储或兼容路径；不得把所有 `BROWSER_DOCUMENT_INVALID` 改成 pending。
 
-方案阶段落盘仅本文、现役 Browser Manifest 对本文的一个 ownedPath，以及原生成器对唯一 registry 的投影。执行阶段仅增加第 6 节限定的一个生产文件和三个既有质检文件；该登记不扩大代码施工面，不新增治理机制。
+方案阶段落盘仅本文、现役 Browser Manifest 对本文的一个 ownedPath，以及原生成器对唯一 registry 的投影。执行阶段仅增加第 6 节限定的一个生产文件和四个既有质检文件；该登记不扩大代码施工面，不新增治理机制。
 
 ## 2. 当前事实、候选与前轮连续性
 
@@ -51,7 +51,9 @@
 | 法案 | `LAW-CODE-PURITY-001-V6/002-V2/003-V3`；`LAW-ARCHITECTURE-BOUNDARY-001-V18/002-V2`；`LAW-CAPABILITY-GOVERNANCE-001-V19/002-V5`；`LAW-GPT-001-V67/002-V33`；Browser 六条，重点 `004-V59/006-V47`。原子身份、typed pending、真实失真拒绝、effect once、唯一车道均已规定，**不修订法案，不改变冻结语义**。 |
 | 施工图 | Browser 的“GPT 提交后置机械定位”段、两门冻结段、pending 及有界物化段；GPT 的“唯一 Owner 与职责”、两门冻结及“证据、失败与验收”。均要求最终当前 Document 的同包身份，不要求把尚未观察到的 UUID 当成有效旧身份。**不修改施工图或 spec**。 |
 | 实现 | 第一直接断裂为 reader 将物化 null 转为 `""` 后作为既有身份强比较；页内比较和 decoder 是同一断点的两处投影。只重建该内部身份交接，不改公开输入输出。 |
-| 质检 | `exactAssistantTurnReadIsAtomic` 把旧无条件比较字面量钉死为 required token；对应 rule mutant 只证明删掉字面量会被这个检查拒绝。真实 DOM Exam 已有已知身份变化拒绝，却缺 null→合法挂载。删除这项实现钉死及其依赖变异，增强原行为 Exam；其余 Static/Exam 和唯一 `quality:check` 保留。 |
+| 质检 | `exactAssistantTurnReadIsAtomic` 把旧无条件比较字面量钉死为 required token；对应 rule mutant 及普通治理测试中的同源 mutant 只证明删掉字面量会被这个检查拒绝。真实 DOM Exam 已有已知身份变化拒绝，却缺 null→合法挂载。删除这项实现钉死及两处依赖变异，增强原行为 Exam；其余 Static/Exam 和唯一 `quality:check` 保留。 |
+
+READY 补勘：提交 `c6fd13a1c` 的原生 READY 真实退出 1；39 条逐法结果均 PASS，但 111 项治理测试有 1 项失败，故唯一顶层结果仍为 FAIL。`tests/governance/quality-contract.test.ts` 的 Browser 原子读取测试中，一条 mutations tuple 仍以旧连续比较子串为 anchor；生产中该 anchor 为零，唯一性断言先于实际变异执行失败。它是上述退休 token 的第三处直接依赖，并非新的生产缺陷。原三法官对该条记录均裁删、不立案；本次只把这一遗漏回补至同一工单，主 Codex 两遍规范反查确认无需改法或改施工图。治理测试的共享执行器、其余变异和 111 个 test 保持，实际身份变化继续由原行为 Exam 承接。后续候选必须从 CHANGE 重走原生链，不沿用本次失败作为通过证据。
 
 删除旧 token 不是删除已知身份保护：它不能区分“正常出现”与“真实变化”，还会强制错误实现；真实变化由保留的生产比较及原 `exerciseRealIdentityChanges` 直接执行证明。新正向反例与既有反向反例共用原 Exam，无新增检查器或同义变异矩阵。
 
@@ -96,13 +98,14 @@
 | 同文件 `assertObservationLocation`、`decodeObservation`、`executeExactAssistantTurnRead` 三个函数 | 作为相连身份片区物理删除、即时核验声明缺席，再从第 5 节输入输出重建。位置校验与 decoder 必须独立校验最终 UUID；只有先前身份确实已知时才要求相等。严格形状、pending 关系、guard、原读取次数与 bindReply 交接完整承接，不改公开签名。 |
 | `scripts/audit/domains/local-browser-session/dom-mechanical-facts-inspection.ts#exactAssistantTurnReadIsAtomic` | 只物理退休 required 数组中强制旧无条件身份比较的一项；其它检查原位保留，不换成另一条无必要的实现字面量、不加检查器。已知变化保护由真实行为 Exam 承接。 |
 | `scripts/acceptance/local-browser-rule-mutants.acceptance.ts#TERMINAL_RULE_MUTANTS` | 只物理退休与上述旧 token 对应的那一条“删除旧身份比较”变异；其它 mutation/loader/marker/邻接/输入/回执反例完整保留。 |
+| `tests/governance/quality-contract.test.ts` 的 `Browser inspectors require current WAL schema without startup migration and atomic assistant reads` 测试中 `mutations` 数组 | 只物理删除以 `matches.length === 1 && matches[0].id !== spec.observedUserTurnId` 为旧 anchor 的一条 tuple；独立核其缺席。保留整个测试、其它数组项、原唯一命中断言循环及共享 `verifyBrowserBoundaryMutants`。不改为新实现字面量、不新增替代 mutant；该原普通治理反例仍由原生 projectChecks 消费。 |
 | `scripts/acceptance/local-browser-exact-assistant-turn-support.ts#exerciseRealIdentityChanges`、`exerciseDecoderAndLoader` | 原位增强既有实际 fixed-script/DOM 及 decoder 用例以覆盖 V1—V7；保留全部旧保护。不新建文件、测试入口、通用夹具或新生产导出；直接复用原 runtime fixture 的 evaluate/response 钩子。 |
 
 **保留什么：** 同生产文件 imports/types、UUID、MARKER_USER_SOURCE、MATERIALIZE_STEP_FUNCTION、record、decodeScan、observationShapeValid、pause、materializeExactUserTurn、sha256、bindReply 全部原位保留。它们分别提供唯一 marker/URL 规则、物化、形状校验、现有预算及完整回包 hash，删除会破坏 V4—V8，不能为凑重构删成熟职责。固定 helper、reply binder、GPT handler、语义 reader、Browser 生命周期和 Product/Runtime 整链同样直接复用。
 
 **怎样施工：** 取得本方案执行授权后，先重绑上述候选与目标 Git 状态；核实相关法案/施工图仍对齐。本轮没有规范修订工单，不从实施中反改规范。先保留前置判据和测试，再在同一未加载施工候选内物理删除表内旧生产片区；下一次独立工具调用用 AST 核三函数声明缺席、检查原脚本比较语句缺席，记录保留对象仍原位存在。该即时证据取得后才能重建。不得复制旧片区到临时文件/内存加工后写回、覆盖写假装删除、移动/改名恢复骨架、加 wrapper/兼容桥。质量侧废项直接退休，新行为只增强原用例。半成品不进入服务。
 
-**怎样验收：** 按第 7 节分别验施工纪律和功能质量；保留符号及页内非比较部分前后 AST/表达式核对，确认作用域之外不变。当前文件分别为 240/447/323/236 行；三重建函数为 6/19/13 行，原检查函数 51 行，两个测试函数 16/19 行，有原结构预算承载本变更。重建后仍满足文件≤500、函数≤75 等现役 Code Purity 红线，不为本单拆新文件。
+**怎样验收：** 按第 7 节分别验施工纪律和功能质量；保留符号及页内非比较部分前后 AST/表达式核对，确认作用域之外不变。原设计时四个文件分别为 240/447/323/236 行，三重建函数为 6/19/13 行，原检查函数 51 行，两个测试函数 16/19 行，有原结构预算承载本变更。补勘的普通治理测试文件为 2032 行，本单仅删除一条记录；它不在基础结构法案的 `src/**`/`scripts/**` appliesTo 内，不借本单重构其共享职责。受约束对象继续满足文件≤500、函数≤75 等红线，不为本单拆新文件；治理测试除该条记录外须逐字保持，并运行原同名测试及完整 READY 的 111 项测试。
 
 **不做什么、失败怎么办：** 第 1 节非目标全部排除；无整文件重建、旧链保留或迁移。需要表外文件、改变冻结语义、发现新消费者、真实身份保护变弱、测试失败或相关 candidate 漂移时，停止受影响施工、在本文回补事实与裁决；不以删断言或扩大 pending 掩盖失败。不清理工单/WAL/现役数据，不重发已确认 effect，不自动启动第二恢复链。没有获得回退授权，不自行恢复指定基线；获准回退须单列实际回退对象，不计作重建。
 
