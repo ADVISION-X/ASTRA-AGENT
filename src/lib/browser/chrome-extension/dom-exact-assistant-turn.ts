@@ -58,7 +58,8 @@ const EXACT_ASSISTANT_TURN_FUNCTION = `function (spec) {
   const matches = Array.from(document.querySelectorAll("[data-turn-key]"))
     .map((turn) => ({ turn, id: browserMarkerUserId(turn, spec.turnMarker) })).filter((item) => item.id);
   if (matches.length > 1) throw new Error("BROWSER_DOM_CANDIDATE_AMBIGUOUS");
-  if (matches.length === 1 && matches[0].id !== spec.observedUserTurnId) throw new Error("BROWSER_DOCUMENT_INVALID");
+  if (matches.length === 1 && spec.observedUserTurnId !== null
+    && matches[0].id !== spec.observedUserTurnId) throw new Error("BROWSER_DOCUMENT_INVALID");
   const precedingUserTurnId = matches[0]?.id || "";
   const units = matches.length ? Array.from(matches[0].turn.querySelectorAll("[data-chatgpt-search-unit-key]")) : [];
   const user = units.find((unit) => (unit.getAttribute("data-chatgpt-search-unit-key") || "").endsWith(":user"));
@@ -144,30 +145,29 @@ const observationShapeValid = (row: Record<string, unknown>): boolean => [
   row.nativeStage === "runtime-evaluate",
 ].every(Boolean);
 
-const assertObservationLocation = (row: Record<string, unknown>, url: string, userId: string): void => {
+const assertObservationLocation = (row: Record<string, unknown>, url: string, userId: string | null): void => {
   if (row.currentUrl !== url) throw new Error("BROWSER_DOCUMENT_INVALID");
-  if (row.rawCount === 1 && (!UUID.test(row.assistantTurnId as string) || row.precedingUserTurnId !== userId)) {
-    throw new Error("BROWSER_DOCUMENT_INVALID");
+  if (row.rawCount === 1 || (row.rawCount === 0 && row.pendingCause === "adjacent-assistant-missing")) {
+    if (!UUID.test(row.precedingUserTurnId as string)
+      || (userId !== null && row.precedingUserTurnId !== userId)) throw new Error("BROWSER_DOCUMENT_INVALID");
   }
+  if (row.rawCount === 1 && !UUID.test(row.assistantTurnId as string)) throw new Error("BROWSER_DOCUMENT_INVALID");
 };
 
 const decodeObservation = (value: unknown, expected: Readonly<{
-  url: string; userId: string;
+  url: string; userId: string | null;
 }>): Observation => {
   const row = record(value, ["rawCount", "rawDomHtml", "semanticText", "currentUrl", "assistantTurnId",
     "precedingUserTurnId", "generatingRaw", "observedAt", "pendingCause", "nativeStage"]);
   if (!observationShapeValid(row)) throw new Error("BROWSER_DOM_READ_INVALID");
   assertObservationLocation(row, expected.url, expected.userId);
   if ((row.rawCount as number) > 1) throw new Error("BROWSER_DOM_CANDIDATE_AMBIGUOUS");
-  const pending = row.pendingCause;
   if (row.rawCount === 0) {
-    if ((pending !== "exact-user-turn-unavailable" && pending !== "adjacent-assistant-missing")
+    if ((row.pendingCause !== "exact-user-turn-unavailable" && row.pendingCause !== "adjacent-assistant-missing")
       || row.rawDomHtml !== "" || row.semanticText !== "") throw new Error("BROWSER_DOM_READ_INVALID");
-    if (pending === "exact-user-turn-unavailable" ? row.precedingUserTurnId !== "" || row.assistantTurnId !== ""
-      : !expected.userId || row.precedingUserTurnId !== expected.userId) throw new Error("BROWSER_DOCUMENT_INVALID");
-  } else {
-    if (pending !== null || row.rawDomHtml === "") throw new Error("BROWSER_DOM_READ_INVALID");
-  }
+    if (row.pendingCause === "exact-user-turn-unavailable"
+      && (row.precedingUserTurnId !== "" || row.assistantTurnId !== "")) throw new Error("BROWSER_DOCUMENT_INVALID");
+  } else if (row.pendingCause !== null || row.rawDomHtml === "") throw new Error("BROWSER_DOM_READ_INVALID");
   return Object.freeze(row) as Observation;
 };
 
@@ -232,8 +232,8 @@ export const executeExactAssistantTurnRead = async (
   const context = { runtime, target, assertCurrent, expectedMainFrameLoaderId };
   const userId = await materializeExactUserTurn(context, intent, commandDeadlineAt);
   const observed = await readFixedDocument({ ...context, stage: "exact-assistant-observation",
-    script: EXACT_ASSISTANT_TURN_FUNCTION, argument: { ...intent, observedUserTurnId: userId ?? "" },
-    decode: (value) => decodeObservation(value, { url: intent.canonicalConversationUrl, userId: userId ?? "" }),
+    script: EXACT_ASSISTANT_TURN_FUNCTION, argument: { ...intent, observedUserTurnId: userId },
+    decode: (value) => decodeObservation(value, { url: intent.canonicalConversationUrl, userId }),
   });
   assertCurrent();
   return bindReply(target, intent, observed);

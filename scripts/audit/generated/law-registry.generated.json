@@ -310,6 +310,7 @@
         "docs/grid-cell-zone-reference.zh.svg",
         "docs/项目方案/Browser DOM 生产级方案-实施工单.md",
         "docs/项目方案/Browser DOM 生产级方案.md",
+        "docs/项目方案/GPT文本回答挂载竞态-完整实现方案.md",
         "docs/项目方案/子能力规矩会议记录.md",
         "docs/项目方案/浏览器交互拒绝回执与认证连坐根治-完整实现方案.md",
         "docs/项目方案/浏览器命令WAL孤儿DISPATCHED自愈-完整实现方案.md",

@@ -49,7 +49,6 @@ const TERMINAL_RULE_MUTANTS = [
     ["src/lib/browser/chrome-extension/dom-fixed-document-read.ts", "new FixedDocumentReadFailure(primary.code, primary.commandStage", "new FixedDocumentReadFailure(\"BROWSER_DOM_READ_INVALID\", primary.commandStage"],
     ["src/lib/browser/chrome-extension/dom-exact-assistant-turn.ts", "units[units.indexOf(user) + 1]", "units[units.length - 1]"],
     ["src/lib/browser/chrome-extension/dom-exact-assistant-turn.ts", "rawDomHtml: node ? node.outerHTML", "rawDomHtml: node ? document.body.outerHTML"],
-    ["src/lib/browser/chrome-extension/dom-exact-assistant-turn.ts", 'if (matches.length === 1 && matches[0].id !== spec.observedUserTurnId) throw new Error("BROWSER_DOCUMENT_INVALID");', ""],
     ["src/lib/browser/chrome-extension/dom-exact-assistant-turn.ts", 'if (assistants.length > 1) throw new Error("BROWSER_DOM_CANDIDATE_AMBIGUOUS");', ""],
     ["src/lib/browser/chrome-extension/dom-exact-assistant-turn.ts", 'matches[0].getAttribute("data-chatgpt-search-message-ids") !== id', "false"],
     ["src/lib/browser/chrome-extension/dom-exact-assistant-turn.ts", 'const id = turn.getAttribute("data-turn-key") || "";', 'if (turn.hidden) throw new Error("BROWSER_DOM_READ_INVALID"); const id = turn.getAttribute("data-turn-key") || "";'],

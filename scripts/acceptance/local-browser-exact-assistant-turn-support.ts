@@ -123,6 +123,42 @@ const exerciseRealIdentityChanges = async (page: Page): Promise<void> => {
     return page.evaluate(expression);
   } });
   await assert.rejects(execute(rerendered), expectStage("BROWSER_DOCUMENT_INVALID", "exact-assistant-observation"));
+  for (const [missingAssistant, stops] of [[true, 0], [false, 0], [false, 1]] as const) {
+    await page.setContent("");
+    let calls = 0;
+    const mounted = exactAssistantRuntimeFor(observation, ["loader-current"], { evaluate: async expression => {
+      if (++calls === 2) {
+        await page.setContent(turn() + (stops ? '<form data-chatgpt-composer><button aria-label="停止"></button></form>' : ""));
+        if (missingAssistant) await page.locator("[data-chatgpt-search-unit-key$=':assistant']").evaluate(node => node.remove());
+      }
+      return page.evaluate(expression);
+    } });
+    const reply = await execute(mounted) as Record<string, unknown>;
+    assert.equal(reply.precedingUserTurnId, userId); assert.equal(reply.generatingRaw, stops);
+    assert.equal(reply.pendingCause, missingAssistant ? "adjacent-assistant-missing" : undefined);
+    assert.equal(reply.semanticText, missingAssistant ? "" : "Title\nBody `inline`\n- item\n\n{\"ok\":true}\nend");
+    assert.equal(reply.rawDomHtml === "", missingAssistant); assert.match(String(reply.observationRevisionHash), /^sha256:[a-f0-9]{64}$/u);
+    assert.equal(mounted.scanCalls(), 1); assert.equal(mounted.answerCalls(), 1); assert.deepEqual(mounted.released, []);
+  }
+  for (const [html, code, wrongUrl] of [
+    [turn() + turn(), "BROWSER_DOM_CANDIDATE_AMBIGUOUS", false],
+    [turn().replaceAll(userId, "invalid-user"), "BROWSER_DOCUMENT_INVALID", false],
+    [turn().replace(`data-chatgpt-search-message-ids="${userId}"`, 'data-chatgpt-search-message-ids="invalid-user"'), "BROWSER_DOCUMENT_INVALID", false],
+    [turn(body, "invalid-assistant"), "BROWSER_DOCUMENT_INVALID", false],
+    [turn().replace("</section>", '<div data-chatgpt-search-unit-key="fallback-turn-0:2:assistant"></div></section>'), "BROWSER_DOM_CANDIDATE_AMBIGUOUS", false],
+    [turn().replace('    <div data-chatgpt-search-unit-key="fallback-turn-0:1:assistant"', '<div data-chatgpt-search-unit-key="other"></div><div data-chatgpt-search-unit-key="fallback-turn-0:1:assistant"'), "BROWSER_DOCUMENT_INVALID", false],
+    [turn(), "BROWSER_DOCUMENT_INVALID", true],
+  ] as const) {
+    await page.setContent("");
+    let calls = 0;
+    const mounted = exactAssistantRuntimeFor(observation, ["loader-current"], { evaluate: async expression => {
+      if (++calls === 2) { await page.setContent(html); if (wrongUrl) await page.goto("https://chatgpt.com/c/wrong"); }
+      return page.evaluate(expression);
+    } });
+    await assert.rejects(execute(mounted), expectStage(code, "exact-assistant-observation"));
+    assert.equal(mounted.scanCalls(), 1); assert.equal(mounted.answerCalls(), 1);
+  }
+  await page.goto(exactConversationFixtureUrl);
 };
 
 const exerciseRealIdentity = async (page: Page): Promise<void> => {
@@ -139,23 +175,47 @@ const exerciseRealIdentity = async (page: Page): Promise<void> => {
 };
 
 const exerciseDecoderAndLoader = async (): Promise<void> => {
-  for (const patch of [{ rawCount: 2 }, { rawDomHtml: "" }, { extra: true }, { nativeStage: "runtime-call-function-on" }]) {
-    await assert.rejects(execute(exactAssistantRuntimeFor({ ...observation, ...patch })),
-      expectStage("rawCount" in patch ? "BROWSER_DOM_CANDIDATE_AMBIGUOUS" : "BROWSER_DOM_READ_INVALID", "exact-assistant-observation"));
+  const absent = { ids: [], containerFound: false, atTop: true, scrollTop: 0, nextScrollTop: 0 };
+  for (const unknownIdentity of [false, true]) {
+    for (const [patch, code] of [
+      [{ rawCount: 2 }, "BROWSER_DOM_CANDIDATE_AMBIGUOUS"], [{ rawDomHtml: "" }, "BROWSER_DOM_READ_INVALID"],
+      [{ rawCount: 2, pendingCause: "adjacent-assistant-missing", precedingUserTurnId: "invalid-user" }, "BROWSER_DOM_CANDIDATE_AMBIGUOUS"],
+      [{ extra: true }, "BROWSER_DOM_READ_INVALID"], [{ nativeStage: "runtime-call-function-on" }, "BROWSER_DOM_READ_INVALID"],
+      [{ precedingUserTurnId: "invalid-user" }, "BROWSER_DOCUMENT_INVALID"], [{ assistantTurnId: "invalid-assistant" }, "BROWSER_DOCUMENT_INVALID"],
+      [{ pendingCause: "adjacent-assistant-missing" }, "BROWSER_DOM_READ_INVALID"], [{ observedAt: "invalid-time" }, "BROWSER_DOM_READ_INVALID"],
+      [{ rawCount: 0, pendingCause: "adjacent-assistant-missing", rawDomHtml: "", semanticText: "", precedingUserTurnId: "" }, "BROWSER_DOCUMENT_INVALID"],
+      [{ rawCount: 0, pendingCause: "exact-user-turn-unavailable", rawDomHtml: "", semanticText: "" }, "BROWSER_DOCUMENT_INVALID"],
+    ] as const) {
+      const value = { ...observation, ...patch };
+      const fixture = exactAssistantRuntimeFor(value, ["loader-current"], { response: phase => ({ result: { value: { kind: "value",
+        value: phase === "answer" ? value : unknownIdentity ? absent : { ...absent, ids: [userId] } } } }) });
+      await assert.rejects(execute(fixture), expectStage(code, "exact-assistant-observation"));
+    }
+    for (let driftAt = 0; driftAt < 4; driftAt += 1) {
+      const loaders = Array.from({ length: 4 }, (_, index) => index < driftAt ? "loader-current" : "loader-next");
+      const fixture = exactAssistantRuntimeFor(observation, loaders, unknownIdentity ? { response: phase => ({ result: { value: {
+        kind: "value", value: phase === "answer" ? observation : absent } } }) } : {});
+      await assert.rejects(execute(fixture), expectStage("BROWSER_DOCUMENT_INVALID",
+        driftAt < 2 ? "exact-user-materialization" : "exact-assistant-observation"));
+    }
+    for (const pendingCause of [null, "exact-user-turn-unavailable", "adjacent-assistant-missing"]) {
+      const value = pendingCause === null ? observation : { ...observation, rawCount: 0, rawDomHtml: "", semanticText: "", pendingCause,
+        ...(pendingCause === "exact-user-turn-unavailable" ? { precedingUserTurnId: "", assistantTurnId: "" } : { assistantTurnId: "pending-id" }) };
+      const fixture = exactAssistantRuntimeFor(value, ["loader-current"], { response: phase => ({ result: { value: { kind: "value",
+        value: phase === "answer" ? value : unknownIdentity ? absent : { ...absent, ids: [userId] } } } }) });
+      const reply = await execute(fixture) as Record<string, unknown>;
+      assert.equal(reply.pendingCause, pendingCause ?? undefined); assert.match(String(reply.observationRevisionHash), /^sha256:[a-f0-9]{64}$/u);
+    }
   }
-  for (let driftAt = 0; driftAt < 4; driftAt += 1) {
-    const loaders = Array.from({ length: 4 }, (_, index) => index < driftAt ? "loader-current" : "loader-next");
-    const fixture = exactAssistantRuntimeFor(observation, loaders);
-    await assert.rejects(execute(fixture), expectStage("BROWSER_DOCUMENT_INVALID",
-      driftAt < 2 ? "exact-user-materialization" : "exact-assistant-observation"));
+  const mismatched = "00000000-0000-4000-8000-000000000003";
+  for (const pending of [false, true]) {
+    await assert.rejects(execute(exactAssistantRuntimeFor({ ...observation, precedingUserTurnId: mismatched,
+      ...(pending ? { rawCount: 0, rawDomHtml: "", semanticText: "", pendingCause: "adjacent-assistant-missing" } : {}) })),
+    expectStage("BROWSER_DOCUMENT_INVALID", "exact-assistant-observation"));
   }
-  for (const pendingCause of ["exact-user-turn-unavailable", "adjacent-assistant-missing"]) {
-    const reply = await execute(exactAssistantRuntimeFor({ ...observation, rawCount: 0,
-      rawDomHtml: "", semanticText: "", pendingCause,
-      ...(pendingCause === "exact-user-turn-unavailable" ? { precedingUserTurnId: "", assistantTurnId: "" } : {}),
-    })) as Record<string, unknown>;
-    assert.equal(reply.pendingCause, pendingCause); assert.match(String(reply.observationRevisionHash), /^sha256:[a-f0-9]{64}$/u);
-  }
+  const { semanticText: _missing, ...incomplete } = observation;
+  await assert.rejects(execute(exactAssistantRuntimeFor(incomplete, ["loader-current"], { response: phase => ({ result: { value: {
+    kind: "value", value: phase === "answer" ? incomplete : absent } } }) })), expectStage("BROWSER_DOM_READ_INVALID", "exact-assistant-observation"));
 };
 
 const fixed = (fixture: ReturnType<typeof exactAssistantRuntimeFor>, assertCurrent: () => void = () => undefined) => readFixedDocument({
