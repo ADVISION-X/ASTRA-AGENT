@@ -23,7 +23,7 @@ const baziRevisionInstruction = (context: SharedExecutionContext): readonly stri
   ]);
 
 export const PLUGIN_ID = "bazi-report-followup";
-export const PRODUCT_INSTRUCTION = "根据本次已入场的父报告材料回答新的冻结问题，保持父报告、人物、命盘候选与证据边界。";
+export const PRODUCT_INSTRUCTION = "完整读取本轮获准的命盘事实、实际已有档案、完整 BZ05 根报告、所选直系历次原问与完整答复和本轮补充，围绕每个具体问题贯通用户的问题—命盘—实际回读的古籍—现实条件，给出同源的完整专业及白话解答，说明适用条件、前轮调整、未知和限制；首轮可直接承接已交付 BZ05，后续按精确根/父接续，不续接历史 Provider conversation，也不另造网页稿或 PDF 稿。";
 const WAIT_TIMEOUT_MS = 3_600_000;
 export const MODEL_PROFILE = buildGptExecutionProfile({
   profileRef: `${PLUGIN_ID}:chatgpt-latest-reasoning-4`,
@@ -115,7 +115,7 @@ const qualityReflectionInstruction = (): string => [
   "A5 只用 review_context 中的冻结事实核对 frozen task -> Product -> result contract -> Website business completion 的交接链，不评价未观察源码。",
   "A6 同一根因的多个症状只保留一条 finding，指向最早的直接断裂；没有可证问题时 decision=no_issue。",
   "A7 严格返回 website-agent-review-output.v1：decision + issues[]，每条 issue 只含 category/target_type/target_ref/observation/evidence_refs/impact/confidence/suggested_inspection 八字段，不得新增第二结果字段。",
-  "本 Product 专属检查面：parent identity、delta 问题、父事实与新增推断分层、是否重复整份父报告。",
+  "本 Product 专属检查面：完整根/父与本轮获准历史、每个实质问题、命盘与实际原典依据、本案适用性及现实回答，事实/意见/新增推断分层、前轮调整及未知限制；只复核已提供材料，不重产正式解答。",
 ].join("\n");
 
 export const promptFor = (
