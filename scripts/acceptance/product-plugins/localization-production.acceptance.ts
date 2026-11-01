@@ -272,7 +272,7 @@ for (const run of [staticRootRun, staticRun]) {
   const write = run.calls.find((call) => call.child === "write_exact_gpt_prompt");
   assert(write?.child === "write_exact_gpt_prompt");
   const marker = `[GRASSEYE:${hashCanonical({ job_id: staticTask.job_id,
-    product_step_id: write.productStepId }).slice(7, 31)}]`;
+    product_step_id: write.productStepId }).slice(7, 31)}:aattempt-1]`;
   assert.equal(write.input.prompt.split("\n")[0],
     `把此不可变标记原样保留在本次用户消息中，不要写入 JSON 结果：${marker}`);
   const modelCall = run.calls.find((call) => call.child === "select_gpt_model_from_start_v3");
@@ -306,6 +306,47 @@ const staticRepeated = await exerciseProductFlow(plugin, { task: staticTask,
   materialContents: staticPair.materials, output: {},
   expectedSessionCount: 1, checkpointOutput: () => candidate });
 assert.equal(staticRepeated.calls.find(call => call.child === "write_exact_gpt_prompt")?.input.prompt, staticPrompt);
+const attemptA = "cee120e3-7318-471e-a741-1481a03b4b2d", attemptB = "b1492cfd-2e91-41a1-9800-7382102ab2f4";
+function withAttemptIdentity(currentAttempt: string, sourceAttempt: string,
+  execute = plugin!.execute): NonNullable<typeof plugin> {
+  return { ...plugin!, execute: (task, context) => execute(task, { ...context,
+    gpt: { ...context.gpt, attemptId: currentAttempt,
+      execute: async call => ({ ...await context.gpt.execute(call), sourceAttemptId: currentAttempt }),
+      readConfirmedSubmit: async call => {
+        const result = await context.gpt.readConfirmedSubmit(call);
+        return result ? { ...result, sourceAttemptId: sourceAttempt } : null;
+      },
+    },
+  }) };
+}
+const inputMarkers: string[] = [];
+for (const [revision, current, source, confirmed] of [
+  [0, attemptA, attemptA, false], [1, attemptB, attemptB, false],
+  [0, attemptB, attemptA, true], [1, attemptB, attemptA, true],
+] as const) {
+  const run = await exerciseProductFlow(withAttemptIdentity(current, source), {
+    task: staticTask, materialContents: staticPair.materials, output: {}, checkpointOutput: () => candidate,
+    expectedSessionCount: 1, resultRevision: { revision, priorRejection: null }, confirmedSubmit: confirmed,
+    ...(confirmed ? { confirmedPromptHash: FIXTURE_HASH } : {}),
+  });
+  const checkpoint = run.calls.find(call => call.child === "checkpoint_gpt_text_response");
+  assert(checkpoint?.child === "checkpoint_gpt_text_response");
+  const marker = `[GRASSEYE:${hashCanonical({ job_id: staticTask.job_id,
+    product_step_id: checkpoint.productStepId }).slice(7, 31)}:a${source}]`;
+  assert.equal(checkpoint.input.turnMarker, marker);
+  assert.equal(marker.length, 73);
+  assert.equal(run.physicalSubmitDispatches, confirmed ? 0 : 1);
+  if (confirmed) assert.deepEqual(run.calls.map(call => call.child),
+    ["get_submitted_gpt_conversation_url", "checkpoint_gpt_text_response"]);
+  else {
+    const write = run.calls.find(call => call.child === "write_exact_gpt_prompt");
+    assert(write?.child === "write_exact_gpt_prompt");
+    assert.equal(write.input.prompt.split("\n")[0],
+      `把此不可变标记原样保留在本次用户消息中，不要写入 JSON 结果：${marker}`);
+    inputMarkers.push(marker);
+  }
+}
+assert.notEqual(inputMarkers[0], inputMarkers[1]);
 const largeSource = `${"原冻结完整材料".repeat(8_000)} {name}`;
 const largeContext = { ...contextBundle,
   message_items: [{ ...sourceItems[0]!, source_text: largeSource, source_hash: sha256(largeSource) }, sourceItems[1]!],
@@ -322,13 +363,14 @@ assert.ok(largeWrite.input.prompt.length < 10_201, "incident-sized material stay
 assert.equal(largeRun.physicalSubmitDispatches, 1);
 const profileCall = staticRun.calls.find((call) => call.child === "select_gpt_model_from_start_v3");
 assert(profileCall?.child === "select_gpt_model_from_start_v3");
-const oldConfirmed = await exerciseProductFlow({ ...plugin, execute: async (task, context) => {
+const oldConfirmed = await exerciseProductFlow(withAttemptIdentity(attemptB, attemptA, async (task, context) => {
   const turn = await executeIsolatedLocalizationJsonTurn(task, context, {
     stepId: "old-confirmed-fixture", sessionSuffix: "old-confirmed-fixture",
     prompt: staticPrompt, profile: profileCall.input.profile,
   });
   return context.complete({ payload: { promptHash: turn.checkpoint.promptHash }, evidence_refs: turn.evidenceRefs });
-} }, { task: staticTask, materialContents: staticPair.materials, output: candidate, confirmedSubmit: true, confirmedPromptHash: FIXTURE_HASH });
+}), { task: staticTask, materialContents: staticPair.materials, output: candidate, confirmedSubmit: true,
+  confirmedPromptHash: FIXTURE_HASH, resultRevision: { revision: 6, priorRejection: null } });
 const oldSubmitRead = oldConfirmed.confirmedSubmitReads[0];
 assert(oldSubmitRead?.child === "submit_exact_gpt_turn_once");
 assert.notEqual(oldSubmitRead.input.promptHash, FIXTURE_HASH);
@@ -337,6 +379,10 @@ assert(oldConfirmedPayload && typeof oldConfirmedPayload === "object" && "prompt
 assert.equal(oldConfirmedPayload.promptHash, FIXTURE_HASH);
 assert.deepEqual(oldConfirmed.calls.map((call) => call.child), ["get_submitted_gpt_conversation_url", "checkpoint_gpt_text_response"]);
 assert.equal(oldConfirmed.physicalSubmitDispatches, 0);
+const sourceCheckpoint = oldConfirmed.calls.find(call => call.child === "checkpoint_gpt_text_response");
+assert(sourceCheckpoint?.child === "checkpoint_gpt_text_response");
+assert.equal(sourceCheckpoint.input.turnMarker, `[GRASSEYE:${hashCanonical({ job_id: staticTask.job_id,
+  product_step_id: "old-confirmed-fixture" }).slice(7, 31)}:a${attemptA}]`);
 assert.match(staticPrompt, /read_only_siblings/u);
 assert.doesNotMatch(staticPrompt, /"finding_codes"\s*:|五个 locale turn/u);
 const staticPayload = staticRun.completed.payload as Readonly<Record<string, unknown>>;

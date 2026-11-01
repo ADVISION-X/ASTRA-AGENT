@@ -210,11 +210,27 @@ export const executeIsolatedLocalizationJsonTurn = async (
   task: WebsiteAgentTask, context: SharedExecutionContext,
   input: Readonly<{ stepId: string; sessionSuffix: string; prompt: string; profile: GptExecutionProfile }>,
 ): Promise<IsolatedLocalizationJsonTurn> => {
-  const marker = markerFor(task, input.stepId);
-  const result = await runAuthorizedTurn(context, { ...input, marker, fresh: !task.parent_task_ref,
-    prompt: [markerLine(marker), input.prompt, resultRevisionFact(context)].join("\n") });
-  const value = productResultValidation.parseJsonObject(result.checkpoint.semanticText, "PRODUCT_RESULT_JSON_INVALID");
-  return Object.freeze({ ...result, value });
+  const sourceMarker = (sourceAttemptId: string) =>
+    `[GRASSEYE:${hashCanonical({ job_id: task.job_id, product_step_id: input.stepId }).slice(7, 31)}:a${sourceAttemptId}]`;
+  const prompt = [markerLine(sourceMarker(context.gpt.attemptId)), input.prompt, resultRevisionFact(context)].join("\n");
+  const flow = createFlow(context, input.sessionSuffix);
+  const materials = approvedAttachments(context);
+  const call = { productStepId: input.stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once",
+    actionOrdinal: 13, input: { files: materials.uploaded, promptHash: sha256(prompt) } } as const;
+  let submit = await flow.read(call);
+  if (!submit) {
+    if (!task.parent_task_ref) await flow.execute({ productStepId: input.stepId, callId: "fresh-chat",
+      child: "prepare_clean_gpt_chat", actionOrdinal: 1, input: { timeoutMs: 60_000 } });
+    await selectProfile(flow, input.stepId, input.profile);
+    await attachMaterials(flow, input.stepId, materials);
+    await flow.execute({ productStepId: input.stepId, callId: "prompt-write", child: "write_exact_gpt_prompt",
+      actionOrdinal: 11, input: { prompt } });
+    submit = await flow.execute(call) as Submit;
+  }
+  const checkpoint = await readSubmittedTurn(flow, { ...input, prompt, fresh: !task.parent_task_ref,
+    marker: sourceMarker(submit.sourceAttemptId) }, submit);
+  const value = productResultValidation.parseJsonObject(checkpoint.semanticText, "PRODUCT_RESULT_JSON_INVALID");
+  return Object.freeze({ checkpoint, evidenceRefs: flow.refs(), value });
 };
 
 export const executeOwnedFlow = async (task: WebsiteAgentTask, context: SharedExecutionContext) => {
