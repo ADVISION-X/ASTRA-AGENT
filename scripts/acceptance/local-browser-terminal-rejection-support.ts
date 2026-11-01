@@ -39,7 +39,7 @@ type ActorRejectionContext = Readonly<{
   clickCommand: ReturnType<typeof createClickCommand>;
 }>;
 
-const exactAssistantFixture = (observedAt: string) => {
+const exactAssistantFixture = (observedAt: string, assistantTurnId = "00000000-0000-4000-8000-000000000002") => {
   const exactAssistantPermit: BrowserCommandPermit = {
     ...permit("actor-exact-assistant"), capabilityId: "browser.dom.inspect.v1",
     mutationClass: "observation", replayPolicy: "observation-only",
@@ -55,7 +55,7 @@ const exactAssistantFixture = (observedAt: string) => {
     schemaVersion: "grasseye.browser.exact-assistant-turn.v4" as const,
     targetRefHash: exactHash(exactAssistantPermit.targetRef),
     documentRefHash: exactHash(exactAssistantPermit.documentRef),
-    assistantTurnId: "00000000-0000-4000-8000-000000000002",
+    assistantTurnId,
     currentUrl: exactAssistantCommand.intent.canonicalConversationUrl,
     precedingUserTurnId: "00000000-0000-4000-8000-000000000001",
     generatingRaw: 0,
@@ -74,12 +74,26 @@ export const exerciseExactAssistantActorBinding = async (
 ): Promise<void> => {
   const { exactAssistantPermit, exactAssistantCommand, exactAssistantReply, revisionHash } =
     exactAssistantFixture(observedAt);
-  const boundExactAssistant = await actorFor(async (candidate) => ({
-    replyChannelToken: candidate.replyChannelToken, transportSequence: 1,
-    permitSequence: candidate.sequence,
-    result: { ...exactAssistantReply, observationRevisionHash: revisionHash },
-  })).execute(exactAssistantPermit, exactAssistantCommand) as Readonly<Record<string, unknown>>;
-  assert.match(String(boundExactAssistant.exactCallIdentityHash), /^sha256:[a-f0-9]{64}$/u);
+  for (const id of [exactAssistantReply.assistantTurnId, "fallback-turn-4"]) {
+    const valid = exactAssistantFixture(observedAt, id);
+    const boundExactAssistant = await actorFor(async (candidate) => ({
+      replyChannelToken: candidate.replyChannelToken, transportSequence: 1,
+      permitSequence: candidate.sequence,
+      result: { ...valid.exactAssistantReply, observationRevisionHash: valid.revisionHash },
+    })).execute(valid.exactAssistantPermit, valid.exactAssistantCommand) as Readonly<Record<string, unknown>>;
+    assert.equal(boundExactAssistant.assistantTurnId, id);
+    assert.match(String(boundExactAssistant.exactCallIdentityHash), /^sha256:[a-f0-9]{64}$/u);
+  }
+  for (const id of ["", 7]) {
+    const invalid = exactAssistantFixture(observedAt, typeof id === "string" ? id : "fallback-turn-4");
+    Reflect.set(invalid.exactAssistantReply, "assistantTurnId", id);
+    const invalidRevision = exactHash(canonicalBrowserExactAssistantTurnRevision({ ...invalid.exactAssistantReply,
+      turnMarkerHash: exactHash(invalid.exactAssistantCommand.intent.turnMarker) }));
+    await assert.rejects(actorFor(async candidate => ({
+      replyChannelToken: candidate.replyChannelToken, transportSequence: 1, permitSequence: candidate.sequence,
+      result: { ...invalid.exactAssistantReply, observationRevisionHash: invalidRevision },
+    })).execute(invalid.exactAssistantPermit, invalid.exactAssistantCommand), /BROWSER_AUTH_TRANSCRIPT_INVALID/u);
+  }
   const wrongUrlExactAssistant = { ...exactAssistantReply,
     currentUrl: new URL("/c/another-conversation", exactAssistantCommand.intent.canonicalConversationUrl).href };
   const wrongUrlRevision = exactHash(canonicalBrowserExactAssistantTurnRevision({

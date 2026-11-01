@@ -25,7 +25,7 @@ const exactAssistantTurnIdentityValid = (
     typeof value.observationRevisionHash === "string",
     /^sha256:[a-f0-9]{64}$/u.test(String(value.observationRevisionHash)),
     typeof value.assistantTurnId === "string",
-    negative || /^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/u.test(String(value.assistantTurnId)),
+    negative || value.assistantTurnId !== "",
     value.currentUrl === intent.canonicalConversationUrl,
     typeof value.precedingUserTurnId === "string",
     value.pendingCause === "exact-user-turn-unavailable" ? value.precedingUserTurnId === ""

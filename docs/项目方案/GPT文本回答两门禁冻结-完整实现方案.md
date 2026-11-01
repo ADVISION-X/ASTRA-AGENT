@@ -1,464 +1,178 @@
 # GPT 文本回答两门禁冻结－完整实现方案
 
-## 0. 方案身份
+## 1. 本次目标、状态与授权
 
-- 状态：**可施工**。这只表示设计闭合，不代表代码完成、CHANGE/READY/RELEASE 或生产闭环。
-- 需求 Owner：AGENT 仓库的 `gpt` 能力域；`local-browser-session` 只提供同一原子观察中的机械事实。
-- 唯一方案路径：`docs/项目方案/GPT文本回答两门禁冻结-完整实现方案.md`。
-- 本方案是独立的任务级施工方案，不改写 `十小时连续运行事故分组根治-完整实现方案.md`；后者只作为事故连续性线索，不再承载本次工单或验收。
-- 本轮只产出方案文件。法案、施工图、代码、质检、数据库、Browser 生产动作和发布均未施工。
+状态：**可施工**。用户已明确授权本次专项施工、CI-FULL，以及READY后原生启动和正常工单跟进。设计资格与施工进度分开；实际建设、验收与运行结论由本次原始操作和原生报告证明。方案审查不产生质量 PASS、READY 或 RELEASE，不借此前任务授权重跑工单。
 
-## 1. 需求、权威终点与范围
+需求 Owner 为 AGENT `gpt`，机械观察和回包鉴权由 `local-browser-session` 各守原职责。唯一目标：正确定位的文本回答使用临时 assistant ID 时，不再被 UUID 格式门误拒绝；沿原两门逻辑等待并取得完整回答。删除同一身份校验块中无独立消费者的标题外壳门。禁止增加特殊 ID 白名单、重试、状态、轮询、补救链或 Provider 回合。
 
-### 1.1 唯一需求
+本方案复用既有两门冻结方案路径，替换其中已被现役法案承接的旧施工指令和过期版本，不创建竞争方案。四份专业栏目源头蓝图的业务规则、专业材料、Product Skill/Prompt/Flow 不进入本次修改面；本次不改变任何专业结果义务。AGENT 是执行工厂，完成边界只引用 `LAW-AGENT-PRODUCTION-RUNTIME-004-V48` 的完整结果成功接收，不新增 Website 领域采用或发布门。
 
-对 `checkpoint_gpt_text_response` 冻结且只允许两道逻辑门禁：
+## 2. 当前证据与第一直接断裂
 
-1. **回答身份安全门**：证明本次读取的是当前 job 已确认提交所对应的那一条紧邻 assistant 回答；
-2. **回答结算完成门**：只根据停止按钮与回答正文，裁决继续等待、成功或连续 20 分钟停止且空回答。
+事故 job：`aiprod_19001ba2-2635-40c1-bf0b-132cf86d567d`；attempt：`5e9a1715-2902-4f65-921e-7cfbc8d2d2eb`。日志为 `.grasseye-local/runtime-logs/agent/46b21faa-6c3e-43b9-800d-1ece5013bc0b-0001.jsonl`，Browser command `18d0f24b-504a-469f-8d2c-982b975c3052`。时间均为 UTC，原日志和本聊天 Chrome 工具回执是事实来源，不另建事故报告。
 
-任何页面外壳、展示状态、控件数量或历史位置条件均不得成为第三道门禁，也不得被包装进上述两道门后取得隐藏阻断权。
+| 已观察事实 | 证据及边界 |
+| --- | --- |
+| 原输入已经发生 | 19:29:49.669 原 WAL 为 CONFIRMED、physical input 1；本次不重放。 |
+| 原生故障位于最终 assistant 观察 | 日志 22040—22041：19:31:56.640/663，exact-assistant-observation，随后 BROWSER_DOCUMENT_INVALID。原日志没有精确 if 子分支。 |
+| Chrome 仍处于正常生成 | 19:32:56.759 与 19:34:27.330 的只读 DOM：同原 URL、marker、user；唯一 user、真实紧邻唯一 assistant、正文节点 1、h4 1；assistant message ID 为 `fallback-turn-4`、各 token 一致，stop 1、正文长度 0。 |
+| Provider 自然完成 | 19:37:25.307：同 URL/marker/user，assistant ID 成为正式 UUID，stop 0、正文长度 13219；没有点击、发送、刷新或导航。该事实不证明 Website 已接收。 |
+| 独立故障 | 19:31:57.616 的 AI_SESSION_TOKEN_STALE/401 是后续运输故障，排除本次施工，不抹除原错误。 |
 
-### 1.2 权威业务终点
+第一直接断裂：`src/lib/browser/chrome-extension/dom-exact-assistant-turn.ts#EXACT_ASSISTANT_TURN_FUNCTION` 在读回 stop/正文之前，要求 assistant ID 符合 UUID。上述合法生成现场必然命中该拒绝条件；这证明了当前实现会误杀该现场，不能追认未同步采到 DOM 的每一条历史错误都由同一 if 引起。其后 `assertObservationLocation`、Browser reply verifier、GPT decoder 还重复要求 UUID；只删第一处不能闭合。
 
-本次局部成功终点是：`checkpoint_gpt_text_response` 对正确的紧邻 assistant turn 返回完整 `rawDomHtml + semanticText` 及其 hash，Forensics 写入并读回同一 task-owned artifact。
+另两张 `aiprod_a0ad4936-c464-47a2-8abe-633a627a3cac`、`aiprod_d290739c-75ad-4be1-a2b6-334a09d87f96` 的同阶段错误后，当前页面已有完整正式 ID 回答，仅作同阶段恢复旁证。历史 68 张/73 次是阶段归类，不能当作本子根因的已证数量。本次没有捕获 user UUID 两次采样间变化或缺 h4；h4 退休来自下述必要性审判，不冒充事故触发实证。
 
-系统最终业务终点保持不变：
+完整 Provider URL、marker、回答正文不写本文或普通日志；定位继续由原加密 WAL 和当前受控页面负责。Chrome 只读工具不提供 loader，不能用 URL 相同冒充 loader 动态证明。
 
-```text
-exact assistant artifact
-  -> Product result
-  -> Runtime 唯一 Outbox
-  -> Website Domain Consumer admission
-  -> 同一 job_id + result_payload_hash 的 admission receipt/readback
-```
+## 3. 来源绑定与权威裁决
 
-Provider 页面已回答、GPT Child 成功、artifact 写入、Outbox delivered 均不得冒充 Website 最终入库。
+项目 realpath `/Users/nexgen/Documents/AGENT`；本地 `main`、tracking `origin/main`，设计来源为实际原生提交 `f0e33c628d92576e2da5c90394c77f9958962e65`。写前工作树 clean，本方案原路径无用户改动。方案自身不作为 source candidate；其最新 SHA-256 在实际交付时读取，不能自嵌 hash。没有第二仓施工、未生成新 candidate identity。
 
-### 1.3 施工范围
+本轮已完整遍历两份 active 法案和七份现役施工图。39 条 active law、13 份 Manifest、registry 的 lawId 集一致；registry 增加的 source/contractRefs 是投影信息，逐项原 law-record 字段一致。七份 Blueprint 的 lawIds 均指向现役版本。以上是来源核对，不是原生质量裁决。
 
-仅允许触碰：
+| 四维 | 当前依据、裁决与落点 |
+| --- | --- |
+| 法案 | `LAW-GPT-001-V68`、`LAW-GPT-002-V33` 的 FROZEN-GPT-TEXT-RESPONSE-TWO-GATES-001；Capability Governance001-V20、Architecture002-V2、Browser003-V49/004-V59/006-V48；Code Purity001-V6/002-V2/003-V3；Forensics001/002-V7、003-V6；Runtime004-V48。只允许原子回答身份和 stop/正文结算，未规定 assistant ID 必须为 UUID。无需改法或解冻，禁止改写两门冻结原文。 |
+| 施工图 | GPT V71“唯一 Owner 与职责/两门冻结/证据失败验收”；Browser V58“GPT 提交后置机械定位/两门/pending”；Runtime V69 §§1/4/5 的工厂接收边界；质量证据、日志、启动、Workbench 四图各守原链。目标纠正下级格式假设，不改变七图或 spec。 |
+| 实现 | W1—W3：三个生产文件四处 UUID 检查；h4 壳条件同属页内身份校验块。当前字段已是 string，下游完成 artifact 只要求非空字符串及内容 hash。原 handler 已能完成等待与结算，直接复用。 |
+| 质检 | 先审现有检查：DOM Exam 把单个 `invalid-assistant` 字符串当非法身份，decoder Exam 再次如此；这只固化错误格式，必须退休其“非 UUID 必失败”断言，改验缺失/错误类型。现役 inspector/治理 mutants 未要求这四条 UUID 或 h4 字面量，无需改检查器。用原 DOM、Actor、GPT、artifact 用例分别覆盖真实边界，不新建测试框架或 verdict。 |
 
-- AGENT 侧一条 GPT active law 的最小版本替换；
-- GPT 与 Local Browser 两份现役施工图的同候选冻结描述；
-- exact assistant 专用读取函数及其现有 decoder；
-- `checkpoint_gpt_text_response` 现役结算判定的必要原位固化；
-- 现役 GPT/Browser inspector、既有 acceptance 与唯一 governance mutation test；
-- 法案版本引用及由现役 generator 生成的唯一 law registry 投影。
+母本按 §§0/4/35 定为方案 CHANGE；相关 §§21—24/35—38/41—44/46—55/74/77—79 适用。闭环 Skill 已实际完整读取两遍；子审前另完整读取 subagent-review。执行前主 Codex 再以现役原文完成不少于两遍法案/施工图自检；存在规范冲突时禁止进入代码，不能用“98%”自评分跨过缺口。
 
-### 1.4 明确非目标
+未来七个施工文件的基线如下，施工前连同上述权威、原 handler、hash/revision、公开类型、注册、消费者和质检入口重核实际 scoped diff。无关漂移保留；相关漂移只重算受影响决定，不覆盖他人改动。
 
-- 不改 Website 仓库、跨仓 provider/consumer 合同、数据库、表、字段或迁移；
-- 不改变 40 秒静默门、70—90 秒全局 Provider observation 节拍、Browser FIFO/lane、WAL、effect identity、Target 恢复或 result revision；
-- 不改变停止按钮存在时继续等待，以及停止按钮消失且空回答连续 20 分钟才失败的规则；
-- 不改变 Prompt、附件、模型、Product Flow、Outbox、Website admission 或任务容量 N；
-- 不新增 Child、helper 层、队列、timer、store、状态机、兼容桥、feature flag、fallback、第二读取链或第二质量裁决；
-- 不使用用户当前 ChatGPT 操作者会话充当 RELEASE 生产证明。
+| 路径 | 行数；SHA-256 |
+| --- | --- |
+| `src/lib/browser/chrome-extension/dom-exact-assistant-turn.ts` | 240；`0fbf377e462fb5a61c870e002b50a4c2f28b8af04a4fadde1400f04aabc75028` |
+| `src/lib/browser/exact-target/browser-exact-assistant-turn-reply.ts` | 81；`021a27ef81a88e625ba33f42235f8734f9c6263803e29619990213110356fee8` |
+| `src/capabilities/gpt/web/gpt-dom-observation.ts` | 362；`7b996bc4598c41d487aa0ecab5f22b98999f5c740c81b1ca208083aea30ac541` |
+| `scripts/acceptance/local-browser-exact-assistant-turn-support.ts` | 383；`78b980ff2ac7da708c3b3950c2ed0099292817845c08fbc9790548a4fd8232f1` |
+| `scripts/acceptance/local-browser-terminal-rejection-support.ts` | 451；`d8bdb504ac5b8118a48d92f9696f735b46a0cd90b516d90375ccf2236db41cfe` |
+| `src/capabilities/gpt/acceptance/gpt-proof.acceptance.ts` | 164；`cdeefab3370f252762e2e86933dedaeef4c607f493f6e8a0480fe1beb2b43a24` |
+| `src/capabilities/gpt/acceptance/gpt-production-artifact-recovery.acceptance-support.ts` | 419；`6be3222672e8ab79482630ad8d80c25381e40983688a13e7660f7e00774071da` |
 
-## 2. 输入实证与事实等级
+## 4. 受影响实现、消费者与前轮连续性
 
-### 2.1 Chrome 真实页面实证（2026-09-17）
+交叉查漏有三类不同来源：①`src/capabilities/gpt/contract.ts` 的 Child 合同、穷举 `handler-registry.ts` 与 Browser `command-registry.ts`/`dom-intent-runtime.ts` 的分派；②assistantTurnId 符号/类型、Product 实际调用和 artifact/storage 反向消费；③原 WAL、日志与 Chrome 同现场观察。注册入口和实际调用均汇入唯一文本 reader，source/cache 则沿完成 artifact 回读；两类差异是现役合法路径，不能误添第二 reader。
 
-用户提供的 canonical conversation URL 只在本文记录 hash：
+唯一 live 链：Product 原输入 → checkpoint handler → `readExactAssistantTurn` → Browser command Actor/permit → Extension 固定 Document 读取 → Extension decode/bindReply → Actor `bindExactAssistantTurnReply` → GPT decoder → 原 stop/正文结算 → `production-child-result.ts#persistGptChildOutcome` 与 `evidence-artifacts.ts` → 原 Product result → Runtime 原 stage/terminal Outbox → Website 同身份完整结果成功接收回执 → `runtime-business-admission.ts#reconcileBusinessAdmission`/Store local completed。Provider 生成和 Browser pending 不创建持久回答；只有原成功路径封存 artifact。
 
-`sha256:1599c8d9d63f6ab8c65bdc7de0988af133146da256841208061f287477bd7093`
+全部 13 个 Product 调用点均位于 `src/plugins/`：`hehun-ai-analysis/flow.ts`、`hehun-report-followup/flow.ts`、`qimen-professional-answer/flow.ts`、`qimen-report-followup/flow.ts`、`public-knowledge-article-pipeline/seo-gpt-calls.ts`、`localization-production/flow.ts`、`zeji-personal-selection/flow.ts`、`naming-commercial/flow.ts`、`naming-from-existing-bazi-report/flow.ts`、`payment-screenshot-observation/flow.ts`、`bazi-ai-full-analysis/product-turn.ts`、`bazi-chart-interpretation/product-turn.ts`、`bazi-report-followup/product-turn.ts`。输入和 Child 输出字段不变；使用 assistantTurnId 的成员只消费字符串及 artifact 绑定，其余消费正文/原 artifact，不要求 UUID。全部保留，通过原 `acceptance:architecture-boundary` 发现并运行各 Product 原验收，不手写新的测试分母。
 
-同一次只读 DOM 观察得到：
+| 精确对象组、唯一 Owner | 处理决定及停止依据；验收 |
+| --- | --- |
+| Browser `dom-exact-assistant-turn.ts` 的 marker/materializer/最终读取、`dom-fixed-document-read.ts` | marker 唯一、user UUID/message ids、nullable 挂载保护、真实角色/邻接/正文唯一、URL/loader/guard、完整读取必须保留；删除会串读或丢失长页可达性。只改 W1 片区；V1/V4/V5。 |
+| Browser `browser-exact-assistant-turn-reply.ts`、`exact-assistant-turn-revision.ts`、`browser-dom-intent.ts` | W2 只简化 ID 格式；原字段数、V4、exact call/Target/Document、canonical revision/content hash 不可删除，否则伪包可被接收。类型和 hash 算法不变；V2/V5。 |
+| GPT `gpt-dom-observation.ts`、`checkpoint_gpt_text_response/handler.ts` | W3 只改前者的 assistant 字符串准入；后者原位复用。handler 已有 stop-present 等待、非空 DONE、20 分钟与身份重置，新增分支无必要；V3/V6。 |
+| GPT `evidence-artifacts.ts#observedResponseArtifact/readPersistedGptTextResponse`、`production-call-preparation.ts#recoverPersistedCheckpoint`、`production-execution-source-reuse.ts`、`production-execution-session.ts`、`production-child-tools.ts` | 直接复用。当前文本 artifact 只要求非空 ID，cache/source 均消费同原 reader。ID 不参与 effect、attempt、lease 或 Website wire；停止在不变的结果/receipt 合同，不扩修 Runtime/Website；V7/V8。 |
+| Browser `authenticated-media-runtime.ts`、`browser-target-lease-manager.ts#authenticatedMediaShapeValid/readAuthenticatedMedia` | 搜索也命中 assistant UUID，但属于独立图片/精确 user-turn 合同，不消费文本 reply；不删、不放宽。V8 复用原媒体回归。 |
+| FIFO/lane/WAL、URL 选择与 continuation、Product、Forensics、Runtime/Outbox/日志、Website | 身份、权限、状态、幂等、副作用和输出字节规则不变。保留各自原权威；新字符串已在既有 string 类型和非空 artifact 合同内，无新增跨仓字段或 writer。原未知/拒收/接收未确认按原 Owner 回接；V7/V8/V9。 |
 
-| 事实 | 真实值 | 裁决 |
-|---|---:|---|
-| conversation turn 数 | 4 | 页面已有两轮 user/assistant |
-| 任务 user turn | `conversation-turn-1`，唯一 | 可作为已确认提交返回身份的定位点 |
-| 紧邻 assistant turn | `conversation-turn-2`，唯一 assistant-role | 是本任务回答 |
-| 该 assistant 是否页面末位 | 否，后面还有 turn-3/turn-4 | “必须页面最后一条”会误杀真实回答 |
-| 该 assistant 正文长度 | 8011 字符 | 已有完整非空回答 |
-| `#composer-submit-button` 数量 | 0 | “必须恰好一个 Composer submit”会误杀真实回答 |
-| stop button 数量 | 0 | 当前回答已停止生成 |
+有限回归筛查命中同片区多轮修改，采用深度调查、窄施工。`git blame` 显示 UUID 条件可追溯至 `3016fe43e`，h4 块由 `86b0873b0` 承接；不能归罪于上一轮 marker 修复。相关旧方案及实际落地裁决：
 
-该实证证明页面末位与 Composer 数量不是回答身份，也不是回答结算事实。它只用于设计和回归分母，不授权读取、改写或复用该操作者会话执行生产任务。
+- 本文前轮的两门冻结已被 GPT002-V33、现役两份图和 handler 承接，保留非末位、Composer 数量不拦截、hidden/inert 不清正文、禁止 Prompt rehash；不重做旧版本法案升级或旧 V3 reply。
+- 《GPT文本回答扫描门禁根治》对应 `86b0873b0`：保留 fixed Document by-value、loader 前后守卫、await 物化、真实 stage/cause 和异常资源收束；它未解决生成中的临时 ID，不重建其执行骨架。
+- 《GPT文本回答挂载竞态》对应 `c6fd13a1c`：保留 null→合法 user 挂载可读、已观察非空 user 在同一调用内变更仍拒绝；不把本次 assistant 字符串减法扩成删除 user 保护。
+- 《GPT当前回答停止状态误识别》对应 `edb63d812`：保留排除 home Composer、当前 stop 的原选择规则；不改 stop 范围或节拍。
+- 《GPT回答轮次身份漂移阻断》与当前固定 Product：保留原来源 attempt marker、提交 UUID 仅 WAL lineage、confirmed/source 零输入读回；旧事故不用恢复兼容代码强救，不在本单删建工单。
 
-### 2.2 Git 历史实证
+这些不变量进入 V4—V8；现役旧方案并非本临时 assistant ID GAP 的未完成竞争施工单。只有本文承载本次 W1—W3。
 
-`git blame` 与 `git log -S` 证明提交 `c473d6a90` 同时加入：
+## 5. 删除反事实、目标合同与有限分母
 
-- `assistantIndex === turns.length - 1`；
-- `composerRaw === 1`；
-- `generatingRaw === 0` 作为候选存在前置。
+先裁质检，再裁生产。现役测试对“非 UUID 必失败”的期望会强制错误实现，不能由其它格式测试证明其必要；退休这类期望，用原用例检验空/非字符串和真实身份冲突。DOM、Actor、GPT 三层用例分别执行不同的拒绝边界，互不替代；artifact 恢复用例负责证明新合法输出不会丢失恢复能力，不能用 DOM 成功替代。现有 inspector、治理反例、夹具、运行器复用，无新增 checker、样本矩阵或入口。
 
-它们不是原始 exact adjacency 身份的一部分。当前未提交 overlay 已删除这三项候选前置，但尚未完成本方案要求的“仅两门”冻结，且 `browserMechanicalFacts(...).visible/ariaHidden/inert` 仍可把已精确定位的回答降为 missing。
+| 单元 | 删除后的具体后果／更短替代与裁决 |
+| --- | --- |
+| 四处 assistant UUID 格式 | 删除不会丢失 marker、角色、邻接、唯一性、权限或 hash 保护；能让真实生成现场回到原等待。**删除 UUID 假设**，只承接既有 string 非空合同。 |
+| 页内 h4 数量 | 真实 assistant 已由同一 user unit 序列的 `:assistant` 角色与邻接唯一性证明；h4 只为展示，没有独立真实消费者。**删除，不以别的标签检查替换**。 |
+| assistant ID 非空、同一消息 ids token 全相等 | artifact 和连续空窗口消费当前 ID；缺失会丢 lineage/混合 token 会掩盖当前消息身份矛盾。**保留**，不新增格式、前缀或跨样本稳定性要求。 |
+| 真实 marker/user/邻接、正文唯一、current Target/Document/loader/permit、完整内容/回包 hash | 各有串读、错页、歧义、伪包或内容损坏反例；其它 Owner 不能补证已错误读取的事实。**按原唯一模块保留**，不复制实现。 |
+| 原 stop/正文结算、artifact、effect-once、Outbox 接收链 | 分别防半成品成功、丢成果、重复输入和假完成，有原消费者。**原位复用**。 |
+| 临时 ID allowlist、按 stop 特判放宽 UUID、等 UUID 变稳定、DocumentInvalid catch→pending、新日志/状态/监听器 | 现有身份与结算链足够，删除它们没有当前需求损失。**禁止建设**，也不新增用于本修复的辅助治理文件或 Agent。审查者只用于本次用户指定独立审查。 |
 
-### 2.3 权威事实
+目标是按现役合同重新推导身份校验片区，而非复制旧块换正则：同包证明原 URL/marker/当前唯一 user、真实紧邻唯一 assistant/正文，读取其**原样非空 opaque ID**并保持同一消息 token 一致；ID 是页面事实，不是 UUID 类型、授权主键或结果完成信号。保留原严格形状、时间、hash、pendingCause 与 counts 关系。body 缺席依旧原 pending；body 已挂载时返回完整 body/stop，即使正文空或 ID 临时。
 
-- `LAW-CAPABILITY-GOVERNANCE-001-V15` 已规定：一个 Child 只有一个业务完成判据，只有防串任务、串 Target/Document 或错误结果接收不可替代时才可再有一个安全判据，第三个阻断判据默认删除。
-- `LAW-GPT-001-V55` 已规定：回答读取按 submit 返回的 canonical conversation URL、精确 user turn 及其真实紧邻 assistant turn 裁决，不得用固定 turn 编号或奇偶猜测。
-- `LAW-GPT-002-V18` / `FROZEN-EXACT-TARGET-POLL-RESULT-REVISION-001` 已规定：stop button 存在时永不判停；仅 stop 连续消失且回答连续为空满 20 分钟才产生 `GPT_RESPONSE_STOPPED_EMPTY`。
-- `LAW-LOCAL-BROWSER-SESSION-006-V34` 已允许 exact assistant 完整 DOM/semantic text 经专用 reply-only 通道返回，并禁止二次 Prompt rehash。
-- GPT V56 与 Browser V47 施工图已把 Target/current Document/revision、精确 user turn 和紧邻 assistant 作为回答身份主线。
+相邻 handoff：
 
-因此，本次不是发明新安全机制，而是把现役全局“两判据上限”精确落到文本回答 Child，并删除无法证明必要的展示型门禁。
+| producer → consumer | 现役合同及接收证据 |
+| --- | --- |
+| 固定 DOM → Extension decoder/bindReply（W1） | 私有 Observation 原十字段，rawCount=0/1、多义拒绝；字符串、整数、observedAt、两类 pending 及空内容关系不变；无新 null/default/enum。原 user 身份校验不变，assistant 仅非空/一致；原 URL 与 guard。 |
+| Extension → Browser Actor（W2） | `BrowserExactAssistantTurnReplyV4`，positive13/negative14 原字段、原 canonical revision/hash；Actor 按原 permit 绑定 exactCallIdentityHash。unknown/缺失字段、坏 hash/时间、错 Target/Document/URL 仍拒绝。 |
+| Browser → GPT decoder/handler（W3） | 原 V4+exactCallIdentityHash，原 user UUID/URL、内容 hash 和 generatingRaw 保留；不新增 pending 类型或把正观察伪装负观察。ID 临时并不改变 stop 结算。 |
+| DONE → artifact/cache/source → Product/Runtime | 原 `agent-observed-response-artifact.v1` 六字段与 hash、原 append/readback、原 effect/call/artifact 身份，非空 string 已兼容。没有字段/Schema/wire/事务/lease/fence/receipt 的新增或迁移。 |
 
-## 3. Scoped candidate 绑定
+Identity spine：job/accepted attempt/result revision → 原 step/call/Child/provider effect/WAL locator → 当前 Target/Document/loader + 原 URL/marker/当前 user/紧邻 assistant → 原 revision/content hashes → 完成 artifact/result hash → 原完整结果成功接收回执/local completed。临时 ID 变 UUID 仅使原 stopped-empty identity hash 自然变化，按原规则归零；不回写 WAL、不制造新输入资格。
 
-### 3.1 仓库候选
+| 有限分支 | Owner、决定、终态/readback、回接 |
+| --- | --- |
+| 有合法回答、stop>0，正文空或非空 | Browser 原包 → GPT 原 stop-present pending；不封存成功 artifact，释放 lane 后原 FIFO 等待；V1/V3。 |
+| stop=0、正文非空，ID 为任意合法非空字符串 | GPT 原 DONE → Forensics 原 artifact → Product/Runtime 接收链；V1—V3/V7/V9。 |
+| stop=0、正文空 | GPT 原窗口 pending；连续20分钟且身份不变才原 stopped-empty typed failure；stop/内容/身份变化归零，原 Website 恢复权不变；V6。 |
+| user/正文尚缺 | 原两类 negative observation → GPT 原 pending/预算和真实 negative-window 终态；无新恢复或持久化；V4。 |
+| 多 marker/assistant/body、错邻接、缺ID/混合ID、user矛盾、错页/loader/权限、伪包 | 原 Browser/GPT typed fail-close、保留原 stage/cause，原 Runtime 运输/Website 授权回接；禁止重发同 effect；V4/V5。 |
+| 取消、命令到期、lease失效、回执未知、原结果可复用 | 原 guard/typed failure/Outbox/source 处理，已发生或未知输入不重放；同结果合法时只重交原结果。无本次新恢复动作；V5/V7/V8。 |
 
-| 项 | 当前绑定 |
-|---|---|
-| realpath | `/Users/nexgen/Documents/AGENT` |
-| branch | `main` |
-| HEAD | `9005918c9072313ebdbbf8178864b6622f12def8` |
-| tracking | `origin/main` |
-| 方案写入前路径状态 | 不存在，新建唯一文件 |
+## 6. 三张原子工单与施工纪律
 
-### 3.2 相关 dirty overlay
+工单串行 W1→W2→W3，随后整链验收。三者合为同一未加载候选：中间态不能进入运行服务。共同前置为专项施工授权、相关来源重绑定、法案/施工图两遍主审无冲突、原用户改动受保护。七个文件之外无施工权限；本方案外的法案、图、Manifest、registry、协议、依赖、Product、Runtime、Website 和数据库改动为零。
 
-下列四项是前一轮同片区的未提交候选，属于用户改动，不得覆盖、恢复或丢弃：
+**共同删除/保留纪律：** 片区只包含下述精确校验语句或表达式，不删整个混合函数、常量或文件。先从第5节合同明确新责任；物理删除该旧片区 → 下一次独立工具调用核对旧语句/表达式缺席且独立保留部分仍原位 → 再在同一路径建设唯一新校验。不是“读取旧块→改字符串→删文件→写回”，不得保存旧片区副本/内存模板、Git 恢复骨架、搬移、改名、包装或兼容桥。纯退休对象不重建；经裁决保留对象从未删除，不重新复制。过程证据留在实际工具记录，不另建台账。
 
-| 路径 | 当前 SHA-256 | 本方案裁决 |
-|---|---|---|
-| `src/lib/browser/chrome-extension/dom-exact-assistant-turn.ts` | `13895563ca2dff583642b1f57da1ce2532af34144f51066034d7a806a62b998c` | 部分施工：已删末位/Composer/生成态候选门，仍有 visibility eligibility 隐藏门 |
-| `scripts/acceptance/local-browser-exact-assistant-turn-support.ts` | `6c677a2997479b9c6b8fa9c4a912e0d753f587b0c35581aa6cfd8c3ca16cb56b` | 部分验收：已覆盖末位与生成态，不足以冻结两门上限 |
-| `scripts/audit/domains/local-browser-session/dom-mechanical-facts-inspection.ts` | `354ca045e057611a1379039232196eb355d7329118d5eef34147cdfab65098e3` | 部分 inspector：仍强制 `browserMechanicalFacts`/eligible |
-| `tests/governance/quality-contract.test.ts` | `618592434eb3d4da3b060476cc0275a7006d870d4641de3a50819e8aeb0d7766` | 部分变异测试：只防末位与 Composer 回流 |
+### W1：Browser 当前观察身份
 
-执行 Codex 必须先逐项复读并采用“在现有 overlay 上继续收敛”的方式施工；hash 漂移时重新计算受影响工单，不得用 HEAD 版本覆盖。
+- **做什么/输出：** Owner `local-browser-session`；让合法临时 ID 的原观察包到达现役消费者。输入为原 exact intent/current Document，输出仍原 V4。
+- **删除什么/重建什么：** `dom-exact-assistant-turn.ts#EXACT_ASSISTANT_TURN_FUNCTION` 中完整的 `if (assistant && (...h4...UUID...ids.some...))` 语句删除后，仅按第5节非空 ID 与同消息 token 一致性重建；h4 与 UUID 永久退休。`assertObservationLocation` 中最后一条 rawCount=1 的 assistant UUID if 删除后，只承接非空字符串事实；当前 URL/user 部分原位保留。不删除整个函数冒充重构。
+- **保留什么/为何：** 同文件所有 imports/types、UUID 常量的 user 用途、MARKER_USER_SOURCE、materializer、nullable user 交接、record/shape/decode、stop/语义 reader、hash/bindReply/execute 均直接复用；它们提供唯一定位、可达性和安全数据包，消费者为原 Actor/GPT，删去将破坏 V4/V5。
+- **质检局部修改：** 仅 `local-browser-exact-assistant-turn-support.ts#exerciseRealAtomicBody/exerciseRealIdentityChanges/exerciseDecoderAndLoader`：退休“单个非UUID字符串必失败”两类断言，改验空ID仍为DOCUMENT_INVALID、非字符串仍为DOM_READ_INVALID，保留混合ID和非法 user 拒绝。AtomicBody 的原首样本/hidden回归保留；末尾原两组独立setContent/runPage合并为同一用例内的输入表和一次setContent/读取循环，原非末位+stop及JSON语义断言分别承接，加入临时ID空正文生成→正式ID完成、无h4、临时ID停止非空场景。IdentityChanges 仅在原html/code表内替换非法格式行并加入同assistant内两个正文节点的歧义输入，不新增await语句；DecoderAndLoader也只改原patch表。复用原 page/fixture，不加生产导出、函数或文件。
+- **顺序/验收/失败：** 按共同删除纪律，producer 与 decoder 同候选闭合；V1/V4/V5，W2 验证真正接收。表外片区不动；真实身份保护受损即停，保留原 WAL/结果，不以删负向断言求通过。
 
-### 3.3 当前 authority hash
+### W2：Browser 回包真实性
 
-| 对象 | SHA-256 |
-|---|---|
-| `.github/instructions/agent-rules/基础法案.md` | `f1970c2416127f8bcdf560d0fd81105895924c4ed2cdd23f6a08ae910998d2f3` |
-| `.github/instructions/agent-rules/功能法案.md` | `36a68dc054275ff5cc8ddff1f46fa75b60200174473249bd473e901f2d53ac4b` |
-| GPT Blueprint V56 | `e6a85e405faceb1e5456ff82e9d2c03033ef4bc6e66ac925c7535d9b3a3fc5eb` |
-| Browser Blueprint V47 | `419453cb0c67d422228b8fbdba813dd8f34e29426b44db29f949381ebc456d1e` |
-| Runtime Blueprint V53 | `94c2cd1ca162f81346c36c96c982e733671fe19d9cc59fec09ad0bf52f546dfb` |
+- **做什么/输出：** Owner `local-browser-session`；`browser-exact-assistant-turn-reply.ts#exactAssistantTurnIdentityValid` 继续证明原 permit 下原样可信观察，允许原非空字符串合同。
+- **删除/重建：** 仅删除数组里 `negative || <UUID regex>(assistantTurnId)` 的完整校验项，独立核缺席后按“negative 保持原语义，positive ID 非空”重建。该项之外的 shape/version/URL/user/Target/Document/hash 与 `exactAssistantTurnValueValid`、`bindExactAssistantTurnReply` 全部保留；删去会接受伪造包，V2/V5 证明必要。
+- **质检局部修改：** `local-browser-terminal-rejection-support.ts#exactAssistantFixture/exerciseExactAssistantActorBinding` 复用原合法包与 canonical revision 构造，原既有正向场景覆盖正式/非UUID两种 ID；只增加必要形状变异：空/非字符串 ID 拒绝。原错URL、篡改内容/revision 与负观察反例保留。不删 Actor 的鉴权、不添检查器。
+- **顺序/验收/失败：** W1 后进行；实际 Actor 接收新合法 ID 并绑定原 exact call，旧篡改包仍按原 AUTH_TRANSCRIPT_INVALID，V2/V5。不能靠绕过 binder 或伪造 hash 证明成功。失败停止同候选交付，无兼容放行、无生产 mutation。
 
-施工前及法案/施工图完成后必须各重新绑定一次；相关对象漂移即停止代码施工。
+### W3：GPT 接收与原等待/成果回接
 
-## 4. 现役实现重建与第一直接断裂
+- **做什么/输出：** Owner `gpt`；`gpt-dom-observation.ts#exactAssistantIdentityValid` 接收 Browser 证明的原 string 页面事实，交给原 handler，输出原完成 artifact。
+- **删除/重建：** 仅删除 assistantTurnId UUID 的完整 `&&` 表达式片区，独立核缺席后按既有 string 非空合同重建；schema/user UUID/URL/内容哈希和负观察分支原位保留。handler、空窗口、原 artifact/cache/source/所有 Product 代码直接复用，不移除它们的原有安全门，不改错误码或协议版本。
+- **质检局部修改：** `gpt-proof.acceptance.ts` 的既有 exact-response 场景使用非UUID完成ID并保留wrong-URL反例；既有stop-beyond-budget场景在同一次handler运行中采用“临时ID+stop1+空正文→临时ID+stop1+非空partial→正式ID+stop0+完整正文”三阶段，保留原预算到期后仍等待、非空partial仍不能DONE的反例，核原等待原因、读数和零新增输入。不以空正文场景替换原非空生成中保护。`gpt-production-artifact-recovery.acceptance-support.ts` 只将原文本 saved fixture 的 ID 改为非UUID非空字符串，复用原持久读回、source重用、cache零页面动作与完整性反例，不改图片 fixture、恢复结构或样本规模。
+- **顺序/验收/失败：** W2 后进行，V3/V6/V7；停止临时ID+非空也须DONE，禁止等UUID才完成。Artifact读回失败或合法结果不能交付就停并查原Owner，不能开新Provider输入、改401或删事故单。
 
-现役唯一调用链：
+结构预算：三个生产文件均低于500行，修改为删除/简化表达式，无新函数/依赖。W1测试383、W2测试451、W3测试164/419行。按现役collectOwnFunctionDescendants规则，W1 AtomicBody为28行/9 await，IdentityChanges为52行/10 await，DecoderAndLoader为43行/5 await；分别按上段合并末尾两组await对为一组（目标7 await）、只扩原html表（仍10）、只改patch表（仍5）承载，不追加独立await或helper。W2 fixture为28行/0 await、绑定函数58行/4 await：复用同一fixture增加可选ID参数，在原正向执行点枚举正式/opaque两项、在同一函数内用一个空/非字符串patch循环校验拒绝，复用原Actor/hash构造，最多5个自身await；不得复制整段Actor场景。W3两个原场景仅增加一次已有fixture回调的返回阶段，saved fixture只换文本ID，不新增await或函数。所有改动保持函数≤75行/10 await、文件≤500及其余现役结构红线；这已给出承载落点，施工须在本单核实实际AST，不能等READY失败后临时拆层。所有修改由主 Codex 实施，子智能体只能只读审查。
 
-```text
-checkpoint_gpt_text_response/handler.ts
-  -> gpt-dom-observation.ts#readExactAssistantTurn
-  -> BrowserDomIntent kind=readExactAssistantTurn
-  -> dom-intent-runtime.ts
-  -> dom-exact-assistant-turn.ts#executeExactAssistantTurnRead
-  -> 同一 Runtime.callFunctionOn 取得 URL、turn 邻接、stop、DOM、semantic text
-  -> loader before/after + current authority 校验
-  -> GPT Child 结算
-  -> task-owned observed-response artifact
-```
+## 7. 功能、施工纪律与动态验收
 
-第一直接断裂位于 `dom-exact-assistant-turn.ts`：
+| 验收 | 必须区分的正确/错误实现及观察位置 |
+| --- | --- |
+| V1 真实 DOM 语义 | 原隔离 synthetic DOM 运行生产 fixed script：唯一当前 marker/user/assistant/body、临时ID、stop1、空正文能原样返回；下一原观察变正式ID/stop0/完整正文。另临时ID停止且非空立即可读，无h4同样可读。缺ID/混合ID仍拒绝。不接受只改mock返回包代替页内执行。 |
+| V2 Actor handoff | 原 Actor 真实 binder 接收正式/非UUID的合法原V4包；exactCallIdentityHash、revision、URL/Target/Document核验保持。仅改producer而未改binder的实现必须被此用例拒绝。 |
+| V3 GPT 结算 | 原handler在同一次调用消费“临时ID空正文stop1→临时ID非空partial且stop1→正式ID完整回答stop0”三阶段；保留原短budget到期/observation gate返回deadline后仍等待的行为，分别断言前两阶段不提前DONE、最终完整时DONE、原stop-present等待原因和读取次数。只看非空而无视stop的错误实现必须失败；非UUID完整答案也能DONE。仅放宽Browser未改GPTdecoder的错误实现必须失败；不新增真实等待秒数或重复场景矩阵。 |
+| V4 身份与挂载回归 | 原user nullable挂载、已知user变更拒绝、多marker、多assistant、错邻接、非法user、两个原pending、隐藏/屏外/非末位/Composer场景、长页方向和预算直接复用原行为Exam；多body分支补入W1既有identity用例，不能把decoder的rawCount=2伪包冒充页内多body定位保护。 |
+| V5 真失真与取消 | 原loader四个位点漂移、guard/permit/command取消/到期、错URL、畸形/额外字段、坏类型、内容hash/revision/Target/Document篡改与原stage/cause保留。不能把真实DocumentInvalid吞成pending。 |
+| V6 原空窗口 | 原stop-present、停止非空、连续不足/满20分钟及stop/内容/identity变化归零验收保持；ID临时转正式沿原identity变化处理。不加timer或缩短窗口。 |
+| V7 完成artifact和恢复 | 既有持久文本fixture使用opaque ID，原读取及source/cache成功，原artifact ref/hash等值，零多余acquisition/页面读取/submit；损坏artifact仍失败。原 live 缺artifact 及 source 授权反例保持。 |
+| V8 成熟消费者 | 原Browser媒体、FIFO、WAL、confirmed/source零输入、GPT lifecycle/cache/source、全部13个Product原验收继续通过；URL连续、原marker和模型/附件/输入职责不变。 |
+| V9 正常运行 | 用户追加授权“ready后，启动AGENT，再跟进3-5张工单”。本次完整READY及第二推完成后，经原生启动/切换入口使候选实际加载，只读跟进3—5张正常固定catalog现役任务，逐单绑定实际加载构建、job/attempt/revision/call、原CONFIRMED effect、相同canonical URL/marker、临时ID+stop到完成、artifact/result hash、完整结果成功接收回执和local completed。未观察到临时ID则仅报告正常回归通过，专项动态复现尚缺；不制造真实故障或额外派单凑证据。领域采用供Website判断，不作工厂完成门。 |
 
-1. exact user turn 与紧邻唯一 assistant 已经确定后，代码再次调用 `browserMechanicalFacts(node, false)`；
-2. `visible && !ariaHidden && !inert` 被转换为 `eligibleCount`；
-3. `eligibleCount=0` 时完整 `outerHTML` 与 semantic text 被清空；
-4. decoder 把它转换为 `BROWSER_DOM_CANDIDATE_MISSING`；
-5. GPT Child 无法取得实际已经存在的回答，只能继续轮询。
+功能验收先验证 W1/W2/W3，再合跑既有 `npm run acceptance:local-browser-terminal`、`npm run acceptance:gpt`、`npm run acceptance:architecture-boundary`，最后使用唯一 `npm run quality:check -- CHANGE`；每次在实际执行环境核 Node≥24。普通用例不冒充质量裁决，不为重复证明添加重跑矩阵。用户另行要求 CI-FULL/READY 时实际加载冻结 ci-full-governance，依其 CHANGE→提交首推→完整READY→再次推送执行；单次只处理一个根因族，不能借质量失败扩修基础设施。RELEASE不自动授权。
 
-这是把“可展示/可交互性”错误提升为“回答是否存在”。文本读取不执行指针动作，当前真实消费者只需要精确身份与完整内容；删除该展示门后，Target/current Document/loader/revision、URL、精确 user turn、邻接唯一 assistant 仍完整防止串页、串任务与错误结果接收。
+部署/加载无跨仓迁移：公开字段、协议及持久结构不变；仅依用户追加授权在READY后执行原生启动/必要切换。切换须沿原正常停止/停止新claim/在途handler排空、原结果先交付、旧worker退出、固定artifact构建与preflight、新进程/扩展同构建鉴权链。不能单端热换、清WAL/Outbox/槽、伪造unknown终态或为切换删除任务；排不空即停止切换并保全原事实。该有限运行观察不等于RELEASE，不自行启动完整发布流程。
 
-## 5. 冻结后的两道门禁合同
+施工纪律另验：七个目标文件仅发生本单裁决动作；精确旧校验片区真实删除、有独立即时缺席结果、随后按合同新建；保留模块始终原位、旧UUID/h4准入及错误断言无残留、无副本/桥/旧骨架恢复。缺过程证据报告“无法核实重构纪律”，已证违规报告“未满足重构要求”；最终diff、功能通过或READY不能替代中间证据。
 
-### 5.1 门禁一：回答身份安全门
+1+1验收是：已证临时ID现场可沿原等待完成，合法非UUID停止回答可交付；V4—V8成熟安全不变量同时保持；新增Provider输入、每轮额外DOM采样、独立判据、timer、持久字段、恢复链和跨仓改动均为零。正常pending后按原节拍再次观察不计作新增读取机制。新非空判断是既有UUID检查中存在性部分的保留，不是叠加新门。仅净删行数或通过率提高不足以证明提升。
 
-唯一 Owner：`gpt/checkpoint_gpt_text_response` 定义语义；`local-browser-session` 在一次原子 observation 内机械取得事实。
+## 8. 停止、审查与交付
 
-不可拆的 canonical identity 同时绑定：
+发现新增必要消费者/旁路、authority冲突、相关candidate漂移、目标有用户改动、需改冻结语义/图片合同/表外文件，先停止相应动作，在本文回补事实、分母和授权，不缩小分母求通过。不自动回退；确有另获授权的指定基线回退，须单列对象与触发原因，保留已经发生的输入/结果/未知事实，不计作重建。
 
-- submit 已确认的 canonical conversation URL 与当次清洗后的 `currentUrl` 精确相等；
-- submit 已确认的 exact `userTurnId` 在当前 Document 中唯一对应 user-role turn；
-- 该 user turn 在 conversation turn 序列中的真实紧邻下一 turn 内恰好一个 assistant-role root；
-- observation 始终绑定同一 exact call、Target、current Document、main-frame loader before/after 与 observation revision。
+主Codex按三轮分别审：①权威与蓝图、Owner/权限和不解冻边界；②全部入口/消费者、四处UUID、handoff及工厂接收终点；③质检必要性、删除反事实、前轮连续性、具体片区/过程证据和全部验收。发现先在本文解决，确认无未闭合设计项后，完整读取subagent-review并启动全新只读审查者。审查者核本方案与现役法案/闭环Skill的有限分母是否完整，不写代码、不操作生产、不删建工单；发现修正后由原审查者复核。未放行不得标“可施工”或结束方案建设。
 
-这些字段由同一 Browser 原子 observation 产生、下游整体消费，任一缺失都会造成串页、串任务、错 turn 或 stale Document，因此按 `LAW-CAPABILITY-GOVERNANCE-001-V15` 计为**一个安全判据**，不得拆成多个并行门禁或另建身份。
-
-候选为零时只表示本轮尚未出现回答并重置 stopped-empty 窗口；候选多义、URL/Target/Document/loader/revision 漂移时按现役 typed failure 失败关闭。无论何种情况均不得读取其它 turn、页面末位或历史标题补猜。
-
-### 5.2 门禁二：回答结算完成门
-
-唯一 Owner：`gpt/checkpoint_gpt_text_response`。
-
-它只消费同一门禁一 observation 内的两个结算事实：`generatingRaw` 与 `semanticText`，并形成一个三态决定：
-
-| 同一位点事实 | 唯一决定 |
-|---|---|
-| stop button 存在，不论正文是否已经出现 | `pending`，继续等待；不得按 deadline 判停 |
-| stop button 消失且正文非空 | `DONE`，立即返回完整回答 |
-| stop button 消失且正文为空，连续不足 20 分钟 | `pending` |
-| stop button 消失且正文连续为空满 20 分钟，且 identity 未漂移 | `GPT_RESPONSE_STOPPED_EMPTY` |
-
-任一次 stop 再出现、正文非空或身份门失真，连续窗口归零。该窗口继续复用 Child 进程内单调时间与现役 observation，不新增 timer、持久状态或读取频率。
-
-### 5.3 明确禁止成为门禁的事实
-
-以下条件必须从 exact text response 成功/失败判定中物理删除，并由 inspector 阻止回流：
-
-- assistant 必须是页面最后一条；
-- 页面必须存在或恰好存在一个 Composer/submit button；
-- stop button 必须消失后才允许 Browser 读取候选 DOM；
-- assistant 必须有 layout box、visible、非 `aria-hidden`、非 `inert`、在 viewport 或通过 hit-test；
-- Prompt 二次读取/rehash、turn 编号加一/奇偶、标题、侧栏顺序、时间或当前页面最后 turn；
-- 把 `rawCount`、`eligibleCount`、`nativeCauseCode`、任意 hash/helper/state 名包装成第三个独立阻断判据；
-- 任意新的页面拓扑、控件外壳、动画、展开/折叠或渲染形态检查。
-
-协议结构校验、加密传输真实性、Browser authority/fence 与 decoder shape validation 仍按各自 Owner 失败关闭，但它们不得重解释页面回答或升级成第三个回答准入门。
-
-## 6. 必须写入 active law 的冻结条款
-
-代码与测试不能永久阻止未来膨胀，因此法案迭代在本任务中是必要项。最短方案只把 `LAW-GPT-002-V18` 原位版本替换为 `LAW-GPT-002-V19`，不新增 law record，不修改基础法案，也不改变既有 `FROZEN-EXACT-TARGET-POLL-RESULT-REVISION-001` 的语义。
-
-新增冻结条款的规范文本必须表达以下等价语义：
-
-> **FROZEN-GPT-TEXT-RESPONSE-TWO-GATES-001**：`checkpoint_gpt_text_response` 只能且必须保留两个阻断判据。第一是回答身份安全判据：同一原子 observation 绑定 confirmed canonical conversation URL、exact userTurnId、其真实紧邻且唯一的 assistant-role turn、Target/current Document/main-frame loader 与 observation revision；该 canonical identity 不得拆分、复制或另建第二身份。第二是回答结算完成判据：stop button 存在一律 pending；stop button 消失且 semantic text 非空立即 DONE；stop button 消失且 semantic text 为空仅沿现役连续 20 分钟窗口 pending 或产生 `GPT_RESPONSE_STOPPED_EMPTY`，任一次 stop 出现、正文非空或身份失真均归零。页面末位、Composer/submit 数量、layout/visible/viewport/hit-test、hidden/aria-hidden/inert、Prompt rehash、固定 turn 编号/奇偶、标题、侧栏、时间、动画、展开状态及其它 UI 外壳不得成为候选存在、内容返回、DONE、pending 或 failure 的第三门禁；stop 状态不得在 Browser 候选读取阶段清空 DOM/semantic text。不得把多个独立判据包装为 boolean、helper、hash、identity、candidate cardinality 或 eligibility 后规避两门上限。改变、删除、弱化、扩张或绕过本条，只有授权人明确原文“解冻 FROZEN-GPT-TEXT-RESPONSE-TWO-GATES-001”并同步替换现役法案、GPT/Browser 施工图、实现与唯一质检后才允许；普通修复、Provider UI 变化、CI 或单仓代码授权均不构成解冻。
-
-法案版本替换必须同步更新 GPT Manifest、GPT inspector law 常量、相关 acceptance lawId 与唯一 generated registry；历史方案文件中的旧法案引用不追溯改写。
-
-## 7. 四维闭环映射
-
-| 维度 | 当前事实 | 目标动作 | 验收 |
-|---|---|---|---|
-| 法案 | 全局已有两判据上限，文本回答未有专门冻结条款 | `LAW-GPT-002-V19` 新增两门冻结；原 V18 其余语义逐字继承 | active corpus 只有 V19；V18 不再 active；registry 由 generator 唯一生成 |
-| GPT 施工图 | V56 已写 identity 与 stopped-empty，但未明确排除 visibility 等隐藏门 | 升为 V57，写入两门合同和禁止清单 | blueprint record lawIds 指向 V19；冻结名与法案一致 |
-| Browser 施工图 | V47 允许紧邻回答读取，但仍可能把展示 eligibility 当准入 | 升为 V48，只把同包机械事实用于两门，不再拥有第三门 | Browser 段落与 GPT 同候选一致，不新增 Browser law/Owner |
-| 现役实现 | 当前 dirty patch 已删 3 个错误条件，仍有 mechanical eligibility | 原位删除 exact response 专用路径的 visibility eligibility；保留 identity 与 settlement | 完整 DOM/text 在末位=false、Composer=0、stop=1、layoutless/hidden 场景仍可被身份门观察；只有结算门决定是否 DONE |
-| 质检 | 现有测试仅禁止末位与 Composer 回流，inspector 仍要求 mechanical facts | 扩展现役 inspector 与 mutation tests，形成两门 allowlist | 任一第三门变异必须使唯一 quality 失败；不建第二 checker/verdict |
-
-Runtime V53 与 Website 合同均不变，因为本次没有改变 typed result schema、artifact、failure code、Outbox 或 admission receipt。
-
-## 8. 原子职责与边界绑定
-
-### RSP-01：回答身份安全门
-
-```yaml
-responsibility: 精确定位本次 confirmed submit 的紧邻 assistant 回答
-canonical_owner: gpt/checkpoint_gpt_text_response semantic contract; local-browser-session mechanical observation
-authority_inputs_and_providers:
-  - Browser WAL confirmed readback 提供 canonical conversation URL 与 exact userTurnId
-  - Browser Authority 提供 exact Target/current Document/main-frame loader
-single_decision_or_action: 同一原子 observation 判定 canonical response identity 是否唯一成立
-typed_output_or_persisted_truth: BrowserExactAssistantTurnReplyV3 及 observationRevisionHash
-consumers:
-  - checkpoint_gpt_text_response
-  - task-owned observed-response artifact writer
-failure_owner_and_location: Browser typed missing/ambiguous/document invalid; GPT result decoder invalid
-readback_acceptance: URL/userTurn/assistantTurn/Target/Document/revision 与 rawDomHash/semanticTextHash 同包闭合
-forbidden_adjacent_owners:
-  - Product 不解释 DOM
-  - Runtime/Website 不选择 Provider turn
-  - Browser 不决定 DONE 或 Product next step
-allowed_change_paths:
-  - src/lib/browser/chrome-extension/dom-exact-assistant-turn.ts
-  - scripts/acceptance/local-browser-exact-assistant-turn-support.ts
-  - scripts/audit/domains/local-browser-session/dom-mechanical-facts-inspection.ts
-  - tests/governance/quality-contract.test.ts
-```
-
-### RSP-02：回答结算完成门
-
-```yaml
-responsibility: 对已通过身份门的回答裁决 pending/DONE/GPT_RESPONSE_STOPPED_EMPTY
-canonical_owner: gpt/checkpoint_gpt_text_response
-authority_inputs_and_providers:
-  - 同一 Browser observation 的 generatingRaw
-  - 同一 Browser observation 的 semanticText
-single_decision_or_action: 执行停止按钮/正文三态与连续20分钟窗口
-typed_output_or_persisted_truth: Child success 或 GPT_RESPONSE_STOPPED_EMPTY typed failure
-consumers:
-  - Product Plugin 当前 GPT call
-  - Forensics artifact path on success
-  - Runtime typed failure transport on stopped-empty
-failure_owner_and_location: GPT Child handler
-readback_acceptance: success 绑定完整内容 hash；stopped-empty 绑定现役独立 observation proof
-forbidden_adjacent_owners:
-  - Browser 只返回机械事实，不决定结算
-  - Runtime 不按 deadline 或日志决定结算
-  - Website 只消费 typed fact，不解释页面
-allowed_change_paths:
-  - src/capabilities/gpt/children/checkpoint_gpt_text_response/handler.ts
-  - scripts/audit/domains/gpt/gpt-provider-contract-inspection.ts
-  - scripts/audit/domains/gpt/gpt-frozen-attempt-inspection.ts
-  - src/capabilities/gpt/acceptance/gpt-stopped-empty.acceptance-support.ts
-  - tests/governance/quality-contract.test.ts
-```
+执行Codex须重新绑定本轮授权、当前根AGENTS/Skill/母本/适用法案及图/Manifest/registry/真实代码与测试、本文最新hash和实际Git状态；既定方案无相关漂移才可执行。最终按精确对象分别报告真正重建的校验片区、经论证保留的模块、局部修改的既有测试、删除退役的门禁/错误断言、失败回退及尚未完成的动态证据。不得把本单称为全系统故障已清零；当前方案和未来代码建设审计必须分开。
 
-## 9. 有限状态分母与唯一主链
-
-| 状态 | 身份门 | 结算事实 | 输出/回接 |
-|---|---|---|---|
-| I0 | authority、Target/Document/loader/revision 无效 | 不评估 | typed fail-close，原链停止，不猜测 |
-| I1 | exact adjacent assistant 为零 | 不评估 | pending；stopped-empty 窗口归零；下一轮仍经唯一 FIFO |
-| I2 | exact adjacent assistant 多义或 URL/身份不等 | 不评估 | typed fail-close，不读取其它 turn |
-| S1 | 通过 | stop 存在 | pending，释放 lease/lane后按现役节拍回接 |
-| S2 | 通过 | stop 消失、正文非空 | DONE -> artifact -> Product result |
-| S3 | 通过 | stop 消失、正文空且不足20分钟 | pending，同一窗口继续 |
-| S4 | 通过 | stop 消失、正文连续空满20分钟 | `GPT_RESPONSE_STOPPED_EMPTY` -> Runtime typed transport -> Website 现役恢复裁决 |
-
-分母内不存在第三种页面准入状态。`probeBudgetMs`、全局节拍、Browser transport 与 Website admission 是相邻 Owner 的既有边界，不得被包装成回答门禁。
-
-## 10. 删除反事实与存在性审判
-
-| 单元 | 当前需求/消费者 | 删除试验 | 裁决 |
-|---|---|---|---|
-| 回答身份安全门 | 防串页、串 job、串 turn、stale Document；GPT/Forensics消费 | 删除会允许把其它 conversation/turn 写入本任务 artifact | **KEEP** |
-| 回答结算完成门 | 防未完成回答或永久空回答进入 Product；Product/Runtime消费 | 删除会提前收半成品，或永远等待空回答 | **KEEP** |
-| assistant 页面末位 | 无真实消费者 | Chrome 实证中有效 turn-2 后已有 turn-3/4，删除后闭环正常 | **DELETE** |
-| Composer/submit 数量 | 无回答读取消费者 | Chrome 实证数量为0但回答完整，删除后闭环正常 | **DELETE** |
-| stop 作为候选存在门 | 结算门已完整消费 stop | 删除候选门后仍由结算门阻止提前 DONE | **DELETE from identity; KEEP only inside settlement** |
-| visibility/layout/aria-hidden/inert eligibility | 文本读取无指针动作消费者 | 删除后 exact identity、完整内容、hash、Document/revision仍闭合 | **DELETE** |
-| `eligibleCount`/`nativeCauseCode` 在专用 exact reply 内部的阻断用途 | 只服务待删除 visibility gate | 删除后外部 `BrowserExactAssistantTurnReplyV3` 无 schema 变化 | **DELETE** |
-| Prompt rehash/历史 turn/标题/侧栏猜测 | 现役冻结已禁止 | 删除后 submit 返回身份已足够 | **DELETE / KEEP ABSENT** |
-| 新 helper/状态/registry/第二 proof | 无消费者 | 两个现役 Owner 原位即可完成 | **DO NOT ADD** |
-
-删除后仍只有两项不可删除结构，满足用户“不能证明不能被删除就删除”以及现役能力治理法案。
-
-## 11. 原子工单与施工顺序
-
-法案与施工图未对齐前禁止进入代码。工单必须串行：
-
-### TG-01：重新绑定 candidate
-
-- 复读 §3 的 HEAD、tracking、四个 dirty hash 与 authority hash；
-- 检查本方案文件是否有未授权改动；
-- 输出 scoped diff，不扫描或清理无关工作树。
-
-完成门槛：相关 candidate 无未解释漂移；当前四项 overlay 被明确采用而非覆盖。
-
-### TG-02：法案与施工图先行冻结
-
-- `LAW-GPT-002-V18 -> LAW-GPT-002-V19`，只新增 §6 两门冻结并原样继承其余语义；
-- 更新 `scripts/audit/domains/gpt/manifest.json`、GPT inspector 常量、相关 acceptance lawId；
-- GPT Blueprint `V56 -> V57`，写入两门合同、禁止清单与验收；
-- Browser Blueprint `V47 -> V48`，写入“机械观察只服务两门、展示事实无阻断权”；
-- 使用现役法案生成器重建 `scripts/audit/generated/law-registry.generated.json`，禁止手工编辑投影；
-- Runtime Blueprint、Website 仓库与跨仓合同改动数必须为零。
-
-完成门槛：法案、两份施工图、Manifest/inspector lawId 与 registry 在同一候选一致；主 Codex 自检无第三门语义后才可进入 TG-03。
-
-### TG-03：物理删除 Browser 隐藏门
-
-在现有 dirty `dom-exact-assistant-turn.ts` 上继续收敛：
-
-- 保留 URL、exact user turn、真实紧邻唯一 assistant、Target/Document/loader/revision；
-- stop count 与完整 DOM/semantic text 在同一次调用中并列观察，stop 不再清空候选内容；
-- 从专用 exact assistant 路径删除 `browserMechanicalFacts`、`eligibleCount`、`nativeCauseCode` 及只为它们存在的 decode/fixture 分支；
-- 外部 `BrowserExactAssistantTurnReplyV3`、hash、wire 方向与 schemaVersion 保持不变；
-- 不建立通用候选 helper、兼容 reply 或 V3/V4 双读。
-
-完成门槛：exact assistant 专用生产路径只实现身份门，不含任何展示/交互资格判断。
-
-### TG-04：固化 GPT 结算门
-
-- 保持 handler 现役三态与 20 分钟窗口；
-- 仅在确有必要时原位整理条件，使 DONE 只可能来自 `generatingRaw===0 && semanticText.trim().length>0`；
-- candidate missing 归零窗口，stop 存在或正文非空均归零；
-- 不改 timeout、轮询节拍、失败码、proof schema 或 Product call。
-
-若现役 handler 已完全满足本工单，只提交复用证据，代码改动必须为零。
-
-### TG-05：唯一质检冻结两门上限
-
-原位修改现役质检，不新增 checker：
-
-- Browser inspector 对 exact response 使用 AST/结构 allowlist，只允许身份安全门的 canonical fields；
-- GPT inspector 精确约束结算三态，禁止把 stop、正文以外页面事实加入 DONE/pending/stopped-empty；
-- acceptance 覆盖：有效回答非页面末位、Composer=0、Composer>1、stop=1、hidden/inert/layoutless、正文非空；这些场景 Browser 均返回同一回答内容，只有 GPT 结算门决定 pending/DONE；
-- 反例覆盖：错 URL、user turn 缺失、多 assistant、loader/Document 漂移仍失败关闭；
-- mutation tests 必须分别向源码重新注入末位、Composer、visibility、layout、ariaHidden、inert、Prompt rehash 和任意第三 blocking predicate，并证明唯一 inspector 失败；
-- 保留现有 stop-empty 正反与单调 20 分钟测试。
-
-完成门槛：任何第三门回流均不能通过 `npm run quality:check`；测试本身须由 mutation 证明不是空断言。
-
-### TG-06：分层验收
-
-施工期使用现役入口，不创建第二 verdict：
-
-```bash
-npm run typecheck
-npm run acceptance:gpt
-npm run acceptance:local-browser-terminal
-npm run acceptance:capability-governance
-node --import tsx --test tests/governance/quality-contract.test.ts
-npm run quality:check CHANGE
-```
-
-READY/RELEASE 仅在用户另行要求时按仓库原生流程执行。动态证明必须使用 system-owned production Tab：先证明一个已有后续 turn 且 Composer 不存在的有效回答仍可落 artifact，再证明 stop 存在的长回答不会提前 DONE，最后以 Website admission receipt 与领域对象 readback 收口。用户提供的操作者会话只保留为设计实证，不参与生产验收。
-
-## 12. 质检验收矩阵
-
-| 用例 | 身份门 | 结算门 | 期望 |
-|---|---|---|---|
-| 紧邻唯一回答，后有新 turn，Composer=0，stop=0，正文非空 | 通过 | DONE | 成功返回同一 turn |
-| 紧邻唯一回答，Composer>1 | 通过 | 由 stop/text 决定 | Composer 不影响结果 |
-| 紧邻回答 hidden/inert/layoutless，stop=0，正文非空 | 通过 | DONE | 完整内容仍返回 |
-| 紧邻回答已有正文但 stop=1 | 通过 | pending | 不提前入库 |
-| stop=0、正文空 19m59s | 通过 | pending | 不重发 |
-| stop=0、正文连续空 20m，至少两次 observation | 通过 | stopped-empty | 唯一 typed failure |
-| stop 空窗口中再次出现 | 通过 | 窗口归零 | pending |
-| user turn 后无 assistant | 未通过（missing） | 不评估 | pending，窗口归零 |
-| user turn 后 assistant 多义 | 未通过 | 不评估 | fail-close |
-| URL/Target/Document/loader/revision 漂移 | 未通过 | 不评估 | fail-close |
-
-## 13. 端到端闭环
-
-```yaml
-end_to_end_closure:
-  demand_source: 用户要求基于真实Chrome实证把文本回答准入冻结为两门且禁止未来膨胀
-  authoritative_business_terminal: Website Domain Consumer 对同一 job_id + result_payload_hash 的 admission receipt 与领域对象readback
-  identity_spine:
-    - job_id + result_revision + confirmed provider effect
-    - canonical conversation URL + exact userTurnId
-    - adjacent assistantTurnId + Target/current Document + observationRevisionHash
-    - rawDomHash + semanticTextHash + task-owned artifact ref/hash
-    - result_payload_hash + Website admission receipt
-  affected_chain:
-    - RSP-01 回答身份安全门
-    - RSP-02 回答结算完成门
-    - 现役 Forensics artifact
-    - 现役 Product/Runtime/Website 主链（只读依赖，无接口变化）
-  handoffs:
-    - producer: submit_exact_gpt_turn_once confirmed receipt
-      consumer: RSP-01
-      readback: canonical URL + exact userTurnId + current Browser authority
-    - producer: RSP-01 exact assistant observation
-      consumer: RSP-02
-      readback: same revision-bound stop/content facts
-    - producer: RSP-02 DONE
-      consumer: Forensics artifact writer and Product
-      readback: rawDomHash + semanticTextHash artifact integrity
-    - producer: Product result
-      consumer: Runtime Outbox -> Website Domain Consumer
-      readback: admission receipt + domain object exact result hash
-  rejection_failure_or_unknown:
-    - identity missing/ambiguous/drift remains typed and never guesses another turn
-    - generating remains pending
-    - stopped-empty remains the only empty-answer terminal
-    - external result unknown follows existing receipt/readback before replay
-  uncovered_handoffs: []
-```
-
-## 14. 停止、回退与禁止事项
-
-- 任一相关 authority、blueprint、四项 dirty overlay 或方案文件漂移：停止并重新绑定；
-- 若施工中声称必须增加第三门，必须先给出当前真实消费者、删除后的可复现错误、现役 readback 和“两门不能完成”的证明；在用户明确解冻前仍禁止施工；
-- 若删除 visibility eligibility 导致外部 reply schema 必须变化，先证明真实消费者和兼容性；禁止 V3/V4 dual-read、alias 或桥；
-- 任一 Browser 实际页面动作、生产任务重跑、Website 写入、数据库变更、READY/RELEASE 均需对应阶段授权；
-- 回退单位是同一 clean commit；不使用 feature flag、fallback、兼容 wrapper 或保留旧路径；
-- 删除专用 exact path 字段时，同步删除只为其存在的类型、decoder、fixture、断言和 inspector token，零 zombie；
-- 绝不修改、清理或回退本方案范围外的用户工作树。
-
-## 15. 执行 Codex 重绑定清单
-
-执行前必须重新读取并绑定：
-
-1. 根 `AGENTS.md`；
-2. `LAW-CAPABILITY-GOVERNANCE-001-V15`、`LAW-GPT-001-V55`、当前 active `LAW-GPT-002`、`LAW-LOCAL-BROWSER-SESSION-003/004/006` 原文；
-3. GPT、Local Browser、Runtime 三份现役施工图；
-4. §3 的 branch/HEAD/tracking、dirty paths 与 hash；
-5. `dom-exact-assistant-turn.ts -> gpt-dom-observation.ts -> checkpoint handler -> artifact` 当前调用链；
-6. GPT/Browser Manifest、inspector、acceptance 与唯一 `quality:check` 入口；
-7. 本方案自身最新 hash。
-
-只有 TG-01 与 TG-02 完成、法案/施工图自检无第三门、相关 dirty overlay 已安全吸收后，才允许进入代码施工。
+本轮主Codex三轮方案审计完成；独立只读审查者 `/root/text_gate_plan_review` 已放行。其两项发现——保全非空partial且stop存在的handler反例、W1接近await红线的明确承载——均已在W3/V3及W1/结构预算中修正，并由原审查者复核关闭。没有未解决设计阻断；上述放行不表示未来建设或生产验收已完成。

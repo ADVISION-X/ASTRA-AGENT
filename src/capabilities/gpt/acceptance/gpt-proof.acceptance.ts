@@ -123,7 +123,7 @@ for (const wrongUrl of [false, true]) {
   const reasons: string[] = [], fixture = fakeBrowser(command => {
     if (command.kind !== "readExactAssistantTurn") throw new Error("CHECKPOINT_MUST_USE_EXACT_RAW_CHANNEL");
     assert.equal(command.turnMarker, "exact");
-    const packet = exactAssistantTurnReply(command, "exact response");
+    const packet = { ...exactAssistantTurnReply(command, "exact response"), assistantTurnId: "fallback-turn-4" };
     return wrongUrl ? { ...packet, currentUrl: "https://chatgpt.com/c/another-conversation" } : packet;
   }, { initialUrl: conversationUrl });
   const result = await createGptAcceptanceHarness(`gpt-proof-exact-${wrongUrl}`).execute("checkpoint_gpt_text_response", fixture.browser, {
@@ -131,21 +131,23 @@ for (const wrongUrl of [false, true]) {
     waitForProviderObservation: async (_deadline, reason) => { reasons.push(reason); return "reobserve"; } });
   assert.deepEqual(reasons, ["initial-observation"]); assert.equal(fixture.physicalMutations(), 0);
   if (wrongUrl) assert.equal(result.failureCode, "GPT_EXACT_ASSISTANT_TURN_RESULT_INVALID");
-  else { assert.equal(result.value?.semanticText, "exact response"); assert.equal(result.value?.assistantTurnId, "00000000-0000-4000-8000-000000000004"); assert.ok(result.value?.rawDomHtml); }
+  else { assert.equal(result.value?.semanticText, "exact response"); assert.equal(result.value?.assistantTurnId, "fallback-turn-4"); assert.ok(result.value?.rawDomHtml); }
 }
 {
   let reads = 0;
   const reasons: string[] = [], fixture = fakeBrowser(command => {
     if (command.kind !== "readExactAssistantTurn") throw new Error("LONG_RESPONSE_CANNOT_CHANGE_CHANNEL");
     reads += 1;
-    return { ...exactAssistantTurnReply(command, reads === 1 ? "partial" : "complete"), generatingRaw: reads === 1 ? 1 : 0 };
+    const packet = exactAssistantTurnReply(command, reads === 1 ? "" : reads === 2 ? "partial" : "complete");
+    return { ...packet, assistantTurnId: reads < 3 ? "fallback-turn-4" : packet.assistantTurnId, generatingRaw: reads < 3 ? 1 : 0 };
   });
   const result = await createGptAcceptanceHarness("gpt-proof-stop-beyond-budget").execute("checkpoint_gpt_text_response", fixture.browser, {
     canonicalConversationUrl: conversationUrl, probeBudgetMs: 1, userTurnId: "00000000-0000-4000-8000-000000000003", turnMarker: "exact" }, {
     waitForProviderObservation: async (_deadline, reason) => { reasons.push(reason); if (reasons.length === 1) await new Promise(resolve => setTimeout(resolve, 5));
       return reasons.length === 2 ? "deadline" : "reobserve"; } });
   assert.equal(result.status, "success", result.failureCode ?? "long response"); assert.equal(result.value?.semanticText, "complete");
-  assert.deepEqual(reasons, ["initial-observation", "stop-present", "stop-present"]); assert.equal(reads, 2);
+  assert.deepEqual(reasons, ["initial-observation", "stop-present", "stop-present", "stop-present"]); assert.equal(reads, 3);
+  assert.equal(fixture.physicalMutations(), 0);
 }
 {
   let reads = 0;

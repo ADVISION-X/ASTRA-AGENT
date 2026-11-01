@@ -55,13 +55,23 @@ const exerciseRealAtomicBody = async (page: Page): Promise<void> => {
       assert.equal(hidden.generatingRaw, 0);
     }
   }
-  await page.setContent(turn() + `<section data-turn-key="00000000-0000-4000-8000-000000000003"></section>
-    <form data-chatgpt-composer><button aria-label="停止"></button></form>`);
-  const generating = await runPage(page).result;
-  assert.equal(generating.semanticText, result.semanticText); assert.equal(generating.generatingRaw, 1);
-  await page.setContent(turn('<pre><code>{"schema_version":"target-language-candidate.v3","items":[]}</code></pre>'));
-  assert.equal(JSON.parse(String((await runPage(page).result).semanticText).trim()).schema_version,
-    "target-language-candidate.v3", "JSON code blocks retain complete parseable content");
+  const stop = '<form data-chatgpt-composer><button aria-label="停止"></button></form>';
+  const json = '{"schema_version":"target-language-candidate.v3","items":[]}';
+  for (const [html, id, stops, text] of [
+    [turn() + '<section data-turn-key="00000000-0000-4000-8000-000000000003"></section>' + stop, assistantId, 1, result.semanticText],
+    [turn(`<pre><code>${json}</code></pre>`), assistantId, 0, json],
+    [turn("", "fallback-turn-4 fallback-turn-4") + stop, "fallback-turn-4", 1, ""],
+    [turn().replace('<h4 data-conversation-role="assistant">assistant</h4>', ""), assistantId, 0, result.semanticText],
+    [turn(body, "fallback-turn-4"), "fallback-turn-4", 0, result.semanticText],
+  ] as const) {
+    await page.setContent(html);
+    const current = runPage(page), reply = await current.result;
+    assert.equal(reply.assistantTurnId, id); assert.equal(reply.generatingRaw, stops);
+    assert.equal(reply.semanticText, text); assert.ok(reply.rawDomHtml);
+    assert.deepEqual(current.fixture.released, []); assert.equal(current.fixture.scanCalls(), 1);
+    if (text === json) assert.equal(JSON.parse(String(reply.semanticText).trim()).schema_version,
+      "target-language-candidate.v3", "JSON code blocks retain complete parseable content");
+  }
 };
 
 const exerciseCurrentAnswerStopScope = async (page: Page): Promise<void> => {
@@ -144,7 +154,8 @@ const exerciseRealIdentityChanges = async (page: Page): Promise<void> => {
     [turn() + turn(), "BROWSER_DOM_CANDIDATE_AMBIGUOUS", false],
     [turn().replaceAll(userId, "invalid-user"), "BROWSER_DOCUMENT_INVALID", false],
     [turn().replace(`data-chatgpt-search-message-ids="${userId}"`, 'data-chatgpt-search-message-ids="invalid-user"'), "BROWSER_DOCUMENT_INVALID", false],
-    [turn(body, "invalid-assistant"), "BROWSER_DOCUMENT_INVALID", false],
+    [turn(body, ""), "BROWSER_DOCUMENT_INVALID", false],
+    [turn().replace("</h4>", '</h4><div data-markdown-text-style="assistant-message">duplicate</div>'), "BROWSER_DOM_CANDIDATE_AMBIGUOUS", false],
     [turn().replace("</section>", '<div data-chatgpt-search-unit-key="fallback-turn-0:2:assistant"></div></section>'), "BROWSER_DOM_CANDIDATE_AMBIGUOUS", false],
     [turn().replace('    <div data-chatgpt-search-unit-key="fallback-turn-0:1:assistant"', '<div data-chatgpt-search-unit-key="other"></div><div data-chatgpt-search-unit-key="fallback-turn-0:1:assistant"'), "BROWSER_DOCUMENT_INVALID", false],
     [turn(), "BROWSER_DOCUMENT_INVALID", true],
@@ -181,7 +192,8 @@ const exerciseDecoderAndLoader = async (): Promise<void> => {
       [{ rawCount: 2 }, "BROWSER_DOM_CANDIDATE_AMBIGUOUS"], [{ rawDomHtml: "" }, "BROWSER_DOM_READ_INVALID"],
       [{ rawCount: 2, pendingCause: "adjacent-assistant-missing", precedingUserTurnId: "invalid-user" }, "BROWSER_DOM_CANDIDATE_AMBIGUOUS"],
       [{ extra: true }, "BROWSER_DOM_READ_INVALID"], [{ nativeStage: "runtime-call-function-on" }, "BROWSER_DOM_READ_INVALID"],
-      [{ precedingUserTurnId: "invalid-user" }, "BROWSER_DOCUMENT_INVALID"], [{ assistantTurnId: "invalid-assistant" }, "BROWSER_DOCUMENT_INVALID"],
+      [{ precedingUserTurnId: "invalid-user" }, "BROWSER_DOCUMENT_INVALID"], [{ assistantTurnId: "" }, "BROWSER_DOCUMENT_INVALID"],
+      [{ assistantTurnId: 7 }, "BROWSER_DOM_READ_INVALID"],
       [{ pendingCause: "adjacent-assistant-missing" }, "BROWSER_DOM_READ_INVALID"], [{ observedAt: "invalid-time" }, "BROWSER_DOM_READ_INVALID"],
       [{ rawCount: 0, pendingCause: "adjacent-assistant-missing", rawDomHtml: "", semanticText: "", precedingUserTurnId: "" }, "BROWSER_DOCUMENT_INVALID"],
       [{ rawCount: 0, pendingCause: "exact-user-turn-unavailable", rawDomHtml: "", semanticText: "" }, "BROWSER_DOCUMENT_INVALID"],

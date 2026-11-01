@@ -73,9 +73,9 @@ const EXACT_ASSISTANT_TURN_FUNCTION = `function (spec) {
   if (bodies.length > 1) throw new Error("BROWSER_DOM_CANDIDATE_AMBIGUOUS");
   const ids = (assistant?.getAttribute("data-chatgpt-search-message-ids") || "").split(/\\s+/).filter(Boolean);
   const assistantTurnId = ids[0] || "";
-  if (assistant && (assistant.querySelectorAll("h4[data-conversation-role='assistant']").length !== 1
-    || !/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(assistantTurnId)
-    || ids.some((id) => id !== assistantTurnId))) throw new Error("BROWSER_DOCUMENT_INVALID");
+  if (assistant && (!assistantTurnId || ids.some((id) => id !== assistantTurnId))) {
+    throw new Error("BROWSER_DOCUMENT_INVALID");
+  }
   const node = bodies[0];
   const pendingCause = !matches.length ? "exact-user-turn-unavailable" : !node ? "adjacent-assistant-missing" : null;
   return { rawCount: bodies.length, rawDomHtml: node ? node.outerHTML : "",
@@ -151,7 +151,7 @@ const assertObservationLocation = (row: Record<string, unknown>, url: string, us
     if (!UUID.test(row.precedingUserTurnId as string)
       || (userId !== null && row.precedingUserTurnId !== userId)) throw new Error("BROWSER_DOCUMENT_INVALID");
   }
-  if (row.rawCount === 1 && !UUID.test(row.assistantTurnId as string)) throw new Error("BROWSER_DOCUMENT_INVALID");
+  if (row.rawCount === 1 && !row.assistantTurnId) throw new Error("BROWSER_DOCUMENT_INVALID");
 };
 
 const decodeObservation = (value: unknown, expected: Readonly<{

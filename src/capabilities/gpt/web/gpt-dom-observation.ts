@@ -260,7 +260,7 @@ const exactAssistantIdentityValid = (
   value: Readonly<Record<string, unknown>>,
 ): boolean => value.schemaVersion === "grasseye.browser.exact-assistant-turn.v4"
   && typeof value.assistantTurnId === "string"
-  && /^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/u.test(value.assistantTurnId)
+  && value.assistantTurnId.length > 0
   && typeof value.currentUrl === "string"
   && typeof value.precedingUserTurnId === "string"
   && /^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/u.test(value.precedingUserTurnId);

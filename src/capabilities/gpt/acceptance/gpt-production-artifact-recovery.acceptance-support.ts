@@ -32,7 +32,7 @@ const textCall = { sessionKey, productStepId: "research", callId: "text-checkpoi
 const checkpointHash = gptExactCallIdentityHash({ jobId, attemptId, resultRevision: 0, productStepId: textCall.productStepId,
   callId: textCall.callId, childCapabilityId: textCall.child, inputHash: gptCanonicalHash(textCall.input) });
 const savedText = "saved response", raw = `<article>${savedText}</article>`;
-const content = JSON.stringify({ schemaVersion: "agent-observed-response-artifact.v1", assistantTurnId: "00000000-0000-4000-8000-000000000002",
+const content = JSON.stringify({ schemaVersion: "agent-observed-response-artifact.v1", assistantTurnId: "fallback-turn-4",
   rawDomHtml: raw, rawDomHash: digest(raw), semanticText: savedText, semanticTextHash: digest(savedText) });
 const textKey = `gpt-call-artifact:v1:${checkpointHash}:observed-response`, textRef = "artifact:persisted-response", integrity = digest(`envelope:${textRef}:${digest(content)}`);
 const bytes = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]), imageHash = digest(bytes);
