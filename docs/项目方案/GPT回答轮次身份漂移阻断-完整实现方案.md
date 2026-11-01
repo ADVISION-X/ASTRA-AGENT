@@ -2,7 +2,7 @@
 
 ## 1. 当前范围与终点
 
-状态：已获准施工（代码与定向验收后清除阻塞工单，再按原生 CI-FULL 完成 READY；未授权 RELEASE）。日期：2026-11-01，Asia/Dubai。需求与施工 Owner：AGENT localization-production；Browser 只提供既有页面事实，Website.ai-acceptance 签发任务、attempt、result_revision 和恢复授权，Website.localization 接纳译文。本文是本轮唯一方案；保留文件路径和现有 architecture-boundary Manifest 归属，不新增方案、台账或质量入口。
+状态：可施工（已获用户授权；代码与定向验收后清除阻塞工单，再按原生 CI-FULL 完成 READY；未授权 RELEASE）。日期：2026-11-01，Asia/Dubai。需求与施工 Owner：AGENT localization-production；Browser 只提供既有页面事实，Website.ai-acceptance 签发任务、attempt、result_revision 和恢复授权，Website.localization 接纳译文。本文是本轮唯一方案；保留文件路径和现有 architecture-boundary Manifest 归属，不新增方案、台账或质量入口。
 
 本轮用户要求：先理解现役法案及蓝图，完整读取闭环 Skill 至少两遍，按片区删除后重构设计；主 Codex 三轮自审后，交只读子智能体独立审查，未放行不得结束方案建设。随后明确：不要用代码强救旧故障，能按原流程删除就不建联动救援；再要求通过 Chrome 插件核对 D341、9060，简单问题可以一起处理。授权人现已明确按本方案实施，范围包括法案、施工图、代码、质检及数据库操作，并要求迭代完成后清除阻塞工单、执行 CI-FULL；本次精确实施对象仍限 W1/W2 和 W0 原入口运行操作，不把范围授权解释为相邻基础设施解冻。
 
@@ -110,8 +110,8 @@ Browser WAL 通过只读 `BrowserMutationEvidence.readAtomicStepOutcome` 核 sea
 - **保留什么**：原源文/政策、合格current译文、已完成父结果及它们仍需的locator/evidence；原删除图的保护约束与原审计回执；删除前只读确认同身份无result/staged/业务接纳。
 - **删除什么**：仅原预览声明可删的四张故障执行及其专属副本/专属状态，精确ID见§2.1。Browser/Runtime专属清理由原Owner执行，不手工扩大清除范围。
 - **重建或修改什么**：无代码重建或修改。后继任务只由 Website现役producer在原批准需求内创建；现役规则不允许自动接续时停在无旧执行状态，不借另一方案推定能力已存在。
-- **怎样施工**：先请求原Runtime drain，确认新claim关闭，原active执行已结束，shutdown完成且旧writer/worker不再运行，再做删除。删除前枚举该设备全部未完成固定任务及其provider/source effect；已存在旧标记的合法在途先在旧候选完成，四张故障通过原预览退出。出现清单外不能正常收束的旧effect，停止cutover并回到本文补证，不默默删正常任务。逐单读取原preview及closure，保护项不得在可删闭包内；永久删除到执行时依工具确认要求确认，执行后回读原job缺席和原删除收据。整个运行切换窗口不启用新代码、新claim或重发。代码文件与隔离验收可以先完成，但不得被现役进程热加载；施工前核实际进程与启动方式，未停止的 watcher 必须先经原 Owner 收束。
-- **怎样验收**：代码切换前四张旧job分别有原删除成功/幂等收据及缺席读回；已完成父任务和current译文仍可读；设备上无仍获准消费旧固定marker的未完成输入/source grant；旧执行进程已收束。本地旧专属记录的清理安排在新候选获准启用后，由原 `runtime-loops.ts::reconcileUnfinishedExecutionsWithoutReceipt`、`runtime-claim.ts` 的原失败回读及 `runtime-claim-preproduct.ts::readClaimAuthority` 发现精确Website缺席，调用原 `purgeDeletedJob`，不得进入已删任务的Product或Provider。它是W2后的运行收尾，不要求已停止的Runtime先执行清理；也不启动一套带旧marker兼容的清理worker。逐单回读本地task/专属证据/占位消失与共享父保全；不以Website 404代替本地清理。cleanup失败停止后续运行并回到原Owner读事实，不手工清账。旧Provider聊天记录不删除，不作为已交付译文。
+- **怎样施工**：正常切换先请求原Runtime drain，确认旧候选新claim关闭、原active结束且旧writer/worker退出，再做删除；这只约束仍会消费旧格式输入的旧执行，不创设等待任意无关新任务完成的全局删除门。当前13:47外部提前启动已审代码候选，偏离原W0启用顺序，不追认其已经满足切换门；已向精确原launcher发一次SIGTERM关闭新claim。原13:16旧writer已退出，D341非当前active，现四个全新job与其parent/cohort/source无依赖，故保持draining并按最新singleton preview清D341即可；不等四个新格式合法任务或新进程自然终态，不强杀、不清它们的记录。原Website清除事务负责本job图CAS/audit/fence，原Runtime在draining中仍对非active的精确缺席job执行purge；新任务若确有旧格式source/直接父依赖、或D341仍被active/source reader持有，则停止该项并补证，不能据本例概括豁免。删除前枚举该设备全部未完成固定任务及其provider/source effect；已存在旧标记的合法在途先在旧候选完成，四张故障通过原预览退出。出现清单外不能正常收束的旧effect，停止cutover并回到本文补证，不默默删正常任务。逐单读取原preview及closure，保护项不得在可删闭包内；永久删除到执行时依工具确认要求确认，执行后回读原job缺席和原删除收据。正常运行切换窗口不启用新代码、新claim或重发；上述外部提前启动只按已证精确目标处置，不扩大Provider授权。代码文件与隔离验收可以先完成，但不得被现役进程热加载；施工前核实际进程与启动方式，未停止的 watcher 必须先经原 Owner 收束。
+- **怎样验收**：正常代码切换前四张旧job分别有原删除成功/幂等收据及缺席读回；当前提前启动偏离以停止新claim、旧格式无active/source消费、四张旧job原清除/精确absence及本地原purge闭合，不能声称此前的启用顺序已合规；已完成父任务和current译文仍可读；设备上无仍获准消费旧固定marker的未完成输入/source grant；原旧候选执行进程已收束；无关新格式任务的原drain独立完成，不作为旧故障删除门。本地旧专属记录的清理安排在新候选获准启用后，由原 `runtime-loops.ts::reconcileUnfinishedExecutionsWithoutReceipt`、`runtime-claim.ts` 的原失败回读及 `runtime-claim-preproduct.ts::readClaimAuthority` 发现精确Website缺席，调用原 `purgeDeletedJob`，不得进入已删任务的Product或Provider。它是W2后的运行收尾，不要求已停止的Runtime先执行清理；也不启动一套带旧marker兼容的清理worker。逐单回读本地task/专属证据/占位消失与共享父保全；不以Website 404代替本地清理。cleanup失败停止后续运行并回到原Owner读事实，不手工清账。旧Provider聊天记录不删除，不作为已交付译文。
 - **失败怎么办**：preview拒绝、受保护引用、删除后状态未知或旧writer未结束均停止切换；新候选启用后的原cleanup未收束则停止后续运行，不倒置为“停止的旧Runtime先清理”。先读同身份原回执/后置条件，不盲目重复删除或submit。旧任务在删除前已完成则保全其结果，该项按完成退出旧队列，不删除成果；这不是新增恢复路径。不可逆删除不声称可回滚，后继资格仍归Website。
 
 ### W1：固定专用标记片区删除后重建
@@ -122,7 +122,7 @@ Browser WAL 通过只读 `BrowserMutationEvidence.readAtomicStepOutcome` 核 sea
 - **保留什么**：§4保留裁决全部成立；flow.ts同文件其他函数/类型/常量，尤其createFlow、selectProfile、approvedAttachments/attachMaterials、readSubmittedTurn及动态分支的runAuthorizedTurn/markerFor原位保留。这些是独立现役职责，不因共文件而删除重建；不保存旧固定函数副本再加工。
 - **删除什么**：完整旧 `executeIsolatedLocalizationJsonTurn` 实现及其对无修订markerFor的固定分支调用。先物理删除该完整导出片区，即时以符号/AST/引用核对确认导出实现缺席、其他独立职责仍原位，之后才建设；保留调用方在此短暂窗口编译不可用是预期，不运行生产。不得以最终diff或覆盖写冒充中间缺席证明。
 - **重建或修改什么**：依据§4合同建设同名固定函数：在本函数内用同一局部纯表达式从job/step/原输入attempt生成marker；先以当前accepted attempt准备拟发送Prompt及原submit call，再调用原createFlow.read。仅read返回null时，按原fresh/profile/attach/write/submit顺序直接调用§4保留模块；confirmed/未知沿原结果/错误，不运行准备和新输入。取得submit后，以其必填sourceAttemptId生成原输入marker，再把原TurnRequest所需字段和该marker交readSubmittedTurn，最后沿原parseJsonObject及返回合同。新submit的Prompt marker与readback marker一致；已确认来源读回不要求拟发送Prompt hash等于原submit hash，原promptHash必须来自回执。删除固定入口对runAuthorizedTurn的委托，不给公共helper加产品flag、callback或兼容参数。当前flow230行、旧目标函数11行，新固定函数预计30—45行；保持源文件≤500行、函数≤75行及现役复杂度/参数/依赖约束，不新增文件/公共抽象。
-- **怎样施工**：施工授权、方案审查放行、当前候选复核和无现役热加载先成立；W0 删除在代码与定向验收后、新候选启用前完成；先复核法案/Blueprint无需改变，出现冲突先回到方案，禁止带冲突写代码。按上一项删除→即时缺席→按新合同建设，保留过程工具记录；无旧公式分支并存。旧固定标记不能在原工单上热更。
+- **怎样施工**：施工授权、方案审查放行、当前候选复核和无现役热加载先成立；正常切换时W0删除在代码与定向验收后、新候选启用前完成；本次外部提前启用偏离只按W0精确fence/清除及读回收口，不追认顺序合规；先复核法案/Blueprint无需改变，出现冲突先回到方案，禁止带冲突写代码。按上一项删除→即时缺席→按新合同建设，保留过程工具记录；无旧公式分支并存。旧固定标记不能在原工单上热更。
 - **怎样验收**：W2全部分支，含F1旧来源和六条非固定路由原行为；固定入口只有一条执行链，只生成/消费原输入来源标记，通用markerFor和runAuthorizedTurn只服务既有动态入口；Browser/GPT/Runtime/Website未出现实际差异；结构预算满足；无新文件/状态/兼容。功能与施工纪律分别核验。
 - **失败怎么办**：必要职责漏列或相关候选漂移先停受影响片区，回补本文；无授权不恢复旧骨架，不用分支/worktree/stash。未通过不能启动新生产；不自动回滚任何现实输入或已交付结果。
 
@@ -175,3 +175,5 @@ identity spine：原 `job_id → accepted attempt / signed revision → productS
 施工前主 Codex 已完成两轮独立自检：第一轮从四栏目源头与双仓现役 law/Blueprint/provider/dependency 核唯一 Owner、URL关系、原结果/权益保全及无新增 wire；第二轮从新输入、同 effect 读回、F1 跨修订迟到来源和旧标记切换反推相邻合同与失败关闭。20文件来源组未漂移，法案与施工图对本次 marker string 替换一致，无需修订，不以代码反写规范。有限施工分母无未闭合规范问题，达到进入代码阶段的98%门槛；该门槛不是系统质量 PASS。执行结果在原生报告及本轮交付中按实际证据分别汇报。
 
 建设阶段核验：W1 已按完整固定函数删除、即时 AST 缺席及独立 helper 保全读回后重建；生产差异只在该26行函数，文件246行、7个await，六条动态路径逐statement与原HEAD一致。W2仅局部增强原验收至464行，公共夹具未改。主Codex两遍核实际diff、来源交接和回归后，Product acceptance、typecheck及原Runtime recovery-contract acceptance均退出0。只读建设审查者 /root/fixed_copy_construction_review 亲自复核实际代码、消费者和Product acceptance，W1/W2无阻断；其意外读取旧设计审查记录的独立性限制已披露，未参与施工，也不以该设计结论背书。上述是代码准入，W0清理、原生CI与真实领域结果分别取后续原件，不冒认完成。
+
+W0运行分母修订主审：已重新完整双遍读取闭环Skill。三轮分别核①LAW-LOCALIZATION-020-V42原在途删除/audit/fence与原Runtime唯一清理职责，②当前旧writer退出、D341非active及新四job无依赖的持久事实与真实消费者，③删除全进程等待的反事实：原图CAS、目标fence、claim关闭及精确purge足以保全旧输入与合法新任务，不新增恢复机制；保留所有原收据/对象/本地/父结果保全验收。修订仅删去无必要的全局等待，不改W1/W2代码、法案、Blueprint或协议；既有代码审查仍有效，CI按文档候选变化从CHANGE重走。
