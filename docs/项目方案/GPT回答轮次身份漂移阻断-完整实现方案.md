@@ -4,7 +4,7 @@
 
 状态：可施工（已获用户授权；代码与定向验收后清除阻塞工单，再按原生 CI-FULL 完成 READY；未授权 RELEASE）。日期：2026-11-01，Asia/Dubai。需求与施工 Owner：AGENT localization-production；Browser 只提供既有页面事实，Website.ai-acceptance 签发任务、attempt、result_revision 和恢复授权，Website.localization 接纳译文。本文是本轮唯一方案；保留文件路径和现有 architecture-boundary Manifest 归属，不新增方案、台账或质量入口。
 
-本轮用户要求：先理解现役法案及蓝图，完整读取闭环 Skill 至少两遍，按片区删除后重构设计；主 Codex 三轮自审后，交只读子智能体独立审查，未放行不得结束方案建设。随后明确：不要用代码强救旧故障，能按原流程删除就不建联动救援；再要求通过 Chrome 插件核对 D341、9060，简单问题可以一起处理。授权人现已明确按本方案实施，范围包括法案、施工图、代码、质检及数据库操作，并要求迭代完成后清除阻塞工单、执行 CI-FULL；本次精确实施对象仍限 W1/W2 和 W0 原入口运行操作，不把范围授权解释为相邻基础设施解冻。
+本轮用户要求：先理解现役法案及蓝图，完整读取闭环 Skill 至少两遍，按片区删除后重构设计；主 Codex 三轮自审后，交只读子智能体独立审查，未放行不得结束方案建设。随后明确：不要用代码强救旧故障，能按原流程删除就不建联动救援；再要求通过 Chrome 插件核对 D341、9060，简单问题可以一起处理。授权人现已明确按本方案实施，范围包括法案、施工图、代码、质检及数据库操作，并要求迭代完成后清除阻塞工单、执行 CI-FULL；本次精确实施对象限 W1/W2、W0原入口运行操作，以及已裁QPERF-01的W3同名治理测试用例，不把范围授权解释为相邻基础设施解冻。
 
 本轮只建设固定文案 `localization_static_catalog/produce_locale_catalog` 的原输入标记身份，解决 B29、710 的已证修订撞标，同时保全合法跨修订的原答案读回。D341、9060 纳入旧故障单现场裁决与原入口清理；其独立历史故障未证出具体代码根因，不列为本次已修复的 Browser 缺陷。旧单的目标是退出阻塞，新增任务的目标是每个获准现实输入准确读回自己的回答。清旧单不等于证明历史故障不会再发生。
 
@@ -14,7 +14,7 @@
 
 | 参与者 | 本次绑定 | 写入边界 |
 |---|---|---|
-| AGENT | realpath `/Users/nexgen/Documents/AGENT`；main；HEAD 与 origin/main 均 `923d532f54c6288bf6514ae6a698d7e7b18ae867` | 代码候选限 W1/W2，运行操作限 W0。原 dirty `docs/项目方案/SEO文章同聊天五语翻译-完整实现方案.md` 是同会话此前受权 E2.7 操作记录，完整保留；为形成 READY clean commit，仅经原生 CHANGE 后单独提交该既有文档差异，不夹入本次代码提交。 |
+| AGENT | realpath `/Users/nexgen/Documents/AGENT`；main；HEAD 与 origin/main 均 `923d532f54c6288bf6514ae6a698d7e7b18ae867` | 产品代码候选限W1/W2，质检仅追加W3所列同名完整用例，运行操作限W0。W3准入基线为已首推且READY通过的clean `38b50ed90bf68d4fb263226d78103ec3f0382dd5`；表中原HEAD为设计基线，实际施工前仍须实时核HEAD/overlay。原 dirty `docs/项目方案/SEO文章同聊天五语翻译-完整实现方案.md` 是同会话此前受权 E2.7 操作记录，完整保留；为形成 READY clean commit，仅经原生 CHANGE 后单独提交该既有文档差异，不夹入本次代码提交。 |
 | Website | realpath `/Users/nexgen/Documents/xuanxue-web`；main；HEAD `429751d64a3d4b5c8f8237ee5bbd01b875ea9b54`，tracking origin/main | 只读和后续获准的原管理员操作；不修改此仓。现有未跟踪《全系统工单安全删除与自动接续》方案属于另一任务，尚在设计，不作为已建能力或本轮依赖。 |
 
 设计 source 绑定以下有序文件组。各文件计算 SHA-256，再将有序 `[repoRelativePath, sha256]` 数组用 UTF-8 JSON 紧凑编码（ensure_ascii=false，无空格）计算 SHA-256：`1da0a2900d53dc544413264be0cc9e3464da8a58a65de890ad60b8449e73b6c4`。这是方案内的来源绑定，不新增候选回执；本文不进入该组，文档 hash 在交付时另报。施工前重读原始任务及当前 HEAD/overlay；相关内容漂移则重算受影响设计，不要求无关并行工作回退。
@@ -137,6 +137,20 @@ Browser WAL 通过只读 `BrowserMutationEvidence.readAtomicStepOutcome` 核 sea
 - **怎样施工**：W1后修改上述原断言；先跑相交普通验收，主Codex至少两遍检查实际建设与方案差异，再交独立只读审查代码/建设，不循环只审方案。审查放行后按冻结 `$ci-full-governance` 执行 `npm run quality:check -- CHANGE` → main精确提交首推 → clean同commit完整 `npm run quality:check -- READY` → 再次推送。RELEASE需单独明确要求。每次命令在同环境先确认Node≥24，不夹带其他任务dirty文件。
 - **怎样验收**：见§6；记录实际质量退出码、commit、原生报告与本轮实际覆盖。READY耗时以现有原生分步时间为依据识别慢项，优先消除已证无价值重复工作；本单不预建缓存/并发调度器或硬编码超时。READY出现阻断时一次只处理一个已证根因族，回到方案/授权边界，完成后重新 CHANGE→推送→READY，不混修未知根因。
 - **失败怎么办**：任一不变量失败不减少分母，不改冻结Skill或放宽现役门；新根因超范围先停止，不让质检失败解冻基础设施。真实运行未取得Website领域读回时只报告对应证据缺口，不宣称全链完成。
+
+### W3：QPERF-01 已裁重复验收负载退出（仅质检）
+
+- **做什么**：落实本轮 READY 暴露的单一性能根因。固定法官 `/root/ci_j1`、`/root/ci_j2`、`/root/ci_j3` 对 clean `38b50ed90bf68d4fb263226d78103ec3f0382dd5` 同题三份有效意见齐备，3:0保留 changed-governance 测试真实拒绝职责，裁修其没有独立保护的整份质量合同嵌套重跑。原工具会话93277实测该用例170898.998375ms；内含计算与外层耗时不可相加为收益。
+- **不做什么**：不改原生入口、调度、parser、registry、verdict、required modes、阈值、deadline、生产代码或冻结Skill；不删原质量合同文件及其中任何独立反例，不新增缓存、并发器、测试框架或报告。
+- **谁负责、哪里**：现役 code-purity 质检职责；唯一代码落点 `tests/governance/governance-v33.test.ts` 内完整用例 `quality CHANGE executes a changed governance test and rejects its failing mutant`。调用方仍是原 READY projectChecks，内层仍是原 relevantChangeChecks 对精确治理测试路径的真实执行。
+- **保留什么**：原临时仓当前候选复制、原Git baseline、依赖链接、copyCurrentQualityCore、NODE_TEST_CONTEXT隔离、现有env、真实quality CHANGE、stdout/stderr捕获、非零/原错误码/唯一失败信息三项断言及finally清理。这些分别证明当前差异路由、真实执行和失败传播，不能用mock或无关编译失败承接。原 `quality-contract.test.ts` 的完整外层执行、其余用例及共享helper原位保留。
+- **删除什么**：完整旧目标用例，立即以AST核该名称的注册缺席、相邻用例及helper保全；不复制保存旧callback再加工写回。只退役在隔离失败探针中再次执行2039行合同正文的负载，不退役其正常验收职责。
+- **重建什么**：从“当前Git差异→真实CHANGE→精确治理测试执行→故意失败可读→非零和原拒绝码”合同推导同名唯一用例。隔离副本内同一既有 `tests/governance/quality-contract.test.ts` 直接写入独立可加载的node:test与strict assert失败探针，唯一用例抛出原 `mutant executed` 信息；不再读入该文件原正文。原宿主质量合同不改。新callback维持原隔离/执行/拒绝/清理模块，不建设公共fixture或第二执行链。
+- **怎样施工**：先等旧READY自然结束并保全原生结果；主Codex完整双遍重读闭环Skill，先核适用法案/施工图无需变更并完成两轮规范/消费者审计，再按完整用例删除→即时缺席→新建。轻度工程仅主Codex施工，重要步骤由原固定法官之一以披露既有上下文的只读技术审查核实际建设，不要求三票审批算法。现役用例文件原485行，目标仍在同文件，不新增文件或抽象。
+- **怎样验收**：先执行该同名普通定向用例，核真实子CHANGE因该探针失败而被外层正确接受；主Codex两轮核diff及全部消费者，再由只读技术审查复核。之后从本次实际差异重新 CHANGE→main提交首推→同commit完整READY→实际二推。对比同Node24、同原生READY调用中同名用例耗时，注明当前生产并发及缓存未强制清空；完整39条law及required evidence集合保持，所有独立核心反例仍执行。计时无法对齐时只报观察，不把局部加速外推整套比例。
+- **失败怎么办**：无关错误先于探针、唯一失败信息缺席、分母/候选漂移、清理未完或任何独立保护丢失均关闭W3交付；不以抬超时、减样本、固定PASS、旧报告或新增恢复机制收口。QPERF-01以外慢项仅保留现有真实进展，不混修第二根因。
+
+本次W3主审三轮分别核：①母本§35/51/78与原法案/施工图均要求真实反例而未要求重复正文，授权中的质检及READY提速覆盖这一精确用例；②双向核原projectChecks/relevantChangeChecks和三项错误断言，跳过执行/假成功/无关失败仍被识别，完整正文继续由外层唯一链承担；③删除反事实和候选/隔离/清理、原marker/W0不变量均保留。三轮未发现规范或保护承接缺口，达到进入W3施工的98%门槛；W3无新增法案或施工图修订。
 
 ## 6. 有限分母、handoff 与验收
 
