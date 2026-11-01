@@ -259,6 +259,16 @@ Q-PERF-B（code-purity）：governance.ts::run的spawnSync整组缓冲与quality
 
 主Codex按真实消费者、错误/取消保护及候选/证据反向三轮核对本段；CI专项只读技术审查提供固定参考独立性与消费者证据，由主Codex施工，结束后两遍自检并由原审查者只复核受影响项。先确认旧检查自然结束再编辑；局部验证通过后立即返回CHANGE→提交首推→READY→二推。新增实际独立违规再沿原CI司法合同，不把性能工程变成全仓改造或减少检查。吞吐只优化已证固定参考重复计算；其余真实保护等待尚无安全压缩证据，不宣称已优化。
 
+#### E2.7 READY前的受权阻塞工单清除（可施工）
+
+授权人要求N=6的阻塞旧工单先清除再READY，已确认五张指定固定文案工单的不可逆删除；随后明确择吉也须清除，并专项批准仅给现有production系统管理员的commercial_order_read、commercial_order_recovery追加zeji域。第一断裂是原订单入口按产品域精确验权，而原scripts/platform-admin.ts两项及实际grant均只有bazi/qimen/naming/hehun；原接口403不是清图或AGENT故障。Website现役Commercial-008-V10与Localization-020-V42已允许各自原窄清除，账户能力隔离及择吉真实付款义务不变，无须修改法案/施工图。主Codex先按原权限→清图→付款保护正向核对，再从全部管理消费者及system购买拒绝逆向核对两遍，方可施工。
+
+唯一代码片区为Website scripts/platform-admin.ts中的两个capability tuple：删除原两条scope声明并即时核缺席，再按现役管理合同重建为各自[...domainScope,"zeji"]。共用domainScope、其余能力、账户/凭据、原grantCapability、sync-capabilities、session/step-up/CSRF、清图/对象I/O、付款及研究准入均直接复用；删除这些独立职责会损失原精确鉴权、幂等及资产保护，故保留且不复制。仅分别执行原sync-capabilities的两个精确--capability选择，绑定原production数据库和principal；禁止无选择全量同步、bootstrap、rotate、扩其它系统能力、直接改job或本地WAL/Outbox。先验证两条原entitlement/grant身份、生产环境、scope与hash一致，其它能力不变，并证明这两项管理权限不构成择吉system/zero资金或研究资格。
+
+操作只用用户指定右侧浏览器及原登录/管理员入口。每张固定单重新取得完整preview集合/hash；等待期间已完成并被消费的三张7d500/8d3c/fcb754产生后继，不再属于阻塞清除分母，保留原成果及后继，不扩大此前只有自身的删除集合。仍阻塞的74f9、710093及择吉按各原Owner资格清除；择吉仅终止旧需求，不授权resume_after_clear、retry或新generation。若现有UI只能清后重派、原preview受保护或任何权限/来源门拒绝，停止该动作，不编造session、改账、绕过门或替换任务。未知请求先同幂等身份及原audit读回，不重放。
+
+验收分别核Website精确任务缺席、原clear_request_ref/graph_hash/对象inventory对应的对象缺席确认audit、付款/权益/冻结来源保护，以及AGENT在役worker从精确job-not-found触发的原Browser释放、WAL/Forensics/目录/Store/Outbox逐项缺席；单个200或object_cleanup_status不代替完整清除。仅代码声明和已证明管理边界作必要定向验证，不修无关旧断言；重要步骤由既有只读审查者复核本节及实际差异，未放行不收口。本段不替代原质量入口；AGENT候选因方案变化从CHANGE重新提交首推，所有仍阻塞目标清除前不调用READY，随后完整READY、适用§79及二推。缺登录、域权限、纯清除入口或确定读回时保留具体阻断；不借清理变更N、生产节拍或扩成网站重构。
+
 ## 7. 分层验证与正式冻结
 
 | 验收 | 必须区分的正确/错误实现及原件 |
