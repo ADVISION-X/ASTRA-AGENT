@@ -297,7 +297,12 @@ const verifyLocatorCas = (root: string): void => {
     assert.deepEqual(locatorOutcome(f).terminalPayload, f.proof);
     assert.deepEqual(locatorOutcome(f).conversationLocator, located);
     assert.equal(f.store.jobHistoryEvidence(f.original.jobId).replayEffects[0]!.anchorState, "trusted");
-    assert.equal(f.store.readUniqueConfirmedConversationUrl(f.original.jobId, f.original.attemptId, f.original.productStepId), located.canonicalConversationUrl);
+    assert.equal(f.store.readSourceConfirmedProviderEffect({ jobId: f.original.jobId,
+      sourceAttemptId: f.original.attemptId, sourceResultRevision: f.original.resultRevision,
+      productStepId: f.original.productStepId, callId: f.original.callId,
+      childCapabilityId: f.original.childCapabilityId, effectIdentityHash: f.original.logicalMutationId!,
+      walAuthorityHash: f.store.jobHistoryEvidence(f.original.jobId).replayEffects[0]!.walAuthorityHash,
+    }).conversationLocator?.canonicalConversationUrl, located.canonicalConversationUrl);
   } finally { database.close(); f.store.close(); }
 };
 

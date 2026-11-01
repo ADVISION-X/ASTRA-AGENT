@@ -284,6 +284,23 @@ const inspectPhysicalReleaseProof = (s: Sources, context: InspectorContext, find
   inspectProductReleaseIsolation(s, context, findings, lawId);
 };
 
+const continuationSourcesAreExact = (s: Sources): boolean => {
+  const continuation = `${s.lease.getText()}\n${s.lane.getText()}\n${s.store.getText()}\n${s.evidence.getText()}`;
+  const parent = s.lane.getClass("BrowserLaneCoordinator")?.getMethod("readParentConversationUrl");
+  const identity = s.lane.getVariableDeclaration("parentSourceIsExact")?.getText() ?? "";
+  const sourceReads = parent?.getDescendantsOfKind(SyntaxKind.CallExpression).filter(call =>
+    call.getExpression().getText() === "store.readSourceConfirmedProviderEffect") ?? [];
+  return sourceReads.length === 1 && sourceReads[0]?.getArguments()[0]?.getText() === "source"
+    && parent?.getDescendantsOfKind(SyntaxKind.ForOfStatement).some(loop => loop.getExpression().getText() === "waiter.parentSources") === true
+    && includesAll(parent.getText(), ["!parentSourceIsExact(source, waiter.parentJobId)", "if (!locator)",
+      "parentUrl !== locator.canonicalConversationUrl", "BROWSER_PARENT_PROVIDER_EFFECT_AMBIGUOUS"])
+    && identity.includes("source.jobId === parentJobId")
+    && includesAll(continuation, ["parentSources?: never", 'BrowserMutationStore["readSourceConfirmedProviderEffect"]',
+      "where job_id=? and attempt_id=? and result_revision=? and product_step_id=?", "call_id=? and child_capability_id=? and logical_mutation_id=?",
+      "input.jobId, input.sourceAttemptId, input.sourceResultRevision", "input.productStepId, input.callId, input.childCapabilityId", "rows.length !== 1"])
+    && !continuation.includes("readUniqueConfirmedConversationUrl");
+};
+
 const inspectProductReleaseIsolation = (s: Sources, context: InspectorContext, findings: InspectorFinding[], lawId: string): void => {
   const lease = body(s.manager, "BrowserTargetLeaseManager", "createTargetLease");
   const admission = body(s.manager, "BrowserTargetLeaseManager", "assertCommandAdmission");
@@ -335,12 +352,8 @@ const inspectProductReleaseIsolation = (s: Sources, context: InspectorContext, f
   ].every(Boolean);
   requireContract(queuedExpiryIsSafe(),
   findings, lawId, paths.lane, "The original single wake expires all still-queued waiters while busy without changing active ownership or dispatching.");
-  const continuation = `${s.lease.getText()}\n${s.lane.getText()}\n${s.store.getText()}\n${s.evidence.getText()}`;
-  requireContract(includesAll(continuation, ["parentAttemptId?: never", "parentAttemptId: wait.parentAttemptId", "parentAttemptId: string",
-    "waiter.parentAttemptId!, waiter.binding.productStepId", "where job_id=? and attempt_id=? and product_step_id=?",
-    "product_step_id=? and call_id='turn-submit'", "child_capability_id='submit_exact_gpt_turn_once'", "rows.length !== 1",
-    ").all(parentJobId, parentAttemptId, parentProductStepId)"]),
-  findings, lawId, paths.evidence, "Continuation must use exactly one completed submit from the approved parent job/attempt/Product step.");
+  requireContract(continuationSourcesAreExact(s),
+  findings, lawId, paths.lane, "Continuation must consume all adopted exact source identities and reject missing or conflicting canonical locators before target acquisition.");
 };
 
 export const inspectTargetClaimGuards = (context: InspectorContext, findings: InspectorFinding[], lawId: string): void => {

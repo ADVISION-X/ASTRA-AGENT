@@ -61,20 +61,26 @@ export const assertQualityCommandPassed = (execution: CapturedExecution, label: 
 export const executeCaptured = (
   command: string,
   args: string[],
-  options: { cwd: string; env: NodeJS.ProcessEnv; timeout?: number },
+  options: { cwd: string; env: NodeJS.ProcessEnv; timeout?: number; streamOutput?: boolean },
 ): Promise<CapturedExecution> => new Promise((resolveExecution) => {
-  execFile(command, args, {
-    cwd: options.cwd,
-    encoding: "utf8",
-    env: options.env,
-    maxBuffer: 64 * 1024 * 1024,
+  const started = performance.now();
+  const label = `${command} ${args.join(" ")}`;
+  if (options.streamOutput) process.stderr.write(`[QUALITY][command:start] ${label}\n`);
+  const child = execFile(command, args, {
+    cwd: options.cwd, env: options.env, encoding: "utf8", maxBuffer: 64 * 1024 * 1024,
     ...(options.timeout === undefined ? {} : { timeout: options.timeout }),
-  }, (error, stdout, stderr) => resolveExecution({
-    status: error === null ? 0 : typeof error.code === "number" ? error.code : null,
-    signal: error?.signal ?? null,
-    stderr,
-    stdout,
-  }));
+  }, (error, stdout, stderr) => {
+    const execution: CapturedExecution = {
+      status: error === null ? 0 : typeof error.code === "number" ? error.code : null,
+      signal: error?.signal ?? null, stdout, stderr,
+    };
+    if (options.streamOutput) process.stderr.write(`[QUALITY][command:end] ${label} elapsedMs=${Math.round(performance.now() - started)} status=${execution.status} signal=${execution.signal} errorCode=${error?.code ?? "none"}\n`);
+    resolveExecution(execution);
+  });
+  if (options.streamOutput) {
+    child.stdout?.on("data", (chunk: string) => { process.stdout.write(chunk); });
+    child.stderr?.on("data", (chunk: string) => { process.stderr.write(chunk); });
+  }
 });
 
 export const mapWithConcurrency = async <T, R>(
@@ -116,10 +122,8 @@ export const runAcceptanceFiles = async (files: readonly string[]): Promise<void
   const issues: QualityCheckIssue[] = [];
   for (const file of files) await collectQualityCheck(file, async () => {
     const execution = file.startsWith("npm:")
-      ? await executeCaptured("npm", ["run", file.slice(4)], { cwd: ROOT, env: process.env })
-      : await executeCaptured(process.execPath, ["--import", "tsx", file], { cwd: ROOT, env: process.env });
-    process.stdout.write(execution.stdout);
-    process.stderr.write(execution.stderr);
+      ? await executeCaptured("npm", ["run", file.slice(4)], { cwd: ROOT, env: process.env, streamOutput: true })
+      : await executeCaptured(process.execPath, ["--import", "tsx", file], { cwd: ROOT, env: process.env, streamOutput: true });
     assertQualityCommandPassed(execution, file);
   }, assertCandidate, issues);
   assertCandidate();

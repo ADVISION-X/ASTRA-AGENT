@@ -56,7 +56,7 @@ const inspectRuntimeSources = (project: Project, queryRef: string) => {
   inspectAgentProductionRuntime({
     project,
     sealedRoot: path.resolve("."),
-    selectedLawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V80",
+    selectedLawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V81",
     targetSet: { queryRef, count: project.getSourceFiles().length },
     targetPaths: project.getSourceFiles().map((source) => path.relative(path.resolve("."), source.getFilePath()).replaceAll("\\", "/")),
     lawRequirements: [],
@@ -65,7 +65,7 @@ const inspectRuntimeSources = (project: Project, queryRef: string) => {
       manifestPath: "scripts/audit/domains/agent-production-runtime/manifest.json",
       ownerInspectorPath: "scripts/audit/domains/agent-production-runtime/inspector.ts",
       executionGroup: "domain",
-      lawIds: ["LAW-AGENT-PRODUCTION-RUNTIME-001-V80"],
+      lawIds: ["LAW-AGENT-PRODUCTION-RUNTIME-001-V81"],
     },
     generatedPlan: [],
   }, findings);
@@ -97,12 +97,15 @@ const exerciseAuthorityGuardMutants = (): void => {
   assert.deepEqual(inspectRuntimeSources(project, "acceptance:runtime-authority-baseline"), []);
   const guardCases = [
     ["store-outbox", "V6_TERMINAL_RECEIPT_MISMATCH", "receiving-before-completion"],
-    ["executor", "PRODUCTION_PARENT_RESULT_BINDING_INVALID", "completed-parent-exact-locator"],
+    ["executor-source-checkpoint", "PRODUCTION_PARENT_RESULT_BINDING_INVALID", "completed-parent-exact-locator"],
+    ["executor-source-checkpoint", "PRODUCTION_PARENT_SOURCE_EVIDENCE_MISSING", "completed-parent-exact-locator"],
   ] as const;
   for (const [file, code, check] of guardCases) {
     const source = project.getSourceFileOrThrow(path.resolve(`src/lib/local-runtime/production/${file}.ts`));
     const original = source.getFullText();
-    const guard = source.getDescendantsOfKind(SyntaxKind.IfStatement)
+    const subject = file === "executor-source-checkpoint" ? source.getVariableDeclarationOrThrow(
+      code === "PRODUCTION_PARENT_SOURCE_EVIDENCE_MISSING" ? "collectContinuationSources" : "readContinuationSources").getInitializerOrThrow() : source;
+    const guard = subject.getDescendantsOfKind(SyntaxKind.IfStatement)
       .find((statement) => statement.getThenStatement().getText().includes(code));
     assert.ok(guard, "the actual rejecting authority branch must exist");
     guard!.setExpression(`false && (${guard!.getExpression().getText()})`);
@@ -279,7 +282,7 @@ const exerciseManifestAndLawOwnership = async (): Promise<void> => {
   const runtimeLawRecords = [...runtimeLawSource.matchAll(/```law-record\n([\s\S]*?)\n```/gu)]
     .map((match) => JSON.parse(match[1]!) as { lawId: string; forbidden: string[] });
   const runtimeCoreLaw = runtimeLawRecords.find(
-    (record) => record.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V80",
+    (record) => record.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V81",
   );
   assert.ok(runtimeCoreLaw);
   for (const token of [

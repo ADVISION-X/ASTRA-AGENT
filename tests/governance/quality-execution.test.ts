@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { execFileSync, spawnSync } from "node:child_process";
+import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { chmodSync, cpSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, resolve } from "node:path";
@@ -8,7 +8,7 @@ import test from "node:test";
 import type { Law, Registry } from "../../scripts/audit/governance-contract.js";
 import { GovernanceError } from "../../scripts/audit/governance-runtime.js";
 import { buildQualityReport, type LawExecutionResult, type QualityReport } from "../../scripts/audit/shared/quality-contract.js";
-import { assertQualityCommandPassed, collectQualityCheck, mapWithConcurrency, type QualityCheckIssue } from "../../scripts/audit/shared/quality-process-execution.js";
+import { assertQualityCommandPassed, collectQualityCheck, executeCaptured, mapWithConcurrency, type QualityCheckIssue } from "../../scripts/audit/shared/quality-process-execution.js";
 
 const root = process.cwd();
 const loader = resolve(root, "node_modules/tsx/dist/loader.mjs");
@@ -180,6 +180,53 @@ test("a real acceptance group executes later files and preserves stdout after th
   } finally { rmSync(fixture.directory, { recursive: true, force: true }); }
 });
 
+test("streamed output releases a real child before exit and is captured exactly once", async () => {
+  const fixture = temporaryRepository();
+  try {
+    const release = resolve(fixture.directory, "release");
+    fixture.save("child.mjs", `import {existsSync} from 'node:fs';
+process.stdout.write('GOVERNANCE_PROOF_OBSERVATION fixture-streamed\\n');
+process.stderr.write('child-diagnostic\\n');
+const deadline=Date.now()+2000;
+while(!existsSync(${JSON.stringify(release)})) {
+  if(Date.now()>=deadline) throw new Error('output was not streamed before exit');
+  await new Promise(done=>setTimeout(done,5));
+}
+process.stdout.write('after-release\\n');process.exitCode=7;
+`);
+    fixture.save("stream.mts", `import {executeCaptured} from ${JSON.stringify(resolve(root, "scripts/audit/shared/quality-process-execution.ts"))};
+const result=await executeCaptured(process.execPath,['child.mjs'],{cwd:process.cwd(),env:process.env,streamOutput:true});
+console.log('CAPTURED '+JSON.stringify(result));
+`);
+    const child = spawn(process.execPath, ["--import", loader, "stream.mts"], { cwd: fixture.repo });
+    let stdout = "", stderr = "", released = false;
+    child.stdout.on("data", (chunk: Buffer) => {
+      stdout += chunk.toString();
+      if (!released && stdout.includes("GOVERNANCE_PROOF_OBSERVATION fixture-streamed\n")) {
+        writeFileSync(release, "release"); released = true;
+      }
+    });
+    child.stderr.on("data", (chunk: Buffer) => { stderr += chunk.toString(); });
+    const code = await new Promise<number | null>((done, reject) => {
+      child.once("error", reject); child.once("close", done);
+    });
+    assert.equal(code, 0); assert.equal(released, true);
+    const captured = JSON.parse(stdout.split("\n").find(line => line.startsWith("CAPTURED "))!.slice(9));
+    assert.deepEqual(captured, { status: 7, signal: null,
+      stdout: "GOVERNANCE_PROOF_OBSERVATION fixture-streamed\nafter-release\n", stderr: "child-diagnostic\n" });
+    assert.equal(stdout.split("\n").filter(line => line === "GOVERNANCE_PROOF_OBSERVATION fixture-streamed").length, 1);
+    assert.equal(stderr.split("\n").filter(line => line === "child-diagnostic").length, 1);
+    assert.match(stderr, /command:end.*status=7 signal=null/u);
+    for (const execution of [
+      await executeCaptured(resolve(fixture.directory, "missing-command"), [], { cwd: fixture.repo, env: process.env }),
+      await executeCaptured(process.execPath, ["-e", "process.kill(process.pid,'SIGTERM')"], { cwd: fixture.repo, env: process.env }),
+    ]) {
+      assert.equal(execution.status, null);
+      assert.throws(() => assertQualityCommandPassed(execution, "not-success"));
+    }
+  } finally { rmSync(fixture.directory, { recursive: true, force: true }); }
+});
+
 test("the actual Product acceptance entry preserves child authority failures for its parent and stops later Products", async () => {
   const directory = mkdtempSync(resolve(tmpdir(), "quality-product-integrity-"));
   const repo = resolve(directory, "repo");
@@ -187,7 +234,7 @@ test("the actual Product acceptance entry preserves child authority failures for
     execFileSync("git", ["clone", "-q", "--local", "--no-hardlinks", "--single-branch", "--branch", "main", root, repo]);
     writeFileSync(resolve(repo, ".git/info/exclude"), "node_modules\n");
     symlinkSync(resolve(root, "node_modules"), resolve(repo, "node_modules"), "dir");
-    for (const path of ["scripts/acceptance/architecture-boundary.acceptance.ts", "scripts/audit/governance-git-state.ts", "scripts/audit/shared/quality-process-execution.ts"]) {
+    for (const path of ["scripts/acceptance/architecture-boundary.acceptance.ts", "scripts/audit/governance-git-state.ts", "scripts/audit/shared/quality-process-execution.ts", ".github/instructions/agent-rules/功能法案.md"]) {
       writeFileSync(resolve(repo, path), readFileSync(resolve(root, path)));
     }
     const products = readdirSync(resolve(repo, "scripts/acceptance/product-plugins")).filter((path) => path.endsWith(".acceptance.ts")).sort();
@@ -253,6 +300,7 @@ test("native READY entry records missing governance tests as BLOCKED and still r
     cpSync(resolve(root, "scripts/audit"), resolve(repo, "scripts/audit"), { recursive: true });
     cpSync(resolve(root, ".github/instructions/agent-rules"), resolve(repo, ".github/instructions/agent-rules"), { recursive: true });
     cpSync(resolve(root, "docs/blueprints"), resolve(repo, "docs/blueprints"), { recursive: true });
+    cpSync(resolve(root, "docs/specs"), resolve(repo, "docs/specs"), { recursive: true });
     writeFileSync(resolve(repo, "package.json"), readFileSync(resolve(root, "package.json")));
     rmSync(resolve(repo, "tests/governance"), { recursive: true });
     mkdirSync(resolve(directory, "bin"));

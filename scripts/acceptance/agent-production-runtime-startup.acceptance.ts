@@ -174,22 +174,6 @@ try {
       return { release: async () => { released += 1;
         await Promise.all(input.artifacts.map((item) => item.releaseProviderPaths())); } };
     } } as never });
-  const parent = task({ jobId: "job:completed-parent", productId: "bazi_ai_full_analysis", actionId: "produce" });
-  const parentResult = resultFor(parent);
-  executorStore.acceptTask(parent, "attempt:parent-current");
-  const reader = Reflect.get(executor, "readContinuationParent") as (...args: unknown[]) => unknown;
-  const relation = { parent_task_ref: parent.job_id, parent_result_ref: parentResult.result_payload_ref,
-    parent_result_hash: parentResult.result_payload_hash };
-  assert.throws(() => reader.call(executor, relation, "provider_continuation"), /PRODUCTION_PARENT_RESULT_BINDING_INVALID/u);
-  (Reflect.get(executorStore, "database") as Database.Database).prepare(
-    "update production_tasks set status='completed',result_json=?,current_reason=null where job_id=?").run(JSON.stringify(parentResult), parent.job_id);
-  assert.equal((reader.call(executor, relation, "provider_continuation") as { current_attempt_id: string }).current_attempt_id,
-    "attempt:parent-current");
-  for (const wrong of [{ ...relation, parent_task_ref: "job:absent" }, { ...relation, parent_result_ref: "ref:wrong" },
-    { ...relation, parent_result_hash: HASH_A }]) assert.throws(() => reader.call(executor, wrong, "provider_continuation"));
-  assert.equal(reader.call(executor, {}, "provider_continuation"), null);
-  assert.throws(() => executorStore.acceptTask(parent, "attempt:changed"), /PRODUCTION_TASK_IDENTITY_CONFLICT/u);
-
   const pluginSpan = (stepId: string) => requireRuntimeLogWrite(executorLogger.startSpan({ traceId: "trace:executor",
     owner: "product-plugin", component: "payment-screenshot-observation", operation: "plugin.execute",
     typedIdentity: { kind: "plugin-step", jobId: "job:executor", attemptId: "attempt:executor",

@@ -386,7 +386,7 @@ const expireAcquireModes = async (lane: BrowserLaneCoordinator,
     const until = clock.now() + 30 + index * 10;
     return lane.acquire(binding("b") as never, "owner", { targetMode, eligibleAt: clock.now() - 1,
       remainingMs: () => until - clock.now(), signal: controllers[index]!.signal,
-      ...(targetMode === "authorized-continuation" ? { parentJobId: "parent", parentAttemptId: "parent-attempt" } : {}) } as never)
+      ...(targetMode === "authorized-continuation" ? { parentJobId: "parent", parentSources: [] } : {}) } as never)
       .then(() => null, error => error);
   });
   assert.equal(clock.timers.size, 1); await clock.advance(25);

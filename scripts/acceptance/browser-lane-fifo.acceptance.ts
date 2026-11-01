@@ -19,7 +19,7 @@ import { BrowserAuthorityIssuer } from "../../src/lib/browser/infrastructure/bro
 import { BrowserSessionWorkspace } from "../../src/lib/browser/exact-target/browser-session-workspace.js";
 import { createBrowserInfrastructureState } from "../../src/lib/browser/infrastructure/browser-infrastructure-state.js";
 import { interactionWireFixture } from "./local-browser-terminal-rejection-support.js";
-import { exactHash } from "./local-browser-mutation-store-support.js";
+import { exactHash, identity as mutationIdentity, terminalFact } from "./local-browser-mutation-store-support.js";
 import { decodeBrowserAuthorityFrame } from "../../src/lib/browser/transport/browser-authority-frame-codec.js";
 import { BROWSER_PROTOCOL_REVISION } from "../../src/lib/browser/protocol/generated/browser-protocol.generated.js";
 
@@ -30,6 +30,55 @@ const laneCertificate = () => ({ schemaVersion: "browser-authority-certificate-v
   capabilitySetHash: hash("a"), permissionPolicyHash: hash("a"), originPolicyHash: hash("a"), livenessPolicyHash: hash("a"),
   commandAdmissionBudgetHash: hash("a"), artifactStreamBudgetHash: hash("a"), authTranscriptHash: hash("a"),
   keyEpoch: 1, livenessLeaseEpoch: 1, issuedAt: new Date().toISOString(), issuedAtMonotonicNs: "1", issuerMac: hash("a") });
+
+const verifyContinuationSources = async (root: string): Promise<void> => {
+  const store = new BrowserMutationStore(join(root, "continuation-sources")); store.verifyRuntimeTaskProvenance(null);
+  const sources = [0, 1, 2, 3].map(index => {
+    const base = { ...mutationIdentity(`parent-submit-${index}`, `source-attempt-${index}`), jobId: "completed-parent",
+      productStepId: `original-parent-step-${index}`, callId: "turn-submit", childCapabilityId: "submit_exact_gpt_turn_once", effectScope: "provider_effect" as const };
+    const mutation = { ...base, logicalMutationId: exactHash(JSON.stringify([base.jobId, base.resultRevision,
+      base.productStepId, base.callId, base.childCapabilityId, base.requestHash, base.payloadHash])) };
+    store.prepare(mutation); store.markDispatched(mutation.commandId);
+    const fact = terminalFact(store.readCommand(mutation.commandId)!.identity);
+    const fields = index === 3 ? { submitRecoveryPayload: { ...(fact.terminalReceipt.submitRecoveryPayload as object),
+      canonicalConversationUrl: "https://chatgpt.com/c/other-adopted-source" } } : {};
+    store.settleTerminalReceipt(terminalFact(store.readCommand(mutation.commandId)!.identity, fields));
+    const effect = store.jobHistoryEvidence(base.jobId).replayEffects.find(value => value.attemptId === base.attemptId)!;
+    return { jobId: base.jobId, sourceAttemptId: base.attemptId, sourceResultRevision: 0,
+      productStepId: base.productStepId, callId: base.callId, childCapabilityId: base.childCapabilityId,
+      effectIdentityHash: mutation.logicalMutationId, walAuthorityHash: effect.walAuthorityHash };
+  });
+  const database = Reflect.get(store, "database") as import("better-sqlite3").Database;
+  const before = database.prepare("select * from browser_mutations order by command_id").all();
+  let targets = 0, exactReads = 0, missingLocator = false;
+  const lane = new BrowserLaneCoordinator(() => ({ acquireOperatorClaimedTargetLease: async () => ({ park: async () => {} }) }) as never,
+    {} as never, {} as never, { mutationState: { latestProviderInputTerminalAt: () => null,
+      readSourceConfirmedProviderEffect: (query: typeof sources[number]) => { exactReads++;
+        const result = store.readSourceConfirmedProviderEffect(query);
+        return missingLocator ? { ...result, conversationLocator: null } : result; } } } as never);
+  Reflect.set(lane, "targetAcquirer", { ensureAvailableTarget: async (_wait: unknown, url: string) => {
+    targets++; assert.equal(url, "https://chatgpt.com/c/fixture-original-turn"); } });
+  const acquire = (parentSources: readonly typeof sources[number][], parentJobId = "completed-parent", signal = new AbortController().signal) =>
+    lane.acquire(binding("a"), "child-owner", { targetMode: "authorized-continuation", parentJobId,
+      parentSources, signal, eligibleAt: Date.now(), remainingMs: () => 20_000 });
+  try {
+    const lease = await acquire(sources.slice(0, 3)); assert.equal(exactReads, 3);
+    assert.equal(targets, 1); await lease.park({ reason: "complete", mode: "product-call-settlement" });
+    const duplicate = await acquire([sources[0]!, sources[0]!]);
+    await duplicate.park({ reason: "duplicate-same-source", mode: "product-call-settlement" });
+    for (const bad of [[], [sources[0]!, sources[3]!], [{ ...sources[0]!, productStepId: binding("a").productStepId }],
+      [{ ...sources[0]!, sourceAttemptId: "completed-but-not-source" }], [{ ...sources[0]!, sourceResultRevision: 8 }],
+      [{ ...sources[0]!, jobId: "sibling-parent" }], [{ ...sources[0]!, callId: "other" }],
+      [{ ...sources[0]!, childCapabilityId: "other" }], [{ ...sources[0]!, effectIdentityHash: hash("b") }],
+      [{ ...sources[0]!, walAuthorityHash: hash("b") }], [{ ...sources[0]!, unexpected: true }]]) {
+      const count: number = targets; await assert.rejects(acquire(bad), /BROWSER_/u); assert.equal(targets, count);
+    }
+    await assert.rejects(acquire([sources[0]!], binding("a").jobId), /BROWSER_PARENT_JOB_SELF_REFERENCE/u);
+    missingLocator = true; await assert.rejects(acquire([sources[0]!]), /BROWSER_PARENT_PROVIDER_EFFECT_INVALID/u); missingLocator = false;
+    const aborted = new AbortController(); aborted.abort(); await assert.rejects(acquire([sources[0]!], "completed-parent", aborted.signal), /BROWSER_WAIT_ABORTED/u);
+    assert.equal(targets, 2); assert.deepEqual(database.prepare("select * from browser_mutations order by command_id").all(), before);
+  } finally { store.close(); }
+};
 
 const interactionLaneFixture = async (root: string) => {
   let broker!: BrowserAuthorityBroker, lane!: BrowserLaneCoordinator;
@@ -229,6 +278,7 @@ try {
   await assert.rejects(abortedActor.execute({ ...textPermit, commandId: "text-aborted" }, { kind: "dom-intent", intent: textIntent }));
   assert.equal(abort.signal.aborted, true); assert.equal(store.readCommand("text-aborted"), null);
   await verifyInteractionLane(root);
+  await verifyContinuationSources(root);
   store.close();
 } finally { await rm(root, { recursive: true, force: true }); }
 const manager = Object.create(BrowserTargetLeaseManager.prototype) as Record<string, unknown>;

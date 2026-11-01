@@ -26,7 +26,7 @@ import type {
 } from "./contracts.js";
 import { hashCanonical } from "./contracts.js";
 import { PRODUCTION_BUSINESS_CAPACITY_MAX } from "./control-contract-dependency.js";
-import { recordSourceCheckpoint } from "./executor-source-checkpoint.js";
+import { readContinuationSources, recordSourceCheckpoint } from "./executor-source-checkpoint.js";
 import { gptLeaseInput } from "./executor-gpt-input.js";
 import { assertProductionTaskRoutePolicy, productionRoutePolicy } from "./route-policy.js";
 import { ProductionRuntimeStore, type StoredProductionTask } from "./store.js";
@@ -319,9 +319,11 @@ export class ProductionExecutor {
     let primaryError: unknown = null;
     let result: WebsiteAgentResult;
     try {
+      const routePolicy = productionRoutePolicy(input.task.product_id, input.task.action_id);
+      const parent = await readContinuationSources({ store: this.store, browserAuthority: this.browserAuthority,
+        task: input.task, relationKind: routePolicy.relation_kind, signal: input.lease.abort_signal,
+        readAdoptedImageReference: value => this.gptChildTools.readAdoptedImageReference(value) });
       result = await dispatchWebsiteAgentTask(input.task, (authorized) => {
-        const routePolicy = productionRoutePolicy(authorized.task.product_id, authorized.task.action_id);
-        const parent = this.readContinuationParent(authorized.task, routePolicy.relation_kind);
         const gptExecution = this.gptChildTools.createExecution({
           recordSettledCheckpoint: (checkpoint) => recordSourceCheckpoint({
             store: this.store, browserAuthority: this.browserAuthority,
@@ -330,10 +332,7 @@ export class ProductionExecutor {
           ...gptLeaseInput(authorized.task, input.lease, input.span.spanId),
           get expiresAtMonotonic() { return input.lease.expires_at_monotonic; },
           get commandTtlMs() { return input.lease.command_ttl_ms; },
-          ...(parent ? { providerContinuationParent: {
-            jobId: parent.task.job_id,
-            acceptedAttemptId: parent.current_attempt_id,
-          } } : {}),
+          ...(parent ? { providerContinuationParent: parent } : {}),
         });
         gptLifecycle.decorateFailure = gptExecution.decorateSettledResultFailure;
         gptLifecycle.settle = gptExecution.settle;
@@ -378,23 +377,6 @@ export class ProductionExecutor {
       result,
       providerEffectReadbackProof: readProviderEffectReadbackProof(),
     });
-  }
-
-  private readContinuationParent(
-    task: Readonly<Pick<WebsiteAgentTask, "parent_task_ref" | "parent_result_ref" | "parent_result_hash">>,
-    relationKind: ReturnType<typeof productionRoutePolicy>["relation_kind"],
-  ) {
-    const parent = relationKind === "provider_continuation" && task.parent_task_ref
-      ? this.store.readTask(task.parent_task_ref) : null;
-    if (task.parent_task_ref && relationKind === "provider_continuation" && !parent) {
-      throw executionFailure("failed", "PRODUCTION_PARENT_RESULT_BINDING_MISSING");
-    }
-    if (parent && (parent.status !== "completed" || !parent.result
-      || parent.result.result_payload_ref !== task.parent_result_ref
-      || parent.result.result_payload_hash !== task.parent_result_hash)) {
-      throw executionFailure("failed", "PRODUCTION_PARENT_RESULT_BINDING_INVALID");
-    }
-    return parent;
   }
 
   private readInvocationResult(task: WebsiteAgentTask, attemptId: string, envelope: WebsiteAgentResult | null): WebsiteAgentResult | null {

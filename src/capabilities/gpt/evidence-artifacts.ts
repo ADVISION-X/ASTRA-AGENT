@@ -160,6 +160,34 @@ const assertImageBinding = (binding: Readonly<Record<string, unknown>>): void =>
   assertImageAuthority(binding);
 };
 
+/** Read only the adopted image's identity descriptor; never open either parent answer. */
+export const readAdoptedImageReference = async (input: Readonly<{
+  evidenceStore: GptEvidenceStorePort; jobId: string; sourceAttemptId: string;
+  checkpointExactCallIdentityHash: `sha256:${string}`;
+  artifactRef: string; artifactContentHash: `sha256:${string}`;
+  canonicalConversationHash: `sha256:${string}`; userTurnHash: `sha256:${string}`;
+}>): Promise<string> => {
+  const descriptor = await input.evidenceStore.readArtifact({ missionId: input.jobId,
+    runId: input.sourceAttemptId,
+    idempotencyKey: artifactKey(input.checkpointExactCallIdentityHash, "source-binding") });
+  if (descriptor.status !== "success") {
+    throw executionFailure("failed", descriptor.failureReason === "FORENSICS_ARTIFACT_NOT_FOUND"
+      ? "PRODUCTION_SOURCE_CHECKPOINT_ARTIFACT_UNAVAILABLE" : "EVIDENCE_ARTIFACT_READBACK_FAILED",
+    { cause: new Error(descriptor.failureReason) });
+  }
+  if (descriptor.artifactRef !== input.artifactRef
+    || descriptor.artifact.mimeType !== "application/json"
+    || descriptor.artifact.integrityHash !== input.artifactContentHash) return invalidImage();
+  let parsed: unknown;
+  try { parsed = JSON.parse(new TextDecoder().decode(descriptor.artifact.content)); }
+  catch { return invalidImage(); }
+  const binding = imageRecord(parsed);
+  assertImageBinding(binding);
+  if (binding.canonicalConversationHash !== input.canonicalConversationHash
+    || binding.userTurnHash !== input.userTurnHash) return invalidImage();
+  return binding.originalArtifactRef as string;
+};
+
 export const readPersistedGptImageEvidence = async (input: Readonly<{
   evidenceStore: GptEvidenceStorePort;
   jobId: string;

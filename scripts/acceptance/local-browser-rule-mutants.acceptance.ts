@@ -16,6 +16,11 @@ import { inspectDomMechanicalFacts } from "../audit/domains/local-browser-sessio
 
 const hash = (digit: string): `sha256:${string}` => `sha256:${digit.repeat(64)}`;
 const TERMINAL_RULE_MUTANTS = [
+    ["src/lib/browser/infrastructure/browser-lane-coordinator.ts", "store.readSourceConfirmedProviderEffect(source)", "store.readSourceConfirmedProviderEffect({ ...source, productStepId: waiter.binding.productStepId })"],
+    ["src/lib/browser/infrastructure/browser-lane-coordinator.ts", "for (const source of waiter.parentSources)", "for (const source of waiter.parentSources.slice(0, 1))"],
+    ["src/lib/browser/infrastructure/browser-lane-coordinator.ts", "parentUrl !== locator.canonicalConversationUrl", "false"],
+    ["src/lib/browser/infrastructure/browser-lane-coordinator.ts", "if (!locator)", "if (false)"],
+    ["src/lib/browser/infrastructure/browser-lane-coordinator.ts", "source.jobId === parentJobId", "true"],
     ["src/lib/browser/chrome-extension/extension-interaction-readiness.ts", "    assertInput();\n    const lease = await this.ensureInteractionReady", '    if (Date.now() >= 0) return { failureCode: "BROWSER_TARGET_NOT_INTERACTIVE", mutationCount: 0 };\n    assertInput();\n    const lease = await this.ensureInteractionReady'],
     ["src/lib/browser/chrome-extension/extension-interaction-readiness.ts", "browserInputStarted: state.started", "browserInputStarted: false"],
     ["src/lib/browser/chrome-extension/extension-interaction-readiness.ts", "browserPhysicalInputCount: state.physicalInputCount", "browserPhysicalInputCount: 0"],
@@ -127,6 +132,9 @@ const TERMINAL_RULE_MUTANTS = [
   ] as const;
 
 const exerciseInspectors = (): void => {
+  const started = performance.now();
+  let completed = 0;
+  process.stderr.write(`[QUALITY][browser-mutants:start] total=${TERMINAL_RULE_MUTANTS.length}\n`);
   const project = new Project({ tsConfigFilePath: "tsconfig.json" }), lawId = "LAW-LOCAL-BROWSER-SESSION-004-V59";
   const paths = project.getSourceFiles().map(source => source.getFilePath().slice(process.cwd().length + 1));
   const context: InspectorContext = { project, sealedRoot: process.cwd(), selectedLawId: lawId, targetPaths: paths,
@@ -146,6 +154,10 @@ const exerciseInspectors = (): void => {
     try { source.replaceWithText(after); assert.ok(inspect().length > 0, `Native inspector missed ${original}`); }
     finally { source.replaceWithText(before); }
     assert.deepEqual(inspect(), [], "Each mutant is isolated and restored in memory.");
+    completed += 1;
+    if (completed % 8 === 0 || completed === TERMINAL_RULE_MUTANTS.length) {
+      process.stderr.write(`[QUALITY][browser-mutants:progress] completed=${completed}/${TERMINAL_RULE_MUTANTS.length} elapsedMs=${Math.round(performance.now() - started)}\n`);
+    }
   }
   const release = project.getSourceFileOrThrow("src/lib/browser/chrome-extension/extension-target-release.ts");
   const before = release.getFullText();
@@ -155,6 +167,7 @@ const exerciseInspectors = (): void => {
     release.replaceWithText(before.replace(original, original.replace('throw new Error("BROWSER_TARGET_CLEANUP_FAILED");', '{ throw new Error("BROWSER_TARGET_CLEANUP_FAILED"); }')));
     assert.deepEqual(inspect(), [], "A sole throwing block preserves the physical-release failure contract.");
   } finally { release.replaceWithText(before); }
+  process.stderr.write(`[QUALITY][browser-mutants:end] completed=${completed}/${TERMINAL_RULE_MUTANTS.length} elapsedMs=${Math.round(performance.now() - started)}\n`);
 };
 const exerciseDomAdmission = (): void => {
   const hover = { kind: "hover" as const, selector: "[role='menuitem'][aria-haspopup='menu']", expectedText: "模型", expectedMatches: 1,

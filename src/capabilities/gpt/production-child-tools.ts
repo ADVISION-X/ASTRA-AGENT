@@ -8,7 +8,7 @@ import { requireRuntimeLogWrite, type RuntimeLogger, type RuntimeSpanHandle } fr
 import { browserExactCallIdentityHash, type BrowserAtomicStepIdentity } from "../../lib/browser/browser-authority-api.js";
 import { failedGptChildExecutionResult } from "./ability-group.js";
 import { gptExecutionFailure, typedGptExecutionFailure } from "./execution-fault.js";
-import { readPersistedGptImageEvidence, readPersistedGptTextResponse } from "./evidence-artifacts.js";
+import { readAdoptedImageReference, readPersistedGptImageEvidence, readPersistedGptTextResponse } from "./evidence-artifacts.js";
 import { ProductionGptBrowserLifecycle, type ProductionGptBrowserCall } from "./production-browser-lifecycle.js";
 import { acquireProductionBrowserCall, recoverPersistedCheckpoint, runProductionAtomicPhase } from "./production-call-preparation.js";
 import { confirmedSubmitIdentity, persistGptChildOutcome, productChildResult,
@@ -288,6 +288,12 @@ export class ProductionGptChildTools {
     try { this.providerRateLimitControl.assertProviderSubmitAllowed(); }
     catch (error) { if (failureCode(error) === "PROVIDER_RATE_LIMIT_COOLDOWN_ACTIVE") return null; }
     return closureError;
+  }
+
+  public readAdoptedImageReference(
+    input: Omit<Parameters<typeof readAdoptedImageReference>[0], "evidenceStore">,
+  ): Promise<string> {
+    return readAdoptedImageReference({ ...input, evidenceStore: this.evidenceStore });
   }
 
   public async verifySourceCheckpointArtifact(input: Readonly<{

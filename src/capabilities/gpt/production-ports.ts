@@ -47,7 +47,10 @@ export type GptProductionExecutionInput = Readonly<{
   commandTtlMs: number;
   abortSignal: AbortSignal;
   parentSpanId: string;
-  providerContinuationParent?: Readonly<{ jobId: string; acceptedAttemptId: string }>;
+  providerContinuationParent?: Readonly<{
+    jobId: string;
+    sources: readonly Parameters<GptProductionBrowserAuthority["readSourceConfirmedProviderEffect"]>[0][];
+  }>;
 }>;
 
 type GptAppendArtifactResult = Readonly<{ status: "success"; artifactRef: string }>

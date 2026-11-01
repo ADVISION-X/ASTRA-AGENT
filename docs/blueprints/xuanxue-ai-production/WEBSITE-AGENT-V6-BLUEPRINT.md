@@ -1,4 +1,4 @@
-# production-runtime 生产级施工图 V68
+# production-runtime 生产级施工图 V69
 
 正常停止沿现役单链：App信号→Workbench停止接单→Runtime同步draining→原iteration与active任务收尾→原Store/网站status读回→原资源关闭。
 停止意图仅约束新claim，绝不abort在途Product；原claim在实际fetch前检查drain_state，停止前已经发送的合法grant仍由原worker执行。
@@ -16,11 +16,11 @@ blocked实例在真实停机时由原Store关闭入口只读核未完成任务/O
 ```blueprint-record
 {
   "schemaVersion": 1,
-  "blueprintId": "agent-production-runtime-v68",
+  "blueprintId": "agent-production-runtime-v69",
   "status": "active",
   "owner": "agent-production-runtime",
   "lawIds": [
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V80",
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V81",
     "LAW-AGENT-PRODUCTION-RUNTIME-002-V12",
     "LAW-AGENT-PRODUCTION-RUNTIME-003-V51",
     "LAW-AGENT-PRODUCTION-RUNTIME-004-V48",
@@ -48,9 +48,9 @@ blocked实例在真实停机时由原Store关闭入口只读核未完成任务/O
     {"contractRef":null,"from":{"domain":"startup-entrypoint","repo":"local"},"to":{"domain":"agent-production-runtime","repo":"local"}}
   ],
   "prohibitedDependencyEdges": [
-    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V80","to":{"domain":"app-shell-ui","repo":"local"}},
-    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V80","to":{"domain":"local-app-shell","repo":"local"}},
-    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V80","to":{"domain":"startup-entrypoint","repo":"local"}}
+    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V81","to":{"domain":"app-shell-ui","repo":"local"}},
+    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V81","to":{"domain":"local-app-shell","repo":"local"}},
+    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V81","to":{"domain":"startup-entrypoint","repo":"local"}}
   ]
 }
 ```
@@ -125,7 +125,7 @@ Website 已持久裁决 `WAIT_NEW_ATTEMPT` 且原 job 事件/claim receipt 已�
 
 原 accepted attempt 的 Provider 输入可能已发生而结果未就绪时，Runtime 先保留旧 effect/WAL 与机械有效结果，Website 原 claim 重授同 attempt 的零输入读回 lease。Browser 对每个旧 effect 只从唯一 WAL 取得 canonical conversation URL + 提交时 exact userTurnId；文本回答由原 Product turnMarker 在当前 Document 定位，图片仍以原 exact userTurnId 定位；live Target 可复用则同 URL 零导航，Target 已丢失则当前 lease 直接创建当前 system Target 并最多一次精确导航，不先报 old-target failure。可信 locator 的真实有界 exact negative observation 才证明原答案不可机械取得；WAL 无可信 locator 时出具 typed unaddressable，明确保留旧答案可能存在，不扫描旧 Tab/标题/侧栏。读回成功优先沿原身份 stage/Outbox/Website admission；时间等待、空证据和旧 Target 缺席均不构成负读回。原 `production_attempt_handoffs` 仅按 source effect/call、原 WAL authority、checkpoint/Forensics artifact、exact readback 或 unaddressable 的 typed proof 保存来源 seal，不持久 Target 身份；完整 replay_calls 与逐 effect readback_proofs 一一对应，settled_reusable 调用仅归还原答案，replay_exhausted 子集才进入 Website 风险 grant，rejection_settled/risk_authorized/historical_settled 保留原事件血缘。`readback_exhaustion_hash` 只覆盖真实耗尽子集。历史DISPATCHED只保留未知事实，input_quiescence_proof在原真实terminal_wal完整时可附带，否则为null，不作当前资格门，也不证明答案不存在或授Provider输入。Website 仍在原 job 行锁核旧结果/Outbox/admission 缺席、完整 source seal、风险授权调用集合与旧 fence 后持久签发新 revision；Browser 在真实输入前再核 current Target/Document/permit/原 WAL。本次已撤销未完成 V43 job 的来源不得进入 V44；已完成 job 的旧签事件仅作原值历史取证，不进入活动 claim。
 
-`TOMBSTONE-RECOVERY-AUTHORITY-001` 继续固定 Website 是未删除需求的唯一业务恢复决策 Owner；八字新业务任务只消费 Website 已入库并精确绑定的父报告材料，且每次从 clean GPT chat 执行。同一SEO文章的五个翻译task由Website按严格locale顺序签发provider_continuation direct parent，zh-HK直连已接纳zh-CN生成task，后四个直连已接纳前序翻译task。固定catalog保持各locale/cohort独立task/result/admission，同cohort仅派当前最早未闭合locale；部分合格后仅失败ID进入下一张后继任务。首任务fresh且parent triple全空，后继只携Website已接纳的直接前驱三元组，Browser只从父WAL唯一URL续聊。Runtime对已携带parent三元组的provider_continuation只机械读取exact parent job的本地completed任务，要求其`result_payload_ref + result_payload_hash`与Website parent triple精确相等，并把已验证的exact parent job及其`current_attempt_id`作为只读locator选择交给GPT；缺失、未完成、不等或current attempt缺失都在Browser输入前失败关闭。父任务`current_attempt_id`只选择该completed父结果所在WAL行，不跨仓、不持久化第二份，也永不进入跨attempt稳定的provider effect identity。固定catalog首任务fresh，后继顺序续聊。Runtime不读取Provider URL、不选择父任务、不判断业务父资格，也不新增父关系或continuation持久化。已确认Provider effect跨进程只能读取同一结果且物理submit增量恒为零；continuation store/frontier/CAS、private base、fork、兼容桥及第二恢复链恒为零。
+`TOMBSTONE-RECOVERY-AUTHORITY-001` 继续固定 Website 是未删除需求的唯一业务恢复决策 Owner；八字新业务任务只消费 Website 已入库并精确绑定的父报告材料，且每次从 clean GPT chat 执行。同一SEO文章的五个翻译task由Website按严格locale顺序签发provider_continuation direct parent，zh-HK直连已接纳zh-CN生成task，后四个直连已接纳前序翻译task。固定catalog保持各locale/cohort独立task/result/admission，同cohort仅派当前最早未闭合locale；部分合格后仅失败ID进入下一张后继任务。首任务fresh且parent triple全空，后继只携Website已接纳的直接前驱三元组，Browser只从父WAL唯一URL续聊。Runtime只在Website已签provider_continuation且父结果ref/hash与本地completed父结果精确相等后，读取该结果实际采纳的全部原checkpoint来源证据，并按原父job、来源attempt、result revision、product step、实际call、submit Child及原WAL authority/hash整体验真；完成attempt和child当前step不得代替原来源。跨attempt复用须核既有accepted source settlement及reused_checkpoint，同attempt正常live/cache不新增grant门。Browser逐项沿原exact source reader只读CONFIRMED且可信的原effect locator，全部采纳来源的canonical URL非空且全等后才为当前job独占Target精确导航；缺失、未决、篡改、矛盾或URL冲突均零Provider输入失败关闭，不得任选来源或fallback。来源只作locator选择，不跨仓、不新持久化且永不进入child provider effect identity或业务恢复裁决。仅为核图片采用关系，GPT原Owner可按精确parent job/source attempt/checkpoint identity读取既有gpt-image-source-binding.v1身份描述，核原ref/integrity hash及conversation/user hash后只向Runtime回传originalArtifactRef；这是封闭身份元数据，不得读取父文本、父原图bytes、Prompt或旧页面，描述不进入Product，也不新增Forensics端口、schema或存储。异步来源验证在原dispatchPlugin进入Mediator同步context工厂前完成；原readSourceReadbackObservations、readAcceptedSourceSettlements和Browser公开全历史typed reader是唯一来源。固定catalog首任务fresh，后继顺序续聊。Runtime不读取Provider URL、不选择父任务、不判断业务父资格，也不新增父关系或continuation持久化。已确认Provider effect跨进程只能读取同一结果且物理submit增量恒为零；continuation store/frontier/CAS、private base、fork、兼容桥及第二恢复链恒为零。
 
 Runtime 对外只发布 Agent Route Capability Manifest。它从 Mediator 取得冻结、不可变、纯数据的 `product_id + action_id + task_contract_version + result_contract_version` 路由集合，随后在本域校验 Manifest schema/hash并用于当前 session attestation 与 claim 资格。Product Plugin 名称、版本、Skill hash 与 Catalog 实现身份不得进入 Website job、request、accepted attempt、grant、result、artifact、terminal 或 Browser effect；Runtime 源码不得直接或间接取得 `ProductPlugin` 实例、Product Skill 正文、`parseResult`、`assemblePayload` 或其它 Product 可执行回调；Product Plugin 也不得 import、re-export、dynamic import 或 side-effect import Runtime 私有模块。
 
@@ -350,7 +350,7 @@ CHANGE、READY、RELEASE 是不同候选阶段。Runtime 的静态或动态 PASS
 17. Runtime proof 只声明本域四种 dynamic mode；GPT、Browser、Runtime Log 的原生 proof 均可独立运行，Runtime 相邻 proof assertion 为零，任何未解耦 route 都阻断 RELEASE。
 18. Runtime CHANGE/READY 不替 Website、Product、GPT、Browser 宣称业务完成；最终业务完成仍以 Website admission/storage 为准。
 19. 各域现有唯一 inspector、acceptance 与适用 proof 分别覆盖本域 active law 的 summary、全部 forbidden 与全部 evidenceModes；Owner-bound import mutant 必须证明 Runtime→Plugin、Plugin→Runtime private 与旧 Catalog 豁免都会失败关闭，全部被替代路径的生产消费清零，不新增第二 checker、proof 或 verdict。
-20. N=1..6下去重业务在途数不得超过 Website当前设备配置；每个 active execution或 admission pending job各占一个席位。AGENT 本地完成仅引用 LAW-AGENT-PRODUCTION-RUNTIME-004-V48，Website 业务容量仍按原领域事实计算，Browser Target 清理只作诊断且独立受 lane 安全门约束；Website 持久 WAIT_NEW_ATTEMPT 仅在旧 READY/Outbox/候选确证不可恢复、原证据交接完成后释放旧 attempt 席位；永久撤权或删除按原 Owner 精确清理。ACTIVE_ATTEMPT regrant不新增席位，CONSUME_CURRENT_RESULT继续占原席位，缩容不终止既有执行。任意时刻 Browser物理 lane与 active claim至多一个；每个正常观察请求首次/后续资格至少70秒；跨任务已具资格观察可连续串行，填写/上传/结算占用中不能抢占。八字另须证明 BZ05/BZ03/BZ04每个业务任务均 fresh且精确消费本轮Website父报告材料；同一SEO文章六个task按direct parent共享一个canonical conversation URL；固定catalog同cohort首任务fresh、后继及失败ID补译任务携已接纳直接前驱三元组并共享父WAL唯一URL；每job仍独占Target、一次submit，错误parent或product step须在Provider输入前失败。continuation controller/store/frontier/CAS、fork与private base为零。
+20. N=1..6下去重业务在途数不得超过 Website当前设备配置；每个 active execution或 admission pending job各占一个席位。AGENT 本地完成仅引用 LAW-AGENT-PRODUCTION-RUNTIME-004-V48，Website 业务容量仍按原领域事实计算，Browser Target 清理只作诊断且独立受 lane 安全门约束；Website 持久 WAIT_NEW_ATTEMPT 仅在旧 READY/Outbox/候选确证不可恢复、原证据交接完成后释放旧 attempt 席位；永久撤权或删除按原 Owner 精确清理。ACTIVE_ATTEMPT regrant不新增席位，CONSUME_CURRENT_RESULT继续占原席位，缩容不终止既有执行。任意时刻 Browser物理 lane与 active claim至多一个；每个正常观察请求首次/后续资格至少70秒；跨任务已具资格观察可连续串行，填写/上传/结算占用中不能抢占。八字另须证明 BZ05/BZ03/BZ04每个业务任务均 fresh且精确消费本轮Website父报告材料；同一SEO文章六个task按direct parent共享一个canonical conversation URL；固定catalog同cohort首任务fresh、后继及失败ID补译任务携已接纳直接前驱三元组并共享父WAL唯一URL；每job仍独占Target、一次submit，错误parent或篡改已采纳来源的product step须在Provider输入前失败。continuation controller/store/frontier/CAS、fork与private base为零。
 
 付款 primary 的唯一公开输出请求来自 Website canonical route 的 `result_contract`，Product 原样投影到 Prompt，基础接收不复制其中枚举或领域拒收规则；付款领域 Consumer 在原 prepare 中机械校验该格式，原 no_payment_change 与同 client admission 保持。GPT acquisition/观察早退的真实调用身份复用原 childSpan 的 gpt-call typedIdentity（job/attempt/step/callId:Child），不增加 metadata。V6 的 Child 属于原 Browser fact：无 Browser effect 时 scope/Child/outcome/provider_effect_identity_hash 均为空，已有 effect 时其来源 Child 与 evidence 对始终优先，不能以当前 GPT 调用身份替代。历史 first fact 不回填。
 

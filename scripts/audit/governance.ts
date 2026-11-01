@@ -12,7 +12,7 @@ import { validateChangedGovernanceSources, validateCommittedProviderContractVers
 import { runFullQuality } from './shared/quality-runner.js';
 import { relevantExamScripts } from './shared/quality-routes.js';
 import { detectHighImpactChanges } from './shared/high-impact-detector.js';
-import { assertQualityCommandPassed, collectQualityCheck, writeQualityIssues, type QualityCheckIssue } from './shared/quality-process-execution.js';
+import { assertQualityCommandPassed, collectQualityCheck, executeCaptured, writeQualityIssues, type QualityCheckIssue } from './shared/quality-process-execution.js';
 
 function assertAuthorization(changes: Array<{ status: string; path: string }>): void {
   if (changes.some((change) => change.path === 'docs/governance/法案系统建设说明书-冻结定稿版.md') && process.env.GRASSEYE_SOURCE_SPEC_AMENDMENT_AUTHORIZED !== '1') fail('SOURCE_SPEC_AMENDMENT_REQUIRED', 'mother spec');
@@ -85,11 +85,9 @@ function assertBaselineProductionDeleteAuthorization(changes: Array<{ status: st
 }
 
 async function run(command: string, args: string[], assertCandidate: () => void, issues: QualityCheckIssue[]): Promise<void> {
-  await collectQualityCheck(`${command} ${args.join(' ')}`, () => {
-    const result = spawnSync(command, args, { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, env: process.env });
-    if (result.stdout) process.stdout.write(result.stdout);
-    if (result.stderr) process.stderr.write(result.stderr);
-    assertQualityCommandPassed({ status: result.status, signal: result.signal, stdout: result.stdout ?? '', stderr: result.stderr ?? '' }, command);
+  await collectQualityCheck(`${command} ${args.join(' ')}`, async () => {
+    const execution = await executeCaptured(command, args, { cwd: ROOT, env: process.env, streamOutput: true });
+    assertQualityCommandPassed(execution, command);
   }, assertCandidate, issues);
 }
 

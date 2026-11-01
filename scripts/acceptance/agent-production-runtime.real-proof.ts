@@ -3,7 +3,7 @@ void String.raw`
 {
   "schema_version": "producer-dynamic-claim-contract.v1",
   "routes": {
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V80:dynamic.service": {
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V81:dynamic.service": {
       "claims": {
         "summary": [
           {
@@ -64,7 +64,7 @@ void String.raw`
         ]
       }
     },
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V80:dynamic.database": {
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V81:dynamic.database": {
       "claims": {
         "forbidden:0": [
           {
@@ -82,7 +82,7 @@ void String.raw`
         ]
       }
     },
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V80:dynamic.storage": {
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V81:dynamic.storage": {
       "claims": {
         "forbidden:2": [
           {

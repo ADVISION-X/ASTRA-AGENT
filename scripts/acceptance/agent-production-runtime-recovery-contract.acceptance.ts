@@ -1,5 +1,5 @@
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import Database from "better-sqlite3";
@@ -18,7 +18,7 @@ import {
   serializeTerminalFailureTransport,
 } from "../../src/lib/local-runtime/production/terminal-failure.js";
 import { attemptFailureFirstFact, claimTask, task } from "./agent-production-runtime-fixtures.js";
-import { verifyPayloadSlotConflict, verifyRepeatedCheckpointSourceHandoff } from "./agent-production-runtime-payload-slot.acceptance-support.js";
+import { verifyContinuationSourceBinding, verifyPayloadSlotConflict, verifyRepeatedCheckpointSourceHandoff } from "./agent-production-runtime-payload-slot.acceptance-support.js";
 import { verifyRecoveryFailureTransport } from "./agent-production-runtime-failure-transport.acceptance-support.js";
 import { verifyOutboxRegrantFenceAndReadbackProof, verifyTypedSourceSealAuthority } from
   "./agent-production-runtime-recovery-contract.acceptance-support.js";
@@ -32,6 +32,8 @@ const terminalQuiescence = (historyHash: `sha256:${string}`,
   return { ...body, proof_hash: hashCanonical(body) };
 };
 try {
+  const continuationData = path.join(directory, "continuation"); await mkdir(continuationData);
+  await verifyContinuationSourceBinding(continuationData);
   const providerEffectHash = `sha256:${"c".repeat(64)}` as const;
   await verifyRecoveryFailureTransport(providerEffectHash);
   const store = new ProductionRuntimeStore(directory);

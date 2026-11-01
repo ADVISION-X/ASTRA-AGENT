@@ -35,6 +35,17 @@ const inspectObservationLane = (context: InspectorContext, findings: InspectorFi
   "gpt/no-second-wait-scheduler", LIFECYCLE, "GPT cannot own a second scheduler or random interval.", findings, finding);
 };
 
+const parentSourcesUseOriginalEffects = (context: InspectorContext): boolean => {
+  const parent = sourceFor(context, LANE)?.getClass("BrowserLaneCoordinator")?.getMethod("readParentConversationUrl");
+  const exactReads = calls(parent, "store.readSourceConfirmedProviderEffect");
+  return exactReads.length === 1 && exactReads[0]?.getArguments()[0]?.getText() === "source"
+    && parent?.getDescendantsOfKind(SyntaxKind.ForOfStatement).some(loop =>
+      loop.getExpression().getText() === "waiter.parentSources" && calls(loop, "store.readSourceConfirmedProviderEffect").length === 1) === true
+    && parent.getText().includes("parentUrl !== locator.canonicalConversationUrl")
+    && parent.getText().includes("if (!locator)")
+    && !text(context, "src/lib/browser/exact-target/browser-mutation-evidence.ts").includes("readUniqueConfirmedConversationUrl");
+};
+
 export const inspectGptProviderProbeOwnerContract = (context: InspectorContext, findings: InspectorFinding[], finding: FindingFactory): void => {
   check(textResponseTwoGateSettlementIsFrozen(text(context, TEXT)),
     "gpt/provider-observation-gate-first", TEXT, "Text readback must execute the sole frozen observation gate and exact response settlement.", findings, finding);
@@ -86,12 +97,10 @@ export const inspectGptProviderProbeOwnerContract = (context: InspectorContext, 
   "Lease handoff retires exactly its owner even on failure; selection retains the new lease and Child identity for settlement.", findings, finding);
   check(lifecycleText.includes("active.browser.readAtomicStepOutcome(confirmed.submitIdentity)")
     && lifecycleText.includes('recoverySelectionRequired: targetMode === "confirmed-readback"') && lifecycleText.includes('"bound-observation"')
-    && lifecycleText.includes("parentAttemptId: this.execution.providerContinuationParent!.acceptedAttemptId"),
-  "gpt/historical-provider-effect-authority", LIFECYCLE, "Readback remains bound to the original submit and accepted parent attempt.", findings, finding);
-  const evidencePath = "src/lib/browser/exact-target/browser-mutation-evidence.ts", evidence = text(context, evidencePath);
-  check(["parentAttemptId: string", "where job_id=? and attempt_id=? and product_step_id=?", "product_step_id=? and call_id='turn-submit'",
-    "child_capability_id='submit_exact_gpt_turn_once'", "rows.length !== 1", ").all(parentJobId, parentAttemptId, parentProductStepId)"].every(token => evidence.includes(token)),
-  "gpt/historical-provider-effect-authority", evidencePath, "Parent lookup requires the unique original job/attempt/step submit.", findings, finding);
+    && lifecycleText.includes("parentSources: this.execution.providerContinuationParent!.sources"),
+  "gpt/historical-provider-effect-authority", LIFECYCLE, "Readback remains bound to the original submit; continuation transports adopted source identities.", findings, finding);
+  check(parentSourcesUseOriginalEffects(context),
+  "gpt/historical-provider-effect-authority", LANE, "Every adopted source requires exact original WAL readback and one equal canonical locator; child step cannot select a parent.", findings, finding);
 };
 
 const inspectImageObservationOrder = (context: InspectorContext, findings: InspectorFinding[], finding: FindingFactory): void => {

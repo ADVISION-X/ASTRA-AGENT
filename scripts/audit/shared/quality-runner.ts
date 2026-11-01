@@ -205,11 +205,14 @@ const runStaticDomain = async (
   const worker = resolve(ROOT, "scripts/audit/shared/quality-inspector-worker.ts");
   if (runInspectionWorker.name !== "runInspectionWorker") fail("INSPECTOR_WORKER_INVALID", worker);
   const loader = resolve(ROOT, "node_modules/tsx/dist/loader.mjs");
+  const inspectionStarted = performance.now();
+  process.stderr.write(`[QUALITY][static:start] ${domain}\n`);
   const execution = await executeCaptured(process.execPath, ["--import", loader, worker], {
     cwd: sealedRoot,
     env: { ...process.env, GOVERNANCE_INSPECTION_REQUEST: requestPath, GOVERNANCE_SEALED_ROOT: sealedRoot,
       GOVERNANCE_BINDING_CONTRACT: JSON.stringify({ targetPaths: paths }) },
   });
+  process.stderr.write(`[QUALITY][static:end] ${domain} elapsedMs=${Math.round(performance.now() - inspectionStarted)} status=${execution.status} signal=${execution.signal}\n`);
   try {
     if (sealedSnapshotDigest(sealedRoot, paths) !== sealedBefore) fail("INSPECTOR_WORKER_INVALID", `${domain}:sealed-target-drift`);
   } catch (error) {
@@ -291,6 +294,7 @@ const executeProofCommand = async (
   const execution = await executeCaptured("npm", ["run", script], {
     cwd: ROOT,
     timeout: timeoutMs,
+    streamOutput: kind === "exam",
     env: {
       ...process.env,
       GOVERNANCE_PROOF_KIND: kind,
@@ -316,7 +320,9 @@ const executeProofCommand = async (
     if (bound.size !== routes.length) issues.push({ label: `${kind}:${script}:denominator`, status: "FAILED", message: "LAW_EVIDENCE_MISSING: native-observation-denominator" });
     return bound;
   }, assertCandidate, issues) ?? new Map<string, QualityProofObservation>();
-  if (!executionPassed || observations.size !== routes.length) process.stderr.write(execution.stderr || execution.stdout || `${script} failed\n`);
+  if (kind !== "exam" && (!executionPassed || observations.size !== routes.length)) {
+    process.stderr.write(execution.stderr || execution.stdout || `${script} failed\n`);
+  }
   return proofResults({
     routes, observations, executionPassed,
   });

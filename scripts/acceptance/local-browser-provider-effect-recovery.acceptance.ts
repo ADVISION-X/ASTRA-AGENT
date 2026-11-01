@@ -48,6 +48,15 @@ const identity = (attemptId: string, revision = 0): BrowserMutationIdentity => w
   payloadHash: hash(`payload:${revision}`),
 });
 
+const sourceQuery = (store: BrowserMutationStore, mutation: BrowserMutationIdentity) => {
+  const effect = store.jobHistoryEvidence(mutation.jobId).replayEffects.find(item =>
+    item.attemptId === mutation.attemptId && item.effectIdentityHash === mutation.logicalMutationId)!;
+  return { jobId: mutation.jobId, sourceAttemptId: mutation.attemptId,
+    sourceResultRevision: mutation.resultRevision, productStepId: mutation.productStepId,
+    callId: mutation.callId, childCapabilityId: mutation.childCapabilityId,
+    effectIdentityHash: mutation.logicalMutationId!, walAuthorityHash: effect.walAuthorityHash };
+};
+
 const submitTerminalReply = (currentUrl: string) => ({ postconditionObservation: {
   currentUrl,
   exactCallIdentityHash: hash("exact-call"), observationRevisionHash: hash("observation"),
@@ -83,8 +92,6 @@ try {
     targetRefHash: hash(first.targetRef), documentRefHash: hash(first.documentRef),
     rawCount: 1, eligibleCount: 1,
   };
-  const conversationUrl = (conversationId: string) =>
-    new URL(`/c/${conversationId}`, terminalPayload.canonicalConversationUrl).href;
   store.prepare(first);
   store.markDispatched(first.commandId);
   store.settleTerminalReceipt(terminalFact(store.readCommand(first.commandId)!.identity, { terminal: "confirmed", resultHash: hash("terminal-proof"), mutationOutcome: "confirmed", submitRecoveryPayload: terminalPayload }));
@@ -205,11 +212,8 @@ try {
   assert.equal(recovered?.state, "confirmed");
   assert.equal(recovered?.providerEffectIdentityHash, first.logicalMutationId);
   assert.deepEqual(recovered?.terminalPayload, terminalPayload);
-  assert.equal(store.readUniqueConfirmedConversationUrl(
-    first.jobId, first.attemptId, first.productStepId,
-  ),
-    terminalPayload.canonicalConversationUrl,
-    "an exact parent job must resolve only its own confirmed conversation URL");
+  assert.equal(store.readSourceConfirmedProviderEffect(sourceQuery(store, first))
+    .conversationLocator?.canonicalConversationUrl, terminalPayload.canonicalConversationUrl);
   const historicalFact = store.readProviderEffectStepCallFact({
     jobId: second.jobId, attemptId: second.attemptId, resultRevision: second.resultRevision,
     productStepId: second.productStepId, callId: second.callId,
@@ -259,85 +263,44 @@ try {
     payloadHash: hash(`continuation-payload:${jobId}:${suffix}`),
     domainRejectionRevision: revision > 0,
   });
-  const confirmContinuation = (jobId: string, suffix: string, canonicalConversationUrl: string | null,
-    productStepId?: string, revision = 0) => {
-    const mutation = continuationIdentity(jobId, suffix, productStepId, revision);
-    store.prepare(mutation);
-    store.markDispatched(mutation.commandId);
-    store.settleTerminalReceipt(terminalFact(store.readCommand(mutation.commandId)!.identity, { terminal: "confirmed", resultHash: hash(`continuation-proof:${jobId}:${suffix}`), mutationOutcome: "confirmed", submitRecoveryPayload: { ...terminalPayload, exactCallIdentityHash: mutation.exactCallIdentityHash, targetRefHash: hash(mutation.targetRef), documentRefHash: hash(mutation.documentRef), canonicalConversationUrl: canonicalConversationUrl?.startsWith("https://chatgpt.com/c/") ? canonicalConversationUrl : conversationUrl("fixture-before-corruption") } }));
-    if (canonicalConversationUrl === null) (Reflect.get(store, "database") as Database.Database).prepare("update browser_mutations set provider_recovery_payload=null where command_id=?").run(mutation.commandId);
-    else if (!canonicalConversationUrl.startsWith("https://chatgpt.com/c/")) (Reflect.get(store, "database") as Database.Database).prepare("update browser_mutations set provider_recovery_payload=? where command_id=?").run(sealProviderRecoveryPayload(browserMutationPayloadKey(root), mutation.commandId, { terminalPayload: { ...terminalPayload, canonicalConversationUrl } }), mutation.commandId);
+  const confirmSource = (jobId: string, suffix: string, revision = 0) => {
+    const mutation = continuationIdentity(jobId, suffix, `parent-step:${suffix}`, revision);
+    store.prepare(mutation); store.markDispatched(mutation.commandId);
+    store.settleTerminalReceipt(terminalFact(store.readCommand(mutation.commandId)!.identity));
+    return { mutation, query: sourceQuery(store, mutation) };
   };
-  confirmContinuation("job:article:A", "a1", "https://chatgpt.com/c/article-A", "shared-step");
-  confirmContinuation("job:article:A", "a2", conversationUrl("article-A-revision"), "shared-step", 1);
-  confirmContinuation("job:article:A", "a3", conversationUrl("article-A-other"), "other-step");
-  confirmContinuation("job:article:B", "b1", "https://chatgpt.com/c/article-B", "shared-step");
+  const parent = confirmSource("job:article:A", "a1"), next = confirmSource("job:article:A", "a2", 1);
+  const sibling = confirmSource("job:article:B", "b1");
   const mutationDatabase = Reflect.get(store, "database") as Database.Database;
-  const rowCountBeforeRead = Number((mutationDatabase.prepare(
-    "select count(*) as count from browser_mutations",
-  ).get() as { count: number }).count);
-  assert.equal(store.readUniqueConfirmedConversationUrl(
-    "job:article:A", "attempt:a1", "shared-step",
-  ), "https://chatgpt.com/c/article-A",
-  "the completed parent attempt must select its own confirmed historical locator");
-  assert.equal(Number((mutationDatabase.prepare(
-    "select count(*) as count from browser_mutations",
-  ).get() as { count: number }).count), rowCountBeforeRead,
-  "parent locator reads must not mutate the WAL");
-  assert.equal(store.readUniqueConfirmedConversationUrl(
-    "job:article:A", "attempt:a2", "shared-step",
-  ), conversationUrl("article-A-revision"),
-  "a later completed parent attempt must select its own locator without changing effect identity");
-  assert.throws(() => store.readUniqueConfirmedConversationUrl(
-    "job:article:A", "attempt:a3", "shared-step",
-  ), /BROWSER_PARENT_PROVIDER_EFFECT_MISSING/u,
-  "a sibling attempt with another step must not satisfy the completed parent selector");
-  assert.throws(() => store.readUniqueConfirmedConversationUrl(
-    "", "attempt:a1", "shared-step",
-  ), /BROWSER_PARENT_IDENTITY_INVALID/u);
-  assert.throws(() => store.readUniqueConfirmedConversationUrl(
-    "job:article:A", "attempt:\0bad", "shared-step",
-  ), /BROWSER_PARENT_IDENTITY_INVALID/u);
-  assert.equal(store.readUniqueConfirmedConversationUrl(
-    "job:article:B", "attempt:b1", "shared-step",
-  ),
-    "https://chatgpt.com/c/article-B",
-    "interleaved jobs and sibling steps must never lend their URL to the exact parent step");
-  confirmContinuation("job:article:ambiguous", "first", conversationUrl("ambiguous-first"), "shared-step");
-  confirmContinuation("job:article:ambiguous-staging", "second",
-    conversationUrl("ambiguous-first"), "shared-step");
-  mutationDatabase.prepare(`update browser_mutations set job_id=?,attempt_id=?
-    where command_id=?`).run("job:article:ambiguous", "attempt:first",
-    "continuation:job:article:ambiguous-staging:second");
-  assert.throws(() => store.readUniqueConfirmedConversationUrl(
-    "job:article:ambiguous", "attempt:first", "shared-step"),
-  /BROWSER_PARENT_PROVIDER_EFFECT_AMBIGUOUS/u);
-  assert.throws(() => store.readUniqueConfirmedConversationUrl(
-    "job:article:A", "attempt:a1", "missing-step"), /BROWSER_PARENT_PROVIDER_EFFECT_MISSING/u);
-  confirmContinuation("job:article:missing-payload", "d1", null);
-  assert.throws(() => store.readUniqueConfirmedConversationUrl(
-    "job:article:missing-payload", "attempt:d1", "continuation-step:d1"),
-    /BROWSER_PARENT_PROVIDER_EFFECT_INVALID/u);
-  confirmContinuation("job:article:invalid-url", "f1", "https://example.com/c/not-chatgpt");
-  assert.throws(() => store.readUniqueConfirmedConversationUrl(
-    "job:article:invalid-url", "attempt:f1", "continuation-step:f1"),
-    /BROWSER_PARENT_PROVIDER_EFFECT_INVALID/u);
-  confirmContinuation("job:article:corrupt", "g1", conversationUrl("corrupt"));
-  mutationDatabase.prepare("update browser_mutations set provider_recovery_payload=? where command_id=?")
-    .run("corrupt", "continuation:job:article:corrupt:g1");
-  assert.throws(() => store.readUniqueConfirmedConversationUrl(
-    "job:article:corrupt", "attempt:g1", "continuation-step:g1"),
-    /BROWSER_PARENT_PROVIDER_EFFECT_INVALID/u);
+  const beforeReads = mutationDatabase.prepare("select * from browser_mutations order by command_id").all();
+  assert.equal(store.readSourceConfirmedProviderEffect(parent.query).conversationLocator?.canonicalConversationUrl,
+    "https://chatgpt.com/c/fixture-original-turn");
+  assert.equal(store.readSourceConfirmedProviderEffect(next.query).conversationLocator?.canonicalConversationUrl,
+    "https://chatgpt.com/c/fixture-original-turn");
+  for (const wrong of [{ jobId: sibling.query.jobId }, { sourceAttemptId: next.query.sourceAttemptId },
+    { sourceResultRevision: 1 }, { productStepId: "child-current-step" }, { callId: "other-call" },
+    { childCapabilityId: "other-child" }, { effectIdentityHash: hash("wrong-effect") },
+    { walAuthorityHash: hash("wrong-wal") }]) {
+    assert.throws(() => store.readSourceConfirmedProviderEffect({ ...parent.query, ...wrong }), /BROWSER_/u);
+  }
+  assert.deepEqual(mutationDatabase.prepare("select * from browser_mutations order by command_id").all(), beforeReads,
+    "exact adopted-source reads and rejections must never mutate original WAL rows");
   const unresolvedParent = continuationIdentity("job:article:A", "a4", "shared-step", 2);
-  store.prepare(unresolvedParent);
-  store.markDispatched(unresolvedParent.commandId);
-  assert.equal(store.readUniqueConfirmedConversationUrl(
-    "job:article:A", "attempt:a2", "shared-step",
-  ), conversationUrl("article-A-revision"),
-  "an unresolved historical sibling attempt must not block the completed parent attempt locator");
-  assert.throws(() => store.readUniqueConfirmedConversationUrl(
-    "job:article:A", "attempt:a4", "shared-step"),
-    /BROWSER_PARENT_PROVIDER_EFFECT_UNSETTLED/u);
+  store.prepare(unresolvedParent); store.markDispatched(unresolvedParent.commandId);
+  assert.doesNotThrow(() => store.readSourceConfirmedProviderEffect(parent.query),
+    "an unadopted historical sibling must not block the selected confirmed source");
+  assert.throws(() => store.readSourceConfirmedProviderEffect({ ...parent.query,
+    sourceAttemptId: unresolvedParent.attemptId, sourceResultRevision: 2,
+    productStepId: unresolvedParent.productStepId, effectIdentityHash: unresolvedParent.logicalMutationId! }),
+  /BROWSER_SOURCE_EFFECT_IDENTITY_MISMATCH/u);
+  const corruptSource = confirmSource("job:article:corrupt", "g1");
+  mutationDatabase.prepare("update browser_mutations set provider_recovery_payload=? where command_id=?")
+    .run("corrupt", corruptSource.mutation.commandId);
+  assert.throws(() => store.readSourceConfirmedProviderEffect(corruptSource.query), /BROWSER_/u);
+  const missingSource = confirmSource("job:article:missing", "m1");
+  mutationDatabase.prepare("update browser_mutations set provider_recovery_payload=null where command_id=?")
+    .run(missingSource.mutation.commandId);
+  assert.throws(() => store.readSourceConfirmedProviderEffect(missingSource.query), /BROWSER_/u);
   store.close();
 
   const restarted = new BrowserMutationStore(root);

@@ -13,10 +13,9 @@ type LaneWaiterBase = Readonly<{
   stopAbortMonitor(): void;
   complete(lease?: BrowserTargetLease): void; reject(error: Error): void;
 }>;
-type AcquireLaneWaiter = LaneWaiterBase & Readonly<{
+type AcquireLaneWaiter = LaneWaiterBase & BrowserTargetLeaseWait & Readonly<{
   remainingMs(): number;
   kind: "acquire"; binding: BrowserExecutionBinding; ownerId: string;
-  targetMode: BrowserTargetLeaseWait["targetMode"]; parentJobId?: string; parentAttemptId?: string;
 }>;
 type ReleaseLaneWaiter = LaneWaiterBase & Readonly<{
   kind: "release"; jobId: string; releaseAuthority: BrowserTargetReleaseAuthority; queueDeadlineAt: number;
@@ -26,6 +25,16 @@ type LaneState = ReturnType<typeof createBrowserInfrastructureState>;
 const waiterExpiryCode = (waiter: LaneWaiter): string | null => waiter.signal.aborted
   ? "BROWSER_WAIT_ABORTED" : (waiter.kind === "release" ? waiter.queueDeadlineAt - Date.now()
     : waiter.remainingMs()) < 1 ? "V6_DEADLINE_BUDGET_EXHAUSTED" : null;
+
+const parentSourceIsExact = (
+  source: Extract<BrowserTargetLeaseWait, { targetMode: "authorized-continuation" }>["parentSources"][number], parentJobId: string,
+): boolean => !!source && Object.keys(source).sort().join("|") ===
+  "callId|childCapabilityId|effectIdentityHash|jobId|productStepId|sourceAttemptId|sourceResultRevision|walAuthorityHash"
+  && source.jobId === parentJobId
+  && [source.jobId, source.sourceAttemptId, source.productStepId, source.callId].every(value => typeof value === "string" && value.length > 0 && !value.includes("\0"))
+  && source.childCapabilityId === "submit_exact_gpt_turn_once"
+  && Number.isSafeInteger(source.sourceResultRevision) && source.sourceResultRevision >= 0
+  && [source.effectIdentityHash, source.walAuthorityHash].every(value => /^sha256:[a-f0-9]{64}$/u.test(value));
 
 /** One FIFO admission for eligible requests on one physical lane. */
 export class BrowserLaneCoordinator {
@@ -44,6 +53,14 @@ export class BrowserLaneCoordinator {
   public acquire(binding: BrowserExecutionBinding, ownerId: string, wait: BrowserTargetLeaseWait): Promise<BrowserTargetLease> {
     if (this.queue.length >= 10) return Promise.reject(browserExecutionFailure(new Error("BROWSER_BACKPRESSURE")));
     if (!Number.isFinite(wait.eligibleAt)) return Promise.reject(browserExecutionFailure(new Error("BROWSER_TARGET_INVALID")));
+    if (wait.targetMode === "authorized-continuation" && !Array.isArray(wait.parentSources)) {
+      return Promise.reject(browserExecutionFailure(new Error("BROWSER_PARENT_IDENTITY_INVALID")));
+    }
+    if (wait.targetMode !== "authorized-continuation" && ("parentJobId" in wait || "parentSources" in wait)) {
+      return Promise.reject(browserExecutionFailure(new Error("BROWSER_PARENT_IDENTITY_INVALID")));
+    }
+    const selection: BrowserTargetLeaseWait = wait.targetMode === "authorized-continuation"
+      ? { ...wait, parentSources: Object.freeze(wait.parentSources.map(source => Object.freeze({ ...source }))) } : wait;
     return new Promise<BrowserTargetLease>((resolve, reject) => {
       let settled = false;
       const abort = (): void => this.expireWaiter(waiter);
@@ -55,8 +72,8 @@ export class BrowserLaneCoordinator {
         else reject(error ?? browserExecutionFailure(new Error("BROWSER_TARGET_INVALID")));
       };
       const waiter: AcquireLaneWaiter = {
-        kind: "acquire", binding, ownerId, jobRefHash: binding.jobRefHash, targetMode: wait.targetMode,
-        ...(wait.targetMode === "authorized-continuation" ? { parentJobId: wait.parentJobId, parentAttemptId: wait.parentAttemptId } : {}),
+        ...selection,
+        kind: "acquire", binding, ownerId, jobRefHash: binding.jobRefHash,
         eligibleAt: wait.eligibleAt, signal: wait.signal, remainingMs: wait.remainingMs,
         stopAbortMonitor: () => wait.signal.removeEventListener("abort", abort),
         complete: lease => finish(lease), reject: error => finish(undefined, error),
@@ -186,17 +203,37 @@ export class BrowserLaneCoordinator {
   }
 
   private async serveAcquire(waiter: AcquireLaneWaiter): Promise<void> {
-    if (waiter.targetMode === "authorized-continuation" && waiter.parentJobId === waiter.binding.jobId) {
-      throw new Error("BROWSER_PARENT_JOB_SELF_REFERENCE");
-    }
     const parent = waiter.targetMode === "authorized-continuation"
-      ? this.infrastructure.mutationState?.readUniqueConfirmedConversationUrl(waiter.parentJobId!,
-        waiter.parentAttemptId!, waiter.binding.productStepId) : undefined;
+      ? this.readParentConversationUrl(waiter) : undefined;
     await this.targetAcquirer.ensureAvailableTarget(waiter, parent);
     const code = waiterExpiryCode(waiter);
     if (code) throw new Error(code);
     const lease = await this.resolveBroker().acquireOperatorClaimedTargetLease(waiter.binding, waiter.ownerId);
     waiter.complete(this.withLifecycle(lease));
+  }
+
+  private readParentConversationUrl(
+    waiter: Extract<AcquireLaneWaiter, { targetMode: "authorized-continuation" }>,
+  ): string {
+    if (waiter.parentJobId === waiter.binding.jobId) throw new Error("BROWSER_PARENT_JOB_SELF_REFERENCE");
+    if (!waiter.parentJobId || !Array.isArray(waiter.parentSources) || waiter.parentSources.length === 0) {
+      throw new Error("BROWSER_PARENT_IDENTITY_INVALID");
+    }
+    const store = this.infrastructure.mutationState;
+    if (!store) throw new Error("BROWSER_PARENT_PROVIDER_EFFECT_MISSING");
+    let parentUrl: string | null = null;
+    for (const source of waiter.parentSources) {
+      if (!parentSourceIsExact(source, waiter.parentJobId)) {
+        throw new Error("BROWSER_PARENT_IDENTITY_INVALID");
+      }
+      const locator = store.readSourceConfirmedProviderEffect(source).conversationLocator;
+      if (!locator) throw new Error("BROWSER_PARENT_PROVIDER_EFFECT_INVALID");
+      if (parentUrl !== null && parentUrl !== locator.canonicalConversationUrl) {
+        throw new Error("BROWSER_PARENT_PROVIDER_EFFECT_AMBIGUOUS");
+      }
+      parentUrl = locator.canonicalConversationUrl;
+    }
+    return parentUrl!;
   }
 
   private withLifecycle(lease: BrowserTargetLease): BrowserTargetLease {

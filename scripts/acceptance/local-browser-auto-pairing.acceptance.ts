@@ -24,7 +24,9 @@ import type { BrowserCommandPermit } from "../../src/lib/browser/transport/comma
 import { binding } from "./browser-lane-fifo-support.js";
 import { BROWSER_PROTOCOL_REVISION } from "../../src/lib/browser/protocol/generated/browser-protocol.generated.js";
 
+process.stderr.write("[QUALITY][browser-pairing:start] automatic-pairing\n");
 const chrome = await exerciseAutomaticPairing(); await verifyKnownGptRateLimitDetector();
+process.stderr.write("[QUALITY][browser-pairing:progress] automatic-pairing-and-detector-complete\n");
 await exerciseAuthenticatedTargetIsolation(chrome);
 const state = { nextId: 3, activeId: 99, navigationCount: 0, physicalTargetsReads: 0, pointer: false,
   frameNavigationDuringNavigate: false, switchBeforeInput: false, switchAfterInput: false,
@@ -93,6 +95,7 @@ const targetChrome: ExtensionChromeApi = { runtime: chrome.runtime, alarms: chro
     onActivated: { addListener: callback => { activation = callback; } }, onUpdated: { addListener: callback => { update = callback; } },
     onRemoved: { addListener: callback => { removal = callback; } } } };
 await exerciseLogicalPageAccessPriority(targetChrome);
+process.stderr.write("[QUALITY][browser-pairing:progress] page-access-priority-complete\n");
 const authority = new ExtensionTargetAuthority(targetChrome, async (kind, body) => { frames.push({ kind, body }); receiveClaim(kind, body); if (kind === "TARGET_REVOKE") failureOrder.push(kind); },
   failure => { failures.push({ ...failure }); failureOrder.push("DIAGNOSTIC"); }, async () => undefined);
 authority.start();
@@ -148,6 +151,7 @@ const selectionFixture = async () => {
   return { lease: await broker.acquireOperatorClaimedTargetLease(execution, "same-url-readback"), delivered };
 };
 await exerciseAuthenticatedMedia({ authority, targetRef, documentRef, setRuntime: callback => { state.runtime = callback; } }); assert.deepEqual(activated, []);
+process.stderr.write("[QUALITY][browser-pairing:progress] authenticated-media-complete\n");
 switchTab(99); await execute({ kind: "wait", durationMs: 1 }, target, "observation"); assert.deepEqual(activated, [3]);
 const click = { kind: "dom-intent" as const, intent: { kind: "click" as const, selector: "button[data-testid='interaction-ready']", expectedMatches: 1,
   postClickUrl: { equals: "https://chatgpt.com/c/interaction-ready" } } };
@@ -180,6 +184,7 @@ await assert.rejects(execute(click), (error: unknown) => {
 state.pointer = false;
 const select = (url: string, current = target) => execute({ kind: "dom-intent", intent: { kind: "selectExactGptConversation", canonicalConversationUrl: url } }, current, "lifecycle") as Promise<Record<string, unknown>>;
 urls.set(3, "https://chatgpt.com/c/sidebar-target?messageId=one#tail"); const baselineNavigation = state.navigationCount;
+process.stderr.write("[QUALITY][browser-pairing:progress] interaction-rejections-complete\n");
 const same = await select("https://chatgpt.com/c/sidebar-target"); assert.equal(same.documentRef, target.documentRef); assert.equal(state.navigationCount, baselineNavigation);
 const reload = await selectionFixture(), sameIntent = { kind: "selectExactGptConversation" as const, canonicalConversationUrl: "https://chatgpt.com/c/sidebar-target" };
 loaders.set(3, "same-url-new-loader");
@@ -222,6 +227,7 @@ tabUpdated(3, { status: "complete" }, { id: 3, url: urls.get(3)! }); const selec
 assert.deepEqual(frames.slice(beforeNavigationClaims).map(frame => frame.kind), ["TARGET_CLAIM"]); assert.notEqual(selected.documentRef, reloadedTarget.documentRef);
 const selectedTarget = authority.resolve(String(selected.targetRef), String(selected.documentRef)); await select("https://chatgpt.com/c/sidebar-absent", selectedTarget);
 assert.equal(state.navigationCount, baselineNavigation + 2); assert.equal(inputs.length, beforeLateSwitch + 1);
+process.stderr.write("[QUALITY][browser-pairing:progress] exact-navigation-rejections-complete\n");
 const currentClaim = frames.at(-1)!.body, current = authority.resolve(String(currentClaim.targetRef), String(currentClaim.documentRef));
 const removedBefore = removed.length; await authority.retireInvalidCommandTarget({ message: "BROWSER_DOCUMENT_INVALID" },
   { ...permit("unknown-cause"), targetRef: current.targetRef, documentRef: current.documentRef }, "click"); assert.equal(removed.length, removedBefore);
@@ -249,12 +255,16 @@ for (const bad of ["origin", "debugger"] as const) {
   assert.equal(frames.filter(frame => frame.kind === "TARGET_CLAIM").length, claimsBefore);
   assert.equal(inputs.length, inputsBefore);
 }
+process.stderr.write("[QUALITY][browser-pairing:progress] target-retirement-rejections-complete\n");
 const rotation = await exerciseTargetRotation({ authority, waitForCreatedTab, targetTabUpdated: tabUpdated, targetFrames: frames,
   debuggerMethods: methods, activatedTabs: activated, removedTabs: removed, setRemoveFailureTabId: value => { state.removeFailure = value; } });
+process.stderr.write("[QUALITY][browser-pairing:progress] target-rotation-complete\n");
 await exerciseAuthorizedContinuation({ authority, nextCreatedTabId: state.nextId, waitForCreatedTab, targetTabUpdated: tabUpdated,
   targetFrames: frames, debuggerMethods: methods, mainFrameUrlByTab: urls });
+process.stderr.write("[QUALITY][browser-pairing:progress] authorized-continuation-complete\n");
 await exerciseClosedParkedTabRecovery({ authority, readNextCreatedTabId: () => state.nextId, waitForCreatedTab, targetTabUpdated: tabUpdated,
   targetFrames: frames, targetFailures: failures, removedTabs: removed });
+process.stderr.write("[QUALITY][browser-pairing:progress] closed-tab-recovery-complete\n");
 await exerciseClaimBroker({ hashes: rotation, activatedTabs: activated, removedTabs: removed });
 
 const compareAfterBarrier = async (): Promise<void> => {
@@ -274,4 +284,6 @@ const compareAfterBarrier = async (): Promise<void> => {
     assert.equal(Reflect.get(fixture, "activeTarget"), current); assert.equal(revocations, 0); targets.remove(original.targetRef);
   }
 };
-await compareAfterBarrier(); emitLocalBrowserAutoPairingProofs(); console.log("automatic pairing and exact Target navigation exercised");
+await compareAfterBarrier();
+process.stderr.write("[QUALITY][browser-pairing:end] claim-broker-and-barrier-complete\n");
+emitLocalBrowserAutoPairingProofs(); console.log("automatic pairing and exact Target navigation exercised");

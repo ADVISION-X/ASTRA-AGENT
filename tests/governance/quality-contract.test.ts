@@ -344,10 +344,10 @@ test("each Dynamic mode authenticates its native object, clause binding, and obs
   } as const;
   const routes = {
     browser: { lawId: "LAW-LOCAL-BROWSER-SESSION-001-V4", clauses: ["forbidden:6"] },
-    service: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V80", clauses: ["summary"] },
-    database: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V80", clauses: ["forbidden:0", "forbidden:2"] },
-    storage: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V80", clauses: ["forbidden:2"] },
-    provider: { lawId: "LAW-GPT-001-V67", clauses: ["forbidden:0", "forbidden:3", "forbidden:7"] },
+    service: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V81", clauses: ["summary"] },
+    database: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V81", clauses: ["forbidden:0", "forbidden:2"] },
+    storage: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V81", clauses: ["forbidden:2"] },
+    provider: { lawId: "LAW-GPT-001-V68", clauses: ["forbidden:0", "forbidden:3", "forbidden:7"] },
     authorization: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-002-V12", clauses: ["forbidden:1", "forbidden:2"] },
     recovery: { lawId: "LAW-RUNTIME-LOG-SPINE-001-V8", clauses: ["summary"] },
   } as const;
@@ -1359,7 +1359,7 @@ test("every active law scope is deterministic, owned, unique, and includes all c
 
 test("active mutation inspectors use one DISPATCHED chain inside each law scope", () => {
   const registry = buildRegistry();
-  const agentLaw = registry.laws.find((law) => law.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V80");
+  const agentLaw = registry.laws.find((law) => law.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V81");
   assert.ok(agentLaw);
   const agentTargets = computeTargetPaths(agentLaw, registry);
   const crossOwnerPaths = [
@@ -1419,7 +1419,15 @@ test("active mutation inspectors use one DISPATCHED chain inside each law scope"
   assert.deepEqual(targetCalls[0]!.getArguments().map(node => node.getText()), ["waiter", "parent"]);
   const parent = acquire.getDescendantsOfKind(SyntaxKind.VariableDeclaration).find(node => node.getName() === "parent");
   assert.equal(parent?.getInitializer()?.getDescendantsOfKind(SyntaxKind.CallExpression)
-    .some(call => call.getExpression().getText() === "this.infrastructure.mutationState?.readUniqueConfirmedConversationUrl"), true);
+    .some(call => call.getExpression().getText() === "this.readParentConversationUrl"), true);
+  const parentReader = lane.getClassOrThrow("BrowserLaneCoordinator").getMethodOrThrow("readParentConversationUrl");
+  const sourceReads = parentReader.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .filter(call => call.getExpression().getText() === "store.readSourceConfirmedProviderEffect");
+  assert.equal(sourceReads.length, 1);
+  assert.deepEqual(sourceReads[0]!.getArguments().map(argument => argument.getText()), ["source"]);
+  assert.equal(parentReader.getDescendantsOfKind(SyntaxKind.ForOfStatement).some(loop =>
+    loop.getExpression().getText() === "waiter.parentSources"
+    && loop.getDescendantsOfKind(SyntaxKind.CallExpression).includes(sourceReads[0]!)), true);
   const browserStaticInspectors = [
     "browser-mutation-settlement-inspection.ts", "dom-mechanical-facts-inspection.ts",
     "mutation-atomicity-inspection.ts", "mutation-registry-inspection.ts",
@@ -1560,7 +1568,7 @@ test("Extension command failure preserves its original redacted intent identity"
 });
 test("Browser media inspection rejects alternate identities, missing guards and duplicate input", () => {
   const path = "src/lib/browser/chrome-extension/extension-command-runtime.ts";
-  verifyBrowserBoundaryMutants("LAW-LOCAL-BROWSER-SESSION-006-V47", inspectOpaqueAuthorityBoundary, [
+  verifyBrowserBoundaryMutants("LAW-LOCAL-BROWSER-SESSION-006-V48", inspectOpaqueAuthorityBoundary, [
     [path, 'case "authenticated-media": return', 'case "other-media": return'],
     [path, "switch (command.kind) {", 'switch ("never-media") {'],
     [path, "switch (command.kind) {", "if (false) switch (command.kind) {"],
@@ -1724,7 +1732,7 @@ test("GPT001 native AST and contract routes reject text settlement and attachmen
     ["--import", "tsx", resolve("scripts/audit/shared/quality-inspector-worker.ts")],
     { encoding: "utf8", maxBuffer: 10 * 1024 * 1024, env: { ...process.env,
       GOVERNANCE_SEALED_ROOT: root, GOVERNANCE_INSPECTION_REQUEST: requestPath } }), "gpt")
-    .lawResults.find(law => law.lawId === "LAW-GPT-001-V67")!;
+    .lawResults.find(law => law.lawId === "LAW-GPT-001-V68")!;
   const ownModes = (law: ReturnType<typeof inspect>) => law.assertions
     .filter(assertion => ["static.ast", "static.contract"].includes(assertion.evidenceMode))
     .map(assertion => assertion.passed);
@@ -1891,7 +1899,7 @@ test("Dynamic Proof routes are separated by native Owner", () => {
     ".catch(() => undefined)", "cleanupVerified: true", "dynamic.recovery",
     "old_attempt_after_restart_rejected", "new_attempt_fresh_started",
   ]) assert.equal(proof.includes(forbidden), false, forbidden);
-  for (const token of ["LAW-AGENT-PRODUCTION-RUNTIME-001-V80", "runtime_schema_exact", "runtime_orphan_directory_count",
+  for (const token of ["LAW-AGENT-PRODUCTION-RUNTIME-001-V81", "runtime_schema_exact", "runtime_orphan_directory_count",
     "AGENT_RUNTIME_OWNER_ISOLATED_RELEASE_PROOF_NOT_ADMITTED"]) assert.ok(proof.includes(token), token);
   for (const adjacentPrefix of ["LAW-GPT-", "LAW-LOCAL-BROWSER-SESSION-", "LAW-RUNTIME-LOG-SPINE-"]) {
     assert.equal(proof.includes(adjacentPrefix), false, adjacentPrefix);

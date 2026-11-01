@@ -170,48 +170,6 @@ export class BrowserMutationEvidence {
     return Number(row.count);
   }
 
-  public readUniqueConfirmedConversationUrl(
-    parentJobId: string, parentAttemptId: string, parentProductStepId: string,
-  ): string {
-    if (![parentJobId, parentAttemptId, parentProductStepId].every(
-      (value) => value && !/[\0]/u.test(value),
-    )) {
-      throw new Error("BROWSER_PARENT_IDENTITY_INVALID");
-    }
-    if (this.database.prepare(
-      `select 1 from browser_mutations where job_id=? and attempt_id=? and product_step_id=?
-         and call_id='turn-submit' and child_capability_id='submit_exact_gpt_turn_once'
-         and effect_scope='provider_effect' and state='DISPATCHED' limit 1`,
-    ).get(parentJobId, parentAttemptId, parentProductStepId)) {
-      throw new Error("BROWSER_PARENT_PROVIDER_EFFECT_UNSETTLED");
-    }
-    const rows = this.database.prepare(
-      `select command_id,provider_recovery_payload,exact_call_identity_hash,logical_mutation_id from browser_mutations
-       where job_id=? and attempt_id=? and product_step_id=? and call_id='turn-submit'
-         and child_capability_id='submit_exact_gpt_turn_once' and effect_scope='provider_effect'
-         and state='CONFIRMED'
-       order by command_id`,
-    ).all(parentJobId, parentAttemptId, parentProductStepId) as readonly Readonly<{
-      command_id: string;
-      exact_call_identity_hash: `sha256:${string}`; logical_mutation_id: `sha256:${string}`;
-      provider_recovery_payload: string | null;
-    }>[];
-    if (rows.length !== 1) throw new Error(rows.length === 0
-      ? "BROWSER_PARENT_PROVIDER_EFFECT_MISSING"
-      : "BROWSER_PARENT_PROVIDER_EFFECT_AMBIGUOUS");
-    const row = rows[0]!;
-    if (row.provider_recovery_payload === null) throw new Error("BROWSER_PARENT_PROVIDER_EFFECT_INVALID");
-    try {
-      const envelope = unsealProviderRecoveryPayload(
-        this.payloadKey, row.command_id, row.provider_recovery_payload,
-      );
-      const locator = readSubmittedConversationLocator(envelope, { exactCallIdentityHash: row.exact_call_identity_hash,
-        providerEffectIdentityHash: row.logical_mutation_id });
-      if (!locator) throw new Error("BROWSER_PARENT_PROVIDER_EFFECT_INVALID");
-      return locator.canonicalConversationUrl;
-    } catch { throw new Error("BROWSER_PARENT_PROVIDER_EFFECT_INVALID"); }
-  }
-
   public readAtomicStepOutcome(input: Readonly<{
     jobId: string;
     attemptId: string;

@@ -2,6 +2,7 @@ import type { BrowserDomIntent } from "./browser-dom-intent.js";
 import type { BrowserDocumentRef, BrowserTargetRef } from "./browser-target-ref.js";
 import type { BrowserCapabilityId } from "../protocol/generated/browser-protocol.generated.js";
 import type { BrowserPhysicalInputCount, BrowserSubmittedConversationLocator } from "./browser-mutation-types.js";
+import type { BrowserMutationStore } from "./browser-mutation-store.js";
 export type TransientDomConfirmationStage = 1 | 2;
 
 export type BrowserAtomicStepIdentity = Readonly<{
@@ -51,12 +52,12 @@ export type BrowserTargetLeaseWait = BrowserTargetLeaseWaitBase & (
   | Readonly<{
     targetMode: "fresh" | "bound-observation" | "confirmed-readback";
     parentJobId?: never;
-    parentAttemptId?: never;
+    parentSources?: never;
   }>
   | Readonly<{
     targetMode: "authorized-continuation";
     parentJobId: string;
-    parentAttemptId: string;
+    parentSources: readonly Parameters<BrowserMutationStore["readSourceConfirmedProviderEffect"]>[0][];
   }>
 );
 

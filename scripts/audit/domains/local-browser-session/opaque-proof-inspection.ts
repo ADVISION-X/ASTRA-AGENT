@@ -1,4 +1,4 @@
-import { Project } from "ts-morph";
+import { Node, Project, SyntaxKind } from "ts-morph";
 import { astExecutableTree } from "../../shared/ast-node-identity.js";
 import { type InspectorContext, type InspectorFinding } from "../../shared/inspector-contracts.js";
 import {
@@ -55,16 +55,23 @@ const inspectOpaqueRawFields = (
   }
 };
 
-const authenticatedMediaDispatchIsExact = (authority: RequiredSource, runtime: RequiredSource): boolean => {
+const authenticatedMediaReference = (() => {
   const project = new Project({ useInMemoryFileSystem: true });
   const expected = project.createSourceFile("media.ts", "export const executeRegisteredExtensionCommand = async (\n  runtime: ExtensionDebuggerRuntime, target: ExtensionExactTarget,\n  command: Exclude<BrowserGovernedCommand, { kind: \"dom-intent\" }>, lifecycle: CommandLifecycle,\n): Promise<unknown> => {\n  switch (command.kind) {\n    case \"observe\": {\n      const result = await executeRegisteredDomIntent(runtime, target, { kind: \"document\" }, lifecycle.assertCurrent);\n      lifecycle.assertCurrent(); return result;\n    }\n    case \"wait\": return command.transientDomConfirmationStage === undefined ? executeBoundedBrowserWait(command.durationMs)\n      : { stage: command.transientDomConfirmationStage, waitedMs: command.transientDomConfirmationStage === 1 ? 1_500 : 3_000 };\n    case \"park-target\": await lifecycle.parkTarget(); return { parked: true };\n    case \"file-input\": return executeExtensionFileInput({ runtime, target, assertCurrent: lifecycle.assertCurrent,\n      selector: command.selector, activation: command.activation, approvedFiles: command.approvedFiles, resolvedFilePaths: command.resolvedFilePaths });\n    case \"authenticated-media\": return executeAuthenticatedMedia(runtime, target, command.canonicalConversationUrl,\n      command.userTurnId, command.semanticMediaId, lifecycle.assertCurrent);\n    default: throw new Error(\"BROWSER_FILE_GRANT_INVALID\");\n  }\n};\nclass BoundMedia {\npublic async executeRegisteredCommand(command: BrowserGovernedCommand, target: ExtensionExactTarget,\n    mutationClass: RegisteredExtensionCommand[\"mutationClass\"], exactCallIdentityHash: `sha256:${string}`,\n    assertCommandActive: () => void, commandDeadlineAt?: number): Promise<unknown> {\n    const ack = command.kind === \"dom-intent\" && command.intent.kind === \"acknowledgeKnownGptRateLimit\";\n    const transient = command.kind === \"wait\" ? command.transientDomConfirmationStage : undefined;\n    return this.debuggerRuntime.withLogicalPageAccess(ack ? async () => undefined : transient === undefined ? () => this.pageAccessGate.enter()\n      : () => this.pageAccessGate.awaitTransientDomConfirmationStage(transient),\n      () => this.executeRegisteredCommandCycle(command, target, mutationClass, exactCallIdentityHash, assertCommandActive, commandDeadlineAt),\n      ack ? \"rate-limit-ack\" : \"ordinary\");\n  }\nprivate async executeRegisteredCommandCycle(command: BrowserGovernedCommand, target: ExtensionExactTarget,\n    mutationClass: RegisteredExtensionCommand[\"mutationClass\"], exactCallIdentityHash: `sha256:${string}`,\n    assertCommandActive: () => void, deadlineAt?: number): Promise<unknown> {\n    const execute = async (assertReadback: () => void = assertCommandActive): Promise<unknown> => {\n      const assertCurrent = (): void => { assertReadback(); if (deadlineAt !== undefined && Date.now() >= deadlineAt) throw new Error(\"BROWSER_COMMAND_PERMIT_EXPIRED\"); };\n      assertCommandActive();\n      if (!(command.kind === \"dom-intent\" && [\"acknowledgeKnownGptRateLimit\", \"readKnownGptRateLimitClearance\"].includes(command.intent.kind))) {\n        const preflight = await observeKnownGptRateLimitDialog(this.debuggerRuntime, target, exactCallIdentityHash, assertCurrent); assertCommandActive();\n        if (preflight.state === \"exact_present\") return knownGptRateLimitBlockerReceipt(preflight);\n        if (preflight.state === \"mismatch\") return unrecognizedGptDialogReceipt(preflight);\n        return knownGptRateLimitAbsentEnvelope(preflight, await this.executeRegisteredCommandBody(command, target, exactCallIdentityHash, assertCurrent, deadlineAt));\n      }\n      return this.executeRegisteredCommandBody(command, target, exactCallIdentityHash, assertCurrent, deadlineAt);\n    };\n    if (mutationClass === \"mutation\") return this.interactionReadiness.executeMutation(target, execute, assertCommandActive,\n      command.kind === \"dom-intent\" ? command.intent.kind : command.kind);\n    if (mutationClass === \"observation\") return this.interactionReadiness.executeObservation(target, execute, assertCommandActive);\n    return this.debuggerRuntime.withProviderInputGuard(\n      { started: false, physicalInputCount: 0, mutationKind: command.kind },\n      () => { assertCommandActive(); this.targets.resolve(target.targetRef, target.documentRef);\n        if (deadlineAt !== undefined && Date.now() >= deadlineAt) throw new Error(\"BROWSER_COMMAND_PERMIT_EXPIRED\"); },\n      execute);\n  }\nprivate async executeRegisteredCommandBody(command: BrowserGovernedCommand, target: ExtensionExactTarget,\n    exactCallIdentityHash: `sha256:${string}`, assertCommandActive: () => void, deadlineAt?: number): Promise<unknown> {\n    const assertCurrent = (): void => { assertCommandActive(); this.targets.resolve(target.targetRef, target.documentRef); };\n    if (command.kind !== \"dom-intent\") return executeRegisteredExtensionCommand(this.debuggerRuntime, target, command,\n      { assertCurrent, parkTarget: () => this.parkActiveTarget() });\n    if (command.intent.kind === \"selectExactGptConversation\") return this.executeConversationSelection(target,\n      command.intent.canonicalConversationUrl, assertCommandActive, deadlineAt ?? Date.now() + BROWSER_COMMAND_DEFAULT_DEADLINE_MS);\n    const loader = exactAssistantReadLoaderId(command.intent.kind, target, this.activeTarget, this.activeTarget?.loaderId ?? null);\n    if (command.intent.kind === \"readExactAssistantTurn\" && !loader) throw new Error(\"BROWSER_DOCUMENT_INVALID\");\n    const result = await executeRegisteredDomIntent(this.debuggerRuntime, target, command.intent, assertCurrent, loader, deadlineAt, exactCallIdentityHash);\n    assertCurrent(); return result;\n  }\n}");
-  const actualDispatch = runtime.getVariableDeclaration("executeRegisteredExtensionCommand")?.getVariableStatement();
-  const expectedDispatch = expected.getVariableDeclarationOrThrow("executeRegisteredExtensionCommand").getVariableStatementOrThrow();
+  return Object.freeze({
+    dispatch: astExecutableTree(expected.getVariableDeclarationOrThrow("executeRegisteredExtensionCommand").getVariableStatementOrThrow()),
+    methods: Object.freeze(expected.getClassOrThrow("BoundMedia").getMethods().map(method =>
+      Object.freeze({ name: method.getName(), tree: astExecutableTree(method) }))),
+  });
+})();
+
+const authenticatedMediaDispatchIsExact = (authority: RequiredSource, runtime: RequiredSource): boolean => {
+  const dispatch = runtime.getVariableDeclaration("executeRegisteredExtensionCommand")?.getVariableStatement();
   const owner = authority.getClass("ExtensionTargetAuthority");
-  return actualDispatch !== undefined && astExecutableTree(actualDispatch) === astExecutableTree(expectedDispatch)
-    && expected.getClassOrThrow("BoundMedia").getMethods().every(reference => {
-      const actual = owner?.getMethod(reference.getName());
-      return actual !== undefined && astExecutableTree(actual) === astExecutableTree(reference);
+  return dispatch !== undefined && astExecutableTree(dispatch) === authenticatedMediaReference.dispatch
+    && authenticatedMediaReference.methods.every(reference => {
+      const method = owner?.getMethod(reference.name);
+      return method !== undefined && astExecutableTree(method) === reference.tree;
     });
 };
 
@@ -143,7 +150,6 @@ const inspectEncryptedRecoveryLocator = (
   for (const [filePath, source, required] of [
     [sourcePaths[7], journal, "sealProviderRecoveryPayload("],
     [journalEvidencePath, journalEvidence, "unsealProviderRecoveryPayload("],
-    [journalEvidencePath, journalEvidence, "readSubmittedConversationLocator(envelope"],
     [journalReplayPath, journalReplay, "unsealProviderRecoveryPayload("],
     [journalReplayPath, journalReplay, "readSubmittedConversationLocator(envelope"],
     [locatorPath, locator, "requireCanonicalGptConversationUrl(value.canonicalConversationUrl)"],
@@ -154,6 +160,17 @@ const inspectEncryptedRecoveryLocator = (
     checkId: "browser-authority/closed-invocation-payload", lawId, filePath,
     message: `The encrypted Provider recovery locator boundary is missing ${required}.`,
   }));
+  const reader = journalEvidence.getClass("BrowserMutationEvidence")?.getMethod("readAtomicStepOutcome");
+  const locatorReads = reader?.getDescendantsOfKind(SyntaxKind.CallExpression).filter(call =>
+    call.getExpression().getText() === "readSubmittedConversationLocator") ?? [];
+  const identity = locatorReads[0]?.getArguments()[1];
+  if (locatorReads.length !== 1 || locatorReads[0]?.getArguments()[0]?.getText() !== "recovered"
+    || !Node.isObjectLiteralExpression(identity)
+    || identity.getProperties().map(property => property.getText()).join("|") !==
+      "exactCallIdentityHash: input.exactCallIdentityHash|providerEffectIdentityHash: row.logical_mutation_id!") {
+    findings.push(createLocalFinding({ checkId: "browser-authority/closed-invocation-payload", lawId,
+      filePath: journalEvidencePath, message: "The original atomic readback must decode its own encrypted locator with exact call and effect identities." }));
+  }
   const writes = [...locator.getFullText().matchAll(/update\s+browser_mutations\s+set\s+([\s\S]*?)\s+where/giu)];
   if (writes.length !== 1 || writes[0]![1]!.replace(/\s/gu, "") !== "provider_recovery_payload=?") {
     findings.push(createLocalFinding({ checkId: "browser-authority/closed-invocation-payload", lawId,

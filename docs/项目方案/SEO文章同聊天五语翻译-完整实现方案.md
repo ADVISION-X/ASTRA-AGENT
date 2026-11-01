@@ -2,19 +2,21 @@
 
 ## 0. 本轮目标、唯一身份与准入
 
-修订日期：2026-10-28，Asia/Dubai。状态：设计阻断，AGENT最小必要差额尚待专门任务核定及交付；Website限定范围的规范准备与续改许可保留。本版只对网站范围提供施工边界，对AGENT提供需求、事实及验收边界，不能冒称整案已可施工。
+修订日期：2026-11-01，Asia/Dubai。全案状态：设计阻断；WO-E2状态：可施工。授权人已明确批准按既定WO-E2执行，范围包括法案、施工图、代码、质检与数据库操作；随后明确调整顺序为“优先完成代码建设和实测，无误后，再执行ready之前再改法案”，撤销规范对齐对本单本地代码建设的先行阻断。当前先在AGENT主仓完成WO-E2删除重建、隔离实测和独立只读建设审查；正式CHANGE/提交首推/READY前完成G0-E2双仓精确规范替换及主Codex两遍规范审计。授权人随后明确允许迭代Website侧法案；只叠加父来源定位片段，保留现有任务的全部其余改动且不夹带提交。此执行授权不扩及E1的未决设计、WO-3、服务替换、生产任务重发或RELEASE。
+
+本节执行安排为本次最新授权，覆盖下文方案阶段历史记录中的“只写方案”“未获施工授权”及“G0先于代码”的时点表述；E2.2—E2.4的来源算法、删除前保留裁决、零父回答读取、失败关闭和有限验收保持。代码先行只形成待规范对齐的本地候选，不宣称符合尚未修订的条款；规范对齐未完成不得进入正式质量链。四份用户再次指定的合婚、八字、奇门遁甲、起名冻结边界蓝图保持源头与最终解释权，本单不改源头。
 
 用户已确认：每篇 SEO 文章的研究 → 中文文章 → 图片 → zh-HK → zh-TW → en-US → ja-JP → ko-KR，全部在同一个 GPT canonical conversation URL 内自动接续；最终取得研究、一篇中文文章、一张真实生成图片和五份直接译自中文的译文，真实完整测试通过后冻结。正常成功路径为八个 Provider turn；合法结果修订可能增加当前步骤的 turn，不能伪称仍只有八次输入。
 
-本轮仅更新这份既有方案及唯一基础设施需求工单的本条，不施工、不改法、不启动服务、不发Provider输入、不删建生产工单、不提交、不推送、不发布、不宣布已经冻结。本执行连续性需求沿既有唯一方案路径维护，文档位置不授予AGENT全链业务协调权；Browser、GPT、Product、Website localization、public-knowledge、ai-acceptance各保原原子责任，不设全链运行Owner、第二方案或总verdict。
+本轮仅更新这份既有方案；Website唯一需求文件只读取，不修改。2026-10-28的方案/工单联改是前轮历史权限，不作为本轮写Website的依据。不施工代码、不改法、不启动服务、不发Provider输入、不删建生产工单、不提交、不推送、不发布、不宣布已经冻结。本执行连续性需求沿既有唯一方案路径维护，文档位置不授予AGENT全链业务协调权；Browser、GPT、Product、Website localization、public-knowledge、ai-acceptance各保原原子责任，不设全链运行Owner、第二方案或总verdict。
 
 唯一方案仍为本文件。旧《SEO原会话URL连续-完整实现方案.md》只作为 f2dbc3d4c 已落地恢复接缝的历史依据，不再承担本轮施工授权或验收分母；其“HK 交接即可、不要求五语完成”范围由本方案替代。旧版本本文件中同时创建五语、每语 fresh、需新建 provider_continuation 的调查与工单已过时，全部退出当前设计，不得重复施工。历史权限不能替代本轮权限。
 
-G0按各仓Owner分别闭合。本聊天2026-10-28用户先答复“批准定点修订，AGENT任务由我安排”及“允许保留原差异并按限定范围追加、续改”，随后要求按AGENT执行工厂、接近稳定态、尽量少动的原则迭代。本次收窄优先于前版范围：前两项许可不撤回，但不再解释成Browser/GPT/Product/Runtime四层必须修改或一组法条必须升版。AGENT专门任务仍由用户安排，当前聊天没有其基础设施施工权。
+G0按各仓Owner分别闭合。以下2026-10-28权限为前轮网站任务的历史记录：用户先答复“批准定点修订，AGENT任务由我安排”及“允许保留原差异并按限定范围追加、续改”，随后要求按AGENT执行工厂、接近稳定态、尽量少动的原则迭代。前两项许可不再解释成Browser/GPT/Product/Runtime四层必须修改或一组法条必须升版。11月1日当前AGENT聊天已获方案建设权，代码、法案和运行许可仍未取得；前轮网站权限不转移给当前聊天。
 1. Website只在原授权下决定业务任务、材料、逐语派单、接纳/发布、恢复授权及完成表达；相关规范只改真实不吻合的直接条款。五份栏目蓝图和冻结说明书零修改。
-2. AGENT侧仅交付§6的两项已证执行差额及T1—T6验收；具体内部修改范围须由专门任务先证明最小必要性，现有能力可完整承接就直接保留。Website跨任务派单/接纳顺序、是否重做与最终业务完成不下放工厂；Product内部原三轮静态Flow及专业Skill/Prompt职责继续按AGENT现役法案归属，内容语义由模型负责。
+2. AGENT侧仅交付§6的两项已证执行差额及T1—T6验收；本轮专门任务只建设方案，E2按WO-E2列出最小退休片区、保留裁决及原子工单。Website跨任务派单/接纳顺序、是否重做与最终业务完成不下放工厂；Product内部原三轮静态Flow及专业Skill/Prompt职责继续按AGENT现役法案归属，内容语义由模型负责。
 3. Website原控制室的阶段名称与逐语交付只读投影按WO-3实施，原入库、派单、中文completed_count、清除保护与权限继续保留；该投影不成为AGENT执行前置。
-基础设施交接沿Website既有 docs/项目方案/网站侧迭代AGENT侧需求工单.md 的WA-20261028-01原条目原位收窄；不新增需求编号或第二方案。本次只替换该条，条目前原40488字节保留。Website施工落点的已有overlay按已批限定范围续改，不覆盖其余用户工作；其它未列目标不取得续改许可。登记不表示AGENT已交付。
+前轮基础设施交接沿Website既有 docs/项目方案/网站侧迭代AGENT侧需求工单.md 的WA-20261028-01原条目收窄，11月1日新实测位于同文件WA-20261027-01第6节。它们均引用本唯一方案；本轮不改工单、不新增编号，不取得Website overlay续改许可，登记也不表示AGENT已交付。
 真实运行、安装、外部发布与不可逆动作分别按执行时明确授权和项目原生规则办理。G0 未闭合时状态不得改为“可施工”；独立审计可以确认设计无遗漏，但不能代签权限。
 
 ### 0.1 AGENT稳定态保护与必要性裁决
@@ -39,7 +41,7 @@ AGENT默认保留现役代码、合同、协议和测试。每一处拟改动都
 
 五份源头的个人报告 PDF/订单规则不移植成公开 SEO 文章的产品前置。现役 SEO domain 仍只有 bazi、qimen；不因通读五份源头新增三个 SEO domain。不读取或改写 READY 正文、索引、准入记录；本轮不触发古籍再加工。
 
-| 维度 | 当前权威与裁决 |
+| 维度 | 2026-10-28全案依据基线；11月1日E2以WO-E2的当前原文核定为准 |
 | --- | --- |
 | Website 法案 | 基础 LAW-PROJECT-GOVERNANCE-010-V1；功能 LAW-PUBLIC-KNOWLEDGE-CONTENT-001-V2 至 012-V1 的现役十二条，特别 004-V2、005-V48、007-V2、008-V4；LAW-LOCALIZATION-013-V18、014-V7、015-V10、017-V2、019-V21；LAW-AI-ACCEPTANCE-002-V40中的TOMBSTONE、013-V33。完整语料、自主研究、真实原图、逐语公开、严格 parent 与唯一恢复均保留；ACCEPTANCE-004-V38不含该父locator约定，本单不修改其独立恢复规则 |
 | AGENT 法案 | LAW-GPT-001-V67、002-V33；LAW-LOCAL-BROWSER-SESSION-003-V48、004-V59、006-V47；LAW-ARCHITECTURE-BOUNDARY-001-V18、LAW-AGENT-PRODUCTION-RUNTIME-001-V80、LAW-CAPABILITY-GOVERNANCE-001-V19及002-V5；LAW-CODE-PURITY-001-V6、002-V2、003-V3。工厂只作机械核验，不作内容/业务裁决；每项新增或保留结构须有真实消费者及删除反事实。URL只定位，effect只证明输入，当前Target/Document只证明动作位置 |
@@ -54,8 +56,8 @@ AGENT默认保留现役代码、合同、协议和测试。每一处拟改动都
 
 | 仓库 | 当前根、分支、HEAD、tracking | 已有差异 |
 | --- | --- | --- |
-| Website | /Users/nexgen/Documents/xuanxue-web；main；1ac2a13b6ab1a99298ffc180db34d41ecea7f55d；origin/main | 五份源头、功能法案、SYSTEM/AI-ACCEPTANCE、article-localization-owner.ts、翻译供材/消费和其它任务有用户overlay；按已批WO-3及本条工单范围保留原差异续改，其余只读，不取得覆盖许可 |
-| AGENT | /Users/nexgen/Documents/AGENT；main；234aedc79254bb61f6401ac4b73c768da48172b3；origin/main | 原有 src/plugins/zeji-personal-selection/SKILL.md 用户差异保留；本方案改写前 clean |
+| Website | /Users/nexgen/Documents/xuanxue-web；main；c6392be04；origin/main | 本轮初查47条dirty/untracked路径，全部只读保全；本轮没有Website续改权。前轮WO-3权限属于原网站任务 |
+| AGENT | /Users/nexgen/Documents/AGENT；main；2da4aec64949178507a06954c1ade188ad4af11a；origin/main | 本轮写方案前工作树clean，方案本身也clean；此后唯一预期差异为本文件 |
 
 scoped candidate 只用于设计事实重绑定，不作为冻结清单或运行状态。五份源头逐字节 SHA-256，按八字/合婚/奇门/良辰/起名顺序：
 - fc9c8194616cb2e87fcf6715f9f7757f4dcc8e37f538ea8699cb371fca05c6fa
@@ -85,9 +87,9 @@ scoped candidate 只用于设计事实重绑定，不作为冻结清单或运行
 | W localization-material-source.ts/buildArticleLocalizationSource；localization-completion-worker.ts/completeReadyLocalizationJob；public-knowledge/public-edition-repository.ts | 每语同一中文 source/version/hash；artifact/binding/payload/projection/released同事务。直接复用；否则串译或部分发布。T5/T7 |
 | A src/plugins/public-knowledge-article-pipeline/index.ts、seo-gpt-calls.ts/createSeoExecutor、prepareAttachedTurnPrefix | 正常首轮fresh、同session三轮直接保留；新revision首入口仍可能fresh，属差额E1的静态事实。是否必须局部调整准备选择由专门任务证明，不能据此重建整个Flow或赋予Product恢复决定权。T1/T4 |
 | A src/plugins/localization-production/flow.ts/runAuthorizedTurn、executeOwnedFlow | 文章 primary续父URL，报告/review fresh；一次submit，两个ZIP。直接复用；revision也必须继承原父/本job已锚定URL。T1/T4/T6 |
-| A src/lib/local-runtime/production/executor.ts/readContinuationParent、dispatchPlugin；executor-source-checkpoint.ts；store-source-readback.ts/readSourceReadbackObservations | 核completed父结果ref/hash及source observation已存在，直接保留；current_attempt_id等同原effect来源的选择会漏合法source复用，属E2。仅需修该只读选择接缝，不改业务parent或新建来源API/台账。T4/T5/T6 |
+| A src/lib/local-runtime/production/executor.ts/readContinuationParent、dispatchPlugin；executor-source-checkpoint.ts；store-source-readback.ts/readSourceReadbackObservations | completed父结果ref/hash的合同及source observation保留；旧来源组装按WO-E2退休并重建。current attempt/child step不能代替原effect来源，不改业务parent或新建来源API/台账。T4/T5/T6及E2.4 |
 | A src/capabilities/gpt/production-browser-lifecycle.ts/browserFor、recordSettledResult、selectSettledConversation；production-call-preparation.ts/acquireProductionBrowserCall | 恢复后原URL接回、缓存/来源、分类、ack跳过选择及finally均保留；E1只核现有精确选择是否在live lease下一turn前真实执行，不预定重建GPT生命周期。T2/T3/T4 |
-| A src/lib/browser/infrastructure/browser-lane-coordinator.ts/serveAcquire；exact-target/browser-mutation-evidence.ts/readUniqueConfirmedConversationUrl、readSourceConfirmedProviderEffect；browser-command-actor.ts/readSubmittedConversationUrl；browser-submitted-conversation-locator.ts/bindSubmittedConversationLocator | 原精确WAL reader、一次locator绑定直接保留；E2核完成结果采用的真实effect，E1核locator不把B当U。仅对不可替代接缝修复，不加URL表、不复制WAL，不改原terminal。T2/T3/T4/T5 |
+| A src/lib/browser/infrastructure/browser-lane-coordinator.ts/serveAcquire；exact-target/browser-mutation-evidence.ts/readUniqueConfirmedConversationUrl；browser-mutation-store.ts/readSourceConfirmedProviderEffect；browser-command-actor.ts/readSubmittedConversationUrl；browser-submitted-conversation-locator.ts/bindSubmittedConversationLocator | 原Store exact source reader与一次locator绑定保留；旧readUniqueConfirmedConversationUrl按WO-E2退休。E2核父结果实际采用effect，E1另核locator不把B当U；不加URL表、不复制WAL或改terminal。T2/T3/T4/T5及E2.4 |
 | A chrome-extension/extension-target-authority.ts/qualifyCandidateNavigation、publishMainFrameNavigation、executeConversationSelection；extension-interaction-readiness.ts/ensureInteractionReady、assertInteractionReady；exact-target-runtime.ts/advanceDocument | 初次续聊比URL、原精确选择均已存在，优先复用；后续合法A→B仍可被发布是E1断裂。只补原物理身份保护缺口，tab/claim/activation/FIFO及独立职责保持；精确文件集合不是强制改动分母。T2/T3/T6 |
 | W public-knowledge/control-room-projection.ts/workOrderCompletionCountsSql；packages/public-knowledge-content/src/control-contracts.ts；apps/web/app/admin/seo-control-room/SeoControlRoomOperationsPanels.tsx、SeoControlRoomDashboard.tsx | completed_count依据中文admission，且用于清除保护。保留数据库语义、过滤、删除授权；仅重建页面阶段表达及当前25条run的五语接纳只读投影。T7/T8 |
 
@@ -109,9 +111,9 @@ H3 原子物理动作与locator：原身份安全条件必须覆盖发送前及�
 
 H4 同job恢复与新revision：全部直接沿Website当前精确授权及原effect/Forensics零输入优先链。新revision是否签发、哪些调用可复用/可风险输入均由Website决定；AGENT不得以本地revision数字、URL或错误码重新决定。已存在可信U的本篇流程仍在U执行当前获准turn；从Product第一入口执行不等于另开聊天。当前SEO首研究prepareAttachedTurnPrefix无条件包含prepare_clean，是E1必须核对的具体接缝；正常revision0、原专业Prompt/模型/单ZIP/三轮和其它产品fresh均直接保留。专门任务应先证明现有准备/精确选择能否承接；若必须修改该接缝，只改变此次获准原会话执行所需的局部准备选择，不改调用回合、业务恢复或整个静态Flow。无可信U仅关闭当前危险动作并回传原typed事实，Website原需求继续有界再检查；不得因便利而fresh、重建替代job或判业务永久停止。原U无法核验的流程不能计成功。
 
-H5 中文入库 → 五语：原Website中文包原子admit/release，逐语自动sender及业务exact parent unchanged。AGENT先核该父job/result ref/hash与本地completed结果精确一致，再从该完成attempt既有source_checkpoint observations中，选其artifact_ref确实属于该结果evidence_refs的effect来源；Browser按当前product step、call/Child核原effect，取得该来源行唯一locator。sourceAttemptId是实际产生effect的attempt，可能不同于完成结果的attempt；不能复制WAL到后者或改写Website parent。正常live/cache/source都已由recordSettledCheckpoint→recordSourceCheckpoint→现有production_attempt_handoffs记录来源，无需新表。
+H5 中文入库 → 五语：原Website中文包原子admit/release，逐语自动sender及业务exact parent unchanged。AGENT先核该父job/result ref/hash与本地completed结果精确一致，再按WO-E2核该完成结果实际采用的checkpoint、原effect和完整来源身份；Browser只使用来源的原step/attempt/revision/call/Child，不再借当前child step或completed attempt代替来源。sourceAttemptId可能不同于完成attempt；父step也可能不同于child step。不能复制WAL、重写effect身份或改Website parent。正常live/cache/source已有recordSettledCheckpoint→recordSourceCheckpoint→production_attempt_handoffs来源链，原持久化结构保持。
 
-原完成结果的evidence_refs、source_checkpoint observation、原effect proof/hash及Browser的readSourceConfirmedProviderEffect均已存在，作为唯一来源直接复用。自身live/cache不另要求source grant；只有跨attempt复用才核Website已签并被本完成attempt采用的精确来源。Runtime不接触URL或父回答，不排步骤；Browser只从经核实的结果采用关系中确定当前step的唯一原effect/locator。旧current-attempt假设对应的最小只读选择接缝是E2，不预设readAcceptedResultEffectCandidates新API或固定候选carrier集合，不复制WAL、不新建来源ledger、不回填缺失证据；来源不等/多义/缺失沿原typed失败及有限再查。固定catalog是同一共享选择的真实消费者，必须验证不回归，但不新增catalog改造目标。翻译仍直接消费同一中文定稿、原两ZIP及完整政策，前语未接纳则下一语任务增量零，各语按原事务独立公开。
+原完成结果的evidence_refs、source_checkpoint observation、原effect proof/hash及Browser的readSourceConfirmedProviderEffect作为唯一来源直接复用。自身live/cache不另要求source grant；跨attempt只核本完成attempt已经实际采用的合法来源。Runtime不接触URL或父回答，不排步骤；多轮父结果按WO-E2核全部采用来源并由Browser证明唯一原会话，不任取一条effect。只有内存中的既有参数交接发生必要类型调整，无新来源API、WAL副本、ledger或缺失证据回填。固定catalog是共享定位的真实消费者，其11月1日反例纳入同一E2，不另建catalog方案。翻译仍消费同一中文定稿、两ZIP及完整政策，逐语接纳和公开归Website。
 H6 最终业务与证明：Website负责六语按同article/version/hash入库和公开读回；Browser负责八个实际effect定位全等U及输入事实。Website不保存也不裁决Provider URL，不能仅凭“六语齐备”声明同URL已证明。全流程完成只在两侧原生证据共同成立时报告，不增加跨仓运行状态或总verdict。搜索收录、排名和连接器不作为完成前置。
 
 数据合同适用性：跨仓task/result字段、required/null、unknown-field policy、canonical hash、幂等键、事务/lease/fence、COMMAND三键及原effect身份保留；Browser协议revision13优先保留，confirmed-readback新Target接缝的必要合同差额尚未核定，不把“优先保留”冒充已证明无需变更。现有parentConversationUrl与selectExactGptConversation负责其既有方向的request-only加密定位，不扩大URL载荷许可；调用期活绑定不形成第二locator真相。只有专门任务用明确反证证明这些合同不能承接必要交付，才回本唯一方案与具体授权核定该差额，不自动升版。W五语交付投影只读派生，不落聚合状态。新增表、列、依赖、服务、timer、队列、migration均为无，不为验收清单制造结构。
@@ -147,11 +149,87 @@ H6 最终业务与证明：Website负责六语按同article/version/hash入库�
 | 差额 | 已证事实与最小交付 | 保留、验证与停止边界 |
 | --- | --- | --- |
 | E1 原URL连续执行 | 原publishMainFrameNavigation/交互资格可接受另一合法GPT地址；live lease后下一turn精确选择、新revision首研究prepare_clean，以及confirmed-readback当前acquisition不接URL而新Target先创建首页的接缝均需覆盖。交付：网站已授权的本篇当前turn仍在首研究已验U执行，输入与locator不能默许A→B；恢复不授新输入。Browser只核当前物理身份，Product/GPT仍只执行已定当前动作 | 原parentConversationUrl、selectExactGptConversation、WAL locator、同effect读回、静态三轮、Prompt/模型/材料、lease/fence/FIFO/节拍/ack全部保留。T1—T4、T6击穿错址、跳过选择、风险revision另开聊天及伪零输入；首研究合法建聊通过。既有能力能接住则零改动；确有缺口仅在原执行Owner的最小接缝修复，不改业务规则 |
-| E2 合法父结果实际来源定位 | executor.ts/readContinuationParent及dispatchPlugin把完成父结果的current_attempt_id直接当本步WAL来源，会漏合法source复用。交付：精确Website父结果ref/hash不变，按该完成结果实际采用的原effect找唯一原会话，不要求本完成attempt复制一条CONFIRMED | 原source_checkpoint/evidence_refs、readSourceReadbackObservations、readSourceConfirmedProviderEffect及已签来源证明直接复用。自身live/cache不另需source grant，跨attempt复用才核已签合法来源。T4/T5/T6覆盖旧article/单语/整包复用后后继，以及共享固定catalog后继；不是catalog改造目标。无新来源API、ledger、镜像WAL、业务恢复或Website URL字段 |
+| E2 合法父结果实际来源定位 | current_attempt_id和child productStepId均被误作父effect来源；11月1日catalog反例已真实失败。交付：Website父三元组不变，按父完成结果实际采用的原effect集合及原step/attempt精确定位唯一会话。具体片区、必要参数差额、删建纪律与验收见WO-E2 | 原source_checkpoint/evidence_refs、公开Browser历史/来源reader及已采用授权直接复用。live/cache不额外要source grant。无新来源API、ledger、镜像WAL、业务恢复或Website URL字段；不借E2扩建E1 |
 
 专门任务接单顺序固定：重绑当前法案/代码/用户差异→复用现役公开链验证E1/E2→对确实不能承接的每处最小差额，先在本唯一方案E项内闭合精确符号、Owner、保留/删除、承载余量、原子handoff及验收→独立只读审查后在用户安排范围内施工。不得另建竞争方案、先改代码再补必要性，或因曾列到四层就逐层重构。本版不预批具体生产文件diff；尚未核定处明确保持设计阻断，不冒称AGENT已可施工。
 
+### WO-E2：已采用父成果的原来源定位片区（2026-11-01方案迭代）
+
+#### E2.1 现场、源头一致性与第一断裂
+
+需求来源是Website唯一工单WA-20261027-01第6节；本轮用户明确要求AGENT作为工厂只负责执行，并要求法案/蓝图深遍、闭环Skill全文至少两遍、片区删除后重构、主审三轮及独立只读审计。本轮不执行前轮WO-3，不把方案授权解释为生产施工或改法授权。
+
+独立回读原`production-runtime.sqlite`与`browser/browser-mutations.sqlite`：child `aiprod_fcb754a2-e276-49f0-af5e-136328e788c7`的Website父三元组与本地completed父`aiprod_f1146dba-4ec6-47f8-b4e9-b90600c688e1`完全匹配。父current attempt为`31a9662a-bf2a-4c5c-b064-d1be4842cbdf`，其CONFIRMED turn-submit/provider_effect恰好1条、真实step为`static-catalog:65041cfa5183b018a4e3e6278a166be259b8f8e9668d53f6fb651ab70dd8864f`；用child step `static-catalog:c6950362bbdaee4ba3185cd9093de815dc035bd37868e8e83895b5b51c47d610`查询为0。父完成结果有1个evidence ref，完成attempt有1条settled_checkpoint，artifact确属该结果；effect为`sha256:be8acb06eacb41c56406a2d20d70e038784abcdce57373740082cdf969a56a90`。child Provider-effect行数为0；原日志`7d7d81bd-1f37-4cb9-9dde-c0fa492a8e6a-0001.jsonl:176`在profile-open以`BROWSER_PARENT_PROVIDER_EFFECT_MISSING`失败。此为旧候选真实阻断证据，不是修复后成功。
+
+父子cohort同为`batch-5128934dfd6c`、policy同为`target-language-review-v257-20261027`，source_sha256分别以`e15c4696`、`63935f83`开头。`static-catalog-flow.ts::productionStep`本来就包含source_identity、policy、cohort/membership和authorization；父子step不保证恒等。此次只证明错误来源条件，不据此给Website全部版本演进作合规背书，也不重写Product step来迁就查询。
+
+四维结论：①功能法案RUNTIME-001-V80（同job来源证明限制须加入本单已鉴权父来源元数据的窄例外）、ARCHITECTURE-BOUNDARY-001-V18（含TOMBSTONE-RECOVERY-AUTHORITY-001）、CAPABILITY-GOVERNANCE-001-V19.summary、GPT-001-V67（含FROZEN-GPT-CONVERSATION-LOCATOR-EFFECT-SEPARATION-001）、Browser-003-V48及006-V47明确使用completed父current attempt/当前step；②GPT蓝图第21—34、92、102、112行与Browser蓝图第69、81、83行同样规定，文字相互吻合，却共同遗漏“已采用原来源与完成位置不同”的合法执行分支；③实际断裂为executor取current attempt→GPT无损传递→lane把child binding.productStepId传给父WAL精确查询；SQL拒绝缺失/多义本身保留；④现有GPT及Browser inspector还硬绑定该错误传参字面量，必须在原检查中替换错误检查对象，不能删掉检查求绿。母本、基础法案、Website唯一业务裁决、机械安全和语义主权没有因此失效。
+
+**施工前置G0-E2：** 此处确实需要定点替换上述“父完成attempt/当前step必为实际来源”的规范语义，不把它伪称零改法的普通bug。用户本轮只授权方案。施工须先明确批准涉及的active law修订，并按原文明确解冻TOMBSTONE-RECOVERY-AUTHORITY-001与FROZEN-GPT-CONVERSATION-LOCATOR-EFFECT-SEPARATION-001的这一个父来源定位片段；所有恢复权、effect去重、URL私密与禁止第二链语义原样保留。Website当前LAW-AI-ACCEPTANCE-002-V42同一Tombstone也规定当前step，须由Website原Owner单独完成同一精确规范替换；不修改Website业务代码或要求其发送父attempt/step/URL。源头未对齐前不施工依赖片区。无需修改母本或解冻其它固定条款。
+
+RUNTIME-001-V80原同job证明消费限制与本单跨parent元数据定位不可分割；仅增本单已鉴权、父结果精确绑定及零父正文读取的例外，不开放Browser私有WAL或改变其它恢复消费。
+
+规范目标句：在Website已签provider_continuation且父结果ref/hash与本地completed结果精确相等后，只能使用该完成结果实际采用且已有持久采用证据的原Provider effect。原effect的job、来源attempt、revision、step、call、Child及authority/hash整体验真；完成attempt和child当前step不代替这些来源字段。Browser只读这些既有effect的可信locator，全部采用来源指向唯一canonical URL时才向当前job的独占Target交付原精确导航；缺失、未决、篡改或地址冲突零输入失败关闭。Website仍唯一决定业务关系/恢复，AGENT不选择父任务、不取得重做资格。
+
+上述定点规范替换还须明确：允许GPT原Owner仅为核图片采用关系，按已完成父结果精确绑定的job/source-attempt/checkpoint identity读取既有`gpt-image-source-binding.v1`身份描述，核其原ref/hash后只回传originalArtifactRef；这是封闭执行身份元数据，不是父回答/原图。父文本和父原图bytes读取保持禁止，描述不含URL，不能进入Product或成为下一步骤/新输入授权。该语义与私有只读参数调整一并在G0-E2审定，不能用普通artifact verifier越权；不修改Forensics存储合同或增加端口。
+
+#### E2.2 唯一目标链与必要参数差额
+
+1. Runtime保留原`readContinuationParent`的completed/ref/hash机械合同。在已durable accept且route relation验真之后、Product第一次页面动作之前，原executor-source-checkpoint片区读取该完成attempt的`readSourceReadbackObservations`及既有`readAcceptedSourceSettlements`，只核父结果`evidence_refs`对应的已完成checkpoint；来源不能从latest、时间、当前child参数或任意WAL行猜出。跨attempt逐项匹配`reused_checkpoint`中原settled_reusable来源及同effect/ref/hash，不把risk_authorized或rejection_settled当成采用事实；正常live/cache不要求handoff。递次复用直接消费原acceptedSourceSettlements从当前完成attempt沿byIssued链验真并去环的结果，不另写遍历器或新读接口；闭包只取该父job已有行，每条最多一次，环、缺失采用证明或矛盾拒绝，不新增恢复状态。异步artifact核验在dispatchPlugin调用Mediator工厂前完成，再把已验证的原值交原同步context工厂，不能将工厂改为异步业务编排。
+2. 现有`readJobBrowserHistoryEvidence(parentJob)`为源effect提供原step/call/Child、source attempt/revision、effect/hash及真实物理状态。与observation的proof、source_effect_set_hash、wal_authority_hash、artifact、conversation/user hash整体精确相交；仅`CONFIRMED/confirmed/physicalInputCount=1/anchorState=trusted`可用。相同原effect的同值重复证据可去重，矛盾不可合并。缺失的checkpoint、WAL或locator不回填、不复制、不改旧字节。
+3. 父来源定位禁止调用`verifySourceCheckpointArtifact`、`readPersistedGptTextResponse`或`readPersistedGptImageEvidence`：前者会经后两者读完整父文本或原图，不能因Runtime只收ref就称没有读取父回答。文本只核原已持久化checkpoint proof/hash与父结果evidence_refs的直接采用关系，不重新打开父回答。图片observation的artifact_ref指向身份descriptor，结果evidence_refs指向original；现有完整图片reader一定还会读取原图，不能复用这条完整reader。
+4. 图片仅在该ref差额存在时，经一个必要的窄内部方法`readAdoptedImageReference`核已有身份descriptor。输入只有已核parent job、source attempt、checkpoint exact-call hash、descriptor ref/integrity hash及原conversation/user hash；它在`evidence-artifacts.ts`沿现有`artifactKey(exactCallIdentityHash,"source-binding")`和Forensics原`readArtifact`读取一次定型JSON，复用`assertImageBinding`核其封闭结构，并核descriptor ref/hash、conversation/user hash精确相等，只返回已有`originalArtifactRef`供Runtime与父结果refs比较。绝不读取`observed-response`或`original`键、父文本、原图bytes、Prompt、URL或跨任务旧页面。缺描述、坏hash、未知字段或ref不等均拒绝；不从文件名/路径猜ref，不退回完整reader。当前`verifySourceCheckpointArtifact`及其同job原恢复消费者零修改，原完整内容校验不削弱。Runtime核采用集合完整性，不能因图片ref不同直接跳过；此处只证明原采用身份，不重新证明父回答当前可读性，也不读取父回答内容来定位。
+5. 在既有`providerContinuationParent`与`BrowserTargetLeaseWait`的authorized-continuation分支，以只读内存值整体运输父job及上述实际采用effect的精确查询参数。直接复用`readSourceConfirmedProviderEffect`的输入类型字段，不建立新父来源判定API、新候选类型体系或持久carrier；第4项明确列出的内部身份描述读取是唯一必要新增方法，不冒称零接口差额。无父的fresh分支没有来源字段；缺字段、空集合、非法/未知字段拒绝，不能兼容旧“父attempt+child step”分支。当前child BrowserExecutionBinding、provider_effect_identity及step原样保留；父来源只供定位，不进入child effect identity或Website载荷。
+6. Browser lane只消费这些已经机械绑定的来源，逐项调用原Store的`readSourceConfirmedProviderEffect`，以原结果的完整采用集合为边界，检查每项实际locator非空且URL全等。单轮父通常一项；SEO三轮父允许多个不同effect，但只能共同证明一个会话，不能把多条合法采用effect误判成“多义父任务”，也不能任取其中一项。未采用历史effect不得入选；两个不同来源URL必须拒绝，即使其中一个等于child预期step也不能优先选它。未决/损坏的选定来源拒绝，兄弟job历史未决不连坐。
+7. 得到唯一URL后仍走原`parentConversationUrl`→TARGET_ACQUIRE→原Extension精确导航和readback。无新Browser wire字段、protocol升版、URL表或第二resolver；Extension、acquisition导航、FIFO、节拍、模型/附件/Prompt均直接保留。无法定位只回原typed failure及原worker；不得fresh、重翻父成果、改父关系或把本地失败判成业务永久停止。
+
+“1+1”具体为：成熟的原exact effect/source/once/交付安全完整保留，同时新增合法父子step不同及来源attempt不同的可执行定位；旧失败反例恢复通过，错误父/坏来源/多URL仍零输入拒绝。只让浏览器能打开、放宽SQL、改成一个永久常量step、增加超时、复制父WAL或牺牲旧安全来消除报错都不算提升。若验收无法同时证明两部分，不替换成熟实现。
+
+#### E2.3 片区、删除前保留及原子工单
+
+| 原子责任/唯一Owner | 退休与合同重建；不可分割局部修改 | 保留对象、真实消费者与删除反事实 |
+| --- | --- | --- |
+| R：完成结果→已采用原effect来源，agent-production-runtime | 退休`executor.ts::readContinuationParent`仅返回父row并在`dispatchPlugin`拼`acceptedAttemptId=current_attempt_id`的旧来源组装片区；保留父三元组校验的合同，按E2.2在既有`executor-source-checkpoint.ts`重建精确采用核验并由`dispatchPlugin`调用。`executor.ts`当前494行，删除旧来源函数/组装后只保留窄调用，禁止再堆通用resolver。新核验函数每项≤75行/7参数/10 await，放在当前54行的原来源文件承载，必要只拆同文件原子核验，不新增服务或文件 | 原`recordSourceCheckpoint`、Store读写/accepted seal、父结果及Outbox、route relation、durable accept、执行finally、website completed边界均保留。它们分别保证采用事实、合法来源、正确任务及同结果交付，删除会丢现役消费者/授权，不能重建整个executor或Store |
+| G：已验证来源机械运输与图片身份描述核验，gpt | 退休`production-ports.ts::providerContinuationParent`和`production-browser-lifecycle.ts::acquireBrowserLease`中把acceptedAttemptId当来源attempt的参数片区，重建只读输入类型及原传递语句。只在现有302行`evidence-artifacts.ts`增加E2.2第4项的closed descriptor reader；`ProductionGptChildTools`增加同名窄内部方法供现有Executor转交已核输入，Runtime只收到originalArtifactRef。其真实消费者是parent source核验，旧完整reader会读父原图故不可复用；删掉窄方法会丢图片采用绑定或迫使越权，metadata-only反例验证其必要性。不新增文件、公共Product facade或Forensics接口 | 原`verifySourceCheckpointArtifact`及现有完整artifact readers和同job恢复调用全部保留、零修改。保留原binding parser、Forensics append/read、source/cache、`recordSettledResult`、profile/附件/Child顺序、park/ack/settle。新方法不调完整reader、不读父文本/原图、不返回身份描述或回答给Runtime；描述中Target/Document hash不取得恢复或定位权 |
+| B：原effect→唯一原会话，local-browser-session | 物理退休`browser-mutation-evidence.ts::readUniqueConfirmedConversationUrl(parentJobId,parentAttemptId,parentProductStepId)`旧函数及`browser-lane-coordinator.ts::serveAcquire`用child step构造父选择的片区；同路径按E2.2用既有`BrowserMutationStore::readSourceConfirmedProviderEffect`重建lane读取/全等比较。`browser-target-lease.ts`与lane的acquire waiter只调整该分支内存参数；不新建store方法。旧reader的测试/inspector专属调用同时退出 | 保留`readSourceConfirmedProviderEffect`及原严格SQL、密文/locator/原atomic outcome核验，当前Store493行无需加新resolver；保留lane唯一pump/wakeTimer/释放、TargetAcquirer和Extension原URL导航。删除这些原件会丢精确WAL来源和物理串行性；不得把它们纳入整文件删除 |
+| Q：验证错误选择已被消除，各原质量Owner | 在`agent-production-runtime-startup.acceptance.ts`、`local-browser-provider-effect-recovery.acceptance.ts`、`local-browser-mutation-store-support.ts`、`product-plugins/localization-production.acceptance.ts`及GPT原恢复fixture中只替换已依赖退休reader的调用、增强E2.4确缺反例。Runtime `authority-inspection.ts::inspectContinuation`及其`agent-production-runtime-recovery-boundary.acceptance-support.ts`反例、Browser `target-claim-inspection.ts`、`opaque-proof-inspection.ts::inspectEncryptedRecoveryLocator`及GPT `gpt-provider-contract-inspection.ts`退出“必须出现child step传参字面量”的错误检查，改验真实typed来源消费者与exact reader调用；不能删质量门、增加宽正则/常量PASS | 原父ref/hash、错job/attempt/step/call/Child、缺失/多义/未决、零重发、其它产品fresh的保护保留，只替换失真的生产身份来源。先证明旧实现被新反例击穿，再施工；无需新runner、测试目录、报告或总质量入口 |
+
+全部生产删建只在G0-E2及代码施工授权齐备后由主Codex执行，子智能体仅审计。工单顺序：原检查反例证实不足→规范精确对齐→逐片区删除→当场AST/符号/调用缺席核验→按本节输入输出合同新建→真实consumer验证。不得先把旧函数读进变量/副本、加工后删写；不得Git复制恢复、改名搬家、转发壳、兼容分支或只改SQL参数冒充重构。共文件独立职责已在上表预裁决保留，禁止临时搬走。删除过程证据保留在实际操作记录，不造第二台账。规范调整是对应Owner的独立工单，不与运行源代码跨仓打包施工。
+
+无变化的对象明确为：Website业务/三元组/两ZIP、Product `productionStep`及专业SKILL/Prompt、Browser wire与Extension、原WAL/Runtime/Forensics schema、N与claim/lease/fence、恢复裁决、Outbox和成功接收边界。无需新建抽象、服务、持久字段、队列、依赖或迁移。原source_checkpoint写者保留不增字段；只读内存参数为真实lane消费者必需，删掉便重新落回child step错误，exact来源读回为验证方法。仅允许上表已证明必要的图片身份描述内部读取方法；其固定元数据读取在G0-E2规范目标中明示，不能借名称取得父回答读取权。禁止凭E2顺带处理E1、网站claim慢或历史清理。
+
+#### E2.4 有限分母、readback与停止
+
+| 场景 | 权威事实→工厂行为/验收；失败与恢复Owner |
+| --- | --- |
+| 本次catalog父子step不同 | 固定上述原身份的只读证据作为隔离fixture输入，改进必须定位原父URL，child当前step/effect不变；旧实现必须失败。真实环境原父WAL字节保持；后续仅在用户明确运行许可下通过原Website grant验证同job新合法attempt，不能手签grant、清账或造替代job |
+| step相同、全新live及同attempt cache | 原采用ref/observation/exact WAL一致；来源解析与导航均通过，cache读取本身不新增页面动作；不额外索要source grant |
+| 完成attempt与来源attempt不同、重复source复用 | 完成结果绑定原采用checkpoint、既有accepted handoff及精确旧effect；读原attempt，不复制CONFIRMED；缺grant/错误seal/环/断链拒绝。一次拒绝只保原typed事实，是否重领由Website当前授权决定 |
+| 多轮SEO父、图片descriptor/original | 全部采用身份按E2.2核验；文本不读正文，图片只读descriptor。给Forensics测试端口设精确读取断言：父文本observed-response读取=0、父original读取=0，仅批准source-binding键可读；旧完整verifier/图片reader会使反例失败。合法多effect同URL通过、不同URL拒绝；坏/缺descriptor、错original ref、错conversation/user hash均拒绝。单语或catalog文本父不触发Forensics读取；丢图片源或当前step优先的错误实现必须失败 |
+| 缺/坏采用证据、错父/attempt/revision/step/call/Child/hash | 在任何目标取得和Provider输入前拒绝；artifact正文/URL不交Runtime。既有结果优先原Outbox交付；不伪造缺失证据，不以fallback猜来源 |
+| 重复/多义/未决effect | 同值同effect证据可去重；矛盾证据、选定来源非CONFIRMED、多个不同URL、缺locator拒绝；未采用历史或兄弟job未决不形成全局门，不得用原SQL缺失门宽松化取得通过 |
+| 取消、父job清除、Store/WAL/Forensics读失败、重启 | 每次调用前后保持当前lease/fence/abort与原精确授权；原Owner删除已完成则缺失拒绝，读取错误不折叠成missing。进程内来源不恢复成新表，重启只重读原事实；查询失败零新输入，不自动恢复旧实现或重发旧effect |
+| 最终交付 | AGENT终点为原完整结果成功接收回执→local completed；Website另核相应locale/current或文章admission与实际显示。Website独立验收不是AGENT完成门。E2成功不冒称E1全部同URL、八步或整案RELEASE已证明 |
+
+隔离验证先沿原acceptance复现本反例及上表每个非等价边界，再运行原architecture/Runtime/GPT/Browser普通验收；唯一正式质量入口仍是`npm run quality:check`。全部43 route由现有Catalog+route projection与反向createExecution/acquire调用交叉发现；仅article translation和static catalog的provider_continuation有父来源，另外41条路由的fresh/review/其它关系不增加来源要求，13个Plugin不新增可执行业务路径。不能抽一个SEO正例替代共享回归。
+
+实际准备/发送、安装和Dynamic Proof另按届时明确授权执行；本轮文档审查不运行它们。功能验收必须同时证明原安全边界保持与上述真实失败被消除；施工纪律另核删除前裁决、即时缺席及非复制新建。任一项缺失分别报告未满足重构要求/无法核实重构纪律或未取得功能证据，不用最终diff、局部测试或READY替代。失败保原任务/WAL/artifact/Outbox，由原Owner回接，未授权回退为“无”。
+
+本轮技术设计经三轮主审后交只读子智能体独立核对法案/蓝图及闭环Skill；审查只能放行方案内容，不能替用户批准G0-E2或生产施工。E1原独立未决不纳入本轮“已闭合”声明；全案状态继续设计阻断。最终分别回报：方案实际修订、规范与代码零修改、审计发现及处理、待批准前置和未运行证据。
+
 每处最终获准退休的片区须有删除前独立保留裁决、删除即时缺席证据及按合同新建后的consumer读回；无必要退休对象就直接保留，不能删除成熟模块凑过程。失败只保原typed事实、已有结果和WAL/Outbox，由Website裁决下一授权；无清账、重建任务、越权fresh或自动回退。AGENT交付须区分零修改复用、最小局部修改、确实重建、删除及未完成，不把四层全写“已重构”。
+
+#### E2.5 本次本地建设与实测
+
+依授权人11月1日最新顺序，WO-E2先完成本地代码建设。R/G/B退休片区已物理删除、紧随核验六处旧符号/参数缺席，再按E2.2建设；Runtime旧`inspectContinuation`也单独删除、核验缺席后重建。其它质检消费者属于原位局部修订。原`recordSourceCheckpoint`、完整文本/图片reader、完整`verifySourceCheckpointArtifact`及lane的pump/nextWaiter/scheduleWake/expireQueuedWaiters/withLifecycle九项职责与HEAD正文逐字节相同；Product、Extension、exact Store reader、source settlement、Outbox无差异。未新增生产文件、持久结构或wire版本。
+
+施工核对纠正了两处实现假设：Forensics `integrityHash`是StoredArtifact envelope身份，不能与descriptor原始字节hash互代；来源call ID必须使用已采用的原值，不能硬编码`turn-submit`。真实Forensics反例保留envelope hash与raw digest不等，并限制新方法只能读取批准的source-binding键；完整父文本与原图读取为零。
+
+已完成两遍主代码自检及只读建设审查。当前本地原生普通验证：typecheck、agent-production-runtime、gpt、architecture-boundary、capability-governance，以及Browser effect recovery、lane FIFO、rule mutants均通过；受影响Runtime、GPT、Browser inspector均验证正常链及破坏反例，变更源码原生结构规则23文件无finding。新增验收覆盖三种采用来源（两文本与图片descriptor/original）、跨attempt重复采用、错误seal与缺grant、字段错配/缺证据/URL冲突、取消和父清除期间的失败关闭，另保留全部43路由注册与原消费者回归。独立审查者亲自复跑typecheck、Runtime recovery-contract、GPT metadata、Browser recovery/FIFO/mutants并放行本地建设；过程证据按本聊天真实工具记录核阅，不由最终diff冒充时序。
+
+原事故另以两个SQLite只读连接及query_only实测新Runtime来源解析→原Browser exact reader→lane原会话比较：父结果绑定成立、实际采用来源1项、source step不同于child step、旧selector命中0、新链取得可信canonical locator、父内容读取0、Provider输入增量0，生产数据零修改。未输出URL或私有密钥，未取得Target或发送Provider输入。此证据证明该事故的来源定位，不证明E1、真实新发送、整条八步或生产发布。
+
+2026-11-01授权人明确放开Website法案迭代后，已定点对齐Website待提交V42的父来源片段及SYSTEM/AI-ACCEPTANCE施工图；AGENT对应Runtime-001-V81、Architecture-001-V19、Capability-001-V20、GPT-001-V68、Browser-003-V49/006-V48及三份施工图同步，机器合同仅更新lawId引用，不改wire/版本。主Codex规范第一遍按条款差分核唯一Owner/证据分母/冻结保护，第二遍逆向核真实代码/采用证明/图片metadata-only/原exact reader/全来源同URL及跨仓无载荷差额；发现并修正Runtime同job例外与Architecture.summary歧义，均限于本单元数据定位。两遍规范审计结束，不以自评比例或局部测试代替原生裁决。正式CHANGE、commit/两次push与READY尚未完成。网站已有重叠改动的保护及G0-E2双仓规范一致仍须在正式质量链前闭合；局部实测和独立建设审查均不替代原生质量裁决。
 
 ### WO-3：Website阶段表达与交付只读投影（W public-knowledge-content）
 
@@ -168,6 +246,18 @@ H6 最终业务与证明：Website负责六语按同article/version/hash入库�
 真实证明复用A原gpt.real-proof/local-browser.real-proof与W原Dynamic Proof声明、profile、collectors、原逐法报告。当前W public-knowledge声明偏重公开阅读/搜索，不能冒称已覆盖八步；在原Owner声明与现役active evidenceModes补足所需Browser/Provider/存储、service/database分母，不加第二dynamic runner或总报告。先核原proof budgets是否容纳现役八步及两领域实际资格；足够就原样保留，确有不足才在原Owner配置定点调整，不能用搜索预算假冒八步覆盖，也不发明无界超时。
 删除反事实：既有mock测试不能证明导航竞态/真实八步；增加这些断言必要。第二CI、URL表、截图替原图、图片固定尺寸检查、八步总状态库、强制重译历史、常设审稿模型、人为固定文章模板均无必要，目标中删除。
 输出/验收：T1—T8各原Owner原件；失败回相应Owner且重新核候选，不能调阈值、弱化检查或拿旧成功补当前。真正测试、安装和运行须另有相应授权，本轮仅完成设计。
+
+#### E2.6 本轮原生质检慢项与生命周期（可施工）
+
+本轮原生CHANGE已退出0。Browser组的真实子进程序列证明主要等待由原自动配对验收的真实1.5/2.5秒页面保护及有限导航用例组成，保留全部生产期限、反例、字段与证据分母，不缩短窗口、不增杀进程超时。另已证rule-mutants的111条固定变异在全通过路径执行224次inspect；opaque-proof-inspection.ts的authenticatedMediaDispatchIsExact每次新建Project解析同一固定media.ts并计算参考侧AST。该固定参考不消费candidate、TypeChecker或context；重复223次参考解析可由同次模块初始化直接承接，当前candidate树与判定不能缓存。原进程快照已见该文件执行70秒且CPU72.67秒，精确全程未知；改后实测与该下界比较，只报告可证收益，不外推整个READY提速。
+
+Q-PERF-A（local-browser-session）：固定media.ts参考字面数据是原冻结保护的必要唯一fixture，逐字节保留，不能删除或复制第二份；删除并立即核验原authenticatedMediaDispatchIsExact逐调用初始化/比较执行片区缺席，再在原文件构造一次固定参考dispatch及三个method的(name,AST字符串)。新现役比较函数每次从当前runtime/authority原符号重取节点、重算actual AST并与固定参考比较，仍拒绝全部原mutants和通过原正例；不缓存candidate、law、findings、Project或verdict，不建通用缓存。原其它inspector与AST encoder保留，删除会丢原错误保护；只在原rule-mutants完成批次后记录真实计数/elapsed，并在原auto-pairing各实际验收组完成后输出阶段进度，不用心跳。
+
+Q-PERF-B（code-purity）：governance.ts::run的spawnSync整组缓冲与quality-process-execution.ts的完整捕获使真实子进展不可见。删除旧run执行片区及executeCaptured实现并立即核缺席；在原Owner按原execFile完成回调重建单次完整捕获，保留64MiB上限、可选原timeout、status/signal/stdout/stderr、异常分类及实际退出后才完成的语义。仅增加可选streamOutput，默认关闭，inspector worker的JSON stdout保持原捕获消费；CHANGE/projectChecks、原acceptance文件组及quality-runner的原Exam命令开启，透传工作输出并记开始、实际callback终结及单调elapsed，不重放已流出的副本、不建runner/日志表/第二报告。取消、buffer失败、signal与非零继续失败，不写成功假终态。原runAcceptanceFiles、候选检查、proof绑定/报告与并发均保留；原quality-execution测试增强实际子进程输出在结束前可见且完整捕获一致、非零及signal保持，不新增测试文件。
+
+原生CHANGE之后补齐quality-contract.test.ts中8处读取真实registry/producer/worker的旧law版本引用；code-purity-governance中的独立synthetic finding标签没有active lookup，保留。原quality-execution两处clone-HEAD后叠加当前检查器的隔离fixture须同时带入其现役法案/规格：Product authority反例复制当前功能法案，missing-governance-tests反例复制当前docs/specs，与原已复制的法案/蓝图/registry组成同候选；不弱化原失败原因及输出断言。上述为本单规范引用同步遗漏，不改变测试义务。quality-contract同一既有DISPATCHED链用例还直接要求serveAcquire调用已退休readUniqueConfirmedConversationUrl；原生CHANGE已证该断言失真，零改生产，替换为现役readParentConversationUrl→逐parentSources原readSourceConfirmedProviderEffect(source)的AST交接证明，保留原单Target调用及全部其它断言。该同根消费者在首轮完整治理读取前未列入，按本单Q片区补齐；已知失败候选的剩余本地CHANGE安全取消并核进程树全部退出，取消不作PASS，新候选从CHANGE重走。Runtime蓝图泛称错误step只澄清为篡改已采纳来源step。
+
+主Codex按真实消费者、错误/取消保护及候选/证据反向三轮核对本段；CI专项只读技术审查提供固定参考独立性与消费者证据，由主Codex施工，结束后两遍自检并由原审查者只复核受影响项。先确认旧检查自然结束再编辑；局部验证通过后立即返回CHANGE→提交首推→READY→二推。新增实际独立违规再沿原CI司法合同，不把性能工程变成全仓改造或减少检查。吞吐只优化已证固定参考重复计算；其余真实保护等待尚无安全压缩证据，不宣称已优化。
 
 ## 7. 分层验证与正式冻结
 

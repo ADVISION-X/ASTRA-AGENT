@@ -205,6 +205,43 @@ try {
   assert.equal((await real.appendArtifact({ missionId: jobId, runId: attemptId, artifactType: "other", mimeType: "application/json", content: realBindingBytes, idempotencyKey: bindingKey })).status, "success");
   const realEvidence = await readPersistedGptImageEvidence({ evidenceStore: real, jobId, attemptId, exactCallIdentityHash: imageExact });
   assert.deepEqual(realEvidence?.originalBytes, bytes); assert.equal(realEvidence?.originalArtifactRef, realOriginal.artifactRef); assert.notEqual(realEvidence?.integrityHash, digest(realBindingBytes));
+  const descriptorReads: string[] = [];
+  const descriptorOnly = { appendArtifact: real.appendArtifact.bind(real),
+    readArtifact: async (query: Parameters<typeof real.readArtifact>[0]) => {
+      descriptorReads.push(query.idempotencyKey);
+      assert.equal(query.idempotencyKey, bindingKey, "cross-parent continuation must never read text or original image bytes");
+      return real.readArtifact(query);
+    } };
+  const descriptorTools = new ProductionGptChildTools(join(root, "descriptor-only"), A, createGptAbilityGroup(),
+    descriptorOnly, authority as never, logger("descriptor-only"), control);
+  const descriptorInput = { jobId, sourceAttemptId: attemptId, checkpointExactCallIdentityHash: imageExact,
+    artifactRef: realEvidence!.artifactRef, artifactContentHash: realEvidence!.integrityHash,
+    canonicalConversationHash: digest(url), userTurnHash: digest(user) };
+  assert.equal(await descriptorTools.readAdoptedImageReference(descriptorInput), realOriginal.artifactRef);
+  assert.deepEqual(descriptorReads, [bindingKey]);
+  for (const wrong of [{ jobId: "other-parent" }, { sourceAttemptId: "completion-not-source" },
+    { artifactRef: "wrong-descriptor-ref" }, { artifactContentHash: A },
+    { canonicalConversationHash: A }, { userTurnHash: B }]) {
+    await assert.rejects(descriptorTools.readAdoptedImageReference({ ...descriptorInput, ...wrong }));
+  }
+  const altered = JSON.parse(new TextDecoder().decode(realBindingBytes)) as Record<string, unknown>;
+  for (const [index, wrong] of [{ unexpected: true }, { originalArtifactRef: "" }, { schemaVersion: "unknown" },
+    { originalSha256: "bad" }, { canonicalConversationHash: B }, { userTurnHash: B }].entries()) {
+    const invalidAttempt = `invalid-source:${index}`;
+    const invalid = await real.appendArtifact({ missionId: jobId, runId: invalidAttempt, artifactType: "other",
+      mimeType: "application/json", content: JSON.stringify({ ...altered, ...wrong }), idempotencyKey: bindingKey });
+    if (invalid.status !== "success") throw new Error("INVALID_DESCRIPTOR_FIXTURE_COLLISION");
+    const stored = await real.readArtifact({ missionId: jobId, runId: invalidAttempt, idempotencyKey: bindingKey });
+    if (stored.status !== "success") throw new Error("INVALID_DESCRIPTOR_FIXTURE_MISSING");
+    await assert.rejects(descriptorTools.readAdoptedImageReference({ ...descriptorInput,
+      sourceAttemptId: invalidAttempt, artifactRef: stored.artifactRef,
+      artifactContentHash: stored.artifact.integrityHash as `sha256:${string}` }));
+  }
+  const failedDescriptor = new ProductionGptChildTools(join(root, "descriptor-io"), A, createGptAbilityGroup(),
+    { ...descriptorOnly, readArtifact: async query => { assert.equal(query.idempotencyKey, bindingKey);
+      return { status: "failed" as const, failureReason: "FORENSICS_ARTIFACT_INTEGRITY_MISMATCH" }; } },
+    authority as never, logger("descriptor-io"), control);
+  await assert.rejects(failedDescriptor.readAdoptedImageReference(descriptorInput), /EVIDENCE_ARTIFACT_READBACK_FAILED/u);
   artifacts.delete(bindingKey);
   await assert.rejects(coldImage.tools.execute(imageCall), (error: unknown) => {
     const decorated = coldImage.decorateSettledResultFailure(error), facts = executionFailureMetadata(decorated);

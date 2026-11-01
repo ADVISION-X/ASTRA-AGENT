@@ -322,21 +322,25 @@ const inspectFirstFailure = (context: InspectorContext, findings: InspectorFindi
     "The original transaction must reject a different first fact and preserve its original bytes in exact-attempt SQL.");
 };
 const inspectContinuation = (context: InspectorContext, findings: InspectorFinding[]): void => {
-  const executor = sourceFor(context, runtimePath("executor")).getClass("ProductionExecutor");
-  const parent = executor?.getMethod("readContinuationParent");
-  const dispatch = executor?.getMethod("dispatchPlugin");
-  const parentGuard = parent?.getDescendantsOfKind(SyntaxKind.IfStatement).find((statement) =>
+  const source = sourceFor(context, runtimePath("executor-source-checkpoint"));
+  const parent = bodyFor(source, "readContinuationSources"), collect = bodyFor(source, "collectContinuationSources");
+  const dispatch = method(context, "executor", "ProductionExecutor", "dispatchPlugin");
+  const guard = parent?.getDescendantsOfKind(SyntaxKind.IfStatement).find(statement =>
     errors(statement.getThenStatement()).includes("PRODUCTION_PARENT_RESULT_BINDING_INVALID"));
-  const parentTerms = booleanTerms(parentGuard?.getExpression(), SyntaxKind.AmpersandAmpersandToken);
-  reject(findings, LAWS.core, "static.ast", runtimePath("executor"), "completed-parent-exact-locator",
-    parentTerms.length === 2 && parentTerms[0]?.getText() === "parent"
-    && rejectingComparison(parentTerms[1], "parent.status", '"completed"')
-    && rejectingComparison(parentTerms[1], "parent.result.result_payload_ref", "task.parent_result_ref")
-    && rejectingComparison(parentTerms[1], "parent.result.result_payload_hash", "task.parent_result_hash")
-    && hasCall(dispatch, "this.readContinuationParent")
-    && dispatch?.getDescendantsOfKind(SyntaxKind.PropertyAssignment).some((property) =>
-      property.getName() === "acceptedAttemptId" && property.getInitializer()?.getText() === "parent.current_attempt_id") === true,
-    "Continuation may consume only the exact completed direct-parent result and its original accepted attempt locator.");
+  const coverage = collect?.getDescendantsOfKind(SyntaxKind.IfStatement).find(statement =>
+    errors(statement.getThenStatement()).includes("PRODUCTION_PARENT_SOURCE_EVIDENCE_MISSING"));
+  const selected = calls(dispatch, "readContinuationSources"), dispatched = calls(dispatch, "dispatchWebsiteAgentTask");
+  reject(findings, LAWS.core, "static.ast", runtimePath("executor-source-checkpoint"), "completed-parent-exact-locator",
+    rejectingComparison(guard?.getExpression(), "parent.status", '"completed"')
+    && rejectingComparison(guard?.getExpression(), "parent.result.result_payload_ref", "input.task.parent_result_ref")
+    && rejectingComparison(guard?.getExpression(), "parent.result.result_payload_hash", "input.task.parent_result_hash")
+    && calls(parent, "collectContinuationSources")[0]?.getArguments()[3]?.getText() === "parent.result.evidence_refs"
+    && hasCall(collect, "input.store.readSourceReadbackObservations")
+    && hasCall(collect, "input.store.readAcceptedSourceSettlements") && hasCall(collect, "checkpointGrantMatches")
+    && hasCall(collect, "checkpointEffect")
+    && rejectingComparison(coverage?.getExpression(), "adopted.size", "expected.size")
+    && selected.length === 1 && dispatched.length === 1 && selected[0]!.getStart() < dispatched[0]!.getStart(),
+    "Continuation verifies the exact completed parent result and its full adopted checkpoint sources before Product dispatch; completion attempt and child step never replace source identity.");
 };
 
 const inspectAuthorityReader = (context: InspectorContext, findings: InspectorFinding[]): void => {
