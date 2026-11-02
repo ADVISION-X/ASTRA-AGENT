@@ -338,7 +338,3 @@ for (const evidenceMode of ["exam.golden", "exam.property"] as const) emitQualit
   lawId: "LAW-AGENT-PRODUCTION-RUNTIME-002-V12", evidenceMode, clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "summary"],
   locator: `acceptance:agent-production-runtime:credential:${evidenceMode}`,
   observedValue: "Original preflight and session-binding tests rejected typed credential/version failures before mutation, retained the long-lived credential, and kept blocked Shell healthy." });
-for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-006-V50", evidenceMode, clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "summary"],
-  locator: `acceptance:agent-production-runtime:storage-inventory:${evidenceMode}`,
-  observedValue: "Read-only inventory returned exact ownership/orphan bytes and rejected symlinks; startup preserved recoverable bytes and blocked execution without cleanup." });

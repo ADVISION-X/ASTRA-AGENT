@@ -125,4 +125,10 @@ for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"
 emitQualityProofObservation({ lawId: "LAW-AGENT-PRODUCTION-RUNTIME-007-V50", evidenceMode: "exam.golden",
   clauses: ["forbidden:0", "summary"], locator: "acceptance:agent-production-runtime:manifest-owner-fail-closed",
   observedValue: "Original ownership and recovery support accepted Runtime primary scope and rejected adjacent Product/Mediator ownership." });
+for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) {
+  emitQualityProofObservation({ lawId: "LAW-AGENT-PRODUCTION-RUNTIME-006-V50", evidenceMode,
+    clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "forbidden:3", "summary"],
+    locator: `acceptance:agent-production-runtime:storage-and-retirement:${evidenceMode}`,
+    observedValue: "Original inventory and retirement tests completed: exact ownership and orphan bytes, symlink rejection, recoverable byte preservation, 65 mixed-state jobs and reopen, precise absence, joined late writer and sibling protection." });
+}
 process.stdout.write("[ACCEPTANCE][agent-production-runtime] Runtime contracts exercised\n");

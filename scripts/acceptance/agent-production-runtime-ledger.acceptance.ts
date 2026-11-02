@@ -490,7 +490,4 @@ for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"
     locator: `acceptance:agent-production-runtime:three-table-authority:${evidenceMode}`,
     observedValue: "three-table SQLite authority stores task state, Outbox and source handoff evidence; ordinary startup rejects migration and lease checkpoint continuation mirrors",
   });
-  emitQualityProofObservation({ lawId: "LAW-AGENT-PRODUCTION-RUNTIME-006-V50", evidenceMode,
-    clauses: ["forbidden:1", "forbidden:3"], locator: `acceptance:agent-production-runtime:retirement-mechanics:${evidenceMode}`,
-    observedValue: "65 mixed-state jobs and reopen, typed local corruption, precise absence and joined late writer exercised in the original Runtime Store and worker." });
 }
