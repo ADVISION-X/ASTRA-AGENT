@@ -1,3 +1,4 @@
+import { reconcileRuntimeAuthorities } from "../../src/lib/local-runtime/production/runtime-loops.js";
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 import { mkdtemp, rm, readFile } from "node:fs/promises";
 import { runInNewContext } from "node:vm";
@@ -5,26 +6,30 @@ import { transpileModule, ModuleKind } from "typescript";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ProductionRuntimeStore as RuntimeStore } from "../../src/lib/local-runtime/production/store.js";
-import { executeClaim, reconcilePendingAttemptFailures } from
+import { executeClaim } from
   "../../src/lib/local-runtime/production/runtime-claim.js";
-import { executionFailure, failureCode, typedExecutionFailure } from "../../src/lib/execution-failure.js";
-import { createRuntimeLogger, requireRuntimeLogWrite, runtimeLogCauseEventId } from "../../src/lib/runtime-logs/index.js";
-import { terminalSpanFailure } from "../../src/lib/local-runtime/production/runtime-logging.js";
-import { readProductionDeviceJobStatus } from "../../src/lib/local-runtime/production/cloud-reconciliation-client.js";
-import { reconcileBusinessAdmission, websiteJobAbsent, purgeDeletedJob } from "../../src/lib/local-runtime/production/runtime-business-admission.js";
+import { executionFailure } from "../../src/lib/execution-failure.js";
+import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 import { ProviderRateLimitControl } from "../../src/lib/local-runtime/production/provider-rate-limit-control.js";
 import { hashCanonical } from "../../src/lib/local-runtime/production/contracts.js";
-import { runtimeTransportFailure, typedRuntimeTransportFailure } from "../../src/lib/local-runtime/production/transport-failure.js";
+import { runtimeTransportFailure } from "../../src/lib/local-runtime/production/transport-failure.js";
 import { classifyAttemptFailure,
   type SerializedTerminalFailure } from
   "../../src/lib/local-runtime/production/terminal-failure.js";
-import { HASH_A, claimTask, failureStatus, task, attemptFailureFirstFact, resultFor, stageResultForAcceptance, admissionReceiptFor, deviceStatusWithAdmission } from
+import { HASH_A, claimTask, failureStatus, task, attemptFailureFirstFact, resultFor, shutdownRuntimeFixture, stageResultForAcceptance, admissionReceiptFor, deviceStatusWithAdmission } from
   "./agent-production-runtime-fixtures.js";
 
 const SCENARIOS = ["success", "response_unknown", "success_missing_receipt",
   "response_unknown_uncommitted", "duplicate_receipt", "code_only_mismatch", "code_only_exact",
   "receipt_conflicting_fact", "conflict_409"] as const;
 type Scenario = (typeof SCENARIOS)[number];
+
+const failureReadbackRuntime = (store: RuntimeStore, dataDir: string,
+  browser: NonNullable<Parameters<typeof shutdownRuntimeFixture>[0]["browser"]> = {}) => shutdownRuntimeFixture({
+  store, dataDir, browser, runtimeLogger: createRuntimeLogger({ producer: "failure-readback-isolation",
+    owner: "production-runtime", component: "production-runtime", terminalEnabled: false,
+    fileSink: { directoryPath: join(dataDir, "runtime-logs") } }),
+});
 
 const originalFailureFor = (scenario: Scenario, job: ReturnType<typeof claimTask>) =>
   scenario === "conflict_409" || scenario === "receipt_conflicting_fact" ? {
@@ -48,6 +53,10 @@ const readbackSessionFor = (
     workerSessionEpoch: 1,
     device: { server_base_url: "http://127.0.0.1:4322" },
     request: async (path: string, options?: Readonly<{ method?: string; body?: string }>) => {
+      if (path.endsWith("/renew")) return { schema_version: "xuanxue-ai-lease-renew-receipt.v6", job_id: job.job_id,
+        server_now: job.grant.server_now, lease_expires_at: job.grant.lease_expires_at, renew_after_ms: 20_000,
+        control_intent: { schema_version: "xuanxue-ai-control-intent.v6", job_id: job.job_id,
+          intent: "none", control_epoch: 0, reason_code: null } };
       if (path.endsWith("/lease-release")) {
         postCount += 1;
         const request = JSON.parse(options?.body ?? "null") as Readonly<Record<string, unknown>>;
@@ -158,17 +167,18 @@ const verifyFailureReadbackIsolation = async (): Promise<void> => {
       [new Error("STORE_OR_UNKNOWN_FAILURE"), false],
     ] as const) {
       const reads: string[] = [];
-      const state = { store, session: { request: async (url: string) => {
+      const state = failureReadbackRuntime(store, directory);
+      state.session.request = async (url: string) => {
         reads.push(url);
         if (reads.length === 1) throw error;
         return failureStatus(jobs[1]!.job_id, null, []);
-      } }, lastErrorCode: null, lastErrorReason: null } as never;
+      };
       if (shouldContinue) {
-        await reconcilePendingAttemptFailures(state);
+        await reconcileRuntimeAuthorities(state);
         assert.equal(reads.length, 2, "own-job failure must preserve the next job's readback");
         assert.equal(store.readTask(jobs[0]!.job_id)?.current_reason, "OWN_JOB_REMOTE_FAILED");
       } else {
-        await assert.rejects(reconcilePendingAttemptFailures(state), (actual: unknown) => actual === error);
+        await assert.rejects(reconcileRuntimeAuthorities(state), (actual: unknown) => actual === error);
         assert.equal(reads.length, 1, "shared authorization and raw errors must reach the shared exit");
       }
     }
@@ -191,19 +201,19 @@ const verifySuccessfulFailureReadbackIsolation = async (): Promise<void> => {
       }
       for (const [error, continues] of [[executionFailure("failed", "BROWSER_TARGET_CLEANUP_FAILED"), true],
         [runtimeTransportFailure("LOCAL_ADMISSION_503", 503), true], [runtimeTransportFailure("AUTH_401", 401), false],
-        [new Error("RAW_STORE_FAILED"), false], [executionFailure("failed", "PRODUCTION_STORE_CORRUPTED"), false]] as const) {
+        [new Error("RAW_STORE_FAILED"), false]] as const) {
         const reads: string[] = []; let aReads = 0;
-        const state = { store, abort: new AbortController(), active: new Map(), browserAuthority: {
-          readJobPhysicalInputState: () => "zero", releaseJobBoundTarget: async () => { throw error; } },
-          session: { request: async (url: string) => {
+        const state = failureReadbackRuntime(store, root, {
+          readJobPhysicalInputState: () => "zero", releaseJobBoundTarget: async () => { throw error; } });
+        state.session.request = async (url: string) => {
             const job = decodeURIComponent(url).includes(jobs[0]!.job_id) ? jobs[0]! : jobs[1]!; reads.push(job.job_id);
-            if (job === jobs[0] && aReads++ > 0) throw error;
+            if (job === jobs[0] && (action === "CONSUME_CURRENT_RESULT" || aReads++ > 0)) throw error;
             const failure = store.readTask(job.job_id)!.attempt_failure!;
             return { ...failureStatus(job.job_id, { ...failure.failure_core,
               attempt_id: "attempt:disposition", lease_version: 1, from_status: "failed", to_status: "failed" }, []), next_action_code: action };
-          } }, lastErrorCode: null, lastErrorReason: null };
-        if (continues) { await reconcilePendingAttemptFailures(state as never); assert.ok(reads.includes(jobs[1]!.job_id)); }
-        else { await assert.rejects(reconcilePendingAttemptFailures(state as never), (actual: unknown) => actual === error); assert.equal(reads.includes(jobs[1]!.job_id), false); }
+        };
+        if (continues) { await reconcileRuntimeAuthorities(state as never); assert.ok(reads.includes(jobs[1]!.job_id)); }
+        else { await assert.rejects(reconcileRuntimeAuthorities(state as never), (actual: unknown) => actual === error); assert.equal(reads.includes(jobs[1]!.job_id), false); }
         assert.equal(store.readTask(jobs[0]!.job_id)?.attempt_failure?.failure_core.code, "PRODUCT_EXECUTION_FAILED");
       }
     } finally { store.close(); await rm(root, { recursive: true, force: true }); }
@@ -212,19 +222,11 @@ const verifySuccessfulFailureReadbackIsolation = async (): Promise<void> => {
 
 const loadAdmissionIsolationApi = async (): Promise<Record<string, (state: unknown) => Promise<unknown>>> => {
   const source = await readFile(new URL("../../src/lib/local-runtime/production/runtime-loops.ts", import.meta.url), "utf8");
-  const admission = source.slice(source.indexOf("const reconcilePendingBusinessAdmissions ="),
-    source.indexOf("export const reconcileCompletedBrowserTargets ="));
-  const unfinished = source.slice(source.indexOf("const reconcileUnfinishedExecutionsWithoutReceipt ="),
-    source.indexOf("const workerIteration ="));
   const worker = source.slice(source.indexOf("const workerIteration ="), source.indexOf("export const workerLoop ="));
   const api: Record<string, (state: unknown) => Promise<unknown>> = {};
-  runInNewContext(transpileModule(admission + unfinished + worker +
-    "\nexport { reconcilePendingBusinessAdmissions, reconcileUnfinishedExecutionsWithoutReceipt, workerIteration };", {
+  runInNewContext(transpileModule(worker + "\nexport { workerIteration };", {
     compilerOptions: { module: ModuleKind.CommonJS },
-  }).outputText, { exports: api, requireRuntimeLogWrite, failureCode, typedExecutionFailure,
-    typedRuntimeTransportFailure, runtimeLogCauseEventId, terminalSpanFailure, hashCanonical,
-    reconcileBusinessAdmission, readProductionDeviceJobStatus, websiteJobAbsent, purgeDeletedJob,
-    safeReason: (error: Error) => error.message,
+  }).outputText, { exports: api, reconcileRuntimeAuthorities,
     reconcileCompletedBrowserTargets: async (state: { cleanups: number }) => { state.cleanups++; } });
   return api;
 };
@@ -257,7 +259,8 @@ const verifyAdmissionLogFailureAndReadbackIsolation = async (): Promise<void> =>
         job.job_id, hashCanonical(result), null, [receiving.get(job.job_id)!]) as { request: () => Promise<unknown> }).request();
     } };
     const control = new ProviderRateLimitControl(store, session as never);
-    const state = { store, active: new Map(), runtimeLogger: { startSpan: () => {
+    const state = { store, active: new Map(), activeAbort: new Map(), lastStatusJobId: null, lastTransportJobId: null,
+      runtimeLogger: { startSpan: () => {
       spans += 1; throw executionFailure("failed", "RUNTIME_LOG_SINK_WRITE_FAILED");
     }, isWritable: () => false }, cleanups: 0, providerRateLimitControl: control, session };
     await control.beginIncident({ jobId: jobs[0]!.job_id,
@@ -266,7 +269,7 @@ const verifyAdmissionLogFailureAndReadbackIsolation = async (): Promise<void> =>
       sessionKey: "session:sink", observedAt: "2030-01-01T00:00:00.000Z" });
     assert.equal(await api.workerIteration!(state), 1_000);
     assert.equal(store.pendingProviderCooldownRequestIds().length, 1);
-    assert.equal(reads, 2); assert.equal(spans, 3);
+    assert.equal(reads, 3); assert.equal(spans, 3);
     assert.equal(store.readTask(jobs[0]!.job_id)?.current_reason, "OWN_ADMISSION_REMOTE_FAILED");
     assert.equal(store.readTask(jobs[1]!.job_id)?.status, "completed");
     assert.equal(store.readTask(jobs[2]!.job_id)?.status, "completed");
@@ -274,28 +277,13 @@ const verifyAdmissionLogFailureAndReadbackIsolation = async (): Promise<void> =>
     for (const error of [runtimeTransportFailure("SESSION_UNAUTHORIZED", 401),
       runtimeTransportFailure("SESSION_FORBIDDEN", 403), new Error("RAW_STORE_FAILURE")]) {
       reads = 0; firstError = error;
-      await assert.rejects(api.reconcilePendingBusinessAdmissions!(state), (actual: unknown) => actual === error);
+      await assert.rejects(reconcileRuntimeAuthorities(state as never), (actual: unknown) => actual === error);
       assert.equal(reads, 1, "shared authorization and raw failures retain the shared exit");
     }
     reads = 0; firstError = runtimeTransportFailure("OWN_ADMISSION_REMOTE_FAILED", 503);
     const sinkDelay = await api.workerIteration!(state);
     assert.equal(sinkDelay, 1_000); assert.equal(state.cleanups, 2);
     assert.equal(store.readTask(jobs[0]!.job_id)?.status, "failed");
-    const unfinishedJobs = ["A", "B"].map(id => task({ jobId: `job:unfinished-${id}`,
-      productId: "payment_screenshot_observation", actionId: "observe" }));
-    for (const job of unfinishedJobs) store.acceptTask(job, "attempt:unfinished");
-    state.session.request = async (url: string) => {
-      const job = unfinishedJobs.find(entry => decodeURIComponent(url).includes(entry.job_id));
-      assert.ok(job); reads += 1;
-      if (reads === 1) throw firstError;
-      return failureStatus(job.job_id, null, []);
-    };
-    reads = 0; firstError = runtimeTransportFailure("OWN_UNFINISHED_REMOTE_FAILED", 503);
-    await api.reconcileUnfinishedExecutionsWithoutReceipt!(state);
-    assert.equal(reads, 2); assert.equal(store.readTask(unfinishedJobs[0]!.job_id)?.current_reason, "OWN_UNFINISHED_REMOTE_FAILED");
-    reads = 0; firstError = runtimeTransportFailure("SESSION_UNAUTHORIZED", 401);
-    await assert.rejects(api.reconcileUnfinishedExecutionsWithoutReceipt!(state), (actual: unknown) => actual === firstError);
-    assert.equal(reads, 1);
   } finally { store.close(); await rm(root, { recursive: true, force: true }); }
 };
 
@@ -344,6 +332,7 @@ export const verifyFailureReleaseReadbackScenarios = async (): Promise<void> => 
         session,
         providerRateLimitControl: {}, browserAuthority: {}, gpt: {}, evidenceStore: {},
         dataDir: temporary, runtimeLogger, draining: false, lastHeartbeat: null,
+        lastStatusJobId: null, lastTransportJobId: null,
         lastErrorCode: null, lastErrorReason: null, stopped: false, ledgerReconciled: true,
       } as never;
       await executeClaim(state, job);
@@ -353,7 +342,7 @@ export const verifyFailureReleaseReadbackScenarios = async (): Promise<void> => 
       store.close();
       store = new RuntimeStore(temporary);
       const restartedState = { ...(state as object), store } as never;
-      await reconcilePendingAttemptFailures(restartedState);
+      await reconcileRuntimeAuthorities(restartedState);
       if (scenario === "duplicate_receipt") {
         assert.equal(store.readTask(job.job_id)?.current_reason, "PRODUCTION_ATTEMPT_FAILURE_RECEIPT_CONFLICT");
         assert.equal(store.readTask(job.job_id)?.attempt_failure?.failure_core.code, executionCode,

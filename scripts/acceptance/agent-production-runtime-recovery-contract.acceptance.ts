@@ -1,3 +1,4 @@
+import { leaseBudget } from "../../src/lib/local-runtime/production/runtime-state.js";
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -397,7 +398,7 @@ try {
     executor: { accept: () => { replayAccepts++;
       return store.acceptTask(priorRisk, "attempt:risk-new"); },
       acceptAfterSourceHandoff: () => { throw new Error("ISSUED_ATTEMPT_REGRANT_MUST_NOT_ROTATE"); } },
-  } as never, replayClaim, new AbortController(), replaySpan, null, null);
+  } as never, replayClaim, leaseBudget(replayClaim, new AbortController()), replaySpan, null, null);
   assert.equal(replayAccepted.record.current_attempt_id, "attempt:risk-new");
   assert.equal(replayAccepts, 1,
     "same accepted replay attempt must regrant against the issued typed seal without rotation");

@@ -56,7 +56,7 @@ const inspectRuntimeSources = (project: Project, queryRef: string) => {
   inspectAgentProductionRuntime({
     project,
     sealedRoot: path.resolve("."),
-    selectedLawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V81",
+    selectedLawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V82",
     targetSet: { queryRef, count: project.getSourceFiles().length },
     targetPaths: project.getSourceFiles().map((source) => path.relative(path.resolve("."), source.getFilePath()).replaceAll("\\", "/")),
     lawRequirements: [],
@@ -65,7 +65,7 @@ const inspectRuntimeSources = (project: Project, queryRef: string) => {
       manifestPath: "scripts/audit/domains/agent-production-runtime/manifest.json",
       ownerInspectorPath: "scripts/audit/domains/agent-production-runtime/inspector.ts",
       executionGroup: "domain",
-      lawIds: ["LAW-AGENT-PRODUCTION-RUNTIME-001-V81"],
+      lawIds: ["LAW-AGENT-PRODUCTION-RUNTIME-001-V82"],
     },
     generatedPlan: [],
   }, findings);
@@ -282,7 +282,7 @@ const exerciseManifestAndLawOwnership = async (): Promise<void> => {
   const runtimeLawRecords = [...runtimeLawSource.matchAll(/```law-record\n([\s\S]*?)\n```/gu)]
     .map((match) => JSON.parse(match[1]!) as { lawId: string; forbidden: string[] });
   const runtimeCoreLaw = runtimeLawRecords.find(
-    (record) => record.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V81",
+    (record) => record.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V82",
   );
   assert.ok(runtimeCoreLaw);
   for (const token of [
@@ -304,7 +304,7 @@ const assertClaimAndAdmissionSourceBoundaries = (
   assert.match(runtimeLoopsSource,
     /recoveryOnlyClaim = availableNewSlots <= 0 && hasExistingAttemptRecovery/u);
   assert.match(runtimeLoopsSource,
-    /Math\.max\(1, availableNewSlots\), recoveryOnlyClaim/u);
+    /Math\.max\(1, availableNewSlots\), state\.draining \|\| recoveryOnlyClaim/u);
   assert.match(workerSessionSource,
     /forceCurrentAttestation[\s\S]{0,180}\? await this\.performHeartbeat\(\)/u);
   assert.match(cloudClientSource,
@@ -312,7 +312,7 @@ const assertClaimAndAdmissionSourceBoundaries = (
   assert.doesNotMatch(runtimeLoopsSource,
     /operation: "website\.result-consume"[\s\S]{0,900}reconcileBusinessAdmission/u);
   assert.match(runtimeLoopsSource,
-    /span\.terminal\(\{ outcome: "succeeded"[\s\S]{0,200}authorityHash: hashCanonical\(current\)/u);
+    /span\.terminal\(\{ outcome: "succeeded"[\s\S]{0,200}authorityHash: hashCanonical\(item\.task\)/u);
   assert.doesNotMatch(runtimeSource, /emitState|stateKey:|currentStates|reconciledFromAuthority/u);
   assert.doesNotMatch(executorSource, /runTurn|ProductionGptExecutor|GPT_TURN_FLOW/u);
   assert.match(executorSource, /gpt: gptExecution\.tools/u);
@@ -363,13 +363,15 @@ export const exerciseProductionRuntimeSourceBoundaries = async (): Promise<void>
   assert.doesNotMatch(runtimeSource, /ATTEMPT_ENDED:/u);
   assert.doesNotMatch(businessAdmissionSource, /discardStagedResult|ATTEMPT_ENDED/u);
   assert.doesNotMatch(storeSource, /discardStagedResult/u);
-  assert.match(executorSource, /abort_signal\.aborted[\s\S]{0,220}PRODUCTION_EXECUTION_ABORTED/u);
+  assert.match(executorSource, /completionStarted = true;[\s\S]{0,80}await input\.complete\(output\)/u,
+    "stable complete output must reach its original persistence callback before the Runtime abort boundary");
   assert.doesNotMatch(executorSource, /reconcilePermanentCancellation/u);
   assert.doesNotMatch(storeSource, /Continuation|Checkpoint/u);
   assert.match(reconciliationSource, /V6_DEVICE_JOB_CONTROL_AUTHORITY_INVALID/u);
   assert.match(businessAdmissionSource, /websiteJobAbsent/u);
   assert.match(businessAdmissionSource, /purgeDeletedJob/u);
-  assert.match(runtimeSource, /purgeDeletedJob/u);
+  assert.doesNotMatch(runtimeSource, /purgeDeletedJob/u, "an active claim must not purge or wait for itself");
+  assert.match(runtimeLoopsSource, /await purgeDeletedJob\(state, jobId\)/u);
   assert.doesNotMatch(runtimeLoopsSource, /BrowserQuarantine|reconcilePermanentlyRevokedTargetLocal/u);
   assert.doesNotMatch(runtimeLoopsSource, /flushOutbox|pendingOutbox\(\)|sendProductionOutboxWrite/u);
   assert.match(storeSource, /supersedeUnsentWritesForWebsiteAttempt/u);

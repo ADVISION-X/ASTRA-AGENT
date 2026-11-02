@@ -27,8 +27,8 @@ import { ProductionRuntimeStore } from "./store.js";
 import type {
   GeneratedImageArtifact,
   GeneratedImageResultReceipt,
-  ProductPluginOutput,
 } from "../../../mediator/product-plugin-contract.js";
+import type { CompleteProductionOutput } from "./store-complete-output.js";
 import { executionFailure } from "../../execution-failure.js";
 import { productionCloudFetch } from "./cloud-transport.js";
 import type { ProductionLeaseRelease } from "./lease-release-contract.js";
@@ -185,7 +185,11 @@ export async function renewProductionLease(
     },
   );
   try {
-    return LeaseRenewReceiptSchema.parse(data);
+    const receipt = LeaseRenewReceiptSchema.parse(data);
+    if (receipt.job_id !== job.job_id || receipt.control_intent.job_id !== job.job_id) {
+      throw executionFailure("failed", "V6_RENEW_CONTROL_AUTHORITY_INVALID");
+    }
+    return receipt;
   } catch (error) {
     throw runtimeTransportFailure("AI_PRODUCTION_HTTP_ENVELOPE_INVALID", 200, error);
   }
@@ -273,9 +277,8 @@ async function uploadJsonObject(
   store: ProductionRuntimeStore,
   job: ClaimedProductionTask,
   role: "result_payload" | "result_envelope",
-  value: unknown,
+  bytes: Buffer,
 ): Promise<UploadedResultReceipt> {
-  const bytes = Buffer.from(JSON.stringify(value), "utf8");
   const contentHash = sha256(bytes);
   const requestId = `aipresult_${hashCanonical({
     job_id: job.job_id, attempt_id: job.grant.attempt_id, role, content_hash: contentHash,
@@ -393,8 +396,7 @@ type ProductionResultUploadInput = Readonly<{
   session: ProductionWorkerSession;
   store: ProductionRuntimeStore;
   job: ClaimedProductionTask;
-  output: ProductPluginOutput;
-  priorArtifactReceipts?: readonly UploadedResultReceipt[];
+  complete: CompleteProductionOutput;
 }>;
 
 const buildProductionResultEnvelope = (
@@ -419,16 +421,8 @@ const buildProductionResultEnvelope = (
     media_type: payloadReceipt.media_type,
     receipt_hash: payloadReceipt.receipt_hash,
   },
-  evidence_refs: input.output.evidence_refs,
-  execution_receipt_hash: hashCanonical({
-    job_id: input.job.job_id,
-    attempt_id: input.job.grant.attempt_id,
-    request_hash: input.job.request_hash,
-    product_id: input.job.product_id,
-    action_id: input.job.action_id,
-    payload_hash: payloadReceipt.sha256,
-    evidence_refs: input.output.evidence_refs,
-  }),
+  evidence_refs: input.complete.evidence_refs,
+  execution_receipt_hash: input.complete.execution_receipt_hash,
 }) as WebsiteAgentResult;
 
 export async function uploadProductionResult(input: ProductionResultUploadInput): Promise<Readonly<{
@@ -438,18 +432,18 @@ export async function uploadProductionResult(input: ProductionResultUploadInput)
   artifact_receipts: readonly UploadedResultReceipt[];
 }>> {
   const payloadReceipt = await uploadJsonObject(
-    input.session, input.store, input.job, "result_payload", input.output.payload,
+    input.session, input.store, input.job, "result_payload", Buffer.from(input.complete.payload_json, "utf8"),
   );
   const envelope = buildProductionResultEnvelope(input, payloadReceipt);
   const envelopeReceipt = await uploadJsonObject(
-    input.session, input.store, input.job, "result_envelope", envelope,
+    input.session, input.store, input.job, "result_envelope", Buffer.from(JSON.stringify(envelope), "utf8"),
   );
   return {
     envelope,
     payload_receipt: payloadReceipt,
     envelope_receipt: envelopeReceipt,
     artifact_receipts: Object.freeze([
-      ...(input.priorArtifactReceipts ?? []),
+      ...input.complete.artifact_receipts,
       payloadReceipt, envelopeReceipt,
     ]),
   };

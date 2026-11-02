@@ -6,14 +6,14 @@ import type { InspectorContext, InspectorFinding } from "../../shared/inspector-
 import { producerClaimRoutesFor } from "../../shared/proof-observation.js";
 
 export const LAWS = {
-  core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V81",
+  core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V82",
   credential: "LAW-AGENT-PRODUCTION-RUNTIME-002-V12",
-  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V51",
-  admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V48",
-  database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V44",
-  storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V49",
-  staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V49",
-  dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V50",
+  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V52",
+  admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V49",
+  database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V45",
+  storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V50",
+  staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V50",
+  dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V51",
 } as const;
 export const ALL_LAWS = Object.values(LAWS);
 export const RUNTIME_ROOT = "src/lib/local-runtime/production";
@@ -180,7 +180,7 @@ const inspectAdmission = (context: InspectorContext, findings: InspectorFinding[
 const inspectDependencies = (context: InspectorContext, findings: InspectorFinding[]): void => {
   for (const [name, id, version] of [
     ["website-agent-task-result", "ai-acceptance.website-agent-task-result", 23],
-    ["xuanxue-ai-production-v6", "ai-acceptance.xuanxue-ai-production-v6", 47],
+    ["xuanxue-ai-production-v6", "ai-acceptance.xuanxue-ai-production-v6", 49],
   ] as const) {
     const path = `docs/specs/agent-production-runtime/${name}.dependency.spec.json`;
     const dependency = JSON.parse(read(context, path)) as { contract: Record<string, unknown>; lawIds: string[] };

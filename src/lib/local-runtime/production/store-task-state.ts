@@ -36,11 +36,13 @@ const sameCompletion = (
   result: WebsiteAgentResult,
 ): boolean => Boolean(existing?.status === "completed" && json(existing.result) === json(result));
 const taskAuthorityFromRow = (row: TaskRow): StoredProductionTask => {
-  const record = storedTaskFromRow(row);
-  if (!productionTaskRowValid(row, record)) {
-    throw executionFailure("failed", "PRODUCTION_TASK_AUTHORITY_CORRUPT");
+  try {
+    const record = storedTaskFromRow(row);
+    if (productionTaskRowValid(row, record)) return record;
+  } catch (cause) {
+    throw executionFailure("failed", "PRODUCTION_TASK_AUTHORITY_CORRUPT", { cause });
   }
-  return record;
+  throw executionFailure("failed", "PRODUCTION_TASK_AUTHORITY_CORRUPT");
 };
 
 const sourceHandoffManifestValid = (
@@ -109,7 +111,8 @@ export abstract class ProductionStoreTaskState extends ProductionStoreSourceRead
       const manifest = JSON.parse(archived.source_manifest_json) as SourceAttemptHandoff;
       if (!sourceHandoffManifestValid(
         manifest, task, attemptId, archived.source_attempt_id, sealHash,
-      )) {
+      ) || manifest.readback_proofs.some(proof => proof.disposition === "unresolved"
+        || proof.effects.some(effect => effect.unresolved !== undefined))) {
         throw executionFailure("failed", "PRODUCTION_SOURCE_HANDOFF_CONFLICT");
       }
       const changed = this.database.prepare(`update production_tasks
@@ -252,6 +255,8 @@ export abstract class ProductionStoreTaskState extends ProductionStoreSourceRead
     WebsiteAgentResultSchema.parse(result);
     const accepted = this.readTask(jobId);
     assertResultIdentity(accepted, result);
+    const complete = this.readCompleteOutput(jobId, attemptId);
+    this.assertCompleteOutputResult(complete, result);
     if (accepted!.current_attempt_id !== attemptId
       || this.sourceAttemptClosed(jobId, attemptId)) {
       throw executionFailure("failed", "PRODUCTION_RESULT_ATTEMPT_FENCED");
@@ -331,22 +336,16 @@ export abstract class ProductionStoreTaskState extends ProductionStoreSourceRead
     return rows.map(taskAuthorityFromRow);
   }
 
-  public pendingAttemptFailures(): readonly StoredProductionTask[] {
-    const rows = this.database.prepare(`select job_id,request_hash,task_json,status,result_json,
-      staged_result_json,attempt_failure_json,current_attempt_id,current_reason,updated_at from production_tasks
-      where status='failed' and attempt_failure_json is not null
-      order by updated_at,job_id`).all() as TaskRow[];
-    return rows.map(taskAuthorityFromRow);
+  public jobIdsAfter(after: string | null, limit: number): readonly string[] {
+    if (!Number.isSafeInteger(limit) || limit < 1 || limit > 32) {
+      throw executionFailure("failed", "PRODUCTION_STATUS_PAGE_INVALID");
+    }
+    const rows = this.database.prepare(`select job_id from production_tasks
+      where (? is null or job_id>?) order by job_id limit ?`).all(after, after, limit) as Array<{ job_id: string }>;
+    return rows.map(row => row.job_id);
   }
 
-  public unfinishedExecutionsWithoutReceipt(): readonly StoredProductionTask[] {
-    const rows = this.database.prepare(`select job_id,request_hash,task_json,status,result_json,
-      staged_result_json,attempt_failure_json,current_attempt_id,current_reason,updated_at from production_tasks
-      where status='failed' and staged_result_json is null and attempt_failure_json is null
-        and current_attempt_id is not null
-      order by updated_at,job_id`).all() as TaskRow[];
-    return rows.map(taskAuthorityFromRow);
-  }
+  public async joinOutboxWrites(): Promise<void> { await this.outboxDeliveryTail; }
 
   public async purgeJob(jobId: string): Promise<void> {
     if (!jobId || /[\0]/u.test(jobId)) {

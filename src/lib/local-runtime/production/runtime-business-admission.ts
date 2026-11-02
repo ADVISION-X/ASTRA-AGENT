@@ -3,10 +3,11 @@ import { lstat, rm } from "node:fs/promises";
 
 import { executionFailure } from "../../execution-failure.js";
 import { failureCode } from "../../execution-failure.js";
-import { readProductionDeviceJobStatus } from "./cloud-reconciliation-client.js";
+import { readProductionDeviceJobStatus, type RemoteProductionDeviceJobStatus } from "./cloud-reconciliation-client.js";
 import type { RuntimeState } from "./runtime-state.js";
 import type { StoredProductionTask } from "./store.js";
 import { productionRuntimeTaskPath } from "./runtime-storage-inventory.js";
+import { typedRuntimeTransportFailure } from "./transport-failure.js";
 
 const nativeCode = (error: unknown): string | null =>
   error && typeof error === "object" && "code" in error && typeof error.code === "string"
@@ -34,29 +35,33 @@ const purgeProductionRuntimeTask = async (dataDir: string, jobId: string): Promi
 };
 
 export const websiteJobAbsent = (error: unknown): boolean => {
-  const code = failureCode(error, "");
-  return code === "AI_V6_JOB_NOT_FOUND"
-    || code === "AI_PRODUCTION_JOB_NOT_FOUND";
+  const transport = typedRuntimeTransportFailure(error);
+  return transport?.httpStatus === 404 && (transport.code === "AI_V6_JOB_NOT_FOUND"
+    || transport.code === "AI_PRODUCTION_JOB_NOT_FOUND");
 };
 
+/** Only the original worker calls cleanup, after authenticated exact absence. */
 export const purgeDeletedJob = async (state: RuntimeState, jobId: string): Promise<void> => {
+  const execution = state.active.get(jobId);
+  state.activeAbort.get(jobId)?.abort("WEBSITE_JOB_ABSENT");
   try {
-    state.activeAbort?.get(jobId)?.abort("WEBSITE_JOB_ABSENT");
-    await state.browserAuthority.releaseJobBoundTarget(
-      jobId, "website-admin-deletion", state.abort.signal,
-    );
+    if (execution) await execution;
+    await state.store.joinOutboxWrites();
+    await state.browserAuthority.releaseJobBoundTarget(jobId, "website-admin-deletion", state.abort.signal);
     state.browserAuthority.purgeBrowserJob(jobId, "website-admin-deletion");
     await state.evidenceStore.deleteArtifactsForMission(jobId);
     await purgeProductionRuntimeTask(state.dataDir, jobId);
     await state.store.purgeJob(jobId);
-  } catch (error) {
-    throw executionFailure("failed", "PRODUCTION_JOB_PURGE_FAILED", { cause: error });
+    if (!state.draining) state.drainJobIds?.delete(jobId);
+  } catch (cause) {
+    throw executionFailure("failed", "PRODUCTION_JOB_PURGE_FAILED", { cause });
   }
 };
 
 export const reconcileBusinessAdmission = async (
   state: RuntimeState,
   record: StoredProductionTask,
+  knownStatus?: RemoteProductionDeviceJobStatus,
 ): Promise<"completed" | "pending" | "deleted"> => {
   const staged = record.staged_result;
   if (!staged) return record.status === "completed" ? "completed" : "pending";
@@ -66,10 +71,10 @@ export const reconcileBusinessAdmission = async (
   if (!state.store.readResultReceivingReceipt(record.task.job_id, record.current_attempt_id, staged)) {
     let remote: Awaited<ReturnType<typeof readProductionDeviceJobStatus>>;
     try {
-      remote = await readProductionDeviceJobStatus(state.session, record.task.job_id);
+      remote = knownStatus ?? await readProductionDeviceJobStatus(state.session, record.task.job_id);
     } catch (error) {
       if (!websiteJobAbsent(error)) throw error;
-      await purgeDeletedJob(state, record.task.job_id);
+      state.activeAbort.get(record.task.job_id)?.abort("WEBSITE_JOB_ABSENT");
       return "deleted";
     }
     state.store.hydrateRemoteOutboxReceipts(record.task.job_id,

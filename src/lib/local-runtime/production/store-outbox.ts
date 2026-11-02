@@ -102,14 +102,26 @@ export abstract class ProductionStoreOutbox extends ProductionStoreCooldown {
       bodyHash: sha256(row.body_blob),
     }));
     const attemptHash = hashCanonical({ attempt_id: attemptId }).slice(7, 23);
+    const current = this.readTask(jobId);
+    const received = current?.status === "completed" && current.current_attempt_id === attemptId
+      && current.result && this.readResultReceivingReceipt(jobId, attemptId, current.result) ? current.result : null;
     return Object.freeze({
       historyHash: hashCanonical(facts),
       rowCount: rows.length,
       candidateCount: rows.filter((row) => {
-        if (row.kind !== "terminal") return row.path.includes("/artifacts/result_envelope/")
-          && row.path.includes(`_${attemptHash}_result_envelope_`);
+        if (row.kind !== "terminal") {
+          if (!row.path.includes("/artifacts/result_envelope/")
+            || !row.path.includes(`_${attemptHash}_result_envelope_`)) return false;
+          try { return !received || hashCanonical(JSON.parse(row.body_blob.toString("utf8"))) !== hashCanonical(received); }
+          catch { return true; }
+        }
         const terminalAttemptId = terminalBodyAttemptId(row.body_blob);
-        return terminalAttemptId === null || terminalAttemptId === attemptId;
+        if (terminalAttemptId !== null && terminalAttemptId !== attemptId) return false;
+        try {
+          const terminal = JSON.parse(row.body_blob.toString("utf8")) as Record<string, unknown>;
+          return !received || terminalAttemptId === null || terminal.terminal_status !== "completed"
+            || terminal.payload_hash !== hashCanonical(received);
+        } catch { return true; }
       }).length,
     });
   }

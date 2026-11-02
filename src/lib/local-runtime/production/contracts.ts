@@ -200,6 +200,7 @@ export interface ProductionExecutionLease {
     reason_codes: readonly string[];
   }> | null;
   provider_turns_used: number;
+  control_epoch: number;
   expires_at_monotonic: number;
   command_ttl_ms: number;
   readonly abort_signal: AbortSignal;

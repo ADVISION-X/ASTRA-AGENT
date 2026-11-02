@@ -11,13 +11,14 @@ import {
 import { failureCode, typedExecutionFailure } from "../../execution-failure.js";
 import { typedBrowserExecutionFailure } from "../../browser/browser-authority-api.js";
 import { claimProductionTasks } from "./cloud-client.js";
-import { readProductionDeviceJobStatus } from "./cloud-reconciliation-client.js";
+import { readProductionDeviceJobStatus, type RemoteProductionDeviceJobStatus } from "./cloud-reconciliation-client.js";
 import { productionCatalogHash } from "./catalog.js";
 import { PRODUCTION_BUSINESS_CAPACITY_MAX } from "./control-contract-dependency.js";
 import { hashCanonical } from "./contracts.js";
 import { prepareSourceHandoffs } from "./runtime-source-handoff.js";
 import type { ProductionRuntimeHealth } from "./runtime-contract.js";
-import { executeClaim, reconcilePendingAttemptFailures } from "./runtime-claim.js";
+import { executeClaim, reconcileAttemptFailure } from "./runtime-claim.js";
+import type { StoredProductionTask } from "./store.js";
 import { purgeDeletedJob, reconcileBusinessAdmission, websiteJobAbsent } from "./runtime-business-admission.js";
 import { terminalSpanFailure } from "./runtime-logging.js";
 import { typedRuntimeTransportFailure } from "./transport-failure.js";
@@ -169,7 +170,7 @@ const launchClaimJobs = (
     throw new Error("V6_CLAIM_BATCH_INVALID");
   }
   for (const job of jobs) {
-    state.drainJobIds?.add(job.job_id);
+    if (state.draining) state.drainJobIds?.add(job.job_id);
     const abort = new AbortController();
     state.activeAbort.set(job.job_id, abort);
     const tracked = executeClaim(state, job).catch((error) => {
@@ -184,49 +185,6 @@ const launchClaimJobs = (
     refreshLedgerReconciled(state);
   }
 };
-
-const reconcilePendingBusinessAdmissions = async (state: RuntimeState): Promise<void> => {
-  for (const task of state.store.pendingBusinessAdmissions()) {
-    let span: RuntimeSpanHandle | null = null;
-    try {
-      span = requireRuntimeLogWrite(state.runtimeLogger.startSpan({
-        traceId: task.task.job_id, owner: "production-runtime", component: "production-admission-readback",
-        operation: "website.v6-request",
-        typedIdentity: { kind: "job", jobId: task.task.job_id },
-      }));
-    } catch (error) {
-      state.lastErrorCode = failureCode(error, "RUNTIME_LOG_SINK_WRITE_FAILED");
-      state.lastErrorReason = safeReason(error);
-    }
-    let outcome: Awaited<ReturnType<typeof reconcileBusinessAdmission>> | null = null;
-    let admissionError: unknown = null;
-    try { outcome = await reconcileBusinessAdmission(state, task); }
-    catch (error) {
-      const transport = typedRuntimeTransportFailure(error);
-      if (!typedExecutionFailure(error) || transport && [401, 403].includes(transport.httpStatus)) throw error;
-      admissionError = error;
-      state.lastErrorCode = failureCode(error, "BUSINESS_ADMISSION_RECONCILIATION_FAILED");
-      state.lastErrorReason = safeReason(error);
-      state.store.setCurrentReason(task.task.job_id, state.lastErrorCode);
-    }
-    if (!span) continue;
-    try {
-      if (admissionError !== null) {
-        terminalSpanFailure(span, admissionError, runtimeLogCauseEventId(admissionError),
-          "BUSINESS_ADMISSION_RECONCILIATION_FAILED");
-      } else {
-        const current = outcome === "completed" ? state.store.readTask(task.task.job_id) : null;
-        requireRuntimeLogWrite(span.terminal({ outcome: "succeeded",
-          ...(current ? { authorityRef: `production-task:${task.task.job_id}`,
-            authorityHash: hashCanonical(current) } : {}) }));
-      }
-    } catch (error) {
-      state.lastErrorCode = failureCode(error, "RUNTIME_LOG_SINK_WRITE_FAILED");
-      state.lastErrorReason = safeReason(error);
-    }
-  }
-};
-
 export const reconcileCompletedBrowserTargets = async (state: RuntimeState): Promise<void> => {
   for (const jobId of state.store.pendingBrowserCleanupJobIds()) {
     if (state.abort.signal.aborted) break;
@@ -249,29 +207,117 @@ export const reconcileCompletedBrowserTargets = async (state: RuntimeState): Pro
     state.store.settleBrowserCleanup(jobId);
   }
 };
+type AuthorityReadback = Readonly<{ task: StoredProductionTask; remote: RemoteProductionDeviceJobStatus }>;
+const compareJobIds = (a: string, b: string): number => Buffer.compare(Buffer.from(a), Buffer.from(b));
 
-const reconcileUnfinishedExecutionsWithoutReceipt = async (state: RuntimeState): Promise<void> => {
-  for (const task of state.store.unfinishedExecutionsWithoutReceipt()) {
-    if (state.active.has(task.task.job_id)) continue;
-    try {
-      await readProductionDeviceJobStatus(state.session, task.task.job_id);
-    } catch (error) {
-      if (!websiteJobAbsent(error)) {
-        const transport = typedRuntimeTransportFailure(error);
-        if (!typedExecutionFailure(error) || transport && [401, 403].includes(transport.httpStatus)) throw error;
-        state.lastErrorCode = failureCode(error, "EXECUTION_RECONCILIATION_PENDING");
-        state.lastErrorReason = safeReason(error);
-        state.store.setCurrentReason(task.task.job_id, state.lastErrorCode);
-        continue;
-      }
+const recordJobReadbackFailure = (state: RuntimeState, jobId: string, error: unknown): void => {
+  const transport = typedRuntimeTransportFailure(error);
+  if (!typedExecutionFailure(error) || transport && [401, 403].includes(transport.httpStatus)) throw error;
+  state.lastErrorCode = failureCode(error, "EXECUTION_RECONCILIATION_PENDING");
+  state.lastErrorReason = safeReason(error);
+  state.store.setCurrentReason(jobId, state.lastErrorCode);
+};
+
+const readDeliveryCandidates = (state: RuntimeState): NonNullable<Parameters<typeof claimProductionTasks>[5]> => {
+  const candidates: NonNullable<Parameters<typeof claimProductionTasks>[5]>[number][] = [];
+  let cursor: string | null = null;
+  for (;;) {
+    const ids = state.store.jobIdsAfter(cursor, 32);
+    for (const jobId of ids) {
       try {
-        await purgeDeletedJob(state, task.task.job_id);
-      } catch (purgeError) {
-        state.store.setCurrentReason(task.task.job_id,
-          failureCode(purgeError, "PRODUCTION_JOB_PURGE_FAILED"));
-      }
+        const row = state.store.readTask(jobId);
+        if (!row || row.status !== "failed") continue;
+        if (state.store.readSealedSourceHandoff(jobId, row.current_attempt_id)) continue;
+        const complete = state.store.readCompleteOutput(jobId, row.current_attempt_id);
+        const candidateHash = row.staged_result?.execution_receipt_hash ?? complete?.execution_receipt_hash;
+        if (candidateHash) candidates.push({ job_id: jobId,
+          attempt_id: row.current_attempt_id, candidate_hash: candidateHash });
+      } catch (error) { recordJobReadbackFailure(state, jobId, error); }
+    }
+    if (ids.length < 32) break;
+    cursor = ids[ids.length - 1]!;
+  }
+  return candidates.sort((a, b) => compareJobIds(a.job_id, b.job_id));
+};
+
+const nextStatusJobIds = (state: RuntimeState): readonly string[] => {
+  if (state.draining && state.drainJobIds) {
+    const ids = [...state.drainJobIds].sort(compareJobIds), cursor = state.lastStatusJobId;
+    const page = [...ids.filter(id => cursor === null || compareJobIds(id, cursor) > 0),
+      ...ids.filter(id => cursor !== null && compareJobIds(id, cursor) <= 0)].slice(0, 32);
+    state.lastStatusJobId = page.at(-1) ?? null;
+    return page;
+  }
+  const priority = readDeliveryCandidates(state).slice(0, PRODUCTION_BUSINESS_CAPACITY_MAX).map(row => row.job_id);
+  const selected = new Set(priority);
+  for (let pageNumber = 0; pageNumber < 2 && selected.size < 32; pageNumber++) {
+    const page = [...new Set([...state.store.jobIdsAfter(state.lastStatusJobId, 32),
+      ...[...state.active.keys()].filter(id => state.lastStatusJobId === null
+        || compareJobIds(id, state.lastStatusJobId) > 0)])].sort(compareJobIds).slice(0, 32);
+    for (const id of page) {
+      state.lastStatusJobId = id;
+      selected.add(id);
+      if (selected.size === 32) break;
+    }
+    if (page.length === 0 || page.length < 32 && state.lastStatusJobId === page[page.length - 1]) {
+      state.lastStatusJobId = null;
     }
   }
+  return [...selected];
+};
+
+const reconcileOneAuthority = async (state: RuntimeState, jobId: string): Promise<AuthorityReadback | null> => {
+  let remote: RemoteProductionDeviceJobStatus;
+  try { remote = await readProductionDeviceJobStatus(state.session, jobId); }
+  catch (error) {
+    if (!websiteJobAbsent(error)) throw error;
+    await purgeDeletedJob(state, jobId);
+    return null;
+  }
+  if (remote.control_intent.intent !== "none") {
+    const running = state.active.get(jobId);
+    state.activeAbort.get(jobId)?.abort(`CONTROL_INTENT:${remote.control_intent.intent}:${remote.control_intent.reason_code ?? "none"}`);
+    if (running) await running;
+    await state.store.joinOutboxWrites();
+    if (remote.control_intent.intent === "cancel_requested"
+      && remote.control_intent.reason_code === "ADMIN_AI_WORK_ORDER_REPLACEMENT") {
+      (state.drainJobIds ??= new Set()).add(jobId);
+    }
+  }
+  let task = state.store.readTask(jobId);
+  if (!task) return null;
+  await reconcileBusinessAdmission(state, task, remote);
+  task = state.store.readTask(jobId);
+  if (!task) return null;
+  if (task.status === "failed" && task.attempt_failure) await reconcileAttemptFailure(state, task, remote);
+  return { task: state.store.readTask(jobId)!, remote };
+};
+
+/** One fair bounded status pass for all durable states; direct execution keeps its own safety read. */
+export const reconcileRuntimeAuthorities = async (state: RuntimeState): Promise<readonly AuthorityReadback[]> => {
+  const selected: AuthorityReadback[] = [];
+  for (const jobId of nextStatusJobIds(state)) {
+    let span: RuntimeSpanHandle | null = null;
+    try {
+      span = requireRuntimeLogWrite(state.runtimeLogger.startSpan({ traceId: jobId,
+        owner: "production-runtime", component: "production-admission-readback", operation: "website.v6-request",
+        typedIdentity: { kind: "job", jobId } }));
+    } catch (error) {
+      state.lastErrorCode = failureCode(error, "RUNTIME_LOG_SINK_WRITE_FAILED");
+      state.lastErrorReason = safeReason(error);
+    }
+    try {
+      const item = await reconcileOneAuthority(state, jobId);
+      if (item) selected.push(item);
+      if (span) requireRuntimeLogWrite(span.terminal({ outcome: "succeeded",
+        ...(item?.task.status === "completed" ? { authorityRef: `production-task:${jobId}`,
+          authorityHash: hashCanonical(item.task) } : {}) }));
+    } catch (error) {
+      recordJobReadbackFailure(state, jobId, error);
+      if (span) terminalSpanFailure(span, error, runtimeLogCauseEventId(error), "EXECUTION_RECONCILIATION_PENDING");
+    }
+  }
+  return selected;
 };
 
 const claimAdmissionEligible = (
@@ -290,14 +336,11 @@ const claimAdmissionEligible = (
 
 const workerIteration = async (state: RuntimeState): Promise<number> => {
   try {
-  await reconcilePendingBusinessAdmissions(state);
+  const authorities = await reconcileRuntimeAuthorities(state);
   if (!state.runtimeLogger.isWritable()) return 1_000;
-  const hasDeliveryCandidate = state.store.pendingBusinessAdmissions().length > 0;
   for (const reconcile of [
     () => state.providerRateLimitControl.reconcilePendingIntents(),
     () => state.executor.reconcilePendingProviderRateLimitIncidents(state.abort.signal),
-    () => reconcilePendingAttemptFailures(state),
-    () => reconcileUnfinishedExecutionsWithoutReceipt(state),
   ]) {
     try { await reconcile(); }
     catch (error) {
@@ -309,10 +352,8 @@ const workerIteration = async (state: RuntimeState): Promise<number> => {
     }
   }
   refreshLedgerReconciled(state);
-  if (state.draining) return 1_000;
-  const sourceEvidence = hasDeliveryCandidate
-    && state.browserAuthority.readProductionRuntimeState().browserAuthorityState !== "present"
-    ? [] : await prepareSourceHandoffs(state);
+  const sourceEvidence = await prepareSourceHandoffs(state,
+    authorities.map(item => ({ task: item.task, control: item.remote.control_intent })));
   const attestation = await state.session.ensureFreshAttestation();
   state.providerRateLimitControl.observeWebsiteAuthority({
     serverNow: attestation.issued_at,
@@ -327,22 +368,24 @@ const workerIteration = async (state: RuntimeState): Promise<number> => {
     row.status === "failed" && row.current_attempt_id !== null
       && !state.active.has(row.task.job_id)
       && !state.store.attemptClosedByWebsite(row.task.job_id, row.current_attempt_id));
-  const hasPendingStagedResult = state.store.pendingBusinessAdmissions().length > 0;
-  const deliveryCandidates = state.store.taskAuthorities()
-    .filter((row) => row.status === "failed" && row.current_attempt_id !== null
-      && row.staged_result !== null)
-    .map((row) => ({ job_id: row.task.job_id,
-      attempt_id: row.current_attempt_id!,
-      candidate_hash: hashCanonical(row.staged_result) }));
-  const hasExistingAttemptRecovery = hasAcceptedAttemptRecovery
-    || hasPendingStagedResult || sourceEvidence.length > 0;
+  const deliveryCandidates = state.draining ? [] : readDeliveryCandidates(state).filter(row => !state.active.has(row.job_id));
+  const hasPendingStagedResult = deliveryCandidates.length > 0;
+  const hasExistingAttemptRecovery = hasAcceptedAttemptRecovery || hasPendingStagedResult;
   const eligible = claimAdmissionEligible(state, availableNewSlots,
     hasExistingAttemptRecovery, hasPendingStagedResult, attestation.claim_eligible);
-  if (!eligible) return 1_000;
+  if (!state.ledgerReconciled || !eligible && sourceEvidence.length === 0) return 1_000;
+  const candidates = new Set(deliveryCandidates.map(row => row.job_id));
+  const sources = sourceEvidence.filter(source => !candidates.has(source.job_id));
+  const transportIds = [...new Set([...sources.map(source => source.job_id), ...candidates])].sort(compareJobIds);
+  const cursor = state.lastTransportJobId;
+  const page = [...transportIds.filter(id => cursor === null || compareJobIds(id, cursor) > 0),
+    ...transportIds.filter(id => cursor !== null && compareJobIds(id, cursor) <= 0)].slice(0, PRODUCTION_BUSINESS_CAPACITY_MAX);
+  const selected = new Set(page);
   const recoveryOnlyClaim = availableNewSlots <= 0 && hasExistingAttemptRecovery;
+  if (page.length) state.lastTransportJobId = page[page.length - 1]!;
   const batch = await requestClaimBatch(
-    state, Math.max(1, availableNewSlots), recoveryOnlyClaim,
-    sourceEvidence, deliveryCandidates,
+    state, Math.max(1, availableNewSlots), state.draining || recoveryOnlyClaim,
+    sources.filter(source => selected.has(source.job_id)), deliveryCandidates.filter(candidate => selected.has(candidate.job_id)),
   );
   launchClaimJobs(state, batch.jobs);
   return batch.outcome === "LEASE_GRANTED" ? 1_000 : batch.next_claim_after_ms;

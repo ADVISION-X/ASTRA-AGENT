@@ -234,7 +234,9 @@ const verifyCurrentSourceKinds = async (store: ProductionRuntimeStore): Promise<
     readAttemptPhysicalInputState: (job: string) => job === jobs[0]!.job_id ? "zero" : "unknown",
     readJobPhysicalInputState: (job: string) => job === jobs[0]!.job_id ? "zero" : "unknown",
     readJobBrowserHistoryEvidence: history } } as never;
-  const sealed = await prepareSourceHandoffs(state);
+  const sealed = await prepareSourceHandoffs(state, store.taskAuthorities().map(task => ({ task,
+    control: { schema_version: "xuanxue-ai-control-intent.v6", job_id: task.task.job_id,
+      intent: "none", control_epoch: 0, reason_code: null } })));
   assert.equal(sealed.length, 2, "unverified history may not create a source");
   const zero = sealed.find(source => source.job_id === jobs[0]!.job_id)!;
   assert.deepEqual([zero.kind, zero.browser_input_state, zero.replay_calls, zero.input_quiescence_proof],
@@ -341,7 +343,9 @@ export const verifyRepeatedCheckpointSourceHandoff = async (store: ProductionRun
         artifactRef: string; artifactContentHash: string }) => {
           artifactChecks++; assert.equal(input.artifactRef, duplicate.effect.settled_checkpoint.artifact_ref);
           assert.equal(input.artifactContentHash, duplicate.effect.settled_checkpoint.artifact_content_hash);
-        } }, lastErrorCode: null, lastErrorReason: null } as never);
+        } }, lastErrorCode: null, lastErrorReason: null } as never, store.taskAuthorities().map(task => ({ task,
+      control: { schema_version: "xuanxue-ai-control-intent.v6", job_id: task.task.job_id,
+        intent: "none", control_epoch: 0, reason_code: null } })));
     assert.equal(sealed.length, 1); assert.equal(sealed[0]!.source_attempt_id, store.readTask(jobId)!.current_attempt_id);
     assert.equal(sealed[0]!.browser_input_state, "zero"); assert.equal(artifactChecks, 1);
     assert.deepEqual(store.readIssuedSourceHandoffForAttempt(jobId, store.readTask(jobId)!.current_attempt_id!), before);

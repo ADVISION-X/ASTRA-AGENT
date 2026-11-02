@@ -224,7 +224,7 @@ try {
       throw executionFailure("failed", "PAYMENT_OBSERVATION_PROVIDER_FAILED"); } }, settle: async () => {
       settlements += 1; throw new Error("BROWSER_TARGET_CLOSE_FAILED"); } }));
   await assert.rejects(executor.execute(payment, materials, { attempt_id: "attempt:payment", device_id: "device:test",
-    lease_version: 1, execution_fence_hash: HASH_A, capability_manifest_hash: HASH_B, max_provider_turns: 1, provider_turns_used: 0,
+    lease_version: 1, execution_fence_hash: HASH_A, capability_manifest_hash: HASH_B, max_provider_turns: 1, provider_turns_used: 0, control_epoch: 0,
     result_revision: 0, prior_result_rejection: null, delivery_priority_replay_grant: null,
     expires_at_monotonic: performance.now() + 10000, command_ttl_ms: 1000, abort_signal: new AbortController().signal },
   "span:test", async () => { throw new Error("UNREACHABLE_COMPLETE"); }, async () => { throw new Error("UNREACHABLE_IMAGE"); }),
@@ -292,7 +292,7 @@ try {
     });
     if (mode === "log-failure") Reflect.set(executor, "logBrowserCleanup", () => { throw new Error("LATE_LOG_FAILED"); });
     const execution = executor.execute(candidate, materials, { attempt_id: "attempt:late", device_id: "device:test",
-      lease_version: 1, execution_fence_hash: HASH_A, capability_manifest_hash: HASH_B, max_provider_turns: 1, provider_turns_used: 0,
+      lease_version: 1, execution_fence_hash: HASH_A, capability_manifest_hash: HASH_B, max_provider_turns: 1, provider_turns_used: 0, control_epoch: 0,
       result_revision: 0, prior_result_rejection: null, delivery_priority_replay_grant: null,
       expires_at_monotonic: performance.now() + 10000, command_ttl_ms: 1000, abort_signal: new AbortController().signal },
     "span:test", async () => {
@@ -339,6 +339,6 @@ for (const evidenceMode of ["exam.golden", "exam.property"] as const) emitQualit
   locator: `acceptance:agent-production-runtime:credential:${evidenceMode}`,
   observedValue: "Original preflight and session-binding tests rejected typed credential/version failures before mutation, retained the long-lived credential, and kept blocked Shell healthy." });
 for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-006-V49", evidenceMode, clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "summary"],
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-006-V50", evidenceMode, clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "summary"],
   locator: `acceptance:agent-production-runtime:storage-inventory:${evidenceMode}`,
   observedValue: "Read-only inventory returned exact ownership/orphan bytes and rejected symlinks; startup preserved recoverable bytes and blocked execution without cleanup." });

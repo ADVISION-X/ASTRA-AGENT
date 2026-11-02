@@ -4,6 +4,8 @@ import { executionFailure, failureCode } from "../../execution-failure.js";
 import { agentRouteCapabilityManifest } from "./catalog.js";
 import { hashCanonical, type ProductionHash } from "./contracts.js";
 import { productionControlContractVersion } from "./control-contract-dependency.js";
+import { PRODUCTION_BUSINESS_CAPACITY_MAX } from "./control-contract-dependency.js";
+import { validSourceHandoff } from "./store-source-settlement.js";
 import {
   RuntimeAttestationReceiptSchema,
   ClaimBatchReceiptSchema,
@@ -46,6 +48,7 @@ const CLAIM_ATTESTATION_MIN_VALIDITY_MS = CLOUD_REQUEST_TIMEOUT_MS + 5_000;
 export class ProductionWorkerSession {
   private credential: WorkerSessionCredential | null = null;
   private attestation: RuntimeAttestationReceipt | null = null;
+  private attestedDrainState: ProductionRuntimeState["drain_state"] | null = null;
   private sequence = 0;
   private activeHeartbeat: Promise<RuntimeAttestationReceipt> | null = null;
   private sessionAuthorityTail: Promise<void> = Promise.resolve();
@@ -104,12 +107,14 @@ export class ProductionWorkerSession {
     this.sequence = response.session.attestation_seq as number;
     this.credential = credential;
     this.attestation = null;
+    this.attestedDrainState = null;
   }
 
   private async resynchronizeHeartbeatSession(): Promise<void> {
     const previous = this.credential;
     this.credential = null;
     this.attestation = null;
+    this.attestedDrainState = null;
     await this.open();
     if (previous && (this.credential!.worker_session_id !== previous.worker_session_id
       || this.credential!.worker_session_epoch !== previous.worker_session_epoch)) {
@@ -165,6 +170,7 @@ export class ProductionWorkerSession {
       }
       this.credential = credential;
       this.attestation = receipt;
+      this.attestedDrainState = state.drain_state;
       this.sequence = next;
       return receipt;
     } catch (error) {
@@ -194,7 +200,7 @@ export class ProductionWorkerSession {
       candidate_hash: `sha256:${string}` }>[] = [],
   ): Promise<unknown> {
     return this.runSessionAuthorityTurn(async () => {
-      const attestation = forceCurrentAttestation
+      const attestation = forceCurrentAttestation || this.runtimeState().drain_state === "draining"
         ? await this.performHeartbeat()
         : await this.freshAttestationInTurn(CLAIM_ATTESTATION_MIN_VALIDITY_MS);
       const claimRequest = {
@@ -208,6 +214,7 @@ export class ProductionWorkerSession {
         source_evidence: sourceEvidence,
         delivery_candidates: deliveryCandidates,
       } as const;
+      const drainingSource = this.attestedDrainState === "draining";
       const receipt = ClaimBatchReceiptSchema.parse(await this.request(
         "/internal/ai-production/v6/jobs/claim", {
         method: "POST",
@@ -215,6 +222,9 @@ export class ProductionWorkerSession {
       }));
       if (receipt.request_payload_hash !== hashCanonical(claimRequest)) {
         throw executionFailure("failed", "V6_CLAIM_RECEIPT_MISMATCH");
+      }
+      if (drainingSource && (receipt.outcome !== "DRAINING" || receipt.jobs.length !== 0)) {
+        throw executionFailure("failed", "V6_DRAINING_CLAIM_GRANTED");
       }
       return receipt;
     });
@@ -235,7 +245,7 @@ export class ProductionWorkerSession {
     const headers = { ...(await this.authorizationHeaders({ "content-type": "application/json" })),
       ...(init.headers ?? {}) };
     if (pathname === "/internal/ai-production/v6/jobs/claim" && this.runtimeState().drain_state === "draining") {
-      throw executionFailure("failed", "PRODUCTION_CLAIM_STOPPED");
+      this.assertDrainingSourceClaim(init);
     }
     const method = (init.method ?? "GET").toUpperCase();
     const existingSessionClose = method === "POST" && init.body === "{}" && this.credential !== null
@@ -273,6 +283,33 @@ export class ProductionWorkerSession {
     });
     this.credential = null;
     this.attestation = null;
+    this.attestedDrainState = null;
+  }
+
+  private assertDrainingSourceClaim(init: RequestInit): void {
+    let body: unknown;
+    try { body = typeof init.body === "string" ? JSON.parse(init.body) : null; }
+    catch { throw executionFailure("failed", "PRODUCTION_CLAIM_STOPPED"); }
+    if (!body || typeof body !== "object" || Array.isArray(body)) throw executionFailure("failed", "PRODUCTION_CLAIM_STOPPED");
+    const packet = body as Record<string, unknown>;
+    const sources = packet.source_evidence;
+    if ((init.method ?? "GET").toUpperCase() !== "POST"
+      || Object.keys(packet).sort().join("|") !== "control_protocol_version|delivery_candidates|request_id|requested_new_limit|runtime_attestation_receipt_hash|schema_version|source_evidence|worker_session_epoch|worker_session_id"
+      || packet.schema_version !== "xuanxue-ai-claim-request.v6" || packet.control_protocol_version !== "xuanxue-ai-production-v6"
+      || typeof packet.request_id !== "string" || !packet.request_id
+      || packet.worker_session_id !== this.workerSessionId || packet.worker_session_epoch !== this.workerSessionEpoch
+      || packet.runtime_attestation_receipt_hash !== this.attestation?.receipt_hash || this.attestedDrainState !== "draining"
+      || !this.runtimeState().ledger_reconciled || !Number.isSafeInteger(packet.requested_new_limit)
+      || Number(packet.requested_new_limit) < 1 || Number(packet.requested_new_limit) > PRODUCTION_BUSINESS_CAPACITY_MAX
+      || !Array.isArray(packet.delivery_candidates) || packet.delivery_candidates.length !== 0
+      || !Array.isArray(sources) || sources.length === 0 || sources.length > PRODUCTION_BUSINESS_CAPACITY_MAX
+      || sources.some(source => {
+        if (!validSourceHandoff(source) || source.outbox_candidate_count !== 0) return true;
+        const { seal_hash, ...facts } = source;
+        return !source.job_id || !source.source_attempt_id || seal_hash !== hashCanonical(facts);
+      }) || new Set(sources.map(source => source.job_id)).size !== sources.length) {
+      throw executionFailure("failed", "PRODUCTION_CLAIM_STOPPED");
+    }
   }
 
   private assertCloudMutationAllowed(): void {

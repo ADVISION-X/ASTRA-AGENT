@@ -73,7 +73,7 @@ const renewSessionFetch = (
     const url = String(input);
     if (url.endsWith("/sessions/open")) return successfulJsonResponse({
       session: { device_id: validDeviceCredential.device_id, worker_session_id: "worker-session:renew-retry",
-        worker_session_epoch: 1, control_contract_version: 47, attestation_seq: 0 },
+        worker_session_epoch: 1, control_contract_version: 49, attestation_seq: 0 },
       session_credential: {
         schema_version: "xuanxue-ai-worker-session-credential.v6",
         worker_session_id: "worker-session:renew-retry", worker_session_epoch: 1,
@@ -108,7 +108,7 @@ const budgetWithLeftMs = (leftMs: number): ProductionExecutionLease => ({
   attempt_id: "attempt:renew-retry", device_id: validDeviceCredential.device_id, lease_version: 1,
   execution_fence_hash: HASH_A, capability_manifest_hash: HASH_B,
   max_provider_turns: 8, result_revision: 0, prior_result_rejection: null,
-  delivery_priority_replay_grant: null, provider_turns_used: 0,
+  delivery_priority_replay_grant: null, provider_turns_used: 0, control_epoch: 0,
   expires_at_monotonic: performance.now() + leftMs, command_ttl_ms: 5_000,
   abort_signal: new AbortController().signal,
 });

@@ -3,14 +3,93 @@ import { acceptedSourceSettlements, targetlessFirstFactHash, validSourceReadback
   validSourceHandoff, parseSourceHandoffJson,
   type AcceptedSourceSettlement } from "./store-source-settlement.js";
 import { executionFailure } from "../../execution-failure.js";
-import { hashCanonical } from "./contracts.js";
+import { hashCanonical, sha256 } from "./contracts.js";
 import { ProductionStoreFoundation, json, now,
   type StoredProductionTask } from "./store-foundation.js";
+import type { ProductPluginOutput } from "../../../mediator/product-plugin-contract.js";
+import { UploadedResultReceiptSchema, type UploadedResultReceipt } from "./transport-protocol.js";
+import { createCompleteOutput, readCompleteOutputFile, writeCompleteOutputFile, type CompleteProductionOutput } from "./store-complete-output.js";
+import type { TerminalReceipt, WebsiteAgentResult } from "./contracts.js";
+import type { ControlIntent } from "./transport-protocol.js";
 
 /** Canonical source attempt readback and handoff facts over the Runtime database. */
 export abstract class ProductionStoreSourceReadback extends ProductionStoreFoundation {
   public abstract readTask(jobId: string): StoredProductionTask | null;
   public abstract readAttemptFailureRaw(jobId: string): string | null;
+  public abstract readResultReceivingReceipt(jobId: string, attemptId: string, result: WebsiteAgentResult): TerminalReceipt | null;
+  public abstract readResultPayloadSlotConflict(jobId: string, attemptId: string): SourceAttemptHandoff["payload_slot_conflict"];
+  public abstract readResultOutboxHistoryEvidence(jobId: string, attemptId: string): Readonly<{
+    historyHash: `sha256:${string}`; rowCount: number; candidateCount: number }>;
+  public preserveCompleteOutput(jobId: string, attemptId: string,
+    output: ProductPluginOutput, receipts: readonly UploadedResultReceipt[]) {
+    return this.database.transaction(() => {
+      const current = this.readTask(jobId);
+      if (!current || current.current_attempt_id !== attemptId || current.status !== "failed"
+        || current.staged_result !== null || this.sourceAttemptClosed(jobId, attemptId)) {
+        throw executionFailure("failed", "PRODUCTION_COMPLETE_OUTPUT_CONFLICT");
+      }
+      const complete = createCompleteOutput(current.task, attemptId, output, receipts);
+      this.assertCompleteOutputReceipts(complete);
+      return writeCompleteOutputFile(this.dataDir, current.task, complete);
+    }).immediate();
+  }
+  public readCompleteOutput(jobId: string, attemptId: string) {
+    const current = this.readTask(jobId);
+    const complete = current && current.current_attempt_id === attemptId
+      ? readCompleteOutputFile(this.dataDir, current.task, attemptId) : null;
+    if (complete) this.assertCompleteOutputReceipts(complete);
+    this.assertCompleteOutputResult(complete, current?.staged_result ?? current?.result ?? null);
+    return complete;
+  }
+  protected assertCompleteOutputResult(complete: CompleteProductionOutput | null, result: WebsiteAgentResult | null): void {
+    if (!complete || !result) return;
+    const bytes = Buffer.from(complete.payload_json, "utf8");
+    if (result.execution_receipt_hash !== complete.execution_receipt_hash
+      || result.result_payload_hash !== sha256(bytes) || result.result_payload_bytes !== bytes.byteLength
+      || hashCanonical(result.evidence_refs) !== hashCanonical(complete.evidence_refs)) {
+      throw executionFailure("failed", "PRODUCTION_COMPLETE_OUTPUT_IDENTITY_MISMATCH");
+    }
+  }
+  private assertCompleteOutputReceipts(complete: CompleteProductionOutput): void {
+    const suffix = `_${hashCanonical({ attempt_id: complete.attempt_id, role: "generated_image" }).slice(7, 23)}`;
+    const rows = this.database.prepare(`select response_json,response_hash from production_outbox
+      where kind='artifact' and instr(path,?)>0 and substr(path,-?)=? and sent_at is not null`).all(
+      `/jobs/${encodeURIComponent(complete.job_id)}/artifacts/generated_image/`, suffix.length, suffix,
+    ) as Array<{ response_json: string; response_hash: string }>;
+    const original = rows.map(row => {
+      let receipt: UploadedResultReceipt;
+      try { receipt = UploadedResultReceiptSchema.parse(JSON.parse(row.response_json)); }
+      catch (cause) { throw executionFailure("failed", "PRODUCTION_COMPLETE_OUTPUT_RECEIPTS_INVALID", { cause }); }
+      if (hashCanonical(receipt) !== row.response_hash) throw executionFailure("failed", "PRODUCTION_COMPLETE_OUTPUT_RECEIPTS_INVALID");
+      return hashCanonical(receipt);
+    }).sort();
+    if (hashCanonical(original) !== hashCanonical(complete.artifact_receipts.map(hashCanonical).sort())) {
+      throw executionFailure("failed", "PRODUCTION_COMPLETE_OUTPUT_RECEIPTS_INVALID");
+    }
+  }
+  public hasPendingCompleteOutput(jobId: string, attemptId: string, source?: SourceAttemptHandoff): boolean {
+    const output = this.readCompleteOutput(jobId, attemptId);
+    if (!output) return false;
+    const current = this.readTask(jobId)!;
+    if (current.status === "completed" && current.result
+      && current.result.execution_receipt_hash === output.execution_receipt_hash
+      && this.readResultReceivingReceipt(jobId, attemptId, current.result)) return false;
+    const conflict = source?.payload_slot_conflict;
+    return !source || source.kind !== "delivery_priority_replay"
+      || source.job_id !== jobId || source.source_attempt_id !== attemptId
+      || !conflict || conflict.new_payload_hash !== sha256(Buffer.from(output.payload_json, "utf8"))
+      || hashCanonical(conflict) !== hashCanonical(this.readResultPayloadSlotConflict(jobId, attemptId))
+      || source.readback_proofs.length === 0 || source.readback_proofs.length !== source.replay_calls.length
+      || source.readback_proofs.some(proof => proof.disposition !== "settled_reusable"
+        || !proof.effects.some(effect => effect.settled_checkpoint !== undefined)
+        || proof.effects.some(effect => effect.unresolved !== undefined));
+  }
+  public sealedSourceHandoffJobIds(): readonly string[] {
+    return (this.database.prepare(`select t.job_id from production_tasks t
+      join production_attempt_handoffs h on h.job_id=t.job_id and h.source_attempt_id=t.current_attempt_id
+      where h.seal_hash is not null and h.sealed_at is not null order by t.job_id`).all() as Array<{ job_id: string }>)
+      .map(row => row.job_id);
+  }
   protected sourceAttemptClosed(jobId: string, attemptId: string): boolean {
     return Boolean(this.database.prepare(`select 1 from production_attempt_handoffs
       where job_id=? and source_attempt_id=?
@@ -92,7 +171,7 @@ export abstract class ProductionStoreSourceReadback extends ProductionStoreFound
     return parsed as SourceReadbackObservation[];
   }
 
-  public sealSourceHandoff(manifest: SourceAttemptHandoff): void {
+  public sealSourceHandoff(manifest: SourceAttemptHandoff, retirementControl?: ControlIntent): void {
     const { seal_hash: sealHash, ...body } = manifest;
     const jobId = manifest.job_id;
     const attemptId = manifest.source_attempt_id;
@@ -100,8 +179,17 @@ export abstract class ProductionStoreSourceReadback extends ProductionStoreFound
     this.database.transaction(() => {
       const current = this.readTask(jobId);
       const firstRaw = this.readAttemptFailureRaw(jobId);
-      if (!current || current.status !== "failed" || current.current_attempt_id !== attemptId
+      const outbox = this.readResultOutboxHistoryEvidence(jobId, attemptId);
+      const retirement = retirementControl?.job_id === jobId && retirementControl.intent === "cancel_requested"
+        && retirementControl.reason_code === "ADMIN_AI_WORK_ORDER_REPLACEMENT" && retirementControl.control_epoch > 0;
+      if (!current || current.status !== "failed" && !(retirement && current.result
+          && this.readResultReceivingReceipt(jobId, attemptId, current.result))
+        || current.current_attempt_id !== attemptId
+        || outbox.candidateCount !== 0 || outbox.historyHash !== manifest.outbox_history_hash
         || current.staged_result !== null
+        || this.hasPendingCompleteOutput(jobId, attemptId, retirement ? undefined : manifest)
+        || !retirement && manifest.readback_proofs.some(proof => proof.disposition === "unresolved"
+          || proof.effects.some(effect => effect.unresolved !== undefined))
         || manifest.source_task_hash !== hashCanonical(current.task)
         || manifest.first_fact_raw_hash !== targetlessFirstFactHash(firstRaw)
         || hashCanonical(body) !== sealHash || !validSourceHandoff(manifest)) {
@@ -118,13 +206,13 @@ export abstract class ProductionStoreSourceReadback extends ProductionStoreFound
           && existing.first_fact_raw === firstRaw) return;
         throw executionFailure("failed", "PRODUCTION_SOURCE_HANDOFF_CONFLICT");
       }
-      const changed = this.database.prepare(`update production_tasks
+      const changed = current.status === "completed" ? null : this.database.prepare(`update production_tasks
         set current_reason=?,updated_at=?
         where job_id=? and status='failed' and current_attempt_id=?
           and staged_result_json is null`).run(
         reason, now(), jobId, attemptId,
       );
-      if (changed.changes !== 1) {
+      if (changed && changed.changes !== 1) {
         throw executionFailure("failed", "PRODUCTION_SOURCE_HANDOFF_CONFLICT");
       }
       if (!existing) this.database.prepare(`insert into production_attempt_handoffs(
@@ -138,7 +226,7 @@ export abstract class ProductionStoreSourceReadback extends ProductionStoreFound
         where job_id=? and source_attempt_id=? and seal_hash is null`).run(
         sealHash, json(manifest), firstRaw, now(), jobId, attemptId,
       );
-    })();
+    }).immediate();
   }
 
   public readSealedSourceHandoff(jobId: string, attemptId: string): SourceAttemptHandoff | null {

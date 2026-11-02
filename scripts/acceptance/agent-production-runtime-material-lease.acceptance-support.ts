@@ -56,7 +56,8 @@ const fixture = async (name: string) => {
     readPhysicalInput: (): "zero" => "zero",
     remote: async (): Promise<unknown> => deviceStatusWithoutAdmission(job.job_id).request(),
   };
-  const observed = { downloads: [] as number[], renews: [] as number[], executions: 0, terminals: 0,
+  let preflightRenewed = false;
+  const observed = { downloads: [] as number[], renews: [] as number[], preflightRenews: 0, executions: 0, terminals: 0,
     materials: [] as readonly LocalProductionMaterial[], budget: null as ProductionExecutionLease | null };
   const runtimeLogger = createRuntimeLogger({ producer: "agent-material-lease-acceptance", owner: "production-runtime",
     component: "production-runtime", terminalEnabled: false, fileSink: { directoryPath: join(directory, "logs") } });
@@ -65,7 +66,10 @@ const fixture = async (name: string) => {
     authorizationHeaders: async (headers: Record<string, string>) => { await controls.authorize(); return headers; },
     request: async (path: string, init?: RequestInit): Promise<unknown> => {
       if (path.endsWith("/device-status")) return controls.remote();
-      if (path.endsWith("/renew")) { observed.renews.push(performance.now()); return controls.renew(); }
+      if (path.endsWith("/renew")) {
+        if (!preflightRenewed) { preflightRenewed = true; observed.preflightRenews++; return renewReceipt(job.job_id); }
+        observed.renews.push(performance.now()); return controls.renew();
+      }
       assert.ok(path.endsWith("/terminal"), `unexpected material fixture request:${path}`);
       observed.terminals++;
       const body = JSON.parse(Buffer.from(init!.body as Uint8Array).toString("utf8"));
@@ -176,6 +180,7 @@ const exerciseLongDownload = async (clock: Clock, retry = false): Promise<void> 
       assert.equal(run.abort.signal.aborted, false);
     }
     release(); await work;
+    assert.equal(run.observed.preflightRenews, 1, "the original current fence is renewed before material preparation");
     assert.deepEqual(run.observed.renews.map(time => time - start),
       retry ? [20_000, 25_000, 45_000, 65_000, 85_000, 105_000] : [20_000, 40_000, 60_000, 80_000, 100_000]);
     assert.deepEqual(run.observed.downloads, [0, 1]); assert.equal(run.observed.executions, 1);
@@ -209,7 +214,8 @@ const exercisePreparationAbort = async (clock: Clock): Promise<void> => {
         if (mode === "retry") throw runtimeTransportFailure("AI_LEASE_FENCE_STALE", 409);
         const reply = renewReceipt(run.job.job_id);
         if (mode === "budget") reply.lease_expires_at = reply.server_now;
-        else reply.control_intent.intent = mode === "body-pause" ? "pause_requested" : "cancel_requested";
+        else { reply.control_intent.intent = mode === "body-pause" ? "pause_requested" : "cancel_requested";
+          reply.control_intent.control_epoch = 1; }
         return reply;
       };
       const work = executeClaim(run.state, run.job);
@@ -241,7 +247,11 @@ const exerciseAbortBoundaries = async (clock: Clock): Promise<void> => {
       };
       const work = executeClaim(run.state, run.job);
       if (mode === "headers") { await until(clock, () => !!release); run.abort.abort("PRODUCTION_RUNTIME_STOPPED"); release(); }
-      await work; await verifyBoundaryFailure(run);
+      await work;
+      if (mode === "pre") {
+        assert.equal(run.observed.executions, 0); assert.equal(run.observed.terminals, 0);
+        assert.equal(run.store.readTask(run.job.job_id)?.current_attempt_id, run.job.grant.attempt_id);
+      } else await verifyBoundaryFailure(run);
       assert.equal(run.observed.downloads.length, mode === "last-body" ? 2 : 0);
       assert.equal(clock.timers.size, 0);
     });

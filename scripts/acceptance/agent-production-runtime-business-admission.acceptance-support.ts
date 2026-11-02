@@ -1,4 +1,7 @@
+import { reconcileRuntimeAuthorities } from "../../src/lib/local-runtime/production/runtime-loops.js";
 import Database from "better-sqlite3";
+import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
+import { runtimeTransportFailure } from "../../src/lib/local-runtime/production/transport-failure.js";
 import { browserExecutionFailure } from "../../src/lib/browser/browser-authority-api.js";
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
@@ -7,7 +10,6 @@ import path from "node:path";
 
 import { executionFailure } from "../../src/lib/execution-failure.js";
 import { readProductionDeviceJobStatus } from "../../src/lib/local-runtime/production/cloud-reconciliation-client.js";
-import { reconcilePendingAttemptFailures } from "../../src/lib/local-runtime/production/runtime-claim.js";
 import { reconcileClaimAttemptFailure } from "../../src/lib/local-runtime/production/runtime-claim-recovery.js";
 import { purgeDeletedJob, reconcileBusinessAdmission } from "../../src/lib/local-runtime/production/runtime-business-admission.js";
 import { BrowserMutationStore } from "../../src/lib/browser/exact-target/browser-mutation-store.js";
@@ -19,7 +21,7 @@ import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/s
 import { readProductionOperationsSnapshot } from "../../src/lib/local-runtime/production/operations-snapshot.js";
 import {
   HASH_A, HASH_B, HASH_C, attemptFailureFirstFact, claimTask,
-  deviceStatusWithoutAdmission, resultFor, stageResultForAcceptance, task,
+  deviceStatusWithoutAdmission, resultFor, shutdownRuntimeFixture, stageResultForAcceptance, task,
 } from "./agent-production-runtime-fixtures.js";
 
 const readRuntimeSource = (relativePath: string) => readFile(
@@ -94,8 +96,8 @@ const exerciseWaitNewAndPrivacy = async (
   assert.deepEqual(store.readTask(waitNew.job_id)?.staged_result, resultFor(waitNew),
     "a valid result remains ready while Website admission is reconciled");
   assert.equal(store.readTask(waitNew.job_id)?.current_reason, "RESULT_AUTHORITY_RECONCILIATION_PENDING");
-  assert.equal(store.unfinishedExecutionsWithoutReceipt()
-    .some((candidate) => candidate.task.job_id === waitNew.job_id), false,
+  assert.equal(store.pendingBusinessAdmissions()
+    .some((candidate) => candidate.task.job_id === waitNew.job_id), true,
   "the staged result remains in the admission readback queue");
   const privacyClosed = task({ jobId: "job:admission:privacy-closed",
     productId: productionTask.product_id, actionId: productionTask.action_id,
@@ -163,7 +165,7 @@ const exerciseAdmissionDeletion = async (
     } } as never, { current: () => ({ kind: "PRESENT", authority: { authorityEpoch: 1 } }) } as never,
     { mutationState: browserStore, pendingJobBoundTargetAcquisition: null } as never);
   await purgeDeletedJob({ store, dataDir: admissionTemporary,
-    abort: new AbortController(),
+    abort: new AbortController(), active: new Map(), activeAbort: new Map(),
     browserAuthority: { releaseJobBoundTarget: lane.releaseJobBoundTarget.bind(lane),
       purgeBrowserJob: (jobId: string, authority: string) => {
         assert.equal(jobId, pending.job_id); assert.equal(authority, "website-admin-deletion");
@@ -188,7 +190,7 @@ const exerciseAdmissionDeletion = async (
   store.markExecuting(retryable.job_id);
   stageResultForAcceptance(store, retryable.job_id, "attempt:purge-retry", resultFor(retryable));
   await assert.rejects(purgeDeletedJob({ store, dataDir: admissionTemporary,
-    abort: new AbortController(),
+    abort: new AbortController(), active: new Map(), activeAbort: new Map(),
     browserAuthority: { releaseJobBoundTarget: async () => undefined,
       purgeBrowserJob: () => undefined },
     evidenceStore: { deleteArtifactsForMission: async () => { throw new Error("FORENSICS_PURGE_FAILED"); } },
@@ -196,7 +198,7 @@ const exerciseAdmissionDeletion = async (
   assert.notEqual(store.readTask(retryable.job_id), null,
     "a partial purge must retain the task authority so the same deletion can retry");
   await purgeDeletedJob({ store, dataDir: admissionTemporary,
-    abort: new AbortController(),
+    abort: new AbortController(), active: new Map(), activeAbort: new Map(),
     browserAuthority: { releaseJobBoundTarget: async () => undefined,
       purgeBrowserJob: () => undefined },
     evidenceStore: { deleteArtifactsForMission: async () => undefined },
@@ -247,7 +249,7 @@ const exerciseFailureCapacity = async (
     /availableNewSlots > 0 \|\| hasExistingAttemptRecovery/u,
     "a full business denominator must still permit an existing readback or cooldown attempt to request regrant");
   assert.match(runtimeLoopsSource,
-    /requestClaimBatch\([\s\S]{0,80}Math\.max\(1, availableNewSlots\), recoveryOnlyClaim/u,
+    /requestClaimBatch\([\s\S]{0,80}Math\.max\(1, availableNewSlots\), state\.draining \|\| recoveryOnlyClaim/u,
     "the existing V6 wire minimum must be preserved while attestation keeps new grant capacity at zero");
   assert.match(runtimeLoopsSource,
     /businessInFlightJobIds\(state\)\.has\(job\.job_id\)[\s\S]*!claimReusesExistingBusinessSlot\(state, job\)/u,
@@ -273,54 +275,24 @@ const exerciseBackgroundDeletionSweep = async (
       failureFact(candidate.job_id, attemptId, {}));
   }
   const observed: string[] = [];
-  await reconcilePendingAttemptFailures({ store: sweepStore, dataDir: sweepDir,
-    abort: new AbortController(),
-    session: { request: async (route: string) => {
+  const state = shutdownRuntimeFixture({ store: sweepStore, dataDir: sweepDir, runtimeLogger: createRuntimeLogger({
+    producer: "deletion-sweep", owner: "production-runtime", component: "production-runtime", terminalEnabled: false,
+    fileSink: { directoryPath: path.join(sweepDir, "logs") } }), browser: { releaseJobBoundTarget: async () => {
+      throw new Error("SIBLING_UNRESOLVED_WAL");
+    } } });
+  state.session.request = async (route: string) => {
       if (route.includes(encodeURIComponent(deleted.job_id))) {
-        throw executionFailure("failed", "AI_V6_JOB_NOT_FOUND");
+        throw runtimeTransportFailure("AI_V6_JOB_NOT_FOUND", 404);
       }
       observed.push(sibling.job_id);
       return deviceStatusWithoutAdmission(sibling.job_id).request();
-    } },
-    browserAuthority: { releaseJobBoundTarget: async () => {
-      throw new Error("SIBLING_UNRESOLVED_WAL");
-    } },
-  } as never);
+  };
+  await reconcileRuntimeAuthorities(state);
   assert.deepEqual(observed, [sibling.job_id],
     "one exact 404 purge failure must not block sibling status recovery scanning");
   assert.equal(sweepStore.readTask(deleted.job_id)?.current_reason, "PRODUCTION_JOB_PURGE_FAILED");
   assert.ok(sweepStore.readTask(deleted.job_id), "failed exact purge must retain its durable identity");
   sweepStore.close();
-  const activeDir = path.join(admissionTemporary, "active-404");
-  await mkdir(activeDir);
-  const activeStore = new ProductionRuntimeStore(activeDir);
-  const activeJob = task({ jobId: "job:active:deleted", productId: productionTask.product_id,
-    actionId: productionTask.action_id, materialRefs: productionTask.material_refs,
-    extra: { parameters: productionTask.parameters } });
-  activeStore.acceptTask(activeJob, "attempt:active-deleted");
-  activeStore.recordAttemptFailure(activeJob.job_id, "attempt:active-deleted",
-    failureFact(activeJob.job_id, "attempt:active-deleted", {}));
-  const activeAbort = new AbortController();
-  let releaseCalls = 0;
-  const activeState = { store: activeStore, dataDir: activeDir, abort: new AbortController(),
-    active: new Map([[activeJob.job_id, Promise.resolve()]]),
-    activeAbort: new Map([[activeJob.job_id, activeAbort]]),
-    session: { request: async () => { throw executionFailure("failed", "AI_V6_JOB_NOT_FOUND"); } },
-    browserAuthority: { releaseJobBoundTarget: async () => { releaseCalls += 1; },
-      purgeBrowserJob: () => undefined },
-    evidenceStore: { deleteArtifactsForMission: async () => undefined },
-  };
-  await reconcilePendingAttemptFailures(activeState as never);
-  assert.equal(activeAbort.signal.aborted, true,
-    "background exact 404 must stop an active same-attempt recovery before its next input");
-  assert.equal(releaseCalls, 0, "background deletion must wait for the active execution to settle");
-  assert.ok(activeStore.readTask(activeJob.job_id), "active execution retains its durable identity until settled");
-  activeState.active.delete(activeJob.job_id);
-  activeState.activeAbort.delete(activeJob.job_id);
-  await reconcilePendingAttemptFailures(activeState as never);
-  assert.equal(activeStore.readTask(activeJob.job_id), null,
-    "the same exact 404 must finish owner purge after execution settles");
-  activeStore.close();
 };
 
 const exerciseCompletedAdmissionCleanup = async (

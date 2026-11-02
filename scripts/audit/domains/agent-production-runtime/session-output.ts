@@ -8,7 +8,7 @@ const producers = {
   "static.sql": "inspectAgentSql", "static.types": "inspectAgentTypes",
 } as const;
 const clauses: Record<string, Partial<Record<keyof typeof producers, string[]>>> = {
-  [LAWS.core]: { "static.ast": staticClauses(0, 2, 3, 4, 5, 7, 8, 9),
+  [LAWS.core]: { "static.ast": staticClauses(0, 2, 3, 4, 5, 7, 8, 9, 10, 11),
     "static.contract": staticForbiddenClauses(0, 1, 4, 5), "static.types": staticForbiddenClauses(0),
     "static.dependency": staticForbiddenClauses(6) },
   [LAWS.credential]: { "static.ast": staticClauses(0, 2), "static.contract": staticForbiddenClauses(1),
@@ -19,7 +19,7 @@ const clauses: Record<string, Partial<Record<keyof typeof producers, string[]>>>
     "static.types": staticForbiddenClauses(0) },
   [LAWS.database]: { "static.ast": staticForbiddenClauses(2, 3), "static.sql": staticClauses(0, 1),
     "static.types": staticForbiddenClauses(1) },
-  [LAWS.storage]: { "static.ast": staticClauses(1, 2), "static.contract": staticForbiddenClauses(0),
+  [LAWS.storage]: { "static.ast": staticClauses(1, 2, 3), "static.contract": staticForbiddenClauses(0),
     "static.types": staticForbiddenClauses(0), "static.filesystem": staticForbiddenClauses(0) },
   [LAWS.staticQuality]: { "static.ast": staticForbiddenClauses(1), "static.contract": staticForbiddenClauses(1),
     "static.types": staticForbiddenClauses(1), "static.filesystem": staticForbiddenClauses(0),

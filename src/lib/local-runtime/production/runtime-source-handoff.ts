@@ -5,6 +5,7 @@ import { targetlessFirstFactHash } from "./store-source-settlement.js";
 import { claimProductionTasks } from "./cloud-client.js";
 import { safeReason, type RuntimeState } from "./runtime-state.js";
 import { historicalEffectsSettled, sourceReadbackProofs } from "./runtime-source-readback-proofs.js";
+import type { ControlIntent } from "./transport-protocol.js";
 
 type Task = ReturnType<RuntimeState["store"]["taskAuthorities"]>[number];
 type BrowserHistory = ReturnType<RuntimeState["browserAuthority"]["readJobBrowserHistoryEvidence"]>;
@@ -114,20 +115,21 @@ const inheritedReplayAlreadySettled = (
   && priorHandoff?.kind === "delivery_priority_replay" && !inheritedZeroSubmit
   && historicalEffectsSettled(beforeRelease.replayEffects, settledHistory, attemptId);
 
-const preflightSourceHandoff = (state: RuntimeState, task: Task, attemptId: string) => {
+const preflightSourceHandoff = (state: RuntimeState, task: Task, attemptId: string, retirementControl?: ControlIntent) => {
   const jobId = task.task.job_id;
   const outbox = state.store.readResultOutboxHistoryEvidence(jobId, attemptId);
-  if (outbox.candidateCount !== 0) return null;
+  if (outbox.candidateCount !== 0 || retirementControl && state.store.hasPendingCompleteOutput(jobId, attemptId)) return null;
   const browserInput = state.browserAuthority.readAttemptPhysicalInputState(jobId, attemptId);
   const historicalInput = state.browserAuthority.readJobPhysicalInputState(jobId);
   const observations = state.store.readSourceReadbackObservations(jobId, attemptId);
   const settledHistory = state.store.readAcceptedSourceSettlements(jobId);
   const rejected = task.attempt_failure?.failure_core;
-  const rejectedResult = isRejectedProviderResult(browserInput, rejected);
+  const rejectedResult = !retirementControl && isRejectedProviderResult(browserInput, rejected);
   const beforeRelease = state.browserAuthority.readJobBrowserHistoryEvidence(jobId);
   if (!beforeRelease.walHistoryVerified) return null;
   const { priorHandoff, inheritedZeroSubmit, payloadConflict: inheritedPayloadConflict } =
-    inheritedConflict(state, jobId, attemptId, browserInput, historicalInput);
+    retirementControl ? { priorHandoff: null, inheritedZeroSubmit: false, payloadConflict: null }
+      : inheritedConflict(state, jobId, attemptId, browserInput, historicalInput);
   if (inheritedZeroSubmit && inheritedPayloadConflict === null) return null;
   const historicalRejection = historicalRejectionSettled(
     priorHandoff, !!inheritedZeroSubmit, beforeRelease, settledHistory, attemptId);
@@ -135,12 +137,12 @@ const preflightSourceHandoff = (state: RuntimeState, task: Task, attemptId: stri
     !!inheritedZeroSubmit, beforeRelease, settledHistory, attemptId)) return null;
   const rejectedCall = rejectedResult && readExactRejectedProviderCall(beforeRelease, attemptId, rejected);
   if (rejectedResult && !rejectedCall) return null;
-  if (!historyReadbackAvailable(historicalInput === "zero" ? null : beforeRelease, rejectedResult, !!historicalRejection,
+  if (!retirementControl && !historyReadbackAvailable(historicalInput === "zero" ? null : beforeRelease, rejectedResult, !!historicalRejection,
     observations, settledHistory)) return null;
-  return { task, attemptId, outbox, browserInput, observations, settledHistory,
+  return { task, attemptId, outbox, browserInput, observations, settledHistory, retirementControl,
     rejected, rejectedResult, inheritedPayloadConflict, rejectedCall, historicalInput, beforeRelease,
-    ordinaryZeroSource: browserInput === "zero" && (historicalInput === "zero"
-      || historicalRejection && !inheritedZeroSubmit) };
+    ordinaryZeroSource: retirementControl ? historicalInput === "zero"
+      : browserInput === "zero" && (historicalInput === "zero" || historicalRejection && !inheritedZeroSubmit) };
 };
 
 type Preflight = NonNullable<ReturnType<typeof preflightSourceHandoff>>;
@@ -209,7 +211,7 @@ const sealSourceHandoff = (
       ? null : hashCanonical(readbackProofs.filter((proof) => proof.disposition === "replay_exhausted")),
   });
   const sealed = Object.freeze({ ...body, seal_hash: hashCanonical(body) });
-  state.store.sealSourceHandoff(sealed);
+  state.store.sealSourceHandoff(sealed, preflight.retirementControl);
   return sealed;
 };
 
@@ -220,6 +222,7 @@ const handoffProofEligible = (
   reusablePayloadConflict: boolean,
 ): boolean => {
   const { rejectedResult, rejectedCall } = preflight;
+  if (preflight.retirementControl) return readbackProofs.length === browser.replayCalls.length;
   if (rejectedResult && (readbackProofs.some((proof) => proof.disposition === "replay_exhausted")
     || browser.replayCalls.length - readbackProofs.length > 1
     || browser.replayCalls.length - readbackProofs.length === 1
@@ -261,7 +264,7 @@ const prepareOneSourceHandoff = async (
   const readbackProofs = preflight.ordinaryZeroSource ? []
     : rejectedResult && provedCalls.length === 0 ? []
     : sourceReadbackProofs({ ...browser, replayCalls: provedCalls,
-      replayEffects: priorEffects }, observations, settledHistory);
+      replayEffects: priorEffects }, observations, settledHistory, preflight.retirementControl);
   if (readbackProofs === null) return null;
   if (!await verifySourceArtifacts(state, jobId, readbackProofs.flatMap((proof) =>
     proof.effects.flatMap((effect) => effect.settled_checkpoint ? [{
@@ -285,16 +288,23 @@ const prepareOneSourceHandoff = async (
 
 export const prepareSourceHandoffs = async (
   state: RuntimeState,
+  authorities: readonly Readonly<{ task: Task; control: ControlIntent }>[],
 ): Promise<NonNullable<Parameters<typeof claimProductionTasks>[4]>> => {
   const evidence: SourceEvidence[] = [];
-  for (const task of state.store.taskAuthorities()) {
-    const jobId = task.task.job_id;
-    if (task.status !== "failed" || !task.current_attempt_id || task.staged_result
-      || state.active.has(jobId)) continue;
+  const current = new Map(authorities.map(item => [item.task.task.job_id, item.control]));
+  for (const jobId of new Set([...state.store.sealedSourceHandoffJobIds(), ...current.keys()])) {
     try {
+      const task = state.store.readTask(jobId);
+      if (!task || !task.current_attempt_id || state.active.has(jobId)) continue;
       const priorSeal = state.store.readSealedSourceHandoff(jobId, task.current_attempt_id);
       if (priorSeal) { assertSealedSourceHandoff(priorSeal); evidence.push(priorSeal); continue; }
-      const preflight = preflightSourceHandoff(state, task, task.current_attempt_id);
+      const control = current.get(jobId);
+      if (!control) continue;
+      if (control.job_id !== jobId) throw executionFailure("failed", "PRODUCTION_ATTEMPT_AUTHORITY_CONFLICT");
+      const retirement = control.intent === "cancel_requested"
+        && control.reason_code === "ADMIN_AI_WORK_ORDER_REPLACEMENT" && control.control_epoch > 0 ? control : undefined;
+      if (!retirement && (task.status !== "failed" || control.intent !== "none") || task.staged_result) continue;
+      const preflight = preflightSourceHandoff(state, task, task.current_attempt_id, retirement);
       if (!preflight) continue;
       const sealed = await prepareOneSourceHandoff(state, preflight);
       if (sealed) evidence.push(sealed);

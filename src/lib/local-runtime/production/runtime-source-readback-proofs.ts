@@ -1,6 +1,7 @@
 import { hashCanonical } from "./contracts.js";
 import type { RuntimeState } from "./runtime-state.js";
 import type { SourceReadbackCallProof, SourceReadbackEffectProof } from "./source-readback-contract.js";
+import type { ControlIntent } from "./transport-protocol.js";
 
 type BrowserHistory = ReturnType<RuntimeState["browserAuthority"]["readJobBrowserHistoryEvidence"]>;
 type BrowserEffect = BrowserHistory["replayEffects"][number];
@@ -157,9 +158,12 @@ const exhaustedProof = (effect: BrowserEffect, observations: Observations):
 };
 
 export const sourceReadbackProofs = (browser: BrowserHistory,
-  observations: Observations, settledHistory: SettledHistory):
+  observations: Observations, settledHistory: SettledHistory, retirementControl?: ControlIntent):
   readonly SourceReadbackCallProof[] | null => {
   if (!browser.walHistoryVerified || browser.replayCalls.length === 0) return null;
+  const retirement = retirementControl?.intent === "cancel_requested"
+    && retirementControl.reason_code === "ADMIN_AI_WORK_ORDER_REPLACEMENT" && retirementControl.control_epoch > 0;
+  const observedAt = new Date().toISOString();
   const calls: SourceReadbackCallProof[] = [];
   for (const call of browser.replayCalls) {
     const effects = browser.replayEffects.filter((effect) =>
@@ -177,7 +181,12 @@ export const sourceReadbackProofs = (browser: BrowserHistory,
         && item.provider_input_delta === 0);
       const checkpoint = accepted === undefined ? observedCheckpoint(effect, matched) : undefined;
       if (checkpoint === null) return null;
-      const proof = accepted ?? checkpoint ?? exhaustedProof(effect, matched);
+      const proof = accepted ?? checkpoint ?? exhaustedProof(effect, matched)
+        ?? (retirement ? Object.freeze({ ...identity(effect), unresolved: Object.freeze({
+          source_attempt_id: effect.attemptId, source_result_revision: effect.resultRevision,
+          wal_state: effect.state, mutation_outcome: effect.mutationOutcome,
+          physical_input_count: effect.physicalInputCount, observed_at: observedAt, provider_input_delta: 0 as const,
+        }) }) : null);
       if (!proof) return null;
       proofs.push(proof);
     }
@@ -185,7 +194,8 @@ export const sourceReadbackProofs = (browser: BrowserHistory,
       product_step_id: call.productStepId, call_id: call.callId,
       child_capability_id: call.childCapabilityId,
       source_effect_set_hash: call.sourceEffectSetHash,
-      disposition: proofs.some((effect) => effect.settled_checkpoint !== undefined)
+      disposition: proofs.some(effect => effect.unresolved !== undefined) ? "unresolved" as const
+        : proofs.some((effect) => effect.settled_checkpoint !== undefined)
         ? "settled_reusable" as const
         : proofs.some((effect) => effect.exact_negative !== undefined
           || effect.unaddressable !== undefined)

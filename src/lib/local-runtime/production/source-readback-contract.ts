@@ -34,30 +34,36 @@ type SettledCheckpoint = Readonly<{
 }>;
 export type SourceReadbackEffectProof = EffectIdentity & Readonly<
   { settled_checkpoint: SettledCheckpoint; rejection_settled?: never;
-    risk_authorized?: never; exact_negative?: never; unaddressable?: never }
+    risk_authorized?: never; exact_negative?: never; unaddressable?: never; unresolved?: never }
   | { rejection_settled: Readonly<{ source_attempt_id: string;
       source_handoff_seal_hash: ProductionHash }>;
     settled_checkpoint?: never; risk_authorized?: never;
-    exact_negative?: never; unaddressable?: never }
+    exact_negative?: never; unaddressable?: never; unresolved?: never }
   | { risk_authorized: Readonly<{ source_handoff_seal_hash: ProductionHash }>;
     settled_checkpoint?: never; rejection_settled?: never;
-    exact_negative?: never; unaddressable?: never }
+    exact_negative?: never; unaddressable?: never; unresolved?: never }
   | { exact_negative: Readonly<{ proof_hash: ProductionHash;
       first_observed_at: string; observed_at: string; observation_count: number;
       pending_cause: "exact-user-turn-unavailable" | "adjacent-assistant-missing";
       canonical_conversation_hash: ProductionHash; user_turn_hash: ProductionHash;
       provider_input_delta: 0 }>;
     settled_checkpoint?: never; rejection_settled?: never;
-    risk_authorized?: never; unaddressable?: never }
+    risk_authorized?: never; unaddressable?: never; unresolved?: never }
   | { unaddressable: Readonly<{ proof_hash: ProductionHash;
       observed_at: string; provider_input_delta: 0 }>;
     settled_checkpoint?: never; rejection_settled?: never;
-    risk_authorized?: never; exact_negative?: never }
+    risk_authorized?: never; exact_negative?: never; unresolved?: never }
+  | Readonly<{ unresolved: Readonly<{ source_attempt_id: string; source_result_revision: number;
+      wal_state: "DISPATCHED" | "CONFIRMED" | "REJECTED";
+      mutation_outcome: "no" | "dispatched" | "confirmed"; physical_input_count: number;
+      observed_at: string; provider_input_delta: 0 }>;
+    settled_checkpoint?: never; rejection_settled?: never; risk_authorized?: never;
+    exact_negative?: never; unaddressable?: never }>
 >;
 export type SourceReadbackCallProof = Readonly<{
   product_step_id: string; call_id: string; child_capability_id: string;
   source_effect_set_hash: ProductionHash;
-  disposition: "settled_reusable" | "replay_exhausted" | "historical_settled";
+  disposition: "settled_reusable" | "replay_exhausted" | "historical_settled" | "unresolved";
   effects: readonly SourceReadbackEffectProof[];
 }>;
 export type InputQuiescenceProof = Readonly<{

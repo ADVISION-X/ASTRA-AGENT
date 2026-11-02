@@ -192,6 +192,7 @@ export const shutdownRuntimeFixture = (input: Readonly<{
     dataDir: input.dataDir, runtimeLogger: input.runtimeLogger,
     draining: false, iteration: null, drainJobIds: null, lastHeartbeat: null,
     lastErrorCode: null, lastErrorReason: null, stopped: false, ledgerReconciled: false,
+    lastStatusJobId: null, lastTransportJobId: null,
   };
   return state;
 };
@@ -283,12 +284,12 @@ const executionGrant = (base: WebsiteAgentTask) => {
     worker_session_id: "worker:1", worker_session_epoch: 1, lease_token: `lease:${base.job_id}`,
     lease_version: 1, server_now: "2030-01-01T00:00:00.000Z",
     lease_expires_at: "2030-01-01T00:05:00.000Z", renew_after_ms: 20_000,
-    control_contract_version: 47,
+    control_contract_version: 49,
     execution_fence: {
       schema_version: "xuanxue-ai-execution-fence.v6", environment_id: "production", device_id: "device:1",
       device_epoch: 1, worker_session_id: "worker:1", worker_session_epoch: 1, job_id: base.job_id,
       attempt_id: `attempt:${base.job_id}`, lease_version: 1, lease_token_hash: HASH_A,
-      control_contract_version: 47, fence_hash: HASH_B,
+      control_contract_version: 49, fence_hash: HASH_B,
     },
   } as const;
 };
@@ -302,6 +303,13 @@ export const claimTask = (base: WebsiteAgentTask): ClaimedProductionTask => {
     grant: executionGrant(base),
   });
 };
+
+export const renewReceiptForClaim = (job: ClaimedProductionTask) => ({
+  schema_version: "xuanxue-ai-lease-renew-receipt.v6", job_id: job.job_id,
+  server_now: job.grant.server_now, lease_expires_at: job.grant.lease_expires_at, renew_after_ms: 20_000,
+  control_intent: { schema_version: "xuanxue-ai-control-intent.v6", job_id: job.job_id,
+    intent: "none", control_epoch: 0, reason_code: null },
+});
 
 export const failureStatus = (
   jobId: string,

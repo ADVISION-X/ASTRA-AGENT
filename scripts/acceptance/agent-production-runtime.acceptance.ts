@@ -6,7 +6,7 @@ import { readProductionDeviceJobStatus } from "../../src/lib/local-runtime/produ
 import { WebsiteAgentTaskSchema, hashCanonical } from "../../src/lib/local-runtime/production/contracts.js";
 import { websiteJobAbsent } from "../../src/lib/local-runtime/production/runtime-business-admission.js";
 import { ClaimBatchReceiptSchema, ClaimedProductionTaskSchema, parseJsonEnvelope, websiteAgentTaskFromClaim } from "../../src/lib/local-runtime/production/transport-protocol.js";
-import { executionFailure, typedExecutionFailure } from "../../src/lib/execution-failure.js";
+import { typedExecutionFailure } from "../../src/lib/execution-failure.js";
 import { authorizeWebsiteAgentTask, dispatchWebsiteAgentTask } from "../../src/mediator/agent-production-route.js";
 import { ADMISSION_JOB_ID, HASH_A, HASH_B, admissionReceipt, admissionReceiptFor, claimTask, deviceStatusWithAdmission, resultFor, task } from "./agent-production-runtime-fixtures.js";
 import { exerciseOperationsAndBusinessAdmission } from "./agent-production-runtime-business-admission.acceptance-support.js";
@@ -16,6 +16,8 @@ import { exerciseGeneratedImageTransport } from "./agent-production-runtime-gene
 import { verifyGptDialogMismatchRuntimeContract, verifyKnownGptRateLimitRuntimeContract } from "./agent-production-runtime-dialog-failure.acceptance-support.js";
 import { verifyAttemptFailureReadbackRuntimeContract } from "./agent-production-runtime-browser-failure.acceptance-support.js";
 import { exerciseProductionRuntimeSourceBoundaries } from "./agent-production-runtime-recovery-boundary.acceptance-support.js";
+import { verifySourceTransportGates } from "./agent-production-runtime-store-schema.acceptance-support.js";
+import { runtimeTransportFailure } from "../../src/lib/local-runtime/production/transport-failure.js";
 import "./agent-production-runtime-ledger.acceptance.js";
 import "./agent-production-runtime-proof-boundary.acceptance.js";
 import "./agent-production-runtime-startup.acceptance.js";
@@ -38,7 +40,7 @@ assert.equal(claimTask(longIdentity).source_task_id, longIdentity.source_task_id
 assert.equal(resultFor(longIdentity).source_task_id, longIdentity.source_task_id);
 assert.deepEqual(websiteAgentTaskFromClaim(claimTask(primary)), primary);
 for (const [code, absent] of [["AI_V6_JOB_NOT_FOUND", true], ["AI_V6_DEVICE_JOB_NOT_FOUND", false],
-  ["CLOUD_TRANSPORT_UNAVAILABLE", false]] as const) assert.equal(websiteJobAbsent(executionFailure("failed", code)), absent);
+  ["CLOUD_TRANSPORT_UNAVAILABLE", false]] as const) assert.equal(websiteJobAbsent(runtimeTransportFailure(code, 404)), absent);
 
 for (const receipt of [admissionReceipt(), admissionReceipt({ bazi_domain_admission_receipt_hash: HASH_A,
   delivery_manifest_id: "manifest:current", delivery_manifest_hash: HASH_B }), admissionReceipt({ review_receipt_hash: HASH_B })]) {
@@ -62,7 +64,7 @@ for (const reason_codes of [[], ["GLOBAL_QUEUE_EMPTY_OR_INELIGIBLE"], ["NO_UNFIN
 const sixTasks = Array.from({ length: 6 }, (_, index) =>
   claimTask({ ...primary, job_id: `job:capacity-six:${index}` }));
 const sixSession = {
-  workerSessionId: "worker:1", workerSessionEpoch: 1, controlContractVersion: 47,
+  workerSessionId: "worker:1", workerSessionEpoch: 1, controlContractVersion: 49,
   async requestClaim(requestId: string, limit: number) {
     assert.equal(limit, 6);
     return { ...noDemand, request_id: requestId, outcome: "LEASE_GRANTED", jobs: sixTasks, reason_codes: [] };
@@ -102,6 +104,7 @@ await assert.rejects(dispatchWebsiteAgentTask(primary, () => { throw new Error("
 await exerciseOperationsAndBusinessAdmission(primary);
 await exerciseWorkerSessionRotation();
 await exerciseHeartbeatResponseLossRecovery();
+await verifySourceTransportGates();
 await exerciseLeaseRenewRetry();
 await exerciseGeneratedImageTransport(primary);
 await verifyGptDialogMismatchRuntimeContract();
@@ -109,17 +112,17 @@ await verifyKnownGptRateLimitRuntimeContract();
 await verifyAttemptFailureReadbackRuntimeContract();
 await exerciseProductionRuntimeSourceBoundaries();
 for (const evidenceMode of ["exam.property", "exam.state-machine"] as const) {
-  emitQualityProofObservation({ lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V81", evidenceMode,
-    clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "forbidden:3", "forbidden:5", "summary"],
+  emitQualityProofObservation({ lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V82", evidenceMode,
+    clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "forbidden:3", "forbidden:5", "forbidden:10", "forbidden:11", "summary"],
     locator: `acceptance:agent-production-runtime:runtime-authority:${evidenceMode}`,
     observedValue: "Original durable ledger, immutable failure readback, same-attempt delivery, bounded lease renewal, session rotation and pending Website admission exercised without a second lifecycle." });
 }
 for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) {
-  emitQualityProofObservation({ lawId: "LAW-AGENT-PRODUCTION-RUNTIME-004-V48", evidenceMode,
+  emitQualityProofObservation({ lawId: "LAW-AGENT-PRODUCTION-RUNTIME-004-V49", evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "summary"], locator: `acceptance:agent-production-runtime:receiving:${evidenceMode}`,
     observedValue: "Original receiving receipts close local delivery before domain consumption; bad or absent receipts preserve original recovery and immutable results." });
 }
-emitQualityProofObservation({ lawId: "LAW-AGENT-PRODUCTION-RUNTIME-007-V49", evidenceMode: "exam.golden",
+emitQualityProofObservation({ lawId: "LAW-AGENT-PRODUCTION-RUNTIME-007-V50", evidenceMode: "exam.golden",
   clauses: ["forbidden:0", "summary"], locator: "acceptance:agent-production-runtime:manifest-owner-fail-closed",
   observedValue: "Original ownership and recovery support accepted Runtime primary scope and rejected adjacent Product/Mediator ownership." });
 process.stdout.write("[ACCEPTANCE][agent-production-runtime] Runtime contracts exercised\n");

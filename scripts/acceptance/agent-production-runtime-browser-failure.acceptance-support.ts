@@ -1,10 +1,10 @@
+import { reconcileRuntimeAuthorities } from "../../src/lib/local-runtime/production/runtime-loops.js";
 import { stageResultForAcceptance } from "./agent-production-runtime-fixtures.js";
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 
 import { ProductionRuntimeStore as RuntimeStore } from "../../src/lib/local-runtime/production/store.js";
 import {
   executeClaim,
-  reconcilePendingAttemptFailures,
 } from "../../src/lib/local-runtime/production/runtime-claim.js";
 import { executionFailure } from "../../src/lib/execution-failure.js";
 import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
@@ -15,7 +15,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { HASH_A, HASH_B, HASH_C, attemptFailureFirstFact, claimTask, failureStatus,
-  resultFor, shutdownRuntimeFixture, task } from "./agent-production-runtime-fixtures.js";
+  resultFor, renewReceiptForClaim, shutdownRuntimeFixture, task } from "./agent-production-runtime-fixtures.js";
 import { verifyFailureReleaseReadbackScenarios, verifyAttemptFailureClassificationMatrix } from
   "./agent-production-runtime-failure-readback.acceptance-support.js";
 import {
@@ -63,6 +63,7 @@ try {
       workerSessionId: "worker:claim-failure-rebind", workerSessionEpoch: 1,
       device: { server_base_url: "http://127.0.0.1:4322" },
       request: async (path: string, options?: Readonly<{ body?: string }>) => {
+        if (path.endsWith("/renew")) return renewReceiptForClaim(job);
         if (path.endsWith("/lease-release")) {
           releaseRequests += 1;
           committedRequest = JSON.parse(options?.body ?? "null") as Readonly<Record<string, unknown>>;
@@ -156,10 +157,10 @@ try {
     draining: false, lastHeartbeat: null, lastErrorCode: null, lastErrorReason: null,
     stopped: false, ledgerReconciled: true,
   } as never;
-  await reconcilePendingAttemptFailures(state);
+  await reconcileRuntimeAuthorities(state);
   const reconciled = store.readTask(websiteTask.job_id);
-  assert.equal(reads, 2,
-    "consume-current-result must read the failure disposition and then receiving authority");
+  assert.equal(reads, 1,
+    "consume-current-result shares this iteration's exact failure and receiving authority readback");
   assert.deepEqual(reconciled?.attempt_failure, failure,
     "consume-current-result must preserve the first failure fact until Website receiving is confirmed");
   assert.deepEqual(reconciled?.staged_result, staged,
@@ -230,6 +231,7 @@ const verifyNewLeaseConflictScenario = async (scenario: Readonly<{
         workerSessionId: "worker:claim-new-lease-conflict", workerSessionEpoch: 1,
         device: { server_base_url: "http://127.0.0.1:4322" },
         request: async (requestPath: string) => {
+          if (requestPath.endsWith("/renew")) return renewReceiptForClaim(job);
           if (requestPath.endsWith("/lease-release")) {
             releaseRequests += 1;
             throw new Error("UNEXPECTED_RELEASE");
@@ -327,6 +329,7 @@ const verifyFirstSettledFailureDuringAcceptedReadback = async (): Promise<void> 
     state.executor.accept = (value, attemptId) => store.acceptTask(value, attemptId);
     state.executor.execute = async () => { executions += 1; throw failure; };
     state.session.request = async (path, options) => {
+      if (path.endsWith("/renew")) return renewReceiptForClaim(job);
       if (path.endsWith("/lease-release")) {
         releases.push(JSON.parse(String(options.body)) as Record<string, unknown>);
         return { ok: true };
@@ -376,23 +379,22 @@ const verifyUnresolvedBrowserMutationDoesNotStarveClaimRecovery = async (): Prom
       next_action_code: "WAIT_NEW_ATTEMPT" };
     let released = 0;
     let unresolved = true;
-    const state = {
-      store,
-      session: { request: async () => remote },
-      browserAuthority: {
+    const state = shutdownRuntimeFixture({ store, dataDir: directory,
+      runtimeLogger: createRuntimeLogger({ producer: "unresolved-browser-reconciliation", owner: "production-runtime",
+        component: "production-runtime", terminalEnabled: false, fileSink: { directoryPath: join(directory, "logs") } }),
+      browser: {
         hasUnresolvedBrowserMutation: () => unresolved,
         readJobPhysicalInputState: () => "zero",
         releaseJobBoundTarget: async () => { released += 1; },
-      },
-      abort: new AbortController(),
-    } as never;
-    await reconcilePendingAttemptFailures(state);
+      } });
+    state.session.request = async () => remote;
+    await reconcileRuntimeAuthorities(state);
     assert.equal(released, 1,
       "an unrelated historical Browser mutation cannot postpone Website-authorized target release");
     assert.deepEqual(store.readTask(job.job_id)?.attempt_failure, failure,
       "resource release must retain the immutable failed-attempt authority");
     unresolved = false;
-    await reconcilePendingAttemptFailures(state);
+    await reconcileRuntimeAuthorities(state);
     assert.equal(released, 2, "the next original reconciliation remains reachable without a historical gate");
     assert.equal(store.readTask(job.job_id)?.current_reason,
       "SOURCE_HANDOFF_RECONCILIATION_PENDING");

@@ -313,6 +313,7 @@ export class ProductionExecutor {
     providerEffectReadbackProof: ProviderEffectReadbackProofV1 | null;
   }>> {
     let completed = false;
+    let completionStarted = false;
     let completedEnvelope: WebsiteAgentResult | null = null;
     let readProviderEffectReadbackProof: () => ProviderEffectReadbackProofV1 | null = () => null;
     const gptLifecycle: GptExecutionLifecycle = { decorateFailure: null, settle: null };
@@ -347,11 +348,8 @@ export class ProductionExecutor {
           },
           uploadGeneratedImage: input.uploadGeneratedImage,
           complete: async (output) => {
-            if (input.lease.abort_signal.aborted) {
-              throw executionFailure("failed", typeof input.lease.abort_signal.reason === "string"
-                ? input.lease.abort_signal.reason : "PRODUCTION_EXECUTION_ABORTED");
-            }
-            if (completed) throw new Error("PLUGIN_RESULT_ALREADY_COMPLETED");
+            if (completionStarted) throw new Error("PLUGIN_RESULT_ALREADY_COMPLETED");
+            completionStarted = true;
             const envelope = await input.complete(output);
             completedEnvelope = envelope;
             completed = true;
@@ -360,14 +358,16 @@ export class ProductionExecutor {
         };
       });
     } catch (error) {
-      primaryError = this.readInvocationResult(input.task, input.lease.attempt_id, completedEnvelope)
+      primaryError = (this.store.readCompleteOutput(input.task.job_id, input.lease.attempt_id)
+        || this.readInvocationResult(input.task, input.lease.attempt_id, completedEnvelope))
         ? error : gptLifecycle.decorateFailure?.(error) ?? error;
       throw primaryError;
     } finally {
       try {
         await settleGptExecution(gptLifecycle, primaryError);
       } catch (cleanupError) {
-        if (!this.readInvocationResult(input.task, input.lease.attempt_id, completedEnvelope)) throw cleanupError;
+        if (!this.store.readCompleteOutput(input.task.job_id, input.lease.attempt_id)
+          && !this.readInvocationResult(input.task, input.lease.attempt_id, completedEnvelope)) throw cleanupError;
         this.logBrowserCleanup({ jobId: input.task.job_id, attemptId: input.lease.attempt_id,
           pluginId: input.task.product_id, stepId: "browser.settle", error: cleanupError });
       }

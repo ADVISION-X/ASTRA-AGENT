@@ -8,7 +8,8 @@ import type Database from "better-sqlite3";
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
 import { heartbeatWhileRunning, ProductionRuntimeBoundaryError } from "../../src/lib/local-runtime/production/runtime-execution-heartbeat.js";
 import { buildTerminalProductionIntent, deliverTerminalProductionIntent } from "../../src/lib/local-runtime/production/cloud-terminal-intent.js";
-import { hashCanonical } from "../../src/lib/local-runtime/production/contracts.js";
+import { hashCanonical, sha256 } from "../../src/lib/local-runtime/production/contracts.js";
+import type { CompleteProductionOutput } from "../../src/lib/local-runtime/production/store-complete-output.js";
 import { task, claimTask, resultFor, shutdownRuntimeFixture, deviceStatusWithoutAdmission,
   deviceStatusWithAdmission, admissionReceiptFor } from "./agent-production-runtime-fixtures.js";
 import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
@@ -68,7 +69,8 @@ export const exerciseFirstTerminalBeforeProducerCleanup = async (store: Producti
   }).outputText;
   for (const mode of ["completed-race", "send-unknown", "stage-failure", "foreign-attempt", "foreign-result", "cancel", "pause"] as const) {
     const job = task({ jobId: `job:first-send-${mode}`, productId: "payment_screenshot_observation", actionId: "observe" });
-    const claim = claimTask(job), result = resultFor(job), order: string[] = [];
+    const claim = claimTask(job), order: string[] = [];
+    let result = resultFor(job);
     const envelopeHash = hashCanonical("fixture:envelope");
     const receipts = [{ role: "result_payload", receipt_hash: result.result_object_receipt.receipt_hash },
       { role: "result_envelope", receipt_hash: envelopeHash }];
@@ -116,7 +118,13 @@ export const exerciseFirstTerminalBeforeProducerCleanup = async (store: Producti
       const api: Record<string, (input: unknown) => Promise<unknown>> = {};
       runInNewContext(code, { exports: api, heartbeatWhileRunning,
         downloadProductionMaterials: async () => [],
-        uploadProductionResult: async () => ({ envelope: result, artifact_receipts: receipts }),
+        uploadProductionResult: async ({ complete }: { complete: CompleteProductionOutput }) => {
+          const bytes = Buffer.from(complete.payload_json, "utf8");
+          const receipt = { ...result.result_object_receipt, sha256: sha256(bytes), bytes: bytes.byteLength };
+          result = { ...result, execution_receipt_hash: complete.execution_receipt_hash, evidence_refs: complete.evidence_refs,
+            result_payload_hash: receipt.sha256, result_payload_bytes: receipt.bytes, result_object_receipt: receipt };
+          return { envelope: result, artifact_receipts: receipts };
+        },
         buildTerminalProductionIntent, deliverTerminalProductionIntent, hashCanonical, executionFailure, ProductionRuntimeBoundaryError,
         requireRuntimeLogWrite: (write: { event: unknown }) => write.event, runRuntimeSpan: ({ action }: { action: () => unknown }) => action(),
         jobIdentity: () => ({}), failureCode: (error: { code?: string }, fallback: string) => error.code ?? fallback,
@@ -205,9 +213,10 @@ export const verifyRecoveryFailureTransport = async (
   const runtimeLoops = await readFile(new URL(
     "../../src/lib/local-runtime/production/runtime-loops.ts", import.meta.url,
   ), "utf8");
-  assert.match(runtimeLoops,
-    /const browser = state\.browserAuthority\.readProductionRuntimeState\(\);[\s\S]*?browser\.browserAuthorityState === "present"[\s\S]*?if \(!eligible\) return 1_000;[\s\S]*?requestClaimBatch/u,
-    "the worker must fail closed before claiming when Browser Authority is absent");
+  assert.match(runtimeLoops, /browser\.browserAuthorityState === "present" \|\| hasPendingStagedResult/u,
+    "new production keeps its Browser authority gate; original results keep their delivery exception");
+  assert.match(runtimeLoops, /if \(!state\.ledgerReconciled \|\| !eligible && sourceEvidence\.length === 0\) return 1_000;/u,
+    "sealed source transport keeps ledger safety independently of new production eligibility");
 };
 
 /** Stage the original terminal intents; only a real controlled transport response confirms a write. */
@@ -303,6 +312,7 @@ const verifyClaimAfterSettledTerminal = async (store: ProductionRuntimeStore, fi
     controlContractVersion: grant.grant.control_contract_version,
     device: { server_base_url: "http://127.0.0.1:4322" },
     authorizationHeaders: async () => {
+      if (!store.readTask(sibling.job_id)) return {};
       assert.equal(store.readTask(sibling.job_id)?.current_attempt_id, grant.grant.attempt_id);
       throw executionFailure("failed", "PRODUCTION_RUNTIME_STOPPED");
     },
@@ -314,8 +324,15 @@ const verifyClaimAfterSettledTerminal = async (store: ProductionRuntimeStore, fi
         server_now: grant.grant.server_now, next_claim_after_ms: 1_000, queue_epoch: 1, reason_codes: [] };
     },
     request: async (pathname: string) => {
-      assert.equal(pathname, `/internal/ai-production/v6/jobs/${encodeURIComponent(sibling.job_id)}/device-status`);
-      return deviceStatusWithoutAdmission(sibling.job_id).request();
+      if (pathname.endsWith("/renew")) return {
+        schema_version: "xuanxue-ai-lease-renew-receipt.v6", job_id: sibling.job_id,
+        server_now: grant.grant.server_now, lease_expires_at: grant.grant.lease_expires_at,
+        renew_after_ms: 20_000, control_intent: { schema_version: "xuanxue-ai-control-intent.v6", job_id: sibling.job_id,
+          intent: "none", control_epoch: 0, reason_code: null },
+      };
+      const jobId = decodeURIComponent(pathname.split("/").at(-2)!);
+      assert.ok([sibling.job_id, fixture.job.job_id].includes(jobId));
+      return deviceStatusWithoutAdmission(jobId).request();
     } };
   const state = shutdownRuntimeFixture({ store, dataDir: directory, runtimeLogger: logger, session: session as never });
   state.executor.execute = async (accepted) => {

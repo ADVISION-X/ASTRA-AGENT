@@ -13,10 +13,11 @@ import { productionCatalogHash } from "./catalog.js";
 import { hashCanonical, type ProductionExecutionLease, type WebsiteAgentTask, type WebsiteAgentResult } from "./contracts.js";
 import { heartbeatWhileRunning, ProductionRuntimeBoundaryError } from "./runtime-execution-heartbeat.js";
 import { releaseLeaseWithLog, runRuntimeSpan, runRuntimeSpanSync } from "./runtime-logging.js";
-import { jobIdentity, leaseBudget, safeReason, type RuntimeState } from "./runtime-state.js";
+import { jobIdentity, safeReason, type RuntimeState } from "./runtime-state.js";
 import { reconcileBusinessAdmission, websiteJobAbsent } from "./runtime-business-admission.js";
 import { terminalFailureHttpStatus, type AttemptFailureFirstFact } from "./terminal-failure.js";
 import { websiteAgentTaskFromClaim, type ClaimedProductionTask } from "./transport-protocol.js";
+import type { CompleteProductionOutput } from "./store-complete-output.js";
 
 const isResultTransportBoundary = (error: unknown): boolean => {
   const typed = typedExecutionFailure(error);
@@ -89,7 +90,9 @@ const assertReplayGrantMatchesSeal = (
 ): void => {
   const exhaustedCalls = sealed.readback_proofs.filter((proof) =>
     proof.disposition === "replay_exhausted");
-  if ((sealed.kind === "delivery_priority_replay") !== (replay !== null)
+  if (sealed.readback_proofs.some(proof => proof.disposition === "unresolved"
+      || proof.effects.some(effect => effect.unresolved !== undefined))
+    || (sealed.kind === "delivery_priority_replay") !== (replay !== null)
     || replay !== null && (exhaustedCalls.length !== replay.calls.length
       || exhaustedCalls.some((call, index) => {
         const issued = replay.calls[index];
@@ -123,7 +126,7 @@ const requireSourceGrantSeal = (
 export const acceptClaim = (
   state: RuntimeState,
   job: ClaimedProductionTask,
-  abort: AbortController,
+  baseBudget: ProductionExecutionLease,
   jobSpan: RuntimeSpanHandle,
   reconciledFailure: AttemptFailureFirstFact | null,
   readbackOnlyCalls: readonly Readonly<{ productStepId: string; callId: string;
@@ -131,7 +134,6 @@ export const acceptClaim = (
 ) => {
   const task = websiteAgentTaskFromClaim(job);
   assertClaimIdentity(job);
-  const baseBudget = leaseBudget(job, abort);
   const span = requireRuntimeLogWrite(state.runtimeLogger.startSpan({
     traceId: job.job_id, parentSpanId: jobSpan.spanId, owner: "production-runtime",
     component: "production-store", operation: "job.durable-accept", typedIdentity: jobIdentity(job),
@@ -260,15 +262,14 @@ const downloadClaimMaterials = async (
 };
 
 const uploadAndStageResult = async (input: ExecuteAndUploadInput,
-  output: Parameters<typeof uploadProductionResult>[0]["output"],
-  priorArtifactReceipts: Awaited<ReturnType<typeof uploadProductionGeneratedImage>>["transportReceipt"][]) => {
+  complete: CompleteProductionOutput) => {
   const span = requireRuntimeLogWrite(input.state.runtimeLogger.startSpan({
     traceId: input.job.job_id, parentSpanId: input.jobSpan.spanId, owner: "production-runtime",
     component: "production-result", operation: "result.upload", typedIdentity: jobIdentity(input.job),
   }));
   const uploaded = await runRuntimeSpan({ span, failureCode: "RESULT_UPLOAD_FAILED",
     action: () => uploadProductionResult({ session: input.state.session, store: input.state.store,
-      job: input.job, output, priorArtifactReceipts }),
+      job: input.job, complete }),
   });
   const terminalIntent = buildTerminalProductionIntent(input.state.session, input.job, {
     status: "completed", payload_hash: hashCanonical(uploaded.envelope),
@@ -293,7 +294,10 @@ export const executeAndUpload = async (input: ExecuteAndUploadInput): Promise<We
         if (input.abort.signal.aborted) throw new ProductionRuntimeBoundaryError(input.abort.signal.reason);
         return input.state.executor.execute(input.task, materials, input.budget, input.jobSpan.spanId,
           async output => {
-            try { staged = await uploadAndStageResult(input, output, imageReceipts); }
+            const complete = input.state.store.preserveCompleteOutput(
+              input.job.job_id, input.job.grant.attempt_id, output, imageReceipts);
+            if (input.abort.signal.aborted) throw new ProductionRuntimeBoundaryError(input.abort.signal.reason);
+            try { staged = await uploadAndStageResult(input, complete); }
             catch (error) { if (isResultTransportBoundary(error)) uploadBoundaryFailure = error; throw error; }
             await stopAndJoinRenewal();
             await sendStagedTerminal({ state: input.state, job: input.job, jobSpan: input.jobSpan,

@@ -26,7 +26,7 @@ import {
 } from "./agent-production-runtime-fixtures.js";
 import { verifyBrowserFailureStoreContract } from
   "./agent-production-runtime-browser-failure-store.acceptance-support.js";
-import { verifyOrdinaryStartupRejectsSchemaMigration } from
+import { verifyOrdinaryStartupRejectsSchemaMigration, verifyRuntimeRetirementMechanics } from
   "./agent-production-runtime-store-schema.acceptance-support.js";
 
 const temporary = await mkdtemp(path.join(tmpdir(), "agent-production-ledger-"));
@@ -477,16 +477,20 @@ try {
   store.close();
 
   await verifyOrdinaryStartupRejectsSchemaMigration(temporary);
+  await verifyRuntimeRetirementMechanics(temporary);
 } finally {
   await rm(temporary, { recursive: true, force: true });
 }
 
 for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) {
   emitQualityProofObservation({
-    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-005-V44",
+    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-005-V45",
     evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "forbidden:3", "summary"],
     locator: `acceptance:agent-production-runtime:three-table-authority:${evidenceMode}`,
     observedValue: "three-table SQLite authority stores task state, Outbox and source handoff evidence; ordinary startup rejects migration and lease checkpoint continuation mirrors",
   });
+  emitQualityProofObservation({ lawId: "LAW-AGENT-PRODUCTION-RUNTIME-006-V50", evidenceMode,
+    clauses: ["forbidden:1", "forbidden:3"], locator: `acceptance:agent-production-runtime:retirement-mechanics:${evidenceMode}`,
+    observedValue: "65 mixed-state jobs and reopen, typed local corruption, precise absence and joined late writer exercised in the original Runtime Store and worker." });
 }

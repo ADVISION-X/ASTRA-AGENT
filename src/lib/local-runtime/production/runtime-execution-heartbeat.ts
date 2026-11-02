@@ -59,7 +59,7 @@ type ExecutionTracker<T> = Readonly<{
 
 const runtimeOwnedAbortReason = (signal: AbortSignal): string | null => {
   const reason = typeof signal.reason === "string" ? signal.reason : "";
-  return reason === "PRODUCTION_RUNTIME_STOPPED" || reason === "LEASE_RENEW_FAILED"
+  return reason === "PRODUCTION_RUNTIME_STOPPED" || reason === "WEBSITE_JOB_ABSENT" || reason === "LEASE_RENEW_FAILED"
     || reason === "V6_RENEW_BUDGET_INVALID" || reason.startsWith("CONTROL_INTENT:") ? reason : null;
 };
 
@@ -113,7 +113,7 @@ type HeartbeatInput<T> = Readonly<{
   abort: AbortController; parentSpanId: string;
 }>;
 
-const renewExecutionLease = async (input: HeartbeatInput<unknown>): Promise<void> => {
+export const renewExecutionLease = async (input: Omit<HeartbeatInput<unknown>, "execute">): Promise<void> => {
   const span = requireRuntimeLogWrite(input.state.runtimeLogger.startSpan({
     traceId: input.job.job_id, parentSpanId: input.parentSpanId, owner: "production-runtime",
     component: "production-lease", operation: "job.lease-renew", typedIdentity: jobIdentity(input.job),
@@ -128,6 +128,11 @@ const renewExecutionLease = async (input: HeartbeatInput<unknown>): Promise<void
     input.abort.abort("LEASE_RENEW_FAILED");
     throw new ProductionRuntimeBoundaryError(withRuntimeLogCause(error, terminal.eventId));
   }
+  if (receipt.control_intent.control_epoch < input.budget.control_epoch) {
+    input.abort.abort("V6_RENEW_CONTROL_AUTHORITY_INVALID");
+    throw new ProductionRuntimeBoundaryError(executionFailure("failed", "V6_RENEW_CONTROL_AUTHORITY_INVALID"));
+  }
+  input.budget.control_epoch = receipt.control_intent.control_epoch;
   if (receipt.control_intent.intent !== "none") {
     input.abort.abort(`CONTROL_INTENT:${receipt.control_intent.intent}:${receipt.control_intent.reason_code ?? "none"}`);
     return;

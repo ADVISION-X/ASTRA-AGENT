@@ -31,6 +31,8 @@ export type RuntimeState = {
   lastErrorReason: string | null;
   stopped: boolean;
   ledgerReconciled: boolean;
+  lastStatusJobId: string | null;
+  lastTransportJobId: string | null;
 };
 
 export const refreshLedgerReconciled = (state: RuntimeState): void => {
@@ -69,7 +71,7 @@ export const leaseBudget = (
     attempt_id: job.grant.attempt_id, device_id: job.grant.device_id,
     lease_version: job.grant.lease_version, execution_fence_hash: job.grant.execution_fence.fence_hash,
     capability_manifest_hash: job.grant.capability_manifest_hash,
-    max_provider_turns: job.grant.max_provider_turns, provider_turns_used: 0,
+    max_provider_turns: job.grant.max_provider_turns, provider_turns_used: 0, control_epoch: 0,
     result_revision: job.grant.result_revision,
     delivery_priority_replay_grant: job.grant.delivery_priority_replay_grant,
     prior_result_rejection: job.grant.prior_result_rejection,

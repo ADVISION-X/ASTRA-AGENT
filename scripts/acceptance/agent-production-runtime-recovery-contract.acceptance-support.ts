@@ -1,3 +1,4 @@
+import { leaseBudget } from "../../src/lib/local-runtime/production/runtime-state.js";
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 import { mkdir } from "node:fs/promises";
 import { exerciseFirstTerminalBeforeProducerCleanup, exerciseSettledTerminalLedgerClosure } from "./agent-production-runtime-failure-transport.acceptance-support.js";
@@ -73,7 +74,7 @@ const rejectGrantWithoutTypedSeal = async (
     assert.throws(() => acceptClaim({ store: candidateStore, runtimeLogger: logger,
       executor: { accept: () => { acceptedByExecutor++; },
         acceptAfterSourceHandoff: () => { acceptedByExecutor++; } } } as never,
-    sealClaim, new AbortController(), span, null, null),
+    sealClaim, leaseBudget(sealClaim, new AbortController()), span, null, null),
     /PRODUCTION_SOURCE_HANDOFF_REQUIRED/u,
     "a Website source hash and forged reason cannot authorize a missing typed seal");
     assert.equal(candidateStore.readTask(job.job_id)?.current_attempt_id,

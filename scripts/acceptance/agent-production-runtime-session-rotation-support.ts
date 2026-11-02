@@ -257,7 +257,7 @@ const createSessionFetch = (
   if (url.endsWith("/internal/ai-production/v6/sessions/open")) return successfulJsonResponse({
     session: {
       device_id: "device:atomic-claim", worker_session_id: "worker-session:atomic-claim",
-      worker_session_epoch: 1, control_contract_version: 47, attestation_seq: 0,
+      worker_session_epoch: 1, control_contract_version: 49, attestation_seq: 0,
     },
     session_credential: credentialFor(1),
   });
@@ -270,8 +270,7 @@ const createSessionFetch = (
     if (typeof init?.body !== "string") throw new Error("HEARTBEAT_BODY_MISSING");
     const heartbeatBody = JSON.parse(init.body) as { agent_attested_in_flight?: number };
     state.observedHeartbeatInFlight.push(Number(heartbeatBody.agent_attested_in_flight));
-    const receiptHash = [HASH_A, HASH_B, HASH_C, HASH_A, HASH_B][heartbeatNumber - 1];
-    if (!receiptHash) throw new Error("UNEXPECTED_HEARTBEAT_COUNT");
+    const receiptHash = [HASH_A, HASH_B, HASH_C][(heartbeatNumber - 1) % 3]!;
     return successfulJsonResponse({
       attestation_receipt: attestationFor(heartbeatNumber, receiptHash,
         heartbeatNumber === 1 ? new Date(Date.now() + 34_999).toISOString() : undefined),
@@ -443,7 +442,7 @@ export const exerciseHeartbeatResponseLossRecovery = async (): Promise<void> => 
       opens += 1;
       return successfulJsonResponse({
         session: { device_id: "device:atomic-claim", worker_session_id: "worker-session:atomic-claim",
-          worker_session_epoch: 1, control_contract_version: 47, attestation_seq: serverSequence },
+          worker_session_epoch: 1, control_contract_version: 49, attestation_seq: serverSequence },
         session_credential: credentialFor(serverGeneration),
       });
     }

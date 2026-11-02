@@ -248,10 +248,17 @@ const inspectStorage = (context: InspectorContext, findings: InspectorFinding[])
   const absent = bodyFor(source, "websiteJobAbsent");
   const purge = bodyFor(source, "purgeDeletedJob");
   const allowed = absent?.getDescendantsOfKind(SyntaxKind.BinaryExpression).filter((binary) =>
-    binary.getLeft().getText() === "code" && binary.getOperatorToken().getKind() === SyntaxKind.EqualsEqualsEqualsToken)
+    binary.getLeft().getText() === "transport.code" && binary.getOperatorToken().getKind() === SyntaxKind.EqualsEqualsEqualsToken)
     .map((binary) => literal(binary.getRight())).sort();
+  const cleanupOrder = ["state.store.joinOutboxWrites", "state.browserAuthority.releaseJobBoundTarget",
+    "state.browserAuthority.purgeBrowserJob", "state.evidenceStore.deleteArtifactsForMission",
+    "purgeProductionRuntimeTask", "state.store.purgeJob"].map(name => calls(purge, name)[0]?.getStart());
   reject(findings, LAWS.storage, "static.ast", runtimePath("runtime-business-admission"), "exact-deleted-job-owner-cleanup",
     JSON.stringify(allowed) === JSON.stringify(["AI_PRODUCTION_JOB_NOT_FOUND", "AI_V6_JOB_NOT_FOUND"])
+    && hasCall(absent, "typedRuntimeTransportFailure")
+    && compare(absent, "transport?.httpStatus", SyntaxKind.EqualsEqualsEqualsToken, "404")
+    && purge?.getDescendantsOfKind(SyntaxKind.AwaitExpression).some(node => node.getExpression().getText() === "execution") === true
+    && cleanupOrder.every((position, index) => position !== undefined && (index === 0 || position > cleanupOrder[index - 1]!))
     && ["state.browserAuthority.releaseJobBoundTarget", "state.browserAuthority.purgeBrowserJob",
       "state.evidenceStore.deleteArtifactsForMission", "purgeProductionRuntimeTask", "state.store.purgeJob"]
       .every((name) => calls(purge, name).some((call) => call.getArguments().some((argument) => argument.getText() === "jobId")))
@@ -387,7 +394,48 @@ const inspectOutboxJobBoundaries = (context: InspectorContext, findings: Inspect
     "The retained proof reader must stay exact-job and read-only, separate from production business execution.");
 };
 
+const inspectFactoryRetirement = (context: InspectorContext, findings: InspectorFinding[]): void => {
+  const execution = bodyFor(sourceFor(context, runtimePath("runtime-claim-operations")), "executeAndUpload");
+  const complete = calls(execution, "input.state.store.preserveCompleteOutput")[0];
+  const upload = calls(execution, "uploadAndStageResult")[0];
+  const preserve = method(context, "store-source-readback", "ProductionStoreSourceReadback", "preserveCompleteOutput");
+  const seal = method(context, "store-source-readback", "ProductionStoreSourceReadback", "sealSourceHandoff");
+  const immediate = (node: Node | undefined) => calls(node).some(call => {
+    const expression = call.getExpression();
+    return Node.isPropertyAccessExpression(expression) && expression.getName() === "immediate";
+  });
+  const file = bodyFor(sourceFor(context, runtimePath("store-complete-output")), "writeCompleteOutputFile");
+  const delivery = bodyFor(sourceFor(context, runtimePath("runtime-claim-preproduct")), "deliverExistingResult");
+  reject(findings, LAWS.core, "static.ast", runtimePath("store-source-readback"), "complete-output-before-json-and-seal",
+    !!complete && !!upload && complete.getStart() < upload.getStart()
+    && immediate(preserve) && immediate(seal) && hasCall(seal, "this.hasPendingCompleteOutput")
+    && ["writeFileSync", "fsyncSync", "renameSync", "readCompleteOutputFile"].every(name => hasCall(file, name))
+    && hasCall(delivery, "state.store.readCompleteOutput") && hasCall(delivery, "uploadProductionResult")
+    && hasCall(delivery, "deliverTerminalProductionIntent"),
+    "Complete output must survive before the first JSON request, share the source-seal writer lock and use original delivery.");
+  const loops = sourceFor(context, runtimePath("runtime-loops")), discovery = bodyFor(loops, "nextStatusJobIds");
+  const iteration = bodyFor(loops, "workerIteration"), candidates = bodyFor(loops, "readDeliveryCandidates");
+  reject(findings, LAWS.storage, "static.ast", runtimePath("runtime-loops"), "all-state-bounded-authority-discovery",
+    hasCall(discovery, "state.store.jobIdsAfter") && hasCall(iteration, "reconcileRuntimeAuthorities")
+    && hasCall(candidates, "state.store.jobIdsAfter") && !hasCall(candidates, "state.store.taskAuthorities")
+    && compare(discovery, "selected.size", SyntaxKind.EqualsEqualsEqualsToken, "32")
+    && hasCall(bodyFor(loops, "reconcileOneAuthority"), "purgeDeletedJob"),
+    "The original worker must discover every durable state with bounded keyset requests and isolate bad rows.");
+  const session = sourceFor(context, runtimePath("worker-session")).getClass("ProductionWorkerSession");
+  const guard = session?.getMethod("assertDrainingSourceClaim"), claim = session?.getMethod("requestClaim");
+  reject(findings, LAWS.core, "static.ast", runtimePath("worker-session"), "sealed-source-original-claim-drain-boundary",
+    hasCall(session?.getMethod("request"), "this.assertDrainingSourceClaim")
+    && hasCall(guard, "validSourceHandoff") && hasCall(guard, "hashCanonical")
+    && compare(guard, "sources.length", SyntaxKind.EqualsEqualsEqualsToken, "0")
+    && compare(claim, "receipt.outcome", SyntaxKind.ExclamationEqualsEqualsToken, '"DRAINING"')
+    && compare(claim, "receipt.jobs.length", SyntaxKind.ExclamationEqualsEqualsToken, "0")
+    && iteration?.getDescendantsOfKind(SyntaxKind.IfStatement).some(statement =>
+      statement.getExpression().getText() === "!state.ledgerReconciled || !eligible && sourceEvidence.length === 0") === true,
+    "Source transport must keep ledger/session safety, validate sealed facts at physical send and reject draining grants.");
+};
+
 export const inspectAgentAuthorityAst = (context: InspectorContext, findings: InspectorFinding[]): void => {
+  inspectFactoryRetirement(context, findings);
   inspectDiagnosticAuthorityBoundary(context, findings);
   inspectResultStaging(context, findings);
   inspectAdmissionCompletion(context, findings);

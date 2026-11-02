@@ -2,8 +2,9 @@ import { executionFailure } from "../../execution-failure.js";
 import { requireRuntimeLogWrite, type RuntimeSpanHandle } from "../../runtime-logs/index.js";
 import { readProductionDeviceJobStatus, type RemoteProductionDeviceJobStatus } from "./cloud-reconciliation-client.js";
 import { buildTerminalProductionIntent, deliverTerminalProductionIntent } from "./cloud-terminal-intent.js";
+import { uploadProductionResult } from "./cloud-client.js";
 import { hashCanonical, type WebsiteAgentResult } from "./contracts.js";
-import { purgeDeletedJob, reconcileBusinessAdmission, websiteJobAbsent } from "./runtime-business-admission.js";
+import { reconcileBusinessAdmission, websiteJobAbsent } from "./runtime-business-admission.js";
 import type { RuntimeState } from "./runtime-state.js";
 import { websiteAgentTaskFromClaim, type ClaimedProductionTask } from "./transport-protocol.js";
 
@@ -17,7 +18,7 @@ export const readClaimAuthority = async (
   try { remote = await readProductionDeviceJobStatus(state.session, job.job_id); }
   catch (error) {
     if (!websiteJobAbsent(error)) throw error;
-    await purgeDeletedJob(state, job.job_id);
+    state.activeAbort.get(job.job_id)?.abort("WEBSITE_JOB_ABSENT");
     requireRuntimeLogWrite(jobSpan.terminal({ outcome: "succeeded" }));
     return null;
   }
@@ -56,10 +57,10 @@ export const recoverMissingLocalTask = (
 };
 
 const stageRecoveredResult = (
-  state: RuntimeState, job: ClaimedProductionTask, remote: RemoteProductionDeviceJobStatus,
-  result: WebsiteAgentResult,
+  state: RuntimeState, job: ClaimedProductionTask, result: WebsiteAgentResult,
+  artifactReceipts: RemoteProductionDeviceJobStatus["staged_artifact_receipts"],
 ): void => {
-  const receipts = remote.staged_artifact_receipts.map((artifact) => artifact.receipt_hash);
+  const receipts = artifactReceipts.map((artifact) => artifact.receipt_hash);
   const recoveredIntent = buildTerminalProductionIntent(state.session, job, {
     status: "completed", payload_hash: hashCanonical(result), result_receipt_hashes: receipts,
     terminal_source_first_fact_raw: state.store.readAttemptFailureRaw(job.job_id),
@@ -68,7 +69,7 @@ const stageRecoveredResult = (
   state.store.stageResultAndEnqueueTerminal({
     jobId: job.job_id, attemptId: job.grant.attempt_id,
     result, terminal: recoveredIntent.write,
-    websiteStagedArtifactReceipts: remote.staged_artifact_receipts,
+    websiteStagedArtifactReceipts: artifactReceipts,
   });
 };
 
@@ -80,14 +81,14 @@ export const restoreStagedResult = (
   if (!staged?.staged_result && remote.staged_result === null
     && remote.staged_artifact_receipts.some((receipt) => receipt.role === "result_envelope")) {
     const recovered = state.store.readUploadedResultEnvelope(job.job_id, job.grant.attempt_id);
-    if (recovered) stageRecoveredResult(state, job, remote, recovered);
+    if (recovered) stageRecoveredResult(state, job, recovered, remote.staged_artifact_receipts);
   }
   if (!staged?.staged_result && remote.staged_result) {
     if (staged?.current_attempt_id !== job.grant.attempt_id
       || !job.grant.same_accepted_attempt) {
       throw executionFailure("failed", "PRODUCTION_WEBSITE_STAGED_RESULT_IDENTITY_MISMATCH");
     }
-    stageRecoveredResult(state, job, remote, remote.staged_result);
+    stageRecoveredResult(state, job, remote.staged_result, remote.staged_artifact_receipts);
   }
 };
 
@@ -96,16 +97,24 @@ export const deliverExistingResult = async (
   state: RuntimeState, job: ClaimedProductionTask, acceptance: Acceptance,
   jobSpan: RuntimeSpanHandle,
 ): Promise<boolean> => {
-  const durableStaged = state.store.readTask(job.job_id);
-  if (!durableStaged?.staged_result) return false;
-  if (durableStaged.current_attempt_id !== job.grant.attempt_id
+  let durableStaged = state.store.readTask(job.job_id);
+  const complete = state.store.readCompleteOutput(job.job_id, job.grant.attempt_id);
+  if (!durableStaged?.staged_result && !complete) return false;
+  if (durableStaged?.current_attempt_id !== job.grant.attempt_id
     || !job.grant.same_accepted_attempt) {
     throw executionFailure("failed", "PRODUCTION_STAGED_RESULT_REGRANT_IDENTITY_MISMATCH");
   }
+  acceptance.durable = "accepted";
+  if (!durableStaged.staged_result && complete) {
+    const uploaded = await uploadProductionResult({ session: state.session, store: state.store, job, complete });
+    stageRecoveredResult(state, job, uploaded.envelope, uploaded.artifact_receipts);
+    durableStaged = state.store.readTask(job.job_id)!;
+  }
+  const result = durableStaged.staged_result!;
   const intent = buildTerminalProductionIntent(state.session, job, {
-    status: "completed", payload_hash: hashCanonical(durableStaged.staged_result),
+    status: "completed", payload_hash: hashCanonical(result),
     result_receipt_hashes: state.store.readStagedTerminalReceipts(
-      job.job_id, job.grant.attempt_id, durableStaged.staged_result),
+      job.job_id, job.grant.attempt_id, result),
     terminal_source_first_fact_raw: state.store.readAttemptFailureRaw(job.job_id),
   });
   state.store.enqueue(intent.write);

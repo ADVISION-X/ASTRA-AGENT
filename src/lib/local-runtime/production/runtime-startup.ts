@@ -165,6 +165,7 @@ const createRuntimeState = (
     runtimeLogger: input.runtimeLogger,
     draining: input.stopSignal?.aborted ?? false, iteration: null, drainJobIds: null, lastHeartbeat: null,
     lastErrorCode: null, lastErrorReason: null, stopped: false, ledgerReconciled: false,
+    lastStatusJobId: null, lastTransportJobId: null,
   };
   stateRef = state;
   input.stopSignal?.addEventListener("abort", () => { state.draining = true; }, { once: true });
@@ -235,6 +236,9 @@ const inspectDrainedTasks = async (state: RuntimeState): Promise<readonly unknow
     if (authority.status === "completed") continue;
     errors.push(...await inspectTaskFailureAtShutdown(state, authority.task.job_id));
   }
+  if (state.store.sealedSourceHandoffJobIds().some(jobId => state.drainJobIds?.has(jobId))) {
+    errors.push(executionFailure("failed", "RUNTIME_SHUTDOWN_SOURCE_UNCONFIRMED"));
+  }
   const pending = [
     [state.browserAuthority.hasUnresolvedBrowserMutation(), "RUNTIME_SHUTDOWN_BROWSER_UNRESOLVED"],
     [state.store.pendingOutboxCount() > 0, "RUNTIME_SHUTDOWN_OUTBOX_PENDING"],
@@ -265,7 +269,8 @@ export const shutdownRuntime = async (
   state: RuntimeState, loop: Promise<void>, heartbeat: Promise<void>, drainPass: () => Promise<void>,
 ): Promise<void> => {
   state.draining = true;
-  state.drainJobIds = new Set([...state.active.keys(), ...state.store.taskAuthorities()
+  state.drainJobIds = new Set([...(state.drainJobIds ?? []), ...state.store.sealedSourceHandoffJobIds(),
+    ...state.active.keys(), ...state.store.taskAuthorities()
     .filter(task => task.status !== "completed").map(task => task.task.job_id)]);
   const errors: unknown[] = [];
   let span: RuntimeSpanHandle | null = null;
@@ -288,7 +293,8 @@ export const shutdownRuntime = async (
     try { await reconcileBusinessAdmission(state, task); } catch (error) { errors.push(error); }
   }
   const finalPasses = Math.max(1, new Set([...state.store.pendingBrowserCleanupJobIds(),
-    ...state.store.pendingBusinessAdmissions().map(task => task.task.job_id)]).size);
+    ...state.store.pendingBusinessAdmissions().map(task => task.task.job_id),
+    ...state.store.sealedSourceHandoffJobIds().filter(jobId => state.drainJobIds?.has(jobId))]).size);
   for (let pass = 0; pass < finalPasses; pass++) await drainPass();
   // Only loop waits are interrupted. Product controllers remain untouched.
   state.abort.abort();

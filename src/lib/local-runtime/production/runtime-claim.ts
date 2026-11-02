@@ -18,20 +18,19 @@ import {
 } from "../../runtime-logs/index.js";
 import { buildProductionLeaseRelease } from "./cloud-client.js";
 import {
-  readProductionDeviceJobStatus,
   type RemoteProductionDeviceJobStatus,
 } from "./cloud-reconciliation-client.js";
-import { ProductionRuntimeBoundaryError } from "./runtime-execution-heartbeat.js";
+import { ProductionRuntimeBoundaryError, renewExecutionLease } from "./runtime-execution-heartbeat.js";
 import { typedRuntimeTransportFailure } from "./transport-failure.js";
-import type { ClaimedProductionTask } from "./transport-protocol.js";
+import { type ClaimedProductionTask } from "./transport-protocol.js";
 import { releaseLeaseWithLog, terminalSpanFailure } from "./runtime-logging.js";
 import {
   jobIdentity,
+  leaseBudget,
   safeReason,
   type RuntimeState,
 } from "./runtime-state.js";
 import {
-  purgeDeletedJob,
   websiteJobAbsent,
 } from "./runtime-business-admission.js";
 import { productionRuntimeTaskPath } from "./runtime-storage-inventory.js";
@@ -84,7 +83,7 @@ const applyRemoteFailureDisposition = async (
     if (!task.staged_result) {
       throw executionFailure("failed", "PRODUCTION_ATTEMPT_FAILURE_RESULT_AUTHORITY_MISSING");
     }
-    await reconcileBusinessAdmission(state, state.store.readTask(task.task.job_id)!);
+    await reconcileBusinessAdmission(state, state.store.readTask(task.task.job_id)!, remote);
   }
 };
 
@@ -111,51 +110,6 @@ const attemptReadbackFailureIsLocal = (error: unknown): boolean => {
       "PRODUCTION_ATTEMPT_FAILURE_RECEIPT_CONFLICT", "BUSINESS_ADMISSION_RESULT_HASH_MISMATCH",
       "BUSINESS_ADMISSION_ATTEMPT_IDENTITY_MISSING"].includes(code);
 };
-
-export const reconcilePendingAttemptFailures = async (state: RuntimeState): Promise<void> => {
-  for (const task of state.store.pendingAttemptFailures()) {
-    const failure = task.attempt_failure;
-    if (!failure) {
-      state.store.setCurrentReason(task.task.job_id,
-        "INVALID_FIRST_FACT_RECONCILIATION_PENDING");
-      continue;
-    }
-    try {
-      const remote = await readProductionDeviceJobStatus(state.session, task.task.job_id);
-      if (pendingFailureConflicts(state, task, remote, failure)) continue;
-      if (!releaseReceiptMatches(remote, failure) && !remoteFailureMatches(remote, failure)) continue;
-      if (remote.next_action_code === "WAIT_NEW_ATTEMPT"
-        || remote.next_action_code === "CONSUME_CURRENT_RESULT") {
-        await applyRemoteFailureDisposition(state, task, remote);
-        continue;
-      }
-      if (remote.next_action_code !== "ACTIVE_ATTEMPT") {
-        throw executionFailure("failed", "PRODUCTION_ATTEMPT_FAILURE_NEXT_ACTION_MISMATCH");
-      }
-    } catch (error) {
-      if (!websiteJobAbsent(error)) {
-        if (!attemptReadbackFailureIsLocal(error)) throw error;
-        state.lastErrorCode = failureCode(error, "ATTEMPT_RELEASE_READBACK_FAILED");
-        state.lastErrorReason = safeReason(error);
-        state.store.setCurrentReason(task.task.job_id, state.lastErrorCode);
-        continue;
-      }
-      const active = state.activeAbort?.get(task.task.job_id);
-      if (active) {
-        active.abort("WEBSITE_JOB_ABSENT");
-        continue;
-      }
-      try {
-        await purgeDeletedJob(state, task.task.job_id);
-      } catch (purgeError) {
-        state.store.setCurrentReason(task.task.job_id,
-          failureCode(purgeError, "PRODUCTION_JOB_PURGE_FAILED"));
-      }
-      continue;
-    }
-  }
-};
-
 const persistAttemptFailure = async (
   state: RuntimeState,
   job: ClaimedProductionTask,
@@ -207,6 +161,27 @@ const pauseForProviderCooldown = (
   return true;
 };
 
+/** Consume this iteration's exact status instead of issuing a second failed-only scan. */
+export const reconcileAttemptFailure = async (state: RuntimeState, task: StoredProductionTask,
+  remote: RemoteProductionDeviceJobStatus): Promise<void> => {
+  const failure = task.attempt_failure;
+  if (!failure) return;
+  try {
+    if (pendingFailureConflicts(state, task, remote, failure)
+      || !releaseReceiptMatches(remote, failure) && !remoteFailureMatches(remote, failure)) return;
+    if (remote.next_action_code === "WAIT_NEW_ATTEMPT" || remote.next_action_code === "CONSUME_CURRENT_RESULT") {
+      await applyRemoteFailureDisposition(state, task, remote);
+    } else if (remote.next_action_code !== "ACTIVE_ATTEMPT") {
+      throw executionFailure("failed", "PRODUCTION_ATTEMPT_FAILURE_NEXT_ACTION_MISMATCH");
+    }
+  } catch (error) {
+    if (!attemptReadbackFailureIsLocal(error)) throw error;
+    state.lastErrorCode = failureCode(error, "ATTEMPT_RELEASE_READBACK_FAILED");
+    state.lastErrorReason = safeReason(error);
+    state.store.setCurrentReason(task.task.job_id, state.lastErrorCode);
+  }
+};
+
 const handleProductExecutionFailure = async (
   state: RuntimeState,
   job: ClaimedProductionTask,
@@ -216,7 +191,7 @@ const handleProductExecutionFailure = async (
 ): Promise<void> => {
   if (error instanceof ProductionRuntimeBoundaryError) throw error.boundaryCause;
   if (websiteJobAbsent(error)) {
-    await purgeDeletedJob(state, job.job_id);
+    state.activeAbort.get(job.job_id)?.abort("WEBSITE_JOB_ABSENT");
     requireRuntimeLogWrite(jobSpan.terminal({ outcome: "succeeded" }));
     return;
   }
@@ -263,16 +238,38 @@ export const executeClaim = async (state: RuntimeState, job: ClaimedProductionTa
     acceptance.durable = "unaccepted";
     const authority = await readClaimAuthority(state, job, jobSpan);
     if (!authority) return;
+    const controlRequested = authority.control_intent.intent !== "none";
+    if (controlRequested) {
+      abort.abort(`CONTROL_INTENT:${authority.control_intent.intent}:${authority.control_intent.reason_code ?? "none"}`);
+      if (state.store.readTask(job.job_id)?.current_attempt_id !== job.grant.attempt_id) {
+        acceptClaim(state, job, leaseBudget(job, abort), jobSpan, null, null);
+      }
+      acceptance.durable = "accepted";
+    }
     if (recoverMissingLocalTask(state, job, authority, acceptance, jobSpan)) return;
     restoreStagedResult(state, job, authority);
     if (await deliverExistingResult(state, job, acceptance, jobSpan)) return;
+    if (controlRequested) {
+      requireRuntimeLogWrite(jobSpan.terminal({ outcome: "succeeded" }));
+      return;
+    }
     if (job.grant.delivery_only) throw executionFailure("failed", "PRODUCTION_DELIVERY_ONLY_RESULT_PENDING");
     const recovery = await reconcileClaimAttemptFailure(state, job, authority, jobSpan.spanId, applyRemoteFailureDisposition);
     if (recovery.stopBeforeProduct) {
       requireRuntimeLogWrite(jobSpan.terminal({ outcome: "succeeded" }));
       return;
     }
-    const accepted = acceptClaim(state, job, abort, jobSpan, recovery.reconciledFailure, recovery.readbackOnlyCalls);
+    const budget = leaseBudget(job, abort);
+    budget.control_epoch = authority.control_intent.control_epoch;
+    await renewExecutionLease({ state, job, budget, abort, parentSpanId: jobSpan.spanId });
+    if (abort.signal.aborted) {
+      if (state.store.readTask(job.job_id)?.current_attempt_id !== job.grant.attempt_id) {
+        acceptClaim(state, job, budget, jobSpan, null, null);
+      }
+      requireRuntimeLogWrite(jobSpan.terminal({ outcome: "succeeded" }));
+      return;
+    }
+    const accepted = acceptClaim(state, job, budget, jobSpan, recovery.reconciledFailure, recovery.readbackOnlyCalls);
     acceptance.durable = "accepted";
     state.store.markExecuting(job.job_id);
     const materialDir = join(productionRuntimeTaskPath(state.dataDir, job.job_id), "materials");
@@ -288,11 +285,9 @@ export const executeClaim = async (state: RuntimeState, job: ClaimedProductionTa
     await completeClaim({ state, job, result, jobSpan });
   } catch (error) {
     if (websiteJobAbsent(error)) {
-      try {
-        await purgeDeletedJob(state, job.job_id);
-        requireRuntimeLogWrite(jobSpan.terminal({ outcome: "succeeded" }));
-        return;
-      } catch (purgeError) { error = purgeError; }
+      state.activeAbort.get(job.job_id)?.abort("WEBSITE_JOB_ABSENT");
+      requireRuntimeLogWrite(jobSpan.terminal({ outcome: "succeeded" }));
+      return;
     }
     const failure = terminalSpanFailure(jobSpan, error, runtimeLogCauseEventId(error), "JOB_RUNTIME_BOUNDARY_FAILED");
     await handleRuntimeBoundaryFailure({ state, job, error, durability: acceptance.durable,

@@ -14,9 +14,9 @@ candidate_branch: main
 
 授权人已再次批准本仓施工，并明确不动网站派单。本方案替换此前要求网站专用恢复claim的设计；只在本仓main建设。母本、公共Skill、跨仓合同、Product及数据库结构不改；不删除生产工单、不动网站数据库。主Codex施工，子智能体只审实际建设。授权人随后明确要求“dom改动你合并一起提交-ready”：将已建设的《GPT附件入口OR精确迭代-完整实现方案》差异与本方案一起提交并执行READY；两份方案各自保持唯一职责，没有新的联合方案、Owner或运行链。
 
-第一次Ctrl+C立即关掉新claim资格，包括迟到初始化、blocked重试及等待heartbeat的claim。以物理HTTP发送为边界：停止前已经发出的领取请求不能假装取消，其合法响应中的任务纳入原链收尾。停止后绝不再发新的claim，也不领取后继或恢复工单。
+第一次Ctrl+C立即关掉新claim资格，包括迟到初始化、blocked重试及等待heartbeat的claim。以物理HTTP发送为边界：停止前已经发出的领取请求不能假装取消，其合法响应中的任务纳入原链收尾。停止后禁止新/恢复生产grant；W5唯一例外为已封存旧source经原claim运输，须真实draining、空delivery_candidates及Website零grant回执。
 
-结束对象是每张已领取Agent任务对应的一个独立成果步骤。SEO、审核或翻译一步被网站精确接纳即可；不等待网站未领取的后继步骤，不因某一张成功抛下其它已领取任务。成功须有原结果hash、网站领域admission和本地complete读回；HTTP200、GPT答案或Promise结束不构成业务成功。
+结束对象是每张已领取Agent任务对应的一个独立成果步骤。SEO、审核或翻译一步被网站精确接纳即可；不等待网站未领取的后继步骤，不因某一张成功抛下其它已领取任务。AGENT成功唯一沿现役LAW-AGENT-PRODUCTION-RUNTIME-004的完整接收回执、原结果hash及本地complete读回；网站领域成功仍由原Owner裁决；HTTP200、GPT答案或Promise结束不构成业务成功。
 
 失败与未决分开。真实失败保留原first fact，并从原status GET核对同身份release receipt或attempt failure；不取消需求、不签新attempt。缺admission、失败读回不匹配、Browser原WAL仍DISPATCHED、冷却未结清、session close不明或资源关闭失败都必须保留原记录并非零退出，不能报告完整退出成功。下一次启动沿原worker/claim恢复；原本存在的未决仍可能挡住新输入，不能通过清WAL或unknown改no掩盖。已确认失败且原Browser终态齐全时，不会由停止制造新的全局未决。
 
@@ -68,7 +68,7 @@ candidate_branch: main
 
 ## 5. 有限验收与两遍主审
 
-R01 Agent/main边界；R02冻结母本/法案/Skill；R03新claim物理发送立即停止；R04已发送claim合法响应收尾；R05activeAbort不被停机中断；R06逐张成果领域admission；R07失败同身份读回；R08unknown/冷却/Outbox/session不明非零且记录保留；R09冷却原session不close；R10实际子进程/缓存exit/无强杀；R11重复信号同Promise；R12迟到init/retry收敛；R13HTTP/socket/数据库/锁关闭与最终producer事件；R14独立诊断Shell；R15没有第二恢复/存储/合同/Owner；R16删除缺失建设实证；R17结构预算与既有测试不退；R18建设后主审两遍、子审实际diff与方案/skill/法案，未放行不结束。
+R01 Agent/main边界；R02冻结母本/法案/Skill；R03新/恢复生产claim物理发送立即停止、W5已封存source运输只接零grant；R04已发送claim合法响应收尾；R05activeAbort不被停机中断；R06逐张成果完整接收回执（网站领域完成另裁）；R07失败同身份读回；R08unknown/冷却/Outbox/session不明非零且记录保留；R09冷却原session不close；R10实际子进程/缓存exit/无强杀；R11重复信号同Promise；R12迟到init/retry收敛；R13HTTP/socket/数据库/锁关闭与最终producer事件；R14独立诊断Shell；R15没有第二恢复/存储/合同/Owner；R16删除缺失建设实证；R17结构预算与既有测试不退；R18建设后主审两遍、子审实际diff与方案/skill/法案，未放行不结束。
 
 施工前第一遍沿授权→法案→Owner→输入输出→状态→真实消费者核上述分母；第二遍从正常、失败、unknown、冷却、迟到claim/init/重复信号反向核冻结要求与下一次启动。具体缺口清零才进入代码，不以自称98%替代事实。建设后再次两遍主审，随后子审代码差异；不让子智能体反复只审方案。
 
@@ -98,3 +98,5 @@ READY通过后推送云仓。真实浏览器/网站Dynamic Proof缺输入或外�
 同一初始化片区的失败出口：原blocked retry在停机到来后的真实初始化异常必须传给既有shutdown等待者，不能吞为diagnostic状态后报成功；平时重试诊断不变。空库携已abort stopSignal在原session门前正常封启动span，不产生本地早停BLOCKING假根，真实preflight/credential/session故障保持原失败合同。
 
 建设最终主审两遍（子审具体finding修复后）：第一遍顺向复核物理claim、迟到grant/init/retry、逐张原结果与admission、最后原cleanup、冷却/session、原WAL和实际TCP/锁/数据库；第二遍反向核所有异常出口与下一次启动，确认预期未发送停止无假根、blocked普通换代仍可恢复、异常记录不被终结或删除。原生现役局部验收已实际覆盖最终两张admission仅在原worker接纳并逐张cleanup、首项关闭throw仍收束其余资源、101未HELLO实际close、原cause/Owner保留、blocked/迟到init与retry异常、原DISPATCHED重开不变，以及真实失败匹配/不匹配、冷却session不close、session-close unknown非零。类型、Runtime、Browser、Startup及Shell局部检查通过；这是建设证据，不是CHANGE/READY/RELEASE结果。冻结法案/母本/Skill未修改，网站和生产数据库未操作；按授权人的追加要求，现将已建设的GPT附件DOM差异合并到同一个main提交及READY候选；主Codex已分别核实际差异及联合消费者，子智能体补审实际DOM建设及与收尾链的交互。Browser身份检查只同步关闭后拒收的精确AST并增加拒收失效反例，原transport/permit序号的全部反例不删不放宽；该检查与测试属于局部修改，未重建生产transport身份逻辑。
+
+2026-11-02授权承接：本方案停接单的source运输例外及取消join/缺席发现只由Website唯一《全系统工单安全删除与自动接续-完整实现方案》W5建设；不重新开放普通恢复grant，不更改普通Ctrl+C不abort在途Product及原有资源收尾。旧admission完成表述以现役Runtime004为准。

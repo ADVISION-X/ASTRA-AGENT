@@ -70,9 +70,23 @@ const hasKeys = (value: object, keys: string): boolean => Object.keys(value).sor
 const effectBaseKeys = ["anchor_proof_hash", "anchor_state", "effect_identity_hash",
   "source_effect_set_hash", "wal_authority_hash"];
 const effectOutcomes = ["exact_negative", "rejection_settled", "risk_authorized",
-  "settled_checkpoint", "unaddressable"];
+  "settled_checkpoint", "unaddressable", "unresolved"];
+const validUnresolvedEffect = (effect: object & Record<"unresolved", unknown>): boolean => {
+  if (!isObject(effect.unresolved)) return false;
+  const fact = effect.unresolved as Record<string, unknown>;
+  return hasKeys(fact, "mutation_outcome|observed_at|physical_input_count|provider_input_delta|source_attempt_id|source_result_revision|wal_state")
+    && typeof fact.source_attempt_id === "string" && fact.source_attempt_id.length > 0
+    && Number.isSafeInteger(fact.source_result_revision) && Number(fact.source_result_revision) >= 0
+    && ["DISPATCHED", "CONFIRMED", "REJECTED"].includes(String(fact.wal_state))
+    && ["no", "dispatched", "confirmed"].includes(String(fact.mutation_outcome))
+    && Number.isSafeInteger(fact.physical_input_count) && Number(fact.physical_input_count) >= 0
+    && fact.provider_input_delta === 0 && typeof fact.observed_at === "string"
+    && Number.isFinite(Date.parse(fact.observed_at))
+    && new Date(fact.observed_at).toISOString() === fact.observed_at;
+};
 const validEffectShape = (effect: unknown): boolean => isObject(effect)
-  && effectOutcomes.some((outcome) => hasKeys(effect, [...effectBaseKeys, outcome].sort().join("|")));
+  && effectOutcomes.some((outcome) => hasKeys(effect, [...effectBaseKeys, outcome].sort().join("|")))
+  && (!("unresolved" in effect) || validUnresolvedEffect(effect));
 const validReplayCallShape = (call: Call): boolean => !!call
   && hasKeys(call, "call_id|child_capability_id|product_step_id|source_effect_set_hash");
 const validReadbackProofShape = (proof: SignedCallProof): boolean => !!proof
@@ -268,6 +282,10 @@ const signedRowManifest = (row: Row, jobId: string): SignedManifest => {
     || manifest.job_id !== jobId || manifest.source_attempt_id !== row.source_attempt_id
     || !validSourceHandoff(raw)) {
     throw executionFailure("failed", "PRODUCTION_SOURCE_HANDOFF_CONFLICT");
+  }
+  if (manifest.readback_proofs.some(proof => proof.disposition === "unresolved"
+    || proof.effects.some(effect => effect.unresolved !== undefined))) {
+    throw executionFailure("failed", "PRODUCTION_SOURCE_REPLAY_INVALID");
   }
   return manifest;
 };

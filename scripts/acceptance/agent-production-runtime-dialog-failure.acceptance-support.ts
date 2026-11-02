@@ -10,7 +10,7 @@ import {
 } from "../../src/lib/local-runtime/production/runtime-loops.js";
 import { executionFailure } from "../../src/lib/execution-failure.js";
 import { createRuntimeLogger, type RuntimeLogger } from "../../src/lib/runtime-logs/index.js";
-import { HASH_A, claimTask, deviceStatusWithoutAdmission, task } from
+import { HASH_A, claimTask, deviceStatusWithoutAdmission, renewReceiptForClaim, task } from
   "./agent-production-runtime-fixtures.js";
 
 export const mismatchEvidenceRef = "browser-gpt-dialog-unrecognized:typed-authority";
@@ -75,6 +75,7 @@ export const verifyGptDialogMismatchRuntimeContract = async (): Promise<void> =>
         workerSessionEpoch: 1,
         device: { server_base_url: "http://127.0.0.1:4322" },
         request: async (path: string) => {
+          if (path.endsWith("/renew")) return renewReceiptForClaim(job);
           if (path.endsWith("/lease-release")) releaseRequests += 1;
           return statusSession.request();
         },
@@ -90,7 +91,7 @@ export const verifyGptDialogMismatchRuntimeContract = async (): Promise<void> =>
       lastErrorCode: null,
       lastErrorReason: null,
       stopped: false,
-      ledgerReconciled: true,
+      ledgerReconciled: true, lastStatusJobId: null, lastTransportJobId: null,
     }, job);
     const record = store.readTask(job.job_id);
     assert.equal(record?.current_reason, "BROWSER_GPT_DIALOG_UNRECOGNIZED");
@@ -133,6 +134,7 @@ const verifyCooldownSibling = async (
       workerSessionId: "worker:1", workerSessionEpoch: 1,
       device: { server_base_url: "http://127.0.0.1:4322" },
       request: async (requestPath: string) => {
+        if (requestPath.endsWith("/renew")) return renewReceiptForClaim(siblingJob);
         if (requestPath.endsWith("/lease-release")) releaseRequests.count += 1;
         return siblingStatus.request();
       },
@@ -144,7 +146,7 @@ const verifyCooldownSibling = async (
     } as never,
     browserAuthority: {} as never, gpt: {} as never, evidenceStore: {} as never,
     dataDir: temporary, runtimeLogger, draining: false, iteration: null, drainJobIds: null, lastHeartbeat: null,
-    lastErrorCode: null, lastErrorReason: null, stopped: false, ledgerReconciled: true,
+    lastErrorCode: null, lastErrorReason: null, stopped: false, ledgerReconciled: true, lastStatusJobId: null, lastTransportJobId: null,
   }, siblingJob);
   const siblingRecord = store.readTask(siblingJob.job_id);
   assert.equal(siblingRecord?.current_reason, "PROVIDER_RATE_LIMIT_COOLDOWN_ACTIVE");
@@ -208,6 +210,7 @@ export const verifyKnownGptRateLimitRuntimeContract = async (): Promise<void> =>
         workerSessionId: "worker:1", workerSessionEpoch: 1,
         device: { server_base_url: "http://127.0.0.1:4322" },
         request: async (requestPath: string) => {
+          if (requestPath.endsWith("/renew")) return renewReceiptForClaim(job);
           if (requestPath.endsWith("/lease-release")) releaseRequests.count += 1;
           return statusSession.request();
         },
@@ -219,7 +222,7 @@ export const verifyKnownGptRateLimitRuntimeContract = async (): Promise<void> =>
       } as never,
       browserAuthority: {} as never, gpt: {} as never, evidenceStore: {} as never,
       dataDir: temporary, runtimeLogger, draining: false, iteration: null, drainJobIds: null, lastHeartbeat: null,
-      lastErrorCode: null, lastErrorReason: null, stopped: false, ledgerReconciled: true,
+      lastErrorCode: null, lastErrorReason: null, stopped: false, ledgerReconciled: true, lastStatusJobId: null, lastTransportJobId: null,
     }, job);
     const record = store.readTask(job.job_id);
     assert.equal(record?.current_reason,
@@ -231,8 +234,7 @@ export const verifyKnownGptRateLimitRuntimeContract = async (): Promise<void> =>
       ...job, grant: { ...job.grant, same_accepted_attempt: true },
     }), true,
       "the exact accepted attempt that triggered cooldown must reuse its occupied slot despite bound evidence");
-    assert.equal(store.unfinishedExecutionsWithoutReceipt()
-      .some((candidate) => candidate.task.job_id === job.job_id), true,
+    assert.equal(store.jobIdsAfter(null, 32).includes(job.job_id), true,
     "a paused accepted attempt must remain in Website status reconciliation for later revocation or deletion");
     assert.equal(releaseRequests.count, 0,
       "an authoritative exact dialog behind a closed cooldown gate must not issue a 409-prone release");
