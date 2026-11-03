@@ -4,6 +4,7 @@ import { runInNewContext } from "node:vm";
 
 import type { ExtensionTargetAuthority } from "../../src/lib/browser/chrome-extension/extension-target-authority.js";
 import { GPT_WEB_ORIGIN } from "../../src/lib/browser/exact-target/browser-site-policy-registry.js";
+import { permit } from "./local-browser-terminal-fixture.js";
 
 type Runtime = (expression: string) => Promise<unknown>;
 const assistantMessageId = "00000000-0000-4000-8000-000000000006";
@@ -102,7 +103,10 @@ const execute = async (
   input: MediaExerciseInput,
   authority: ReturnType<MediaExerciseInput["authority"]["resolve"]>,
 ): Promise<unknown> => {
-  const result = await input.authority.executeRegisteredCommand(command, authority, "observation", acceptanceExactCallIdentityHash, () => { assert.deepEqual(input.authority.resolve(authority.targetRef, authority.documentRef), authority); });
+  const result = await input.authority.executeRegisteredCommand(command, authority, "observation", acceptanceExactCallIdentityHash,
+    () => { assert.deepEqual(input.authority.resolve(authority.targetRef, authority.documentRef), authority); }, Date.now() + 30_000,
+    { ...permit("media-observation"), targetRef: authority.targetRef, documentRef: authority.documentRef,
+      childCapabilityId: "checkpoint_gpt_generated_image", replayPolicy: "observation-only", mutationClass: "observation" });
   if (!result || typeof result !== "object" || Array.isArray(result)) return result;
   const record = result as Readonly<Record<string, unknown>>;
   return record.schemaVersion === "grasseye.browser.command-preflight.v1"

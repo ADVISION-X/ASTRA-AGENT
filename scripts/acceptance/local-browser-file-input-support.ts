@@ -195,7 +195,10 @@ const runFileInputScenario = async (input: FileInputScenario) => {
   const result = await executeExtensionFileInput({
     runtime,
     target: {chromeTargetId: "chrome-target-fixture",  tabId: 108, targetRef: "target-108", documentRef: "document-8", navigationEpoch: 8,
-      jobRefHash: `sha256:${"a".repeat(64)}` as const, loaderId: "loader-current" },
+      jobRefHash: `sha256:${"a".repeat(64)}` as const, loaderId: "loader-current",
+        expectedUrl: "https://chatgpt.com/",
+        pendingSubmit: null
+    },
     assertCurrent: () => {
       state.targetChecks += 1;
       if (input.driftBeforeDispatch && state.targetChecks === 3) throw new Error("BROWSER_DOCUMENT_INVALID");

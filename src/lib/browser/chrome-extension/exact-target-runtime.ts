@@ -1,4 +1,5 @@
-import { requireGptWebClaimOrigin } from "../exact-target/browser-site-policy-registry.js";
+import { GPT_WEB_START_URL, requireGptWebClaimOrigin } from "../exact-target/browser-site-policy-registry.js";
+import type { ProviderInputState } from "./debugger-runtime.js";
 
 export type ExtensionExactTarget = Readonly<{
   targetRef: string;
@@ -8,7 +9,10 @@ export type ExtensionExactTarget = Readonly<{
   navigationEpoch: number;
   jobRefHash: `sha256:${string}`;
   loaderId: string;
-}>;
+}> & {
+  expectedUrl: string;
+  pendingSubmit: Readonly<{ commandId: string; state: ProviderInputState }> | null;
+};
 
 /** The fixed extension emits this only for its preauthorized exact target policy. */
 export type ExtensionOperatorTargetClaim = Readonly<{
@@ -43,6 +47,8 @@ export class ExtensionExactTargetRegistry {
       navigationEpoch: 0,
       jobRefHash,
       loaderId,
+      expectedUrl: GPT_WEB_START_URL,
+      pendingSubmit: null,
     };
     this.targets.set(target.targetRef, target);
     return target;

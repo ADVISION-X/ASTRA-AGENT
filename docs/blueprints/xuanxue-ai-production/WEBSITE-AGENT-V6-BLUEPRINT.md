@@ -20,7 +20,7 @@ blocked实例在真实停机时由原Store关闭入口只读核未完成任务/O
   "status": "active",
   "owner": "agent-production-runtime",
   "lawIds": [
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V82",
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V83",
     "LAW-AGENT-PRODUCTION-RUNTIME-002-V12",
     "LAW-AGENT-PRODUCTION-RUNTIME-003-V52",
     "LAW-AGENT-PRODUCTION-RUNTIME-004-V49",
@@ -48,9 +48,9 @@ blocked实例在真实停机时由原Store关闭入口只读核未完成任务/O
     {"contractRef":null,"from":{"domain":"startup-entrypoint","repo":"local"},"to":{"domain":"agent-production-runtime","repo":"local"}}
   ],
   "prohibitedDependencyEdges": [
-    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V82","to":{"domain":"app-shell-ui","repo":"local"}},
-    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V82","to":{"domain":"local-app-shell","repo":"local"}},
-    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V82","to":{"domain":"startup-entrypoint","repo":"local"}}
+    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V83","to":{"domain":"app-shell-ui","repo":"local"}},
+    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V83","to":{"domain":"local-app-shell","repo":"local"}},
+    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V83","to":{"domain":"startup-entrypoint","repo":"local"}}
   ]
 }
 ```
@@ -371,3 +371,7 @@ V6 control provider/consumer固定为49，task-result23、Capability4与43路由
 取消封口仅消费同job/attempt、当前control_epoch及reason_code=ADMIN_AI_WORK_ORDER_REPLACEMENT的cancel_requested。待交完整结果优先；原receiving完整结算的completed可封来源而不改result/status/receipt。全部call/effect身份和完整历史须保留，真实已有settled/rejection/risk/negative/unaddressable沿原事实运输；无已结算答案观察的effect用原readback_proofs.effects的unresolved分支、call disposition=unresolved。字段为原source_attempt_id/source_result_revision/effect_identity_hash/source_effect_set_hash/wal_authority_hash/anchor_state/anchor_proof_hash及公开Browser reader原state/mutationOutcome/physicalInputCount映射的wal_state/mutation_outcome/physical_input_count，并携本次WAL读取时刻observed_at及本次封口读取新增Provider输入provider_input_delta=0，不新增terminal_at。readback_exhaustion_hash仅真实exhausted子集，unknown不省略、不伪zero/耗尽。普通source/祖先/风险verifier仍拒绝unresolved及未issued退役seal；原T1 reader只验退役用途，删除其调用普通恢复verifySourceHandoff的耦合，完整事实进入原audit.source_evidence/sealed_lease，无新存储或恢复Owner。
 
 已封存source与待交完整候选由原Store派生，按job_id环形每包合计至多6，二数组不重叠、同job完整结果优先；独立非持久运输游标在失败后也推进。旧source运输不依赖新生产Browser/executor/fresh slot/cooldown资格，仍核原session/attestation/ledger/日志。draining物理发送前核当前真实draining，只允许非空合法sealed source且delivery_candidates=[]的原claim，Website先接source后返回DRAINING零jobs，禁止新/恢复生产grant；关闭原有限pass仅纳入已观察取消/已seal来源，不无限等待未知T2。没有新API/ACK/表/队列/worker/状态机/兼容桥，Browser/GPT/专业Flow不改。未取得同版两仓原生质量及实际联验前不得启用或声称全状态删除闭环完成。
+
+## 同一SEO文章获准修订的原会话定位
+
+同一SEO文章已由Website授权的新result revision当前turn，Browser可从当前job既有WAL的全部可信CONFIRMED locator候选核出非空且唯一的canonical URL，经原confirmed-readback在该U重建当前准备并执行；这只确定执行位置，不复用旧正文、旧准备、旧输入授权或执行进度。指定effect必须沿原exact reader核验，缺失不得改选历史；未指定effect时不得取latest或第一条，缺失、损坏或URL冲突零危险输入失败关闭。旧unknown及无锚点事实原样保留，不视为零输入或可复用来源，也不成为其它精确effect或兄弟job的全局门。新Provider输入仍只取Website当前精确grant与Browser完整WAL防重裁决；其它产品的fresh、业务恢复唯一Owner及URL不跨仓不新持久化边界保持。

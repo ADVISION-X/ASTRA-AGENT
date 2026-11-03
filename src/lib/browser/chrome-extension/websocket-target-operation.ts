@@ -53,7 +53,7 @@ const parseAcquire = (
   const targetMode = request.targetMode;
   const validMode = targetMode === "fresh" || targetMode === "bound-observation"
     || targetMode === "confirmed-readback" || targetMode === "authorized-continuation";
-  const continuation = targetMode === "authorized-continuation";
+  const continuation = targetMode === "authorized-continuation" || targetMode === "confirmed-readback";
   if (request.action !== "acquire" || !validMode
     || typeof request.parentConversationUrl !== (continuation ? "string" : "undefined")
     || !hasExactKeys(request, ["action", "targetMode", "jobRefHash",

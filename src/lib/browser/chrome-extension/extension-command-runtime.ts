@@ -72,7 +72,7 @@ export const executeExtensionCommandReply = async (input: Readonly<{
     stage = "registered-command";
     const identity = await knownGptRateLimitExactCallIdentityHash(permit);
     result = await input.targetAuthority.executeRegisteredCommand(command, target, registered.mutationClass,
-      identity, input.assertCommandActive, input.deadline);
+      identity, input.assertCommandActive, input.deadline, permit);
     if (input.receiptBindingHash !== null) {
       const projection = await projectExtensionMutation(permit, command, result, identity);
       mechanical = projection.receipt; recoveryPayload = projection.payload;

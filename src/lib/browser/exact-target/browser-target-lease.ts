@@ -50,12 +50,20 @@ type BrowserTargetLeaseWaitBase = Readonly<{
 
 export type BrowserTargetLeaseWait = BrowserTargetLeaseWaitBase & (
   | Readonly<{
-    targetMode: "fresh" | "bound-observation" | "confirmed-readback";
+    targetMode: "fresh" | "bound-observation";
+    providerEffectIdentityHash?: never;
+    parentJobId?: never;
+    parentSources?: never;
+  }>
+  | Readonly<{
+    targetMode: "confirmed-readback";
+    providerEffectIdentityHash?: `sha256:${string}`;
     parentJobId?: never;
     parentSources?: never;
   }>
   | Readonly<{
     targetMode: "authorized-continuation";
+    providerEffectIdentityHash?: never;
     parentJobId: string;
     parentSources: readonly Parameters<BrowserMutationStore["readSourceConfirmedProviderEffect"]>[0][];
   }>

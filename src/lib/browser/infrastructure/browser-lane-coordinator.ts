@@ -51,6 +51,14 @@ export class BrowserLaneCoordinator {
   ) { this.targetAcquirer = new BrowserTargetAcquirer(resolveBroker, websocket, issuer, infrastructure); }
 
   public acquire(binding: BrowserExecutionBinding, ownerId: string, wait: BrowserTargetLeaseWait): Promise<BrowserTargetLease> {
+    const keys = ["signal", "remainingMs", "eligibleAt", "targetMode",
+      ...(wait.targetMode === "authorized-continuation" ? ["parentJobId", "parentSources"] : []),
+      ...(wait.targetMode === "confirmed-readback" ? ["providerEffectIdentityHash"] : [])];
+    if (Object.keys(wait).some(key => !keys.includes(key)) || "providerEffectIdentityHash" in wait
+      && (wait.targetMode !== "confirmed-readback" || typeof wait.providerEffectIdentityHash !== "string"
+        || !/^sha256:[a-f0-9]{64}$/u.test(wait.providerEffectIdentityHash))) {
+      return Promise.reject(browserExecutionFailure(new Error("BROWSER_TARGET_INVALID")));
+    }
     if (this.queue.length >= 10) return Promise.reject(browserExecutionFailure(new Error("BROWSER_BACKPRESSURE")));
     if (!Number.isFinite(wait.eligibleAt)) return Promise.reject(browserExecutionFailure(new Error("BROWSER_TARGET_INVALID")));
     if (wait.targetMode === "authorized-continuation" && !Array.isArray(wait.parentSources)) {

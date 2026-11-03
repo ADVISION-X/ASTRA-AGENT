@@ -21,10 +21,11 @@ export class ExtensionCreatedTarget {
   public onTabUpdated(tabId: number): void {
     if (this.orphanCandidates.has(tabId)) void this.reconcileOrphanCandidate(tabId);
   }
-  public async createProductionCandidate(deadlineAt: number, assertCurrent: () => void): Promise<ExtensionDebugTarget> {
+  public async createProductionCandidate(deadlineAt: number, assertCurrent: () => void,
+    destination: string = GPT_WEB_START_URL): Promise<ExtensionDebugTarget> {
     assertCurrent();
     if (Date.now() >= deadlineAt) throw new Error("BROWSER_TARGET_ACQUISITION_TIMEOUT");
-    const tab = await this.debuggerRuntime.createProductionTab(GPT_WEB_START_URL);
+    const tab = await this.debuggerRuntime.createProductionTab(destination);
     if (!Number.isSafeInteger(tab.id)) throw new Error("BROWSER_TARGET_INVALID");
     const tabId = tab.id!; this.removedTabIds.delete(tabId);
     let identity: ExtensionDebugTarget | null = null;

@@ -47,6 +47,8 @@ export const mutationInfrastructureReply = (
 export const exactAssistantTarget = Object.freeze({chromeTargetId: "chrome-target-fixture",
   tabId: 111, targetRef: "target-111", documentRef: "document-11", navigationEpoch: 11,
   jobRefHash: `sha256:${"a".repeat(64)}` as const, loaderId: "loader-current",
+    expectedUrl: "https://chatgpt.com/",
+    pendingSubmit: null
 });
 export const exactAssistantObservedAt = "2026-09-04T00:00:00.000Z";
 export const successfulAssistantObservation = Object.freeze({

@@ -1,4 +1,4 @@
-# Local Browser Authority V58 施工图
+# Local Browser Authority V59 施工图
 
 正常停止由原Runtime先等待在途调用链与真实终态，Browser supervisor随后关闭同一WebSocket的active/pending socket，
 再释放workspace、lane、owner lock与原WAL连接；不新建终态协议，不撤销已发出的输入，不将DISPATCHED改成no。
@@ -7,7 +7,7 @@
 原supervisor关WAL前只读核DISPATCHED未决；存在未决则聚合异常但仍尝试全部资源关闭，保留原WAL值，覆盖尚未构成Runtime实例的迟到初始化；不新增恢复或终态入口。
 
 ```blueprint-record
-{"schemaVersion":1,"blueprintId":"local-browser-authority-v58","status":"active","owner":"local-browser-session","lawIds":["LAW-LOCAL-BROWSER-SESSION-001-V4","LAW-LOCAL-BROWSER-SESSION-003-V49","LAW-LOCAL-BROWSER-SESSION-004-V59","LAW-LOCAL-BROWSER-SESSION-006-V48"],"contractRefs":[],"dependencyEdges":[],"prohibitedDependencyEdges":[]}
+{"schemaVersion":1,"blueprintId":"local-browser-authority-v59","status":"active","owner":"local-browser-session","lawIds":["LAW-LOCAL-BROWSER-SESSION-001-V4","LAW-LOCAL-BROWSER-SESSION-003-V50","LAW-LOCAL-BROWSER-SESSION-004-V59","LAW-LOCAL-BROWSER-SESSION-006-V49"],"contractRefs":[],"dependencyEdges":[],"prohibitedDependencyEdges":[]}
 ```
 
 Website 已以精确 `RESULT_SETTLED_UNUSABLE` 或 `GPT_RESPONSE_STOPPED_EMPTY` 拒绝整个旧 result revision 时，Browser 仅在原 rejection receipt 授权的新 revision、完整旧 WAL effect 历史与当前精确授权已核的同 job 中允许新 effect 各至多一次输入。此分支由 Website 的 `prior_result_rejection` 授权，与“答案不可取得”的逐调用风险 grant 互斥；未被 Website 拒绝的旧结果仍先零输入读回。旧 effect 与原 WAL 动作取证原样保留，不将拒绝当作零输入证明。
@@ -96,11 +96,11 @@ receiptBindingHash 由 browserMutationReceiptBindingProjection 对现役 Browser
 
 提交失败不 ACK；相同完整 fact 重投只 ACK，不改历史。日志健康时 commit/readback → terminal log → ACK → notify lane；日志失败或已不可写时仍 ACK 已提交事实、不 notify/pump，随后 revoke/close，关闭不依赖再次写日志。ACK 失败保留槽，下一 READY 同 proof 只 ACK；原 logger.isWritable/getSinkState 继续禁止后续工作，不增加 gate 状态。
 
-原worker/单槽丢失时原WAL保持未知，不加storage、保活、timer、队列或历史回填。协议唯一13：切换前只drain当前handler/native并交付原合法fact，坏/null槽不补终态、不以历史DISPATCHED计数作为切换门；原worker退出后Node13和同build Extension13一起切换，拒绝其它revision frame或单端回退。新版坏/null槽走原通道dispose/disposed，业务继续只服从Website当前grant/source，WAL事实不授新输入。
+原worker/单槽丢失时原WAL保持未知，不加storage、保活、timer、队列或历史回填。协议唯一14：切换前只drain当前handler/native并交付原合法fact，坏/null槽不补终态、不以历史DISPATCHED计数作为切换门；原worker退出后Node14和同build Extension14一起切换，拒绝其它revision frame或单端回退。新版坏/null槽走原通道dispose/disposed，业务继续只服从Website当前grant/source，WAL事实不授新输入。
 
 现役 Extension 接收 Owner 在 AEAD 验证后、动作或清槽前消费当前会话严格递增 server sequence；READY/COMMAND/acquisition/claim ACK/receipt ACK/revoke 全部适用，ACK 清槽不重新授予旧 COMMAND 输入。配对阶段只接纳一次，新会话重置一个接收序列值；拒绝重放不建 command 历史或第二幂等存储。
 
-既有管理员删除链的资源撤回顺序固定为：Website exact job 缺席 → Runtime 中止该 job → 原 lane 仅对 website-admin-deletion 放行同 job 未决释放 → 同一认证控制帧携三字段 action/jobRefHash/releaseAuthority → Extension 暂停新输入并捕获自身加入前的旧 handler/drain → park 同 job activeTarget → live registry 与 fresh 物理 readback 证明释放或缺席 → 仅此授权精确清同 job 原槽 → Actor 原完整 tracked Promise<void> 发送 TARGET_REVOKE releaseOutcome → 原 Store exact job purge/readback → Runtime 清所属资源。physical helper 返回原 targetRef/jobRefHash/releaseOutcome 三字段真实结果，不发送；Authority 在原 onReleased 后返回；Actor 仅在捕获 socket 与双向 key 仍当前时附原 requestSequence 发送成功。成功 response 严格四字段，requestSequence 为安全正整数，Node 仅匹配 pending release 的 job/sequence 才 resolve。合法迟到非 null 只经原 broker 精确退休同 target/job claim；迟到 absent 零 claim 动作，均不解决新 pending、不清槽/WAL、不撤兄弟连接。普通 documentRef revoke 仍三字段，release request 仍三字段；唯一 revision13 拒旧格式、认证/非法帧仍 fail-close。失败保槽/registry，原物理串行与管理员授权不变。
+既有管理员删除链的资源撤回顺序固定为：Website exact job 缺席 → Runtime 中止该 job → 原 lane 仅对 website-admin-deletion 放行同 job 未决释放 → 同一认证控制帧携三字段 action/jobRefHash/releaseAuthority → Extension 暂停新输入并捕获自身加入前的旧 handler/drain → park 同 job activeTarget → live registry 与 fresh 物理 readback 证明释放或缺席 → 仅此授权精确清同 job 原槽 → Actor 原完整 tracked Promise<void> 发送 TARGET_REVOKE releaseOutcome → 原 Store exact job purge/readback → Runtime 清所属资源。physical helper 返回原 targetRef/jobRefHash/releaseOutcome 三字段真实结果，不发送；Authority 在原 onReleased 后返回；Actor 仅在捕获 socket 与双向 key 仍当前时附原 requestSequence 发送成功。成功 response 严格四字段，requestSequence 为安全正整数，Node 仅匹配 pending release 的 job/sequence 才 resolve。合法迟到非 null 只经原 broker 精确退休同 target/job claim；迟到 absent 零 claim 动作，均不解决新 pending、不清槽/WAL、不撤兄弟连接。普通 documentRef revoke 仍三字段，release request 仍三字段；唯一 revision14 拒旧格式、认证/非法帧仍 fail-close。失败保槽/registry，原物理串行与管理员授权不变。
 
 AEAD、当前会话、严格递增 sequence 与封闭请求形状通过后，仅上述精确 cancel-acquisition 控制通知先匹配当前原 handler；pendingTargetHandlers 非空或 disconnectedDrain 存在时，acquire/release 仅对原请求发送 BROWSER_BACKPRESSURE 诊断并退出，不增加 handler、不主动断连。普通 acquire 的现有暂停/单槽/COMMAND 门只发原诊断，不撤连接。合法 release 的旧排空快照在自身加入前取得，禁止自等待；整个真实 native/proof、原 onReleased 与成功发送均由原 tracked handler 覆盖。成功或失败真实退出时删除自身 handler；仅捕获 socket 与双向 key 当前、READY、两个 handler 集合为空且无 disconnectedDrain 时退休原暂停并 flush 原事实。旧会话 callback 只退休自身，既不清新会话暂停也不以新 key 发旧失败/成功；真实旧物理退休保留，当前认证事实交付仍走原单槽。transport acquire/release 都返回原 sendControlFrame sequence，Acquirer 同步 dispatch 后登记该序号，晚诊断只能拒绝自己的原 pending。永久 native 未退保持未知与串行，不虚报 drained；精确取消事实只阻止本次未来 dispatch，不建立 native 强取消、重载、重试或第二恢复链。
 
@@ -120,3 +120,9 @@ Target 先退休只精确撤回本 job 当前 claim，不撤 authority、不移�
 
 
 MUTATION_RECEIPT原fact/ACK字段及receiptHash不变；原heartbeat每轮最多以新认证sequence重交当前单槽fact一次，删除lastMutationDeliveryKey，不重发COMMAND。dispose请求exact字段为type/commandId/receiptBindingHash/rejectedFact/rejectedFactHash，候选null时hash=null；非null由Node重算canonical完整候选hash并核原durable command/binding及唯一strict verifier。合法fact只原CAS/readback后ACK；坏/null才disposed，exact字段为type/commandId/receiptBindingHash/rejectedFactHash/reasonCode，原因仅BROWSER_RECONCILIATION_RECEIPT_INVALID、BROWSER_COMMAND_RECEIPT_MISSING、BROWSER_MUTATION_STATE_CONFLICT三既有码。Actor只在原handler/native已退且同槽身份/hash匹配后清槽；丢处置沿原heartbeat重交，原WAL unknown不删不补zero，跨绑定/认证错/迟到响应不清新槽。
+
+## 同一SEO文章获准修订的原会话定位
+
+同一SEO文章已由Website授权的新result revision当前turn，Browser可从当前job既有WAL的全部可信CONFIRMED locator候选核出非空且唯一的canonical URL，经原confirmed-readback在该U重建当前准备并执行；这只确定执行位置，不复用旧正文、旧准备、旧输入授权或执行进度。指定effect必须沿原exact reader核验，缺失不得改选历史；未指定effect时不得取latest或第一条，缺失、损坏或URL冲突零危险输入失败关闭。旧unknown及无锚点事实原样保留，不视为零输入或可复用来源，也不成为其它精确effect或兄弟job的全局门。新Provider输入仍只取Website当前精确grant与Browser完整WAL防重裁决；其它产品的fresh、业务恢复唯一Owner及URL不跨仓不新持久化边界保持。
+
+既有TARGET_ACQUIRE的request-only加密parentConversationUrl键在confirmed-readback也承载Browser已验U，fresh及bound-observation禁止携带；四模式与命令数不变，唯一协议revision14拒旧revision。新Target直接以U创建，live同U零导航，必要时至多一次精确导航。当前活Target绑定预期URL：fresh为固定根页，continuation/readback为可信U。主frame及同loader SPA导航先同步撤销旧写资格，再沿原barrier发布Document；每个native dispatch核同一当前物理资格。首submit原commandId与同一ProviderInputState引用仅允许本动作started后的只读直接后置及原同effect独立locator跨根页迁移，未定位前关闭其它command普通准备/Provider输入；绑定U或Target退休即清引用，不另建状态真相。原内部known-rate-limit ack不增加该引用/根页/locator前置，仍按原dialog、Target/Document/permit、Runtime control及1秒/2.5秒窗口一次执行，不清引用或授普通输入。事件/frame URL不成为语义currentUrl或新可信locator。

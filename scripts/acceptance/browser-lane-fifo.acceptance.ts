@@ -197,7 +197,7 @@ try {
     } } as never, { current: () => ({ kind: "PRESENT", authority: { authorityEpoch: 1 } }) } as never,
     { pendingJobBoundTargetAcquisition: null, mutationState: store } as never);
   const before = Date.now();
-  await acquirer.ensureAvailableTarget({ binding: original as never, targetMode: "confirmed-readback", signal: new AbortController().signal, remainingMs: () => 5_000 });
+  await acquirer.ensureAvailableTarget({ binding: original as never, targetMode: "fresh", signal: new AbortController().signal, remainingMs: () => 5_000 });
   assert.equal(creations, 1); assert.ok(deadline >= before && deadline <= Date.now() + 5_000);
   const coordinator = Object.create(BrowserLaneCoordinator.prototype) as Record<string, unknown>;
   const waiter = { kind: "acquire", binding: original, jobRefHash: original.jobRefHash, targetMode: "fresh",

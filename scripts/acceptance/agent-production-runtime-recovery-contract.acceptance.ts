@@ -21,7 +21,7 @@ import {
 import { attemptFailureFirstFact, claimTask, task } from "./agent-production-runtime-fixtures.js";
 import { verifyContinuationSourceBinding, verifyPayloadSlotConflict, verifyRepeatedCheckpointSourceHandoff } from "./agent-production-runtime-payload-slot.acceptance-support.js";
 import { verifyRecoveryFailureTransport } from "./agent-production-runtime-failure-transport.acceptance-support.js";
-import { verifyOutboxRegrantFenceAndReadbackProof, verifyTypedSourceSealAuthority } from
+import { verifyMixedReplaySourceProjection, verifyOutboxRegrantFenceAndReadbackProof, verifyTypedSourceSealAuthority } from
   "./agent-production-runtime-recovery-contract.acceptance-support.js";
 
 const directory = await mkdtemp(path.join(tmpdir(), "agent-fresh-attempt-"));
@@ -361,6 +361,7 @@ try {
       observed_at: "2020-01-01T00:00:00.000Z", provider_input_delta: 0 as const } };
   const riskProof = { ...oldCall, disposition: "replay_exhausted" as const,
     effects: [riskEffect] };
+  verifyMixedReplaySourceProjection(store, zeroBody, riskProof);
   const riskBody = { ...oldBody, kind: "delivery_priority_replay" as const,
     job_id: priorRisk.job_id, source_attempt_id: "attempt:risk-old",
     source_task_hash: hashCanonical(priorRisk),

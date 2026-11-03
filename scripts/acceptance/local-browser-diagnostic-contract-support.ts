@@ -80,7 +80,10 @@ const producedFailure = async (candidate: ReturnType<typeof permit>, sequence: n
         resolve: (targetRef, documentRef) => {
           if (stage === "target-resolution") throw new Error(code);
           return { targetRef, documentRef, tabId: 1, chromeTargetId: "diagnostic-fixture-target",
-            navigationEpoch: 0, jobRefHash: `sha256:${"d".repeat(64)}`, loaderId: "diagnostic-fixture-loader" };
+            navigationEpoch: 0, jobRefHash: `sha256:${"d".repeat(64)}`, loaderId: "diagnostic-fixture-loader",
+              expectedUrl: "https://chatgpt.com/",
+              pendingSubmit: null
+        };
         },
         executeRegisteredCommand: async () => {
           if (stage === "target-resolution") throw new Error("UNREACHABLE");

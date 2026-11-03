@@ -5,7 +5,7 @@ import type {
   ExtensionDebuggerDetachReason,
 } from "./extension-runtime-types.js";
 
-export type ExtensionMainFrame = Readonly<{ loaderId: string; url: string }>;
+export type ExtensionMainFrame = Readonly<{ frameId: string; loaderId: string; url: string }>;
 
 const DEBUGGER_DETACH_FAILURE: Readonly<Record<ExtensionDebuggerDetachReason, Readonly<{
   reasonCode: "BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT" | "BROWSER_DEVTOOLS_CONFLICT";
@@ -46,10 +46,10 @@ export const readExtensionMainFrame = async (
   const result = asRecord(await debuggerRuntime.send(tabId, "Page.getFrameTree"));
   const frameTree = asRecord(result?.frameTree);
   const frame = asRecord(frameTree?.frame);
-  if (!frame || typeof frame.url !== "string" || typeof frame.loaderId !== "string") {
+  if (!frame || typeof frame.id !== "string" || !frame.id || typeof frame.url !== "string" || typeof frame.loaderId !== "string") {
     throw new Error("BROWSER_TARGET_INVALID");
   }
-  return { loaderId: frame.loaderId, url: frame.url };
+  return { frameId: frame.id, loaderId: frame.loaderId, url: frame.url };
 };
 
 export const executeBoundedBrowserWait = async (

@@ -105,7 +105,8 @@ const assertConfirmedProviderReadback = (active: ProductionGptBrowserCall,
 
 export class ProductionGptBrowserLifecycle {
   private activeBrowser: Readonly<{ sessionKey: string; call: ProductionGptBrowserCall }> | null = null;
-  private settledConversation: Readonly<{ sessionKey: string; canonicalConversationUrl: string }> | null = null;
+  private settledConversation: Readonly<{ sessionKey: string; canonicalConversationUrl: string;
+    providerEffectIdentityHash: GptHash }> | null = null;
 
   public constructor(
     private readonly browserAuthority: GptBrowserLeaseAuthority,
@@ -116,11 +117,11 @@ export class ProductionGptBrowserLifecycle {
 
   public async browserFor(sessionKey: string, productStepId: string, callId: string,
     freshConversation = false): Promise<ProductionGptBrowserCall> {
-    if (freshConversation || this.settledConversation?.sessionKey !== sessionKey) this.settledConversation = null;
-    if (this.activeBrowser?.sessionKey === sessionKey) return this.activeBrowser.call;
-    const mode = this.settledConversation ? "confirmed-readback"
-      : this.execution.providerContinuationParent ? "authorized-continuation" : "fresh";
-    return this.browserForMode(sessionKey, productStepId, callId, mode);
+    if (freshConversation) { this.assertProviderTurnSettled(); this.settledConversation = null; }
+    const settled = this.settledConversation?.sessionKey === sessionKey ? this.settledConversation : null;
+    const mode = freshConversation ? "fresh"
+      : this.execution.providerContinuationParent && !settled ? "authorized-continuation" : "confirmed-readback";
+    return this.browserForMode(sessionKey, productStepId, callId, mode, settled?.providerEffectIdentityHash);
   }
 
   public async browserForConfirmedReadback(
@@ -148,15 +149,13 @@ export class ProductionGptBrowserLifecycle {
     expectedProviderEffectIdentityHash?: GptHash,
   ): Promise<ProductionGptBrowserCall> {
     if (!sessionKey) throw executionFailure("failed", "GPT_SESSION_KEY_REQUIRED");
-    if (this.activeBrowser?.sessionKey === sessionKey) {
-      const active = this.activeBrowser.call;
-      if (targetMode === "confirmed-readback" && active.confirmedProviderEffect
+    const current = this.activeBrowser;
+    if (current?.sessionKey === sessionKey && !(targetMode === "fresh" && current.call.settledResultPayloadHash)) {
+      const active = current.call;
+      if (expectedProviderEffectIdentityHash && active.confirmedProviderEffect
         && active.confirmedProviderEffect.providerEffectIdentityHash !== expectedProviderEffectIdentityHash) {
-        if (!active.settledResultPayloadHash) {
-          throw executionFailure("failed", "GPT_BROWSER_SESSION_TRANSITION_UNSETTLED");
-        }
-        active.confirmedProviderEffect = null;
-        active.settledResultPayloadHash = null;
+        this.assertProviderTurnSettled();
+        active.confirmedProviderEffect = null; active.settledResultPayloadHash = null;
         active.recoverySelectionRequired = true;
       }
       return active;
@@ -169,7 +168,7 @@ export class ProductionGptBrowserLifecycle {
       await this.parkActive("gpt-provider-turn-settled");
     }
     const browser = await this.acquireBrowserLease(
-      productStepId, callId, null, targetMode, Date.now(),
+      productStepId, callId, null, targetMode, Date.now(), expectedProviderEffectIdentityHash,
     );
     const active: ProductionGptBrowserCall = {
       browser,
@@ -177,7 +176,7 @@ export class ProductionGptBrowserLifecycle {
       providerWaitLog: null,
       confirmedProviderEffect: null,
       settledResultPayloadHash: null,
-      recoverySelectionRequired: targetMode === "confirmed-readback",
+      recoverySelectionRequired: targetMode === "confirmed-readback" && this.settledConversation?.sessionKey === sessionKey,
     };
     let atomicIdentity: BrowserAtomicStepIdentity | null = null;
     active.facade = new Proxy(browser, {
@@ -210,26 +209,6 @@ export class ProductionGptBrowserLifecycle {
     return active;
   }
 
-  public async recordConfirmedProviderEffect(
-    active: ProductionGptBrowserCall,
-    effect: GptChildBrowserFact,
-    submitIdentity: BrowserAtomicStepIdentity,
-    canonicalConversationUrl: string | null,
-    userTurnId: string,
-  ): Promise<void> {
-    if (active.confirmedProviderEffect?.providerEffectIdentityHash !== effect.providerEffectIdentityHash) {
-      active.settledResultPayloadHash = null;
-    }
-    active.confirmedProviderEffect = Object.freeze({ ...effect, submitIdentity,
-      canonicalConversationUrl, userTurnId });
-    if (active.recoverySelectionRequired && canonicalConversationUrl) {
-      await active.browser.executeDomIntent({
-        kind: "selectExactGptConversation", canonicalConversationUrl,
-      });
-      active.recoverySelectionRequired = false;
-    }
-  }
-
   public assertProviderTurnSettled(): void {
     const active = this.activeBrowser?.call;
     if (active?.confirmedProviderEffect && !active.settledResultPayloadHash) {
@@ -237,37 +216,45 @@ export class ProductionGptBrowserLifecycle {
     }
   }
 
+  public async recordConfirmedProviderEffect(active: ProductionGptBrowserCall, effect: GptChildBrowserFact,
+    submitIdentity: BrowserAtomicStepIdentity, canonicalConversationUrl: string | null, userTurnId: string): Promise<void> {
+    const prior = active.confirmedProviderEffect;
+    if (prior?.providerEffectIdentityHash !== effect.providerEffectIdentityHash) active.settledResultPayloadHash = null;
+    active.confirmedProviderEffect = Object.freeze({ ...effect, submitIdentity, canonicalConversationUrl, userTurnId });
+    if (canonicalConversationUrl && prior?.canonicalConversationUrl !== canonicalConversationUrl) {
+      active.recoverySelectionRequired = true;
+    }
+  }
+
   public recordSettledResult(activeOrEffect: ProductionGptBrowserCall | GptHash, payloadHash: GptHash,
     conversation?: Readonly<{ sessionKey: string; canonicalConversationUrl: string | null }>): void {
+    const current = this.activeBrowser;
+    const effectHash = typeof activeOrEffect === "string" ? activeOrEffect : activeOrEffect.confirmedProviderEffect?.providerEffectIdentityHash;
+    if (!effectHash) throw executionFailure("failed", "GPT_SETTLED_PROVIDER_EFFECT_MISSING");
     const active = typeof activeOrEffect === "string"
-      ? this.activeBrowser?.call.confirmedProviderEffect?.providerEffectIdentityHash === activeOrEffect
-        ? this.activeBrowser.call : null : activeOrEffect;
-    if (active && !active.confirmedProviderEffect) throw executionFailure("failed", "GPT_SETTLED_PROVIDER_EFFECT_MISSING");
-    const settled = conversation ?? (this.settledConversation && active && this.activeBrowser?.call === active
-      && active.confirmedProviderEffect?.canonicalConversationUrl ? {
-        sessionKey: this.activeBrowser.sessionKey,
-        canonicalConversationUrl: active.confirmedProviderEffect.canonicalConversationUrl,
-      } : null);
-    if (settled) {
-      if (!settled.sessionKey || !settled.canonicalConversationUrl
-        || this.settledConversation?.sessionKey === settled.sessionKey
-          && this.settledConversation.canonicalConversationUrl !== settled.canonicalConversationUrl) {
-        throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_IDENTITY_MISMATCH");
-      }
-      this.settledConversation = Object.freeze({ sessionKey: settled.sessionKey,
-        canonicalConversationUrl: settled.canonicalConversationUrl });
+      ? current?.call.confirmedProviderEffect?.providerEffectIdentityHash === effectHash ? current.call : null : activeOrEffect;
+    const settled = conversation ?? (current?.call === active ? {
+      sessionKey: current.sessionKey, canonicalConversationUrl: active?.confirmedProviderEffect?.canonicalConversationUrl ?? null,
+    } : null);
+    if (!settled?.sessionKey || !settled.canonicalConversationUrl
+      || this.settledConversation?.sessionKey === settled.sessionKey
+        && this.settledConversation.canonicalConversationUrl !== settled.canonicalConversationUrl) {
+      throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_IDENTITY_MISMATCH");
     }
-    if (active) active.settledResultPayloadHash = payloadHash;
+    this.settledConversation = Object.freeze({ ...settled, canonicalConversationUrl: settled.canonicalConversationUrl,
+      providerEffectIdentityHash: effectHash });
+    if (active) { active.settledResultPayloadHash = payloadHash; active.recoverySelectionRequired = true; }
   }
 
   public async selectSettledConversation(active: ProductionGptBrowserCall): Promise<void> {
-    if (!active.recoverySelectionRequired || active.confirmedProviderEffect) return;
-    const current = this.activeBrowser, settled = this.settledConversation;
-    if (!current || current.call !== active || !settled || settled.sessionKey !== current.sessionKey) {
+    if (!active.recoverySelectionRequired) return;
+    const current = this.activeBrowser;
+    const settled = this.settledConversation?.sessionKey === current?.sessionKey ? this.settledConversation : null;
+    const url = active.confirmedProviderEffect?.canonicalConversationUrl ?? settled?.canonicalConversationUrl;
+    if (!current || current.call !== active || !url) {
       throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_IDENTITY_MISMATCH");
     }
-    await active.facade.executeDomIntent({ kind: "selectExactGptConversation",
-      canonicalConversationUrl: settled.canonicalConversationUrl });
+    await active.facade.executeDomIntent({ kind: "selectExactGptConversation", canonicalConversationUrl: url });
     active.recoverySelectionRequired = false;
   }
 
@@ -304,6 +291,7 @@ export class ProductionGptBrowserLifecycle {
     try {
       active.browser = await this.acquireBrowserLease(
         productStepId, callId, observationDeadlineAt, "confirmed-readback", eligibleAt,
+        active.confirmedProviderEffect!.providerEffectIdentityHash!,
       );
     } catch (error) {
       if (failureCode(error) === "V6_DEADLINE_BUDGET_EXHAUSTED"
@@ -402,6 +390,7 @@ export class ProductionGptBrowserLifecycle {
     probeDeadlineAt: number | null,
     targetMode: BrowserTargetLeaseWait["targetMode"],
     eligibleAt: number,
+    providerEffectIdentityHash?: GptHash,
   ): Promise<BrowserTargetLease> {
     const remainingMs = (): number => Math.min(
       Math.floor(this.execution.expiresAtMonotonic - performance.now()),
@@ -454,9 +443,10 @@ export class ProductionGptBrowserLifecycle {
       targetMode,
       parentJobId: this.execution.providerContinuationParent!.jobId,
       parentSources: this.execution.providerContinuationParent!.sources,
-    } : {
+    } : targetMode === "confirmed-readback" ? {
       ...wait,
       targetMode,
-    });
+      ...(providerEffectIdentityHash ? { providerEffectIdentityHash } : {}),
+    } : { ...wait, targetMode });
   }
 }

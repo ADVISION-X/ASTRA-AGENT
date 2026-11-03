@@ -8,6 +8,7 @@ import Database from "better-sqlite3";
 import { browserExecutionFailure } from "../../src/lib/browser/browser-authority-api.js";
 import { executionFailure, typedExecutionFailure } from "../../src/lib/execution-failure.js";
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
+import type { SourceAttemptHandoff, SourceReadbackCallProof } from "../../src/lib/local-runtime/production/source-readback-contract.js";
 import { acceptClaim } from "../../src/lib/local-runtime/production/runtime-claim-operations.js";
 import type { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 import { requireRuntimeLogWrite } from "../../src/lib/runtime-logs/index.js";
@@ -22,6 +23,43 @@ import { attemptFailureFirstFact, claimTask, resultFor, stageResultForAcceptance
 type Job = ReturnType<typeof task>;
 type FirstFailure = ReturnType<typeof attemptFailureFirstFact>;
 type Hash = `sha256:${string}`;
+
+export const verifyMixedReplaySourceProjection = (store: ProductionRuntimeStore,
+  template: Omit<SourceAttemptHandoff, "seal_hash">, riskTemplate: SourceReadbackCallProof): void => {
+  const job = task({ jobId: "job:mixed-delivery-priority", productId: "payment_screenshot_observation", actionId: "observe" });
+  store.acceptTask(job, template.source_attempt_id);
+  const effect = riskTemplate.effects[0]!;
+  const riskHash = hashCanonical("independent-risk-effect");
+  const negative = { effect_identity_hash: riskHash, source_effect_set_hash: riskHash,
+    wal_authority_hash: effect.wal_authority_hash, anchor_state: "absent" as const,
+    anchor_proof_hash: effect.anchor_proof_hash, observed_at: "2020-01-01T00:00:00.000Z", provider_input_delta: 0 as const };
+  const risk = { ...riskTemplate, call_id: "independent-risk-submit", source_effect_set_hash: riskHash,
+    effects: [{ effect_identity_hash: riskHash, source_effect_set_hash: riskHash,
+      wal_authority_hash: negative.wal_authority_hash, anchor_state: negative.anchor_state,
+      anchor_proof_hash: negative.anchor_proof_hash,
+      unaddressable: { observed_at: negative.observed_at, provider_input_delta: 0 as const, proof_hash: hashCanonical(negative) } }] };
+  const call = { product_step_id: risk.product_step_id, call_id: risk.call_id,
+    child_capability_id: risk.child_capability_id, source_effect_set_hash: riskHash };
+  const calls = [...template.replay_calls, call];
+  const quiescence = { kind: "terminal_wal" as const, browser_history_hash: template.browser_history_hash,
+    source_effect_set_hash: hashCanonical(calls.map(item => item.source_effect_set_hash).sort()),
+    unresolved_command_set_hash: hashCanonical([]) };
+  const outbox = store.readResultOutboxHistoryEvidence(job.job_id, template.source_attempt_id);
+  const body = { ...template, job_id: job.job_id, source_task_hash: hashCanonical(job),
+    outbox_history_hash: outbox.historyHash, outbox_candidate_count: outbox.candidateCount,
+    browser_row_count: 2, replay_calls: calls, readback_proofs: [...template.readback_proofs, risk],
+    input_quiescence_proof: { ...quiescence, proof_hash: hashCanonical(quiescence) },
+    readback_exhaustion_hash: hashCanonical([risk]) };
+  const seal = hashCanonical(body);
+  store.sealSourceHandoff({ ...body, seal_hash: seal });
+  store.acceptTaskAfterSourceHandoff(job, "attempt:mixed-issued", seal);
+  const expected = [["reused_checkpoint", template.replay_calls[0]!.call_id,
+    template.readback_proofs[0]!.effects[0]!.effect_identity_hash], ["risk_authorized", risk.call_id, riskHash]].sort();
+  assert.deepEqual(store.readAcceptedSourceSettlements(job.job_id).map(item =>
+    [item.kind, item.callId, item.effectIdentityHash]).sort(), expected,
+  "one signed mixed manifest retains its reusable call and its separately authorized risk call");
+  assert.equal(store.readIssuedSourceHandoff(job.job_id, "attempt:mixed-issued", seal)?.seal_hash, seal);
+};
 
 const sourceBodyFor = (store: ProductionRuntimeStore, job: Job, providerEffectHash: Hash) => {
   const outbox = store.readResultOutboxHistoryEvidence(job.job_id, "attempt:1");

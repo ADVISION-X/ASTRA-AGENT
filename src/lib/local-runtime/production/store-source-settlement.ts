@@ -209,8 +209,8 @@ const replaySettlements = (row: Row, manifest: SignedManifest): AcceptedSourceSe
   if (manifest.readback_exhaustion_hash !== hashCanonical(exhausted)) {
     throw executionFailure("failed", "PRODUCTION_SOURCE_REPLAY_INVALID");
   }
-  return exhausted.length === 0
-    ? reusableSettlements(row, manifest) : riskSettlements(row, manifest, exhausted);
+  return exhausted.length === 0 ? reusableSettlements(row, manifest)
+    : [...checkpointSettlements(row, manifest), ...riskSettlements(row, manifest, exhausted)];
 };
 
 const settledRejectionFirstFact = (

@@ -96,6 +96,15 @@ assert.deepEqual(decline.calls.map((call) => call.child), initialText);
 assert.equal(decline.calls.some((call) => call.productStepId === "article_synthesis"), false);
 
 const proceed = await exerciseSeoFlow(plugin, "produce_article", "proceed");
+for (const action of ["produce_article", "accuracy_challenge", "quality_reflection"] as const) {
+  const state = createHarness(action), context = createContext(state, "proceed");
+  await plugin.execute(seoTask(action), { ...context, resultRevision: { ...context.resultRevision, revision: 1 } });
+  assert.equal(state.calls.filter(call => call.child === "prepare_clean_gpt_chat").length,
+    action === "produce_article" ? 0 : 1, "only authorized article revisions preserve the original conversation");
+  assert.equal(state.calls.filter(call => call.child === "attach_approved_gpt_files_once").length, 1);
+  assert.equal(state.calls.filter(call => call.child === "submit_exact_gpt_turn_once").length, action === "produce_article" ? 3 : 1);
+  assert.ok(state.completed, "revision preparation retains the complete original Product flow");
+}
 assert.deepEqual(proceed.calls.map((call) => call.child), [
   ...initialText, ...continuedText, ...continuedImage,
 ]);
@@ -312,7 +321,7 @@ for (const action of ["accuracy_challenge", "quality_reflection"] as const) {
 }
 /** The Sharp image owner of this Product must pass, and geometry, original leakage and second-owner mutants must fail. */
 const exerciseImageOwnership = (): void => {
-  const lawId = "LAW-ARCHITECTURE-BOUNDARY-001-V19";
+  const lawId = "LAW-ARCHITECTURE-BOUNDARY-001-V20";
   const tsConfigFilePath = "tsconfig.json";
   {
     const project = new Project({ tsConfigFilePath });

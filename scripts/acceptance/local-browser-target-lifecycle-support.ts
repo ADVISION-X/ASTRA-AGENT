@@ -120,6 +120,7 @@ export const exerciseAuthorizedContinuation = async (input: Readonly<{
   targetFrames: TargetFrame[];
   debuggerMethods: string[];
   mainFrameUrlByTab: Map<number, string>;
+  createdUrl(): string | undefined;
 }>): Promise<void> => {
   const hash = `sha256:${"e".repeat(64)}` as const;
   const url = "https://chatgpt.com/c/article-a";
@@ -127,15 +128,15 @@ export const exerciseAuthorizedContinuation = async (input: Readonly<{
   const frameBaseline = input.targetFrames.length;
   const acquisition = input.authority.acquireJobBoundChatGptTarget("authorized-continuation", hash, url, () => { assert.match(hash, /^sha256:[a-f0-9]{64}$/u); });
   await input.waitForCreatedTab(input.nextCreatedTabId);
+  assert.equal(input.createdUrl(), url, "the original tabs.create argument must be the exact parent WAL URL");
   input.targetTabUpdated(input.nextCreatedTabId, { status: "complete" }, {
-    id: input.nextCreatedTabId, url: "https://chatgpt.com/", title: "ChatGPT",
+    id: input.nextCreatedTabId, url, title: "ChatGPT",
   });
   await acquisition;
   assert.equal(input.mainFrameUrlByTab.get(input.nextCreatedTabId), url,
-    "authorized continuation must navigate the new current-job Target to the exact parent WAL URL");
-  assert.equal(input.debuggerMethods.filter((method) => method === "Page.navigate").length,
-    navigationBaseline + 1,
-    "authorized continuation must navigate exactly once before publishing its Target claim");
+    "authorized continuation must create the current-job Target at the exact parent WAL URL");
+  assert.ok(input.debuggerMethods.filter((method) => method === "Page.navigate").length - navigationBaseline <= 1,
+    "an initial blank frame may need one exact convergence after direct creation at U");
   assert.equal(input.targetFrames.length, frameBaseline + 1);
   assert.equal(input.targetFrames.at(-1)?.kind, "TARGET_CLAIM");
   assert.deepEqual(Object.keys(input.targetFrames.at(-1)?.body ?? {}).sort(),
@@ -185,10 +186,11 @@ export const exerciseClosedParkedTabRecovery = async (input: Readonly<{
   );
   assert.equal(input.readNextCreatedTabId(), replacementTabId,
     "a missing bound observation must not create a new system Tab");
-  const replacement = input.authority.acquireJobBoundChatGptTarget("confirmed-readback", closedJob, undefined, () => { assert.match(closedJob, /^sha256:[a-f0-9]{64}$/u); });
+  const replacementUrl = "https://chatgpt.com/c/closed-original";
+  const replacement = input.authority.acquireJobBoundChatGptTarget("confirmed-readback", closedJob, replacementUrl, () => { assert.match(closedJob, /^sha256:[a-f0-9]{64}$/u); });
   await input.waitForCreatedTab(replacementTabId);
   input.targetTabUpdated(replacementTabId, { status: "complete" }, {
-    id: replacementTabId, url: "https://chatgpt.com/", title: "ChatGPT",
+    id: replacementTabId, url: replacementUrl, title: "ChatGPT",
   });
   await replacement;
   assert.notEqual(input.targetFrames.at(-1)?.body.targetRef, oldTargetRef,

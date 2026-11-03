@@ -38,19 +38,20 @@ const inspectInteractionLease = (s: Sources, findings: InspectorFinding[], lawId
   const facts = [
     has(method(s.authority, authority, "executeRegisteredCommandCycle"), ['mutationClass === "mutation"',
       "this.interactionReadiness.executeMutation(target, execute, assertCommandActive",
-      'mutationClass === "observation"', "this.interactionReadiness.executeObservation(target, execute, assertCommandActive)"]),
+      'mutationClass === "observation"', "this.interactionReadiness.executeObservation(target, execute, assertCommandActive, permit)"]),
     countCalls(s.authority, authority, "executeRegisteredCommandCycle", "this.interactionReadiness.executeMutation") === 1,
     countCalls(s.authority, authority, "executeRegisteredCommandCycle", "this.interactionReadiness.executeObservation") === 1,
     countCalls(s.readiness, owner, "executeMutation", "this.ensureInteractionReady") === 1,
     countCalls(s.readiness, owner, "executeObservation", "this.ensureInteractionReady") === 1,
     countCalls(s.readiness, owner, "executeMutation", "this.debuggerRuntime.withProviderInputGuard") === 1,
-    has(ensure, ["if (tab.active !== true)", "this.captureTabActivation(tab, target.tabId)",
-      "active.target?.targetRef !== target.targetRef", "active.target.documentRef !== target.documentRef",
-      "active.target.tabId !== target.tabId", "active.loaderId === null", "frame.loaderId !== active.loaderId",
+    has(ensure, ["if (!tab.active)", "this.captureTabActivation(tab, target.tabId)",
+      "targetRef: target.targetRef", "documentRef: target.documentRef", "tabId: target.tabId", "loaderId: frame.loaderId",
+      "active.target?.[key as keyof ExtensionExactTarget] === value", "!identityMatches", "!target.expectedUrl",
+      "`${url.origin}${url.pathname}` !== target.expectedUrl",
       "this.assertInteractionReady(lease)"]),
     countCalls(s.readiness, owner, "ensureInteractionReady", "this.debuggerRuntime.activateTab") === 1,
     countCalls(s.readiness, owner, "ensureInteractionReady", "readExtensionMainFrame") === 1,
-    countCalls(s.readiness, owner, "ensureInteractionReady", "requireGptWebPolicyForUrl") === 1,
+    countCalls(s.readiness, owner, "ensureInteractionReady", "gptWebClaimOriginForUrl") === 1,
     ensure.indexOf("this.captureTabActivation(tab, target.tabId)") < ensure.indexOf("await readExtensionMainFrame("),
     has(method(s.readiness, owner, "requireInteractiveTab"), ["tab.id !== target.tabId",
       "!Number.isSafeInteger(tab.windowId)", "tab.active !== true", "tab.discarded !== false"]),
@@ -60,10 +61,16 @@ const inspectInteractionLease = (s: Sources, findings: InspectorFinding[], lawId
       "activation?.tabId !== tabId || activation.generation !== generation",
       'throw interactionFailure("BROWSER_TARGET_INVALID")', "assertActivation();", "return assertActivation"]),
     has(ready, ["lease.assertActivation()",
-      "current?.targetRef !== lease.targetRef", "current.documentRef !== lease.documentRef", "current.tabId !== lease.tabId"]),
+      "current.targetRef !== lease.targetRef", "current.documentRef !== lease.documentRef", "current.tabId !== lease.tabId",
+      "current.chromeTargetId !== lease.chromeTargetId", "this.navigationGeneration !== lease.generation"]),
     countCalls(s.readiness, owner, "assertInteractionReady", "this.resolveExactTarget") === 1,
     countCalls(s.authority, authority, "start", "this.chromeApi.tabs.onActivated.addListener") === 1,
     has(method(s.authority, authority, "start"), ["this.interactionReadiness.recordActiveTab(info.windowId, info.tabId)"]),
+    has(method(s.authority, authority, "start"), ['method === "Page.frameNavigated" && !frame?.parentId',
+      'method === "Page.navigatedWithinDocument" && parameters?.frameId === this.activeMainFrameId',
+      "this.interactionReadiness.invalidateNavigation()", "this.consumeFrameNavigationAfterBarrier(target.tabId)"]),
+    method(s.authority, authority, "start").indexOf("this.interactionReadiness.invalidateNavigation()")
+      < method(s.authority, authority, "start").indexOf("this.consumeFrameNavigationAfterBarrier(target.tabId)"),
     noTabUrl,
   ];
   requireContract(facts.every(Boolean), findings, lawId, paths.readiness,
@@ -77,11 +84,22 @@ const inspectMutationFailure = (s: Sources, findings: InspectorFinding[], lawId:
   const body = mutation?.getText() ?? "";
   requireContract(s.readiness.getVariableDeclaration("interactionRejectedReceipt") === undefined
     && returns.length === 1 && success?.getExpression().getText() === "this.debuggerRuntime.withProviderInputGuard"
-    && has(body, ["assertInput();", "const lease = await this.ensureInteractionReady(target, assertInput)",
+    && has(body, ["assertInput();", "const lease = await this.ensureInteractionReady(target, assertInput, permit)",
+      'permit.childCapabilityId === "submit_exact_gpt_turn_once"', 'permit.replayPolicy === "provider-effect-once"',
+      "target.expectedUrl === GPT_WEB_START_URL", "target.pendingSubmit = { commandId: permit.commandId, state }",
+      "this.assertInteractionReady(lease, state.started && target.pendingSubmit?.state === state)",
+      "if (!state.started && target.pendingSubmit?.state === state) target.pendingSubmit = null",
       "await this.debuggerRuntime.awaitPageReadPermission()", "throw Object.assign(error instanceof Error ? error",
       "browserInputStarted: state.started", "browserPhysicalInputCount: state.physicalInputCount"]),
   findings, lawId, paths.readiness,
   "Preflight interaction refusal must throw through the original errorCode producer; partial input state must survive the original barrier.");
+  requireContract(has(method(s.readiness, "ExtensionInteractionReadiness", "ensureInteractionReady"), [
+    'const ack = permit.childCapabilityId === "acknowledge_known_gpt_rate_limit"',
+    'permit.childCapabilityId === "get_submitted_gpt_conversation_url"', 'permit.replayPolicy === "observation-only"',
+    "target.pendingSubmit?.state.started === true", "target.pendingSubmit.commandId !== permit.commandId && !locator",
+    "!ack && !locator && `${url.origin}${url.pathname}` !== target.expectedUrl",
+  ]), findings, lawId, paths.readiness,
+  "The first-submit pending window borrows the original input state, blocks ordinary input, and leaves only the existing locator read and exact acknowledgement qualification open.");
 };
 
 const inspectLogicalAccess = (s: Sources, findings: InspectorFinding[], lawId: string): void => {

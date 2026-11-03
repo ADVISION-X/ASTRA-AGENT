@@ -197,12 +197,12 @@ const inspectNavigation = (s: Sources, findings: InspectorFinding[], lawId: stri
   const complete = body(s.created, "ExtensionCreatedTarget", "completeNavigation");
   const selection = body(s.authority, "ExtensionTargetAuthority", "executeConversationSelection");
   requireContract(ordered(acquire, ["await preflightTargetAcquisition(", "await this.qualifyBoundTarget(preflight.bound, targetMode, assertCurrent)",
-    "createProductionCandidate(deadlineAt, assertCurrent)", "await this.qualifyCandidateNavigation(candidate, bound, targetMode, preflight.continuationUrl, assertCurrent, deadlineAt)", "claimActiveTarget(publishedTarget, frame.url, { deadlineAt, assertCurrent })"])
+    "createProductionCandidate(deadlineAt, assertCurrent, preflight.continuationUrl)", "await this.qualifyCandidateNavigation(candidate, bound, targetMode, preflight.continuationUrl, assertCurrent, deadlineAt)", "claimActiveTarget(publishedTarget, frame.url, { deadlineAt, assertCurrent })"])
     && includesAll(s.acquisition.getText(), ["findByJobRefHash(input.jobRefHash)", "input.activeTarget"])
     && includesAll(body(s.authority, "ExtensionTargetAuthority", "qualifyBoundTarget"), ["await this.debuggerRuntime.readTargets()", "target.tabId === bound.tabId", "target.id === bound.chromeTargetId", 'targetMode === "bound-observation"'])
     && acquire.includes("advanceDocument(")
-    && includesAll(qualify, ['targetMode === "fresh"', "activateTab(bound.tabId)", "completeNavigation(candidate, deadlineAt",
-      "bound ? undefined : continuationUrl", "requireCanonicalGptConversationUrl(frame.url) !== continuationUrl"])
+    && includesAll(qualify, ['targetMode === "fresh"', "activateTab(tabId)", "completeNavigation(candidate, deadlineAt",
+      'bound && targetMode === "authorized-continuation" ? undefined : continuationUrl', "`${location.origin}${location.pathname}` !== continuationUrl"])
     && !/readOrRecoverExactTarget|tabs\.query|Page\.bringToFront/u.test(s.authority.getText()),
   findings, lawId, paths.authority, "Acquisition must inspect only the current registry/physical Target and qualify navigation before publishing a claim.");
   requireContract(ordered(complete, ["const [before, assertActivation] = await this.qualifyCurrentFrame(target, deadlineAt, assertCurrent)",
@@ -210,10 +210,27 @@ const inspectNavigation = (s: Sources, findings: InspectorFinding[], lawId: stri
     "Date.now() >= deadlineAt", '"Page.navigate"',
     "const [frame, assertReadback] = await this.qualifyCurrentFrame(target, deadlineAt, assertCurrent)", "assertCurrent(); assertReadback()", "return frame"])
     && includesAll(complete, ["const beforeUrl = new URL(before.url)", "const afterUrl = new URL(frame.url)", "`${afterUrl.origin}${afterUrl.pathname}` !== destination", "frame.loaderId === before.loaderId", "Date.now() >= deadlineAt"])
-    && includesAll(selection, ["completeNavigation(", "deadlineAt, assertCurrent, expected, false, target.loaderId", "publishMainFrameNavigation(frame.url, frame.loaderId)"])
+    && includesAll(selection, ["completeNavigation(", "deadlineAt, assertCurrent, destination, false, target.loaderId", "publishMainFrameNavigation(frame.url, frame.loaderId)",
+      "fresh.expectedUrl = destination", "fresh.pendingSubmit = null"])
     && body(s.authority, "ExtensionTargetAuthority", "start").includes("this.createdTarget.onTabUpdated(tabId)")
     && !body(s.authority, "ExtensionTargetAuthority", "start").includes("this.createdTarget.markTabRemoved("),
   findings, lawId, paths.created, "Fresh, continuation and reset navigation must share one absolute deadline, fresh non-discarded/attached frame readback.");
+  requireContract(ordered(body(s.authority, "ExtensionTargetAuthority", "acquireJobBoundChatGptTarget"), [
+    "this.debuggerRuntime.withLogicalPageAccess(", 'targetMode !== "authorized-continuation"',
+    "this.activeTarget?.jobRefHash === jobRefHash", "await this.parkActiveTarget()", "this.debuggerRuntime.withProviderInputGuard(",
+  ]) && includesAll(body(s.acquirer, "BrowserTargetAcquirer", "readConversationUrl"), [
+    "store.jobHistoryEvidence(waiter.binding.jobId)", "!history.walHistoryVerified", "waiter.providerEffectIdentityHash",
+    'effect.state === "CONFIRMED" && effect.anchorState === "trusted"', "effect.effectIdentityHash === hash",
+    "hash !== undefined && candidates.length !== 1", "store.readSourceConfirmedProviderEffect({ jobId: waiter.binding.jobId",
+    "if (!locator)", "urls.size !== 1",
+  ]), findings, lawId, paths.acquirer,
+  "Reacquisition retires the live physical claim through the original park, while the original job WAL and exact effect reader supply the sole unique URL.");
+  requireContract(includesAll(s.acquisition.getText(), ['input.targetMode === "confirmed-readback"',
+    'input.targetMode === "authorized-continuation"', 'typeof input.parentConversationUrl !== (located ? "string" : "undefined")',
+    "requireCanonicalGptConversationUrl(input.parentConversationUrl!)"])
+    && includesAll(body(s.created, "ExtensionCreatedTarget", "createProductionCandidate"), ["this.debuggerRuntime.createProductionTab(destination)"])
+    && !body(s.created, "ExtensionCreatedTarget", "createProductionCandidate").includes("createProductionTab(GPT_WEB_START_URL)"),
+  findings, lawId, paths.created, "Both located modes create directly at the verified original URL without a homepage acquisition shortcut.");
 };
 const inspectNavigationInput = (s: Sources, findings: InspectorFinding[], lawId: string): void => {
   const input = body(s.created, "ExtensionCreatedTarget", "qualifyCurrentFrame");

@@ -29,6 +29,8 @@ const exactTestTarget = (documentRef: string, navigationEpoch: number) => ({
   navigationEpoch,
   jobRefHash: `sha256:${"a".repeat(64)}` as const,
   loaderId: "loader-a",
+    expectedUrl: "https://chatgpt.com/",
+    pendingSubmit: null
 });
 
 const mechanicalFacts = (overrides: Readonly<Record<string, unknown>> = {}) => ({
@@ -471,5 +473,10 @@ export const exerciseLocalBrowserDomIntent = async (): Promise<void> => {
   for (const exercise of [exerciseUniversalPostActionReadGate, exerciseComposerReadiness,
     exerciseDomFailures, exerciseLateTextMatch, exerciseUntruncatedRead, exerciseMechanicalFacts,
     exerciseSeparatedMechanicalEligibility, exerciseCoherentObservation, exerciseExactAssistantTurnRead,
-    exerciseDomMutations, exerciseFileInput]) await exercise();
+    exerciseDomMutations, exerciseFileInput]) {
+    const started = performance.now();
+    process.stderr.write(`[QUALITY][browser-dom:start] ${exercise.name}\n`);
+    await exercise();
+    process.stderr.write(`[QUALITY][browser-dom:complete] ${exercise.name} elapsedMs=${Math.round(performance.now() - started)}\n`);
+  }
 };

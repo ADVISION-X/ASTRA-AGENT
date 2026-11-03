@@ -29,6 +29,7 @@ const chrome = await exerciseAutomaticPairing(); await verifyKnownGptRateLimitDe
 process.stderr.write("[QUALITY][browser-pairing:progress] automatic-pairing-and-detector-complete\n");
 await exerciseAuthenticatedTargetIsolation(chrome);
 const state = { nextId: 3, activeId: 99, navigationCount: 0, physicalTargetsReads: 0, pointer: false,
+  clickDestination: null as string | null,
   frameNavigationDuringNavigate: false, switchBeforeInput: false, switchAfterInput: false,
   switchReadCountdown: 0, switchDuringTargets: null as "away" | "away-back" | null, attachFailure: null as number | null, removeFailure: null as number | null,
   created: null as Readonly<{ active: true; url: string }> | null, pointerResult: { x: 5, y: 5 } as unknown,
@@ -48,7 +49,7 @@ const switchTab = (id: number): void => { state.activeId = id; activation({ tabI
 const tabUpdated: typeof update = (id, changes, tab) => { update(id, changes, tab); };
 const tabValue = (id: number) => ({ active: id === state.activeId, discarded: discarded.has(id), id,
   title: "ChatGPT", windowId: 1 });
-const simulateDomReadAndInput = async (_tabId: number, method: string, parameters?: Readonly<Record<string, unknown>>): Promise<unknown> => {
+const simulateDomReadAndInput = async (tabId: number, method: string, parameters?: Readonly<Record<string, unknown>>): Promise<unknown> => {
       if (method === "Runtime.evaluate" && String(parameters?.expression).includes("known-gpt-rate-limit-preflight.v2"))
         return rateLimitDetectorCdpResult(parameters, state.detector, detectorStarts);
       if (method === "DOM.getDocument") return { root: { nodeId: 1 } };
@@ -62,7 +63,7 @@ const simulateDomReadAndInput = async (_tabId: number, method: string, parameter
       }
       if (method === "Input.dispatchMouseEvent" && state.pointer) {
         inputs.push(String(parameters?.type)); if (state.switchAfterInput) { state.switchAfterInput = false; switchTab(99); }
-        if (parameters?.type === "mouseReleased") urls.set(3, "https://chatgpt.com/c/interaction-ready"); return {};
+        if (parameters?.type === "mouseReleased" && state.clickDestination) urls.set(tabId, state.clickDestination); return {};
       }
       if (method === "Runtime.evaluate" && state.runtime) return { result: { value: await state.runtime(String(parameters?.expression)) } };
   return {};
@@ -84,7 +85,7 @@ const targetChrome: ExtensionChromeApi = { runtime: chrome.runtime, alarms: chro
         if (state.frameNavigationDuringNavigate) { state.frameNavigationDuringNavigate = false; event({ tabId }, "Page.frameNavigated"); }
         return { loaderId: loaders.get(tabId) };
       }
-      if (method === "Page.getFrameTree") return { frameTree: { frame: { loaderId: loaders.get(tabId) ?? `loader-${tabId}`, url: initialFrames.delete(tabId) ? "about:blank" : urls.get(tabId) } } };
+      if (method === "Page.getFrameTree") return { frameTree: { frame: { id: `frame-${tabId}`, loaderId: loaders.get(tabId) ?? `loader-${tabId}`, url: initialFrames.delete(tabId) ? "about:blank" : urls.get(tabId) } } };
       return simulateDomReadAndInput(tabId, method, parameters);
     }, onDetach: { addListener: callback => { detach = (target, reason) => { lostDebugger.add(target.tabId); callback(target, reason); }; } },
     onEvent: { addListener: callback => { event = callback; } } },
@@ -112,7 +113,12 @@ assert.equal(frames[0]!.body.claimOrigin, "https://chatgpt.com"); const initialC
 const targetRef = String(initialClaim.targetRef), documentRef = String(initialClaim.documentRef), target = authority.resolve(targetRef, documentRef);
 const execute = async (command: Parameters<ExtensionTargetAuthority["executeRegisteredCommand"]>[0], current = target,
   kind: Parameters<ExtensionTargetAuthority["executeRegisteredCommand"]>[2] = "mutation") => {
-  const result = await authority.executeRegisteredCommand(command, current, kind, `sha256:${"e".repeat(64)}`, () => { assert.deepEqual(authority.resolve(current.targetRef, current.documentRef), current); });
+  state.clickDestination = command.kind === "dom-intent" && command.intent.kind === "click" ? command.intent.postClickUrl?.equals ?? null : null;
+  const child = command.kind === "dom-intent" && ["acknowledgeKnownGptRateLimit", "readKnownGptRateLimitClearance"].includes(command.intent.kind)
+    ? "acknowledge_known_gpt_rate_limit" : "open_gpt_model_selector_v3";
+  const result = await authority.executeRegisteredCommand(command, current, kind, `sha256:${"e".repeat(64)}`,
+    () => { assert.deepEqual(authority.resolve(current.targetRef, current.documentRef), current); }, Date.now() + 30_000,
+    { ...permit("direct-interaction"), targetRef: current.targetRef, documentRef: current.documentRef, mutationClass: kind, childCapabilityId: child });
   const row = result as Record<string, unknown>; return row?.schemaVersion === "grasseye.browser.command-preflight.v1" ? row.commandResult : result;
 };
 const selectionFixture = async () => {
@@ -136,7 +142,7 @@ const selectionFixture = async () => {
     execute: async (candidate: BrowserCommandPermit, command: Parameters<ExtensionTargetAuthority["executeRegisteredCommand"]>[0]) => {
       const current = authority.resolve(candidate.targetRef, candidate.documentRef);
       const raw = await authority.executeRegisteredCommand(command, current, candidate.mutationClass,
-        browserExactCallIdentityHash(candidate), () => { authority.resolve(candidate.targetRef, candidate.documentRef); });
+        browserExactCallIdentityHash(candidate), () => { authority.resolve(candidate.targetRef, candidate.documentRef); }, Date.now() + 30_000, candidate);
       delivered.push({ candidate, command, raw });
       return decodeKnownGptRateLimitPreflightReply(candidate, command, raw).commandResult;
     }, mutationOutcome: () => null, browserOutcome: () => null };
@@ -162,8 +168,10 @@ await verifyRateLimitCommandAdmission({ executeRegisteredCommand: execute, simpl
 const gate = new ChatGptPageAccessGate(), starts: number[] = [];
 for (let index = 0; index < 3; index += 1) { await gate.enter(); starts.push(performance.now()); }
 assert.ok(starts.slice(1).every((value, index) => value - starts[index]! >= 1500));
-switchTab(99); await execute(click); const activationCount = activated.length; await execute(click); assert.equal(activated.length, activationCount);
+urls.set(3, "https://chatgpt.com/"); switchTab(99); await execute(click); const activationCount = activated.length;
+urls.set(3, "https://chatgpt.com/"); await execute(click); assert.equal(activated.length, activationCount);
 for (const mode of ["origin", "away-back", "before-input", "discarded"] as const) {
+  process.stderr.write(`[QUALITY][browser-interaction:case] ${mode}\n`);
   const before = inputs.length; urls.set(3, mode === "origin" ? "http://127.0.0.1:4173/" : "https://chatgpt.com/");
   if (mode === "away-back") state.switchReadCountdown = 2;
   if (mode === "before-input") state.switchBeforeInput = true;
@@ -172,7 +180,7 @@ for (const mode of ["origin", "away-back", "before-input", "discarded"] as const
     assert(error instanceof Error); assert.equal(error.message, "BROWSER_TARGET_NOT_INTERACTIVE");
     if (mode === "origin") assert.equal((error.cause as Error).message, "BROWSER_ORIGIN_REJECTED");
     return true;
-  });
+  }, mode);
   assert.equal(inputs.length, before); discarded.delete(3); switchTab(3);
 }
 urls.set(3, "https://chatgpt.com/"); state.switchAfterInput = true; const beforeLateSwitch = inputs.length;
@@ -191,7 +199,7 @@ loaders.set(3, "same-url-new-loader");
 await assert.rejects(select(sameIntent.canonicalConversationUrl), /BROWSER_DOCUMENT_INVALID/u);
 assert.equal(state.navigationCount, baselineNavigation);
 await authority.parkActiveTarget();
-await authority.acquireJobBoundChatGptTarget("confirmed-readback", job, undefined, () => undefined);
+await authority.acquireJobBoundChatGptTarget("confirmed-readback", job, sameIntent.canonicalConversationUrl, () => undefined);
 const reacquired = frames.at(-1)!.body;
 assert.notEqual(reacquired.documentRef, target.documentRef); assert.equal(reacquired.targetRef, targetRef);
 await reload.lease.executeDomIntent(sameIntent);
@@ -232,22 +240,23 @@ const currentClaim = frames.at(-1)!.body, current = authority.resolve(String(cur
 const removedBefore = removed.length; await authority.retireInvalidCommandTarget({ message: "BROWSER_DOCUMENT_INVALID" },
   { ...permit("unknown-cause"), targetRef: current.targetRef, documentRef: current.documentRef }, "click"); assert.equal(removed.length, removedBefore);
 await authority.parkActiveTarget(); assert.equal(frames.at(-1)?.kind, "TARGET_REVOKE"); assert.deepEqual(detached, []);
-await authority.acquireJobBoundChatGptTarget("confirmed-readback", job, undefined, () => { assert.match(job, /^sha256:[a-f0-9]{64}$/u); }); assert.deepEqual(attached, [3]); assert.equal(state.nextId, 4);
+await authority.acquireJobBoundChatGptTarget("confirmed-readback", job, "https://chatgpt.com/c/sidebar-absent", () => { assert.match(job, /^sha256:[a-f0-9]{64}$/u); }); assert.deepEqual(attached, [3]); assert.equal(state.nextId, 4);
 assert.equal(frames.at(-1)?.body.targetRef, targetRef); assert.equal(methods.includes("Page.bringToFront"), false); await authority.releaseActiveTarget(false); assert.deepEqual(detached, []);
 await exerciseLocalBrowserDomIntent(); const beforeFresh = state.navigationCount; await authority.acquireJobBoundChatGptTarget("fresh", job, undefined, () => { assert.match(job, /^sha256:[a-f0-9]{64}$/u); });
 assert.equal(state.navigationCount, beforeFresh + 1); assert.equal(state.nextId, 4); assert.equal(frames.at(-1)?.body.targetRef, targetRef);
 assert.notEqual(frames.at(-1)?.body.documentRef, documentRef);
 failureOrder.length = 0; detach({ tabId: 3 }, "target_closed"); await new Promise<void>(resolve => setTimeout(resolve, 0));
 assert.deepEqual(failureOrder, ["DIAGNOSTIC", "TARGET_REVOKE"]); assert.equal(failures.at(-1)?.nativeCauseCode, "CHROME_DEBUGGER_TARGET_CLOSED");
-const replacement = authority.acquireJobBoundChatGptTarget("confirmed-readback", job, undefined, () => { assert.match(job, /^sha256:[a-f0-9]{64}$/u); }); await waitForCreatedTab(4);
-tabUpdated(4, { status: "complete" }, { id: 4, url: "https://chatgpt.com/" }); await replacement; assert.equal(frames.at(-1)?.body.targetRef, "target-tab-4");
+const replacement = authority.acquireJobBoundChatGptTarget("confirmed-readback", job, "https://chatgpt.com/c/replacement-readback", () => { assert.match(job, /^sha256:[a-f0-9]{64}$/u); }); await waitForCreatedTab(4);
+assert.equal(state.created?.url, "https://chatgpt.com/c/replacement-readback");
+tabUpdated(4, { status: "complete" }, { id: 4, url: state.created!.url }); await replacement; assert.equal(frames.at(-1)?.body.targetRef, "target-tab-4");
 const replacementClaim = frames.at(-1)!.body; await select("https://chatgpt.com/c/replacement-readback", authority.resolve(String(replacementClaim.targetRef), String(replacementClaim.documentRef)));
 assert.equal(state.nextId, 5); assert.equal(state.activeId, 4); detach({ tabId: 4 }, "canceled_by_user"); await new Promise<void>(resolve => setTimeout(resolve, 0));
 assert.equal(failures.at(-1)?.reasonCode, "BROWSER_DEVTOOLS_CONFLICT"); assert.equal(failures.at(-1)?.nativeCauseCode, "CHROME_DEBUGGER_CANCELED_BY_USER");
 for (const bad of ["origin", "debugger"] as const) {
   const id = state.nextId; if (bad === "debugger") state.attachFailure = id;
   const claimsBefore = frames.filter(frame => frame.kind === "TARGET_CLAIM").length, inputsBefore = inputs.length;
-  const attempt = authority.acquireJobBoundChatGptTarget(bad === "origin" ? "confirmed-readback" : "fresh", job, undefined, () => { assert.match(job, /^sha256:[a-f0-9]{64}$/u); }); await waitForCreatedTab(id);
+  const attempt = authority.acquireJobBoundChatGptTarget("fresh", job, undefined, () => { assert.match(job, /^sha256:[a-f0-9]{64}$/u); }); await waitForCreatedTab(id);
   if (bad === "origin") urls.set(id, "https://example.com/");
   tabUpdated(id, { status: "complete" }, { id, url: urls.get(id)! });
   await assert.rejects(attempt, new RegExp(bad === "origin" ? "BROWSER_ORIGIN_REJECTED" : "BROWSER_DEVTOOLS_CONFLICT", "u"));
@@ -260,7 +269,7 @@ const rotation = await exerciseTargetRotation({ authority, waitForCreatedTab, ta
   debuggerMethods: methods, activatedTabs: activated, removedTabs: removed, setRemoveFailureTabId: value => { state.removeFailure = value; } });
 process.stderr.write("[QUALITY][browser-pairing:progress] target-rotation-complete\n");
 await exerciseAuthorizedContinuation({ authority, nextCreatedTabId: state.nextId, waitForCreatedTab, targetTabUpdated: tabUpdated,
-  targetFrames: frames, debuggerMethods: methods, mainFrameUrlByTab: urls });
+  targetFrames: frames, debuggerMethods: methods, mainFrameUrlByTab: urls, createdUrl: () => state.created?.url });
 process.stderr.write("[QUALITY][browser-pairing:progress] authorized-continuation-complete\n");
 await exerciseClosedParkedTabRecovery({ authority, readNextCreatedTabId: () => state.nextId, waitForCreatedTab, targetTabUpdated: tabUpdated,
   targetFrames: frames, targetFailures: failures, removedTabs: removed });

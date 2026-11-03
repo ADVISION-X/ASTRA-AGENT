@@ -6,7 +6,7 @@ import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
 import { sourceFor } from "./gpt-inspection-support.js";
 
-const LAW_ID = "LAW-GPT-002-V33", ROOT = "src/capabilities/gpt";
+const LAW_ID = "LAW-GPT-002-V34", ROOT = "src/capabilities/gpt";
 const compact = (source: string): string => source.replace(/\s+/gu, "");
 // The executable module binds the nine immutable response functions, their
 // real parameter/import references, the two gates and the original 20-minute

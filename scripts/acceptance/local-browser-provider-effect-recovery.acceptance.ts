@@ -1,5 +1,6 @@
 import { verifySubmittedConversationLocator } from "./local-browser-mutation-store-support.js";
 import { terminalFact } from "./local-browser-mutation-store-support.js";
+import { BrowserTargetAcquirer } from "../../src/lib/browser/infrastructure/browser-target-acquirer.js";
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 import { executionFailureMetadata } from "../../src/lib/execution-failure.js";
 import Database from "better-sqlite3";
@@ -76,6 +77,18 @@ try {
   await verifySubmittedConversationLocator(root);
   const store = new BrowserMutationStore(root);
   store.verifyRuntimeTaskProvenance(null);
+  const readLocation = async (jobId: string, providerEffectIdentityHash?: `sha256:${string}`): Promise<string | undefined> => {
+    let destination: string | undefined, acquirer!: BrowserTargetAcquirer;
+    acquirer = new BrowserTargetAcquirer(() => ({ currentOperatorTargetJobRefHash: () => null }) as never,
+      { requestPreauthorizedTargetAcquisition: (_mode: string, job: string, url: string) => {
+        destination = url; queueMicrotask(() => acquirer.resolvePending("acquire", job)); return 1;
+      } } as never, { current: () => ({ kind: "PRESENT", authority: { authorityEpoch: 1 } }) } as never,
+      { pendingJobBoundTargetAcquisition: null, mutationState: store } as never);
+    await acquirer.ensureAvailableTarget({ binding: { jobId, jobRefHash: hash(jobId) } as never,
+      targetMode: "confirmed-readback", signal: new AbortController().signal, remainingMs: () => 5_000,
+      ...(providerEffectIdentityHash ? { providerEffectIdentityHash } : {}) });
+    return destination;
+  };
   const schema = new Database(path.join(root, "browser", "browser-mutations.sqlite"), { readonly: true });
   const columns = (schema.prepare("pragma table_info(browser_mutations)").all() as Array<{ name: string }>)
     .map((column) => column.name);
@@ -95,6 +108,10 @@ try {
   store.prepare(first);
   store.markDispatched(first.commandId);
   store.settleTerminalReceipt(terminalFact(store.readCommand(first.commandId)!.identity, { terminal: "confirmed", resultHash: hash("terminal-proof"), mutationOutcome: "confirmed", submitRecoveryPayload: terminalPayload }));
+  assert.equal(await readLocation(first.jobId), terminalPayload.canonicalConversationUrl);
+  assert.equal(await readLocation(first.jobId, first.logicalMutationId!), terminalPayload.canonicalConversationUrl);
+  await assert.rejects(readLocation(first.jobId, hash("missing-effect")), /BROWSER_SOURCE_EFFECT_IDENTITY_MISMATCH/u);
+  await assert.rejects(readLocation("job:foreign"), /BROWSER_SOURCE_EFFECT_IDENTITY_MISMATCH/u);
   const anchorDatabase = new Database(path.join(root, "browser", "browser-mutations.sqlite"));
   const anchorBefore = store.jobHistoryEvidence(first.jobId).replayEffects[0]!.anchorProofHash;
   anchorDatabase.prepare("update browser_mutations set target_ref=?,document_ref=? where command_id=?")
@@ -289,6 +306,14 @@ try {
   store.prepare(unresolvedParent); store.markDispatched(unresolvedParent.commandId);
   assert.doesNotThrow(() => store.readSourceConfirmedProviderEffect(parent.query),
     "an unadopted historical sibling must not block the selected confirmed source");
+  assert.equal(await readLocation(parent.mutation.jobId), "https://chatgpt.com/c/fixture-original-turn");
+  const originalCipher = mutationDatabase.prepare("select provider_recovery_payload from browser_mutations where command_id=?").pluck().get(next.mutation.commandId);
+  const differentUrl = { ...(store.readSourceConfirmedProviderEffect(next.query).terminalPayload as object), canonicalConversationUrl: "https://chatgpt.com/c/other-trusted" };
+  mutationDatabase.prepare("update browser_mutations set provider_recovery_payload=? where command_id=?").run(
+    sealProviderRecoveryPayload(browserMutationPayloadKey(root), next.mutation.commandId, { terminalPayload: differentUrl }), next.mutation.commandId);
+  await assert.rejects(readLocation(parent.mutation.jobId), /BROWSER_SOURCE_EFFECT_READBACK_INVALID/u);
+  assert.equal(await readLocation(parent.mutation.jobId, parent.mutation.logicalMutationId!), "https://chatgpt.com/c/fixture-original-turn");
+  mutationDatabase.prepare("update browser_mutations set provider_recovery_payload=? where command_id=?").run(originalCipher, next.mutation.commandId);
   assert.throws(() => store.readSourceConfirmedProviderEffect({ ...parent.query,
     sourceAttemptId: unresolvedParent.attemptId, sourceResultRevision: 2,
     productStepId: unresolvedParent.productStepId, effectIdentityHash: unresolvedParent.logicalMutationId! }),
@@ -297,10 +322,12 @@ try {
   mutationDatabase.prepare("update browser_mutations set provider_recovery_payload=? where command_id=?")
     .run("corrupt", corruptSource.mutation.commandId);
   assert.throws(() => store.readSourceConfirmedProviderEffect(corruptSource.query), /BROWSER_/u);
+  await assert.rejects(readLocation(corruptSource.mutation.jobId), /BROWSER_/u);
   const missingSource = confirmSource("job:article:missing", "m1");
   mutationDatabase.prepare("update browser_mutations set provider_recovery_payload=null where command_id=?")
     .run(missingSource.mutation.commandId);
   assert.throws(() => store.readSourceConfirmedProviderEffect(missingSource.query), /BROWSER_/u);
+  await assert.rejects(readLocation(missingSource.mutation.jobId), /BROWSER_/u);
   store.close();
 
   const restarted = new BrowserMutationStore(root);

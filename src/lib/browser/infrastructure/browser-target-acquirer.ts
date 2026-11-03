@@ -6,7 +6,8 @@ import { BROWSER_COMMAND_DEFAULT_DEADLINE_MS, BROWSER_TARGET_ACQUISITION_MAX_WAI
 import type { BrowserTargetLeaseWait, BrowserTargetReleaseAuthority } from "../exact-target/browser-target-lease.js";
 
 type TargetWaiter = Readonly<{
-  binding: BrowserExecutionBinding; targetMode: BrowserTargetLeaseWait["targetMode"]; signal: AbortSignal; remainingMs(): number;
+  binding: BrowserExecutionBinding; targetMode: BrowserTargetLeaseWait["targetMode"];
+  providerEffectIdentityHash?: `sha256:${string}`; signal: AbortSignal; remainingMs(): number;
 }>;
 type LaneState = ReturnType<typeof createBrowserInfrastructureState>;
 
@@ -20,20 +21,42 @@ export class BrowserTargetAcquirer {
 
   public async ensureAvailableTarget(waiter: TargetWaiter, parentConversationUrl?: string): Promise<void> {
     if (waiter.signal.aborted) throw new Error("BROWSER_WAIT_ABORTED");
-    const remaining = waiter.remainingMs();
-    if (remaining < 1) throw new Error("V6_DEADLINE_BUDGET_EXHAUSTED");
+    const budget = Math.min(waiter.remainingMs(), BROWSER_TARGET_ACQUISITION_MAX_WAIT_MS);
+    if (budget < 1) throw new Error("V6_DEADLINE_BUDGET_EXHAUSTED");
     const store = this.infrastructure.mutationState;
     if (!store) throw new Error("BROWSER_MUTATION_STATE_UNAVAILABLE");
     store.assertRuntimeTaskProvenance();
-    const claimedJob = this.resolveBroker().currentOperatorTargetJobRefHash();
-    if (claimedJob === waiter.binding.jobRefHash) {
-      if (waiter.targetMode === "authorized-continuation") throw new Error("BROWSER_TARGET_INVALID");
-      return;
+    const destination = waiter.targetMode === "confirmed-readback" ? this.readConversationUrl(waiter) : parentConversationUrl;
+    const claimed = this.resolveBroker().currentOperatorTargetJobRefHash();
+    if (claimed !== null) {
+      if (claimed !== waiter.binding.jobRefHash || waiter.targetMode === "authorized-continuation") throw new Error("BROWSER_TARGET_INVALID");
     }
-    if (claimedJob !== null) throw new Error("BROWSER_TARGET_INVALID");
-    await this.awaitTargetOperation(Math.min(remaining, BROWSER_TARGET_ACQUISITION_MAX_WAIT_MS), "acquire", waiter.binding.jobRefHash, deadlineAt =>
-      this.websocket.requestPreauthorizedTargetAcquisition(waiter.targetMode, waiter.binding.jobRefHash,
-        parentConversationUrl, deadlineAt), waiter.signal);
+    await this.awaitTargetOperation(budget, "acquire", waiter.binding.jobRefHash,
+      deadline => this.websocket.requestPreauthorizedTargetAcquisition(waiter.targetMode,
+        waiter.binding.jobRefHash, destination, deadline), waiter.signal);
+  }
+
+  private readConversationUrl(waiter: TargetWaiter): string {
+    const store = this.infrastructure.mutationState!;
+    const history = store.jobHistoryEvidence(waiter.binding.jobId);
+    if (!history.walHistoryVerified) throw new Error("BROWSER_SOURCE_EFFECT_READBACK_INVALID");
+    const hash = waiter.providerEffectIdentityHash;
+    const candidates = history.replayEffects.filter(effect => hash === undefined
+      ? effect.state === "CONFIRMED" && effect.anchorState === "trusted"
+      : effect.effectIdentityHash === hash);
+    if (!candidates.length || hash !== undefined && candidates.length !== 1) {
+      throw new Error("BROWSER_SOURCE_EFFECT_IDENTITY_MISMATCH");
+    }
+    const urls = new Set(candidates.map(effect => {
+      const locator = store.readSourceConfirmedProviderEffect({ jobId: waiter.binding.jobId,
+        sourceAttemptId: effect.attemptId, sourceResultRevision: effect.resultRevision,
+        productStepId: effect.productStepId, callId: effect.callId, childCapabilityId: effect.childCapabilityId,
+        effectIdentityHash: effect.effectIdentityHash, walAuthorityHash: effect.walAuthorityHash }).conversationLocator;
+      if (!locator) throw new Error("BROWSER_SOURCE_EFFECT_READBACK_INVALID");
+      return locator.canonicalConversationUrl;
+    }));
+    if (urls.size !== 1) throw new Error("BROWSER_SOURCE_EFFECT_READBACK_INVALID");
+    return [...urls][0]!;
   }
 
   private async awaitTargetOperation(budgetMs: number, action: "acquire" | "release", jobRefHash: `sha256:${string}`,

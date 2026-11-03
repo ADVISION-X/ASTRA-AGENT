@@ -6,49 +6,36 @@ import { createRuntimeLogger } from "../../../lib/runtime-logs/index.js";
 import { HASH_A, HASH_B } from "../../../../scripts/acceptance/agent-production-runtime-fixtures.js";
 import { executionFailure, typedExecutionFailure } from "../../../lib/execution-failure.js";
 
-const verifySecondConfirmedReadback = async (
-  lifecycle: ProductionGptBrowserLifecycle,
-  active: Awaited<ReturnType<ProductionGptBrowserLifecycle["browserForConfirmedReadback"]>>,
-  selectedUrls: string[],
-): Promise<void> => {
-  const firstUrl = selectedUrls[0]!;
-  assert.equal(firstUrl.endsWith("/c/confirmed-recovery"), true);
-  const secondUrl = firstUrl.replace("/c/confirmed-recovery", "/c/second-recovery");
-  await assert.rejects(lifecycle.browserForConfirmedReadback(
-    "session:confirmed-recovery", "second-step", "turn-submit",
-  ), (error: unknown) => typedExecutionFailure(error)?.code
-    === "GPT_BROWSER_SESSION_TRANSITION_UNSETTLED");
+const verifySecondConfirmedReadback = async (lifecycle: ProductionGptBrowserLifecycle,
+  active: Awaited<ReturnType<ProductionGptBrowserLifecycle["browserForConfirmedReadback"]>>, urls: string[]): Promise<void> => {
+  const original = urls[0]!;
+  await assert.rejects(lifecycle.browserForConfirmedReadback("session:confirmed-recovery", "second-step", "turn-submit", HASH_B),
+    (error: unknown) => typedExecutionFailure(error)?.code === "GPT_BROWSER_SESSION_TRANSITION_UNSETTLED");
   lifecycle.recordSettledResult(active, HASH_A);
-  const second = await lifecycle.browserForConfirmedReadback(
-    "session:confirmed-recovery", "second-step", "turn-submit",
-  );
-  assert.equal(second, active, "same-session readback keeps the one Browser lease");
+  const second = await lifecycle.browserForConfirmedReadback("session:confirmed-recovery", "second-step", "turn-submit", HASH_B);
+  assert.equal(second, active, "a settled same-session effect retains the live lease");
   await lifecycle.recordConfirmedProviderEffect(second, {
-    exactCallIdentityHash: `sha256:${"7".repeat(64)}`,
-    providerEffectIdentityHash: `sha256:${"9".repeat(64)}`,
-    childCapabilityId: "submit_exact_gpt_turn_once", effectScope: "provider_effect",
-    browserOutcome: "CONFIRMED", mutationOutcome: "confirmed",
-    terminalAt: "2026-09-12T00:00:01.000Z", evidenceRef: "browser-mutation:second-submit",
-    evidenceHash: `sha256:${"4".repeat(64)}`,
-  }, {
-    resultRevision: 0, productStepId: "second-step", callId: "turn-submit",
-    childCapabilityId: "submit_exact_gpt_turn_once", inputHash: HASH_B,
-    actionOrdinal: 2, replayPolicy: "provider-effect-once",
-  }, secondUrl, "00000000-0000-4000-8000-000000000002");
-  assert.equal(selectedUrls.length, 2,
-    "a second confirmed effect in the same Product session must select its own WAL URL");
-  assert.deepEqual(selectedUrls, [firstUrl, secondUrl]);
+    exactCallIdentityHash: HASH_B, providerEffectIdentityHash: HASH_B, childCapabilityId: "submit_exact_gpt_turn_once",
+    effectScope: "provider_effect", browserOutcome: "CONFIRMED", mutationOutcome: "confirmed",
+    terminalAt: "2026-09-12T00:00:01.000Z", evidenceRef: "browser-mutation:second-submit", evidenceHash: HASH_A,
+  }, { resultRevision: 0, productStepId: "second-step", callId: "turn-submit", childCapabilityId: "submit_exact_gpt_turn_once",
+    inputHash: HASH_B, actionOrdinal: 2, replayPolicy: "provider-effect-once" }, original, "00000000-0000-4000-8000-000000000002");
+  assert.equal(urls.length, 1, "recording a locator alone performs no page command");
+  await second.facade.runAtomicStep(second.confirmedProviderEffect!.submitIdentity, () => lifecycle.selectSettledConversation(second));
+  assert.deepEqual(urls, [original, original], "the next atomic page access selects the same original U");
   lifecycle.recordSettledResult(second, HASH_B);
-  await lifecycle.recordConfirmedProviderEffect(second, {
-    ...second.confirmedProviderEffect!, providerEffectIdentityHash: HASH_A,
-  }, { ...second.confirmedProviderEffect!.submitIdentity, callId: "third-submit" }, secondUrl, "00000000-0000-4000-8000-000000000002");
-  assert.throws(() => lifecycle.assertProviderTurnSettled(), /GPT_BROWSER_SESSION_TRANSITION_UNSETTLED/u,
-    "recording a new same-session effect cannot borrow the previous settled hash");
+  await lifecycle.recordConfirmedProviderEffect(second, { ...second.confirmedProviderEffect!, providerEffectIdentityHash: HASH_A },
+    { ...second.confirmedProviderEffect!.submitIdentity, callId: "third-submit" }, original, "00000000-0000-4000-8000-000000000002");
+  assert.equal(second.settledResultPayloadHash, null);
+  assert.throws(() => lifecycle.recordSettledResult(second, HASH_A,
+    { sessionKey: "session:confirmed-recovery", canonicalConversationUrl: "https://chatgpt.com/c/wrong-session" }),
+  /GPT_CONFIRMED_SUBMIT_IDENTITY_MISMATCH/u);
+  assert.equal(second.settledResultPayloadHash, null, "a conflicting U cannot register a settled result hash");
+  assert.throws(() => lifecycle.assertProviderTurnSettled(), /GPT_BROWSER_SESSION_TRANSITION_UNSETTLED/u);
   lifecycle.recordSettledResult(second, HASH_A);
   assert.doesNotThrow(() => lifecycle.assertProviderTurnSettled());
   await lifecycle.settle(null);
 };
-
 export const verifyConfirmedReadbackLease = async (temporary: string): Promise<void> => {
   let targetMode: string | undefined;
   let acquisitions = 0;
@@ -67,6 +54,7 @@ export const verifyConfirmedReadbackLease = async (temporary: string): Promise<v
             selectedUrls.push(intent.canonicalConversationUrl ?? "");
           },
           pendingMutationCount: () => 0,
+          runAtomicStep: async (_identity: unknown, action: () => Promise<unknown>) => action(),
           park: async () => undefined,
         };
       },
@@ -99,6 +87,8 @@ export const verifyConfirmedReadbackLease = async (temporary: string): Promise<v
     childCapabilityId: "submit_exact_gpt_turn_once", inputHash: HASH_A,
     actionOrdinal: 1, replayPolicy: "provider-effect-once",
   }, "https://chatgpt.com/c/confirmed-recovery", "00000000-0000-4000-8000-000000000001");
+  assert.equal(selectedUrls.length, 0, "locator registration cannot navigate outside the Child atomic closure");
+  await active.facade.runAtomicStep(active.confirmedProviderEffect!.submitIdentity, () => lifecycle.selectSettledConversation(active));
   assert.deepEqual([targetMode, acquisitions, selectedUrls.length],
     ["confirmed-readback", 1, 1],
     "confirmed-effect recovery may acquire once and select the exact canonical URL once");
@@ -304,8 +294,9 @@ const verifyRecoverySelectionFailureLease = async (temporary: string): Promise<v
   const active = await recovery.lifecycle.browserForConfirmedReadback("new-session", "observe", "turn-submit");
   recovery.control.selectError = executionFailure("failed", "BROWSER_COMMAND_RECEIPT_MISSING");
   const fact = recovery.active.confirmedProviderEffect!;
-  await assert.rejects(recovery.lifecycle.recordConfirmedProviderEffect(active, fact, fact.submitIdentity,
-    fact.canonicalConversationUrl, fact.userTurnId), /BROWSER_COMMAND_RECEIPT_MISSING/u);
+  await recovery.lifecycle.recordConfirmedProviderEffect(active, fact, fact.submitIdentity, fact.canonicalConversationUrl, fact.userTurnId);
+  await assert.rejects(active.facade.runAtomicStep(fact.submitIdentity, () => recovery.lifecycle.selectSettledConversation(active)),
+    /BROWSER_COMMAND_RECEIPT_MISSING/u);
   await recovery.lifecycle.settle(recovery.control.selectError); await recovery.lifecycle.settle(null);
   assert.equal(recovery.counts.providerInputs, 0);
   assert.deepEqual([recovery.counts.acquire, recovery.counts.park, recovery.counts.occupied], [2, 2, 0]);

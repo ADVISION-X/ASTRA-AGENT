@@ -168,10 +168,11 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
     jobRefHash: `sha256:${string}`, parentConversationUrl: string | undefined,
     deadlineAt: number,
   ): number {
-    if ((targetMode === "authorized-continuation") !== (typeof parentConversationUrl === "string")) throw new Error("BROWSER_TARGET_INVALID");
+    const located = targetMode === "authorized-continuation" || targetMode === "confirmed-readback";
+    if (typeof parentConversationUrl !== (located ? "string" : "undefined")) throw new Error("BROWSER_TARGET_INVALID");
     return this.sendControlFrame(this.active?.socket ?? null, "TARGET_ACQUIRE", {
       action: "acquire", targetMode, jobRefHash,
-      ...(targetMode === "authorized-continuation" ? { parentConversationUrl } : {}),
+      ...(located ? { parentConversationUrl } : {}),
     }, deadlineAt);
   }
   public requestPreauthorizedTargetRelease(jobRefHash: `sha256:${string}`,

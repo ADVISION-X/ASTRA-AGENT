@@ -23,7 +23,7 @@ import { worktreeCandidateFingerprint } from "../audit/governance-git-state.js";
 import { fail } from "../audit/governance-runtime.js";
 import { assertQualityCommandPassed, collectQualityCheck, writeQualityIssues, type QualityCheckIssue } from "../audit/shared/quality-process-execution.js";
 
-const lawId = "LAW-ARCHITECTURE-BOUNDARY-001-V19";
+const lawId = "LAW-ARCHITECTURE-BOUNDARY-001-V20";
 const lawSource = readFileSync(".github/instructions/agent-rules/功能法案.md", "utf8");
 const lawRecords = [...lawSource.matchAll(/```law-record\n([\s\S]*?)\n```/gu)]
   .map((match) => JSON.parse(match[1]!) as { lawId: string; forbidden?: string[] });

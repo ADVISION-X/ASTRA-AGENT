@@ -209,14 +209,14 @@ const releaseBudgetPhases = async (): Promise<void> => {
     let latest: string | null = new Date(now).toISOString(), dispatches = 0, budget = 0, reply = true;
     const infrastructure = { pendingJobBoundTargetAcquisition: null,
       mutationState: { latestProviderInputTerminalAt: () => latest, assertRuntimeTaskProvenance: () => undefined } };
-    const broker = { currentOperatorTargetJobRefHash: () => binding("a").jobRefHash,
-      acquireOperatorClaimedTargetLease: async () => ({ park: async () => undefined }) };
+    const broker = { acquireOperatorClaimedTargetLease: async () => ({ park: async () => undefined }) };
     const lane = new BrowserLaneCoordinator(() => broker as never, {
       requestPreauthorizedTargetRelease: (job: string, _authority: string, deadline: number) => {
         dispatches += 1; budget = deadline - now;
         if (reply) queueMicrotask(() => lane.resolvePending("release", job)); return 1;
       },
     } as never, { current: () => ({ kind: "PRESENT", authority: { authorityEpoch: 1 } }) } as never, infrastructure as never);
+    Reflect.set(Reflect.get(lane, "targetAcquirer"), "ensureAvailableTarget", async () => undefined);
     const controller = new AbortController();
     const quietRelease = lane.releaseJobBoundTarget("quiet", "business-admitted", controller.signal);
     await tick(); assert.equal(dispatches, 0); await advance(40_000); await quietRelease;
@@ -286,7 +286,12 @@ const queuedAcquireDeadlines = async (): Promise<void> => {
   try {
     let claimed: string | null = null, dispatches = 0, reply = true;
     const state = { pendingJobBoundTargetAcquisition: null,
-      mutationState: { latestProviderInputTerminalAt: () => null, assertRuntimeTaskProvenance: () => undefined } };
+      mutationState: { latestProviderInputTerminalAt: () => null, assertRuntimeTaskProvenance: () => undefined,
+        jobHistoryEvidence: () => ({ walHistoryVerified: true, replayEffects: [{ state: "CONFIRMED", anchorState: "trusted",
+          attemptId: "attempt:observation", resultRevision: 0, productStepId: "article-step", callId: "turn-submit",
+          childCapabilityId: "submit_exact_gpt_turn_once", effectIdentityHash: hash("a"), walAuthorityHash: hash("b") }] }),
+        readSourceConfirmedProviderEffect: (input: { jobId: string }) => ({ conversationLocator: {
+          canonicalConversationUrl: `https://chatgpt.com/c/${input.jobId}` } }) } };
     const broker = { currentOperatorTargetJobRefHash: () => claimed,
       acquireOperatorClaimedTargetLease: async () => ({ get document() { return { documentRef: claimed }; },
         park: async () => { claimed = null; } }) };

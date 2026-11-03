@@ -53,7 +53,7 @@ const produceResearchTurn = async (
     files: uploadedFiles,
     prompt: researchPrompt(task, marker, context.routePolicy),
     ordinals: [11, 12, 13, 14, 15, 16],
-    prepare: () => prepareAttachedTurnPrefix({ flow, stepId, files }),
+    prepare: () => prepareAttachedTurnPrefix({ flow, stepId, files, freshConversation: context.resultRevision.revision === 0 }),
   });
   return Object.freeze({
     checkpoint,
@@ -154,7 +154,7 @@ const executeReview = async (task: WebsiteAgentTask, context: SharedExecutionCon
     files: uploadedFiles,
     prompt: reviewPrompt(task, marker),
     ordinals: [11, 12, 13, 14, 15, 16],
-    prepare: () => prepareAttachedTurnPrefix({ flow, stepId, files }),
+    prepare: () => prepareAttachedTurnPrefix({ flow, stepId, files, freshConversation: true }),
   });
   return context.complete({
     payload: parseRouteResult(task, checkpoint.semanticText, context.routePolicy),

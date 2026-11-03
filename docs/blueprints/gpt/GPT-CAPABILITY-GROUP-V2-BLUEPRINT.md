@@ -1,7 +1,7 @@
-# GPT 能力组 V71 施工图
+# GPT 能力组 V72 施工图
 
 ```blueprint-record
-{"schemaVersion":1,"blueprintId":"gpt-capability-group-v71","status":"active","owner":"gpt","lawIds":["LAW-GPT-001-V68","LAW-GPT-002-V33"],"contractRefs":[],"dependencyEdges":[{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"capability-governance","repo":"local"}},{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"forensics-persistence-capability","repo":"local"}},{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"local-browser-session","repo":"local"}}],"prohibitedDependencyEdges":[]}
+{"schemaVersion":1,"blueprintId":"gpt-capability-group-v72","status":"active","owner":"gpt","lawIds":["LAW-GPT-001-V69","LAW-GPT-002-V34"],"contractRefs":[],"dependencyEdges":[{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"capability-governance","repo":"local"}},{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"forensics-persistence-capability","repo":"local"}},{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"local-browser-session","repo":"local"}}],"prohibitedDependencyEdges":[]}
 ```
 
 ## 唯一 Owner 与职责
@@ -115,3 +115,9 @@ GPT 只消费 Browser 签发的实时 current Document 和 typed command termina
 附件上传控件的批准 request 采用经 Chrome 实证的四种 DOM 结构（直属首项、chatgpt-actions 分组首项、chatgpt-context 分组首项、chatgpt-primary 分组首项）的精确逗号 OR selector；Browser file-input validator 必须批准该同一字符串并保持原 scope/text/file-grant 门禁。一个 coherent observation 内仍要求唯一可操作匹配、一次输入及直接后置；OR 不授予多候选或重放资格。现役 GPT attachment inspector 在既有 ownedPaths/observedPaths 内读取 open 与 attach 两个 producer 常量及 Extension validator 的实际 AST，证明三端 selector 相等；原 file-input acceptance 用同一批准字符串进入真实 Extension validator/执行链。验收不得运行时导入 GPT Child 私有 selector。
 
 当前附件卡片合同只在唯一 `form[data-chatgpt-composer]` 内读取 `:is(button, div[role='button']).composer-attachment-surface[aria-label]`：JSON BUTTON 与图片 DIV role=button 进入同一集合；装饰 SPAN、缺 role 的 DIV 与 form 外卡片不进入。prepare_clean、attach 外来卡片门、reconcile 与最终 submit 四个局部规则以及 Browser 上传前后读回必须一致，旧 BUTTON-only 卡片假设及其旧验收同候选退休。pending 由同一 ITEM 派生 `.cursor-wait`，冻结名称、零/一次输入、confirmed effect 零输入和两项 submit 条件保持。原 Native Exam 用隔离合成 HTML 让实际 selector 和真实 outgoing 函数求值，证明正反例；不访问用户 Chrome、不作为 Dynamic Proof，不建立中央 selector registry。
+
+## 同一SEO文章获准修订的原会话定位
+
+同一SEO文章已由Website授权的新result revision当前turn，Browser可从当前job既有WAL的全部可信CONFIRMED locator候选核出非空且唯一的canonical URL，经原confirmed-readback在该U重建当前准备并执行；这只确定执行位置，不复用旧正文、旧准备、旧输入授权或执行进度。指定effect必须沿原exact reader核验，缺失不得改选历史；未指定effect时不得取latest或第一条，缺失、损坏或URL冲突零危险输入失败关闭。旧unknown及无锚点事实原样保留，不视为零输入或可复用来源，也不成为其它精确effect或兄弟job的全局门。新Provider输入仍只取Website当前精确grant与Browser完整WAL防重裁决；其它产品的fresh、业务恢复唯一Owner及URL不跨仓不新持久化边界保持。
+
+原settledConversation/recoverySelectionRequired把结算后可信U交给下一实际页面调用；live及reacquired均在原Child同一runAtomicStep先精确选择并绑定U，再准备/输入，成功才消费待交接资格。原答案cache/source返回本身零页面动作。SEO首research仅Website当前revision=0显式fresh，获准新revision沿原入口在U重建准备；所有review及其它产品原fresh保持。submit/回答两门、独立locator、原ack及原结果优先不变。

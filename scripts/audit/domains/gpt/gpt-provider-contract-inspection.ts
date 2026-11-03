@@ -46,12 +46,26 @@ const parentSourcesUseOriginalEffects = (context: InspectorContext): boolean => 
     && !text(context, "src/lib/browser/exact-target/browser-mutation-evidence.ts").includes("readUniqueConfirmedConversationUrl");
 };
 
+const settledConversationHandoffIsExact = (context: InspectorContext): boolean => {
+  const owner = sourceFor(context, LIFECYCLE)?.getClass("ProductionGptBrowserLifecycle");
+  const lifecycle = text(context, LIFECYCLE);
+  return lifecycle.includes("active.browser.readAtomicStepOutcome(confirmed.submitIdentity)")
+    && lifecycle.includes('recoverySelectionRequired: targetMode === "confirmed-readback" && this.settledConversation?.sessionKey === sessionKey')
+    && lifecycle.includes('const mode = freshConversation ? "fresh"') && lifecycle.includes('"bound-observation"')
+    && lifecycle.includes("parentSources: this.execution.providerContinuationParent!.sources")
+    && calls(owner?.getMethod("recordConfirmedProviderEffect"), "active.facade.executeDomIntent").length === 0
+    && before(owner?.getMethod("recordSettledResult")?.getText() ?? "",
+      "this.settledConversation.canonicalConversationUrl !== settled.canonicalConversationUrl", "active.settledResultPayloadHash = payloadHash")
+    && before(owner?.getMethod("selectSettledConversation")?.getText() ?? "",
+      "await active.facade.executeDomIntent(", "active.recoverySelectionRequired = false")
+    && before(text(context, `${ROOT}/production-atomic-call.ts`), "await input.browsers.selectSettledConversation(", "return input.gpt.execute(input.intent, context)");
+};
+
 export const inspectGptProviderProbeOwnerContract = (context: InspectorContext, findings: InspectorFinding[], finding: FindingFactory): void => {
   check(textResponseTwoGateSettlementIsFrozen(text(context, TEXT)),
     "gpt/provider-observation-gate-first", TEXT, "Text readback must execute the sole frozen observation gate and exact response settlement.", findings, finding);
   inspectObservationLane(context, findings, finding);
   const lifecycleOwner = sourceFor(context, LIFECYCLE)?.getClass("ProductionGptBrowserLifecycle");
-  const lifecycleText = text(context, LIFECYCLE);
   const wait = lifecycleOwner?.getMethod("waitForProviderObservation"), waitText = wait?.getText() ?? "", settlement = lifecycleOwner?.getMethod("parkActive");
   check(calls(wait, "active.facade.park").length === 1 && calls(settlement, "current.call.browser.park").length === 1
     && ["active.browser.pendingMutationCount() > 0", "const eligibleAt = Date.now() + PROVIDER_OBSERVATION_MIN_INTERVAL_MS",
@@ -95,9 +109,7 @@ export const inspectGptProviderProbeOwnerContract = (context: InspectorContext, 
   check(leaseHandoffIsSafe(),
   "gpt/provider-observation-park-readback", LIFECYCLE,
   "Lease handoff retires exactly its owner even on failure; selection retains the new lease and Child identity for settlement.", findings, finding);
-  check(lifecycleText.includes("active.browser.readAtomicStepOutcome(confirmed.submitIdentity)")
-    && lifecycleText.includes('recoverySelectionRequired: targetMode === "confirmed-readback"') && lifecycleText.includes('"bound-observation"')
-    && lifecycleText.includes("parentSources: this.execution.providerContinuationParent!.sources"),
+  check(settledConversationHandoffIsExact(context),
   "gpt/historical-provider-effect-authority", LIFECYCLE, "Readback remains bound to the original submit; continuation transports adopted source identities.", findings, finding);
   check(parentSourcesUseOriginalEffects(context),
   "gpt/historical-provider-effect-authority", LANE, "Every adopted source requires exact original WAL readback and one equal canonical locator; child step cannot select a parent.", findings, finding);

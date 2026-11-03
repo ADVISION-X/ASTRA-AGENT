@@ -391,7 +391,7 @@ try {
     await acquireProductionBrowserCall(target, { ...submitCall, sessionKey: retirement === "session" ? "different-session" : sessionKey,
       productStepId: "next", callId: "retire-probe", child: retirement === "fresh" ? "prepare_clean_gpt_chat" : "write_exact_gpt_prompt",
       input: retirement === "fresh" ? { timeoutMs: 1_000 } : { prompt: "next" } }, "chatgpt", false);
-    assert.equal(modes.at(-1), "fresh", retirement);
+    assert.equal(modes.at(-1), retirement === "fresh" ? "fresh" : "confirmed-readback", retirement);
     failPark = false; await target.settle(null); if (target !== lifecycle) await lifecycle.settle(null);
   }
   for (const failure of [null, "BROWSER_TARGET_INVALID", "BROWSER_WAIT_ABORTED"] as const) {

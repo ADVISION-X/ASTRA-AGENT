@@ -173,13 +173,14 @@ export const submitTextTurn = async (input: SeoTextTurnInput): Promise<SeoTurnCh
 export const prepareAttachedTurnPrefix = async (input: Readonly<{
   flow: ReturnType<typeof createSeoExecutor>;
   stepId: string;
+  freshConversation: boolean;
   files: readonly Omit<SeoUploadedAttachment, "providerDisplayName">[];
 }>): Promise<void> => {
-  const freshChat = { productStepId: input.stepId, callId: "fresh-chat", child: "prepare_clean_gpt_chat", actionOrdinal: 1, input: { timeoutMs: 60_000 } } as const;
+  if (input.freshConversation) await input.flow.execute({ sessionKey: "", productStepId: input.stepId,
+    callId: "fresh-chat", child: "prepare_clean_gpt_chat", actionOrdinal: 1, input: { timeoutMs: 60_000 } });
   const attachmentOpen = { productStepId: input.stepId, callId: "attachment-control-open", child: "open_gpt_attachment_control", actionOrdinal: 8, input: {} } as const;
   const attachmentsAttach = { productStepId: input.stepId, callId: "attachments-attach", child: "attach_approved_gpt_files_once", actionOrdinal: 9, input: { files: input.files } } as const;
   const attachmentsReconcile = { productStepId: input.stepId, callId: "attachments-reconcile", child: "reconcile_gpt_attachment_set", actionOrdinal: 10, input: { files: input.files, timeoutMs: 600_000 } } as const;
-  await input.flow.execute({ sessionKey: "", ...freshChat });
   await applyExactProfile(input.flow.execute, input.stepId, [2, 3, 4, 6, 7]);
   await input.flow.execute({ sessionKey: "", ...attachmentOpen });
   await input.flow.execute({ sessionKey: "", ...attachmentsAttach });

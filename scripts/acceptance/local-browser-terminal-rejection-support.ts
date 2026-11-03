@@ -277,7 +277,10 @@ export const interactionWireFixture = async (root: string,
   const bindTarget = (candidate: Pick<BrowserCommandPermit, "jobId" | "targetRef" | "documentRef">) => {
     const registry = Reflect.get(worker.authority, "targets") as ExtensionExactTargetRegistry;
     const target = { targetRef: candidate.targetRef, documentRef: candidate.documentRef, tabId: 1,
-      chromeTargetId: "chrome-1", navigationEpoch: 0, jobRefHash: exactHash(candidate.jobId), loaderId: "loader-1" };
+      chromeTargetId: "chrome-1", navigationEpoch: 0, jobRefHash: exactHash(candidate.jobId), loaderId: "loader-1",
+        expectedUrl: "https://chatgpt.com/",
+        pendingSubmit: null
+    };
     registry.invalidateTab(1); registry.restore(target); Reflect.set(worker.authority, "activeTarget", target);
     (Reflect.get(worker.authority, "debuggerRuntime") as ExtensionDebuggerRuntime).adoptAttached(1); return target;
   };

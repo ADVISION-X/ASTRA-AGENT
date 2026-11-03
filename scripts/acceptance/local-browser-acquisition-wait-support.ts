@@ -6,6 +6,10 @@ import type { ExtensionChromeApi } from "../../src/lib/browser/chrome-extension/
 import type { ExtensionExactTargetRegistry } from "../../src/lib/browser/chrome-extension/exact-target-runtime.js";
 import { decodeBrowserAuthorityFrame } from "../../src/lib/browser/transport/browser-authority-frame-codec.js";
 import { ExtensionTargetAuthority } from "../../src/lib/browser/chrome-extension/extension-target-authority.js";
+import type { ExtensionDebuggerRuntime } from "../../src/lib/browser/chrome-extension/debugger-runtime.js";
+import type { ExtensionInteractionReadiness } from "../../src/lib/browser/chrome-extension/extension-interaction-readiness.js";
+import type { BrowserCommandPermit } from "../../src/lib/browser/transport/command-permit.js";
+import { permit } from "./local-browser-terminal-fixture.js";
 
 const controlledClock = async () => {
   const original = { now: Date.now, set: globalThis.setTimeout, clear: globalThis.clearTimeout,
@@ -39,16 +43,22 @@ type Clock = Awaited<ReturnType<typeof controlledClock>>;
 const acquisitionFixture = async (chrome: ExtensionChromeApi, clock: Clock) => {
   let nextTab = 60, fakeClose = false, failedReadback = false, removeCount = 0, frameDelay = 0, createCount = 0;
   let createBlock: Promise<void> | null = null;
+  let activate: Parameters<ExtensionChromeApi["tabs"]["onActivated"]["addListener"]>[0] = () => undefined;
+  const events = new Set<Parameters<ExtensionChromeApi["debugger"]["onEvent"]["addListener"]>[0]>();
   const tabs = new Map<number, { id: number; windowId: number; active: boolean; discarded: false; status: string; url: string; loader: string; attached: boolean }>();
   const methods: string[] = [], errors: unknown[] = [], wire: string[] = [];
   const worker = await workerFixture({ ...chrome, tabs: { ...chrome.tabs,
+    onActivated: { addListener: callback => { activate = callback; } },
     onRemoved: { addListener: () => undefined },
-    create: async ({ url }) => { createCount += 1; if (createBlock) await createBlock; const id = nextTab++; tabs.set(id, { id, windowId: 1, active: true, discarded: false,
-      status: "loading", url, loader: `loader-${id}`, attached: false }); return { id }; },
+    create: async ({ url }) => { createCount += 1; if (createBlock) await createBlock; const id = nextTab++;
+      for (const tab of tabs.values()) tab.active = false;
+      tabs.set(id, { id, windowId: 1, active: true, discarded: false, status: "loading", url, loader: `loader-${id}`, attached: false });
+      activate({ tabId: id, windowId: 1 }); return { id }; },
     get: async id => { const tab = tabs.get(id); if (!tab) throw new Error("TAB_ABSENT"); return tab; },
-    update: async id => { for (const tab of tabs.values()) tab.active = tab.id === id; return tabs.get(id)!; },
+    update: async id => { for (const tab of tabs.values()) tab.active = tab.id === id; activate({ tabId: id, windowId: 1 }); return tabs.get(id)!; },
     remove: async id => { removeCount += 1; if (!fakeClose) tabs.delete(id); },
   }, debugger: { ...chrome.debugger,
+    onEvent: { addListener: callback => { events.add(callback); } },
     attach: async ({ tabId }) => { tabs.get(tabId)!.attached = true; }, detach: async ({ tabId }) => { const tab = tabs.get(tabId); if (tab) tab.attached = false; },
     getTargets: async () => { if (failedReadback && removeCount) throw new Error("READBACK_FAILED");
       return [...tabs.values()].map(tab => ({ id: `chrome-${tab.id}`, tabId: tab.id, type: "page", title: "ChatGPT", url: tab.url, attached: tab.attached })); },
@@ -65,7 +75,16 @@ const acquisitionFixture = async (chrome: ExtensionChromeApi, clock: Clock) => {
   const key = Buffer.from(await crypto.subtle.exportKey("raw", worker.session.clientToServerKey));
   const node = releaseWireFixture({ serverToClient: key, clientToServer: key, commandPermit: Buffer.alloc(32, 9) }, 2);
   Reflect.set(node.issuer, "slot", { kind: "PRESENT", authority: { authorityEpoch: 1, authorityRef: "authority-wait", connectionGeneration: 1 } });
-  Object.assign(node.state, { mutationState: { assertRuntimeTaskProvenance: () => undefined } });
+  const locatorUrl = "https://chatgpt.com/c/wait-original";
+  const source = { state: "CONFIRMED", anchorState: "trusted", attemptId: "source-attempt", resultRevision: 0,
+    productStepId: "source-step", callId: "turn-submit", childCapabilityId: "submit_exact_gpt_turn_once",
+    effectIdentityHash: hash("d"), walAuthorityHash: hash("e") };
+  Object.assign(node.state, { mutationState: { assertRuntimeTaskProvenance: () => undefined,
+    jobHistoryEvidence: (job: string) => { assert.equal(job, "job-a"); return { walHistoryVerified: true, replayEffects: [source] }; },
+    readSourceConfirmedProviderEffect: (input: { jobId: string; effectIdentityHash: string }) => {
+      assert.equal(input.jobId, "job-a"); assert.equal(input.effectIdentityHash, source.effectIdentityHash);
+      return { conversationLocator: { canonicalConversationUrl: locatorUrl } };
+    } } });
   Object.assign(node.supervisor, { issuer: node.issuer, options: { enrolledProfile: { enrollmentHash: hash("a"), extensionTreeHash: hash("b"), policyHash: hash("c") },
     profileConfig: { extensionId: "extension-wait" }, releaseIdentity: { releaseBuildId: "build-wait" } },
     lane: { resolvePending: node.acquirer.resolvePending.bind(node.acquirer), observeCurrentTargetClaim: () => undefined } });
@@ -73,10 +92,15 @@ const acquisitionFixture = async (chrome: ExtensionChromeApi, clock: Clock) => {
   Reflect.set(active().socket, "send", (value: string) => { wire.push(value); void worker.invoke("onMessage", worker.socket, value).catch(error => { errors.push(error); }); });
   const send = worker.socket.send.bind(worker.socket);
   Reflect.set(worker.socket, "send", (value: string) => { send(value); node.receive(value); });
-  const start = (mode: "fresh" | "bound-observation" | "confirmed-readback" | "authorized-continuation" = "fresh", remaining = 200_000, signal = new AbortController().signal) =>
-    node.acquirer.ensureAvailableTarget({ binding: binding("a") as never, targetMode: mode, remainingMs: () => remaining, signal },
+  const start = (mode: "fresh" | "bound-observation" | "confirmed-readback" | "authorized-continuation" = "fresh", remaining = 200_000, signal = new AbortController().signal, digit = "a") =>
+    node.acquirer.ensureAvailableTarget({ binding: binding(digit) as never, targetMode: mode, remainingMs: () => remaining, signal },
       mode === "authorized-continuation" ? "https://chatgpt.com/c/parent" : undefined).then(() => null, error => error as Error);
-  return { worker, node, tabs, methods, errors, wire, start,
+  return { worker, authority, node, tabs, methods, errors, wire, start,
+    navigate: (url: string, spa = false) => {
+      const tab = tabs.get(60)!; tab.url = url; if (!spa) tab.loader += "-external";
+      for (const event of events) event({ tabId: 60 }, spa ? "Page.navigatedWithinDocument" : "Page.frameNavigated",
+        spa ? { frameId: "frame-60", url } : { frame: { id: "frame-60", loaderId: tab.loader, url } });
+    },
     registry: Reflect.get(worker.authority, "targets") as ExtensionExactTargetRegistry,
     holdCreate: (block: Promise<void> | null) => { createBlock = block; }, creates: () => createCount,
     setFrameDelay: (ms: number) => { frameDelay = ms; },
@@ -86,6 +110,18 @@ const acquisitionFixture = async (chrome: ExtensionChromeApi, clock: Clock) => {
     handlers: () => Array.from(worker.delivery.pendingTargetHandlers.values(), record => record.promise) };
 };
 type Fixture = Awaited<ReturnType<typeof acquisitionFixture>>;
+const interact = (f: Fixture, currentPermit: BrowserCommandPermit,
+  action: (runtime: ExtensionDebuggerRuntime) => Promise<unknown>, observation = false): Promise<unknown> => {
+  const target = f.registry.findByJobRefHash(hash("a"))!;
+  const runtime = Reflect.get(f.worker.authority, "debuggerRuntime") as ExtensionDebuggerRuntime;
+  const readiness = Reflect.get(f.worker.authority, "interactionReadiness") as ExtensionInteractionReadiness;
+  const gate = Reflect.get(f.worker.authority, "pageAccessGate") as { enter(): Promise<void> };
+  const assertCurrent = (): void => { f.authority.resolve(target.targetRef, target.documentRef); };
+  const bound = { ...currentPermit, targetRef: target.targetRef, documentRef: target.documentRef };
+  return runtime.withLogicalPageAccess(() => gate.enter(), () => observation
+    ? readiness.executeObservation(target, () => action(runtime), assertCurrent, bound)
+    : readiness.executeMutation(target, () => action(runtime), assertCurrent, "click", bound));
+};
 const finishReady = async (clock: Clock, result: Promise<Error | null>): Promise<void> => {
   await clock.advance(5_000); assert.equal(await result, null);
 };
@@ -97,6 +133,7 @@ const seedBound = async (f: Fixture, clock: Clock, delay: number): Promise<void>
 const slowReadyModes = async (chrome: ExtensionChromeApi, clock: Clock): Promise<void> => {
   const modes = ["fresh", "bound-observation", "confirmed-readback", "authorized-continuation"] as const;
   for (const [index, mode] of modes.entries()) {
+    process.stderr.write(`[QUALITY][browser-acquisition:start] ${mode}\n`);
     const f = await acquisitionFixture(chrome, clock);
     if (mode === "bound-observation" || mode === "confirmed-readback") {
       await seedBound(f, clock, [0, 45_000, 90_000][index]!);
@@ -104,9 +141,10 @@ const slowReadyModes = async (chrome: ExtensionChromeApi, clock: Clock): Promise
     await f.pulse(); const started = clock.now(), result = f.start(mode);
     await clock.advance([15_000, 45_000, 90_000, 45_000][index]! - 1);
     await finishReady(clock, result);
+    process.stderr.write(`[QUALITY][browser-acquisition:complete] ${mode}\n`);
     assert.ok(clock.now() - started < 120_000); assert.equal(f.node.broker.currentOperatorTargetJobRefHash(), hash("a"));
     assert.equal(f.worker.delivery.pendingTargetHandlers.size, 0); assert.deepEqual(f.errors, []);
-    assert.equal(f.methods.filter(method => method === "Page.navigate").length, mode === "authorized-continuation" ? 1 : 0);
+    assert.equal(f.methods.filter(method => method === "Page.navigate").length, mode === "confirmed-readback" ? 1 : 0);
     await f.park();
   }
   const ready = await acquisitionFixture(chrome, clock), result = ready.start();
@@ -116,6 +154,7 @@ const slowReadyModes = async (chrome: ExtensionChromeApi, clock: Clock): Promise
 
 const claimSendRetirement = async (chrome: ExtensionChromeApi, clock: Clock): Promise<void> => {
   for (const boundary of ["queue-deadline", "queue-abort", "queue-ack", "encrypt-deadline", "encrypt-abort", "encrypt-ack"] as const) {
+    process.stderr.write(`[QUALITY][browser-acquisition:start] claim-${boundary}\n`);
     const f = await acquisitionFixture(chrome, clock), controller = new AbortController();
     let unblock!: () => void, entered!: () => void;
     const blocked = new Promise<void>(resolve => { unblock = resolve; }), encrypting = new Promise<void>(resolve => { entered = resolve; });
@@ -134,6 +173,7 @@ const claimSendRetirement = async (chrome: ExtensionChromeApi, clock: Clock): Pr
       assert.equal(f.worker.frames.map(decodeBrowserAuthorityFrame).filter(frame => frame.kind === "TARGET_CLAIM").length, 0, boundary);
       assert.equal(f.registry.findByJobRefHash(hash("a")), null); assert.equal(f.tabs.size, 0); assert.equal(f.worker.delivery.pendingTargetHandlers.size, 0);
     } finally { unblock(); Reflect.set(crypto.subtle, "encrypt", encrypt); }
+    process.stderr.write(`[QUALITY][browser-acquisition:complete] claim-${boundary}\n`);
   }
 };
 
@@ -225,14 +265,99 @@ const readinessBoundary = async (chrome: ExtensionChromeApi, clock: Clock): Prom
   assert.equal(f.registry.findByJobRefHash(hash("a"))?.tabId, 60, "bound reset timeout preserves the original resource");
 };
 
+const liveRequalification = async (chrome: ExtensionChromeApi, clock: Clock): Promise<void> => {
+  for (const mode of ["normal", "cancel-before-cycle", "origin-failure"] as const) {
+    const f = await acquisitionFixture(chrome, clock), first = f.start();
+    await finishReady(clock, first);
+    const original = f.registry.findByJobRefHash(hash("a"))!;
+    const controller = new AbortController();
+    let release!: () => void;
+    const runtime = Reflect.get(f.worker.authority, "debuggerRuntime") as ExtensionDebuggerRuntime;
+    const held = mode === "cancel-before-cycle" ? runtime.withLogicalPageAccess(async () => undefined,
+      () => new Promise<void>(resolve => { release = resolve; })) : Promise.resolve();
+    if (mode === "origin-failure") f.tabs.get(60)!.url = "https://example.com/";
+    const pending = f.start(mode === "origin-failure" ? "bound-observation" : "confirmed-readback", 200_000, controller.signal);
+    assert.equal(f.node.broker.currentOperatorTargetStatus(), "claimed", "Node retains the old live claim until the original Extension park revokes it");
+    if (mode === "cancel-before-cycle") { await clock.flush(); controller.abort(); await clock.flush(); release(); }
+    await held; await clock.advance(5_000);
+    const result = await pending;
+    if (mode === "normal") {
+      assert.equal(result, null); assert.equal(f.creates(), 1);
+      assert.equal(f.registry.findByJobRefHash(hash("a"))?.targetRef, original.targetRef);
+      assert.equal(f.tabs.get(60)?.url, "https://chatgpt.com/c/wait-original");
+      await f.park();
+    } else {
+      assert.match(result!.message, mode === "origin-failure" ? /BROWSER_ORIGIN_REJECTED/u : /BROWSER_WAIT_ABORTED/u);
+      assert.equal(Reflect.get(f.worker.authority, "activeTarget"), null);
+      assert.equal(f.node.broker.currentOperatorTargetStatus(), "absent");
+      assert.equal(f.registry.findByJobRefHash(hash("a")), original); assert.equal(f.creates(), 1);
+      assert.equal(f.methods.includes("Page.navigate"), false, "failed or cancelled requalification cannot navigate");
+      const sibling = f.start("fresh", 200_000, new AbortController().signal, "b");
+      await finishReady(clock, sibling); assert.equal(f.creates(), 2); await f.park();
+    }
+    assert.equal(f.worker.delivery.pendingTargetHandlers.size, 0);
+    process.stderr.write(`[QUALITY][browser-acquisition:complete] live-${mode}\n`);
+  }
+};
+
+const locationRevocation = async (chrome: ExtensionChromeApi, clock: Clock): Promise<void> => {
+  for (const mode of ["published-document", "spa-before-native", "full-before-native", "same-url-refresh"] as const) {
+    const f = await acquisitionFixture(chrome, clock); await finishReady(clock, f.start());
+    const initial = f.registry.findByJobRefHash(hash("a"))!, input = permit("location");
+    if (mode === "published-document" || mode === "same-url-refresh") {
+      f.navigate(mode === "published-document" ? "https://chatgpt.com/c/wrong" : "https://chatgpt.com/");
+      await clock.advance(5_000);
+      assert.notEqual(f.registry.findByJobRefHash(hash("a"))?.documentRef, initial.documentRef);
+    }
+    const result = interact(f, input, async runtime => {
+      if (mode === "spa-before-native" || mode === "full-before-native") {
+        await Promise.resolve(); f.navigate("https://chatgpt.com/c/wrong", mode === "spa-before-native");
+      }
+      await runtime.send(60, "Input.dispatchKeyEvent", { type: "keyDown", key: "Enter", code: "Enter" });
+    }).then(() => null, error => error as Error);
+    await clock.advance(5_000);
+    const error = await result;
+    if (mode === "same-url-refresh") assert.equal(error, null);
+    else assert.match(error!.message, /BROWSER_TARGET_NOT_INTERACTIVE/u);
+    assert.equal(f.methods.filter(method => method.startsWith("Input.")).length, mode === "same-url-refresh" ? 1 : 0);
+    if (mode.endsWith("before-native")) assert.equal(Reflect.get(error!, "browserInputStarted"), false);
+    await f.park(); process.stderr.write(`[QUALITY][browser-location:complete] ${mode}\n`);
+  }
+};
+
+const firstSubmitLocation = async (chrome: ExtensionChromeApi, clock: Clock): Promise<void> => {
+  for (const migrated of [false, true]) {
+    const f = await acquisitionFixture(chrome, clock); await finishReady(clock, f.start());
+    const submit = { ...permit("first-submit"), childCapabilityId: "submit_exact_gpt_turn_once", replayPolicy: "provider-effect-once" as const };
+    const dispatched = interact(f, submit, async runtime => {
+      await runtime.send(60, "Input.dispatchKeyEvent", { type: "keyDown", key: "Enter", code: "Enter" });
+      if (migrated) f.navigate("https://chatgpt.com/c/first-submit", true);
+      return runtime.send(60, "Page.getFrameTree");
+    });
+    await clock.advance(5_000); await dispatched;
+    const target = f.registry.findByJobRefHash(hash("a"))!, reference = target.pendingSubmit;
+    assert.equal(reference?.state.started, true); assert.equal(reference?.state.physicalInputCount, 1);
+    const blocked = interact(f, permit("new-preparation"), async () => { assert.fail("pending locator cannot admit another ordinary input"); })
+      .then(() => null, error => error as Error);
+    assert.match((await blocked)!.message, /BROWSER_TARGET_NOT_INTERACTIVE/u);
+    const locator = interact(f, { ...permit("locator"), childCapabilityId: "get_submitted_gpt_conversation_url",
+      replayPolicy: "observation-only", mutationClass: "observation" }, runtime => runtime.send(60, "Page.getFrameTree"), true);
+    await clock.advance(5_000); await locator;
+    let ackEntered = 0;
+    const ack = interact(f, { ...permit("ack"), childCapabilityId: "acknowledge_known_gpt_rate_limit" }, async () => { ackEntered += 1; });
+    await clock.advance(5_000); await ack;
+    assert.equal(ackEntered, 1, "pending location adds no qualification gate to the original acknowledgement");
+    assert.equal(target.pendingSubmit, reference); assert.equal(f.methods.filter(method => method.startsWith("Input.")).length, 1);
+    await f.park(); process.stderr.write(`[QUALITY][browser-location:complete] first-submit-${migrated ? "migrated" : "root"}\n`);
+  }
+};
+
 export const exerciseAcquisitionWait = async (chrome: ExtensionChromeApi): Promise<void> => {
   const clock = await controlledClock();
   try {
-    await slowReadyModes(chrome, clock);
-    await claimSendRetirement(chrome, clock); await cleanupProof(chrome, clock); await lateNodeAdmission(chrome, clock);
-    await nativeStillInFlight(chrome, clock); await boundClaimFailure(chrome, clock);
-    await budgetIsolation(chrome, clock);
-    await readinessBoundary(chrome, clock);
+    for (const scenario of [slowReadyModes, claimSendRetirement, cleanupProof, lateNodeAdmission,
+      nativeStillInFlight, boundClaimFailure, budgetIsolation, readinessBoundary,
+      liveRequalification, locationRevocation, firstSubmitLocation]) await scenario(chrome, clock);
     assert.equal(clock.timers.size, 0, "every acquisition/ACK/cleanup timer must retire");
   } finally { clock.restore(); }
 };
