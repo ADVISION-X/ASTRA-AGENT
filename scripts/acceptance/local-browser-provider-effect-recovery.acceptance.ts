@@ -484,3 +484,9 @@ emitQualityProofObservation({
   locator: "acceptance:local-browser-provider-effect-recovery:risk-grant",
   observedValue: "original Provider effect sets remain in WAL; a risk grant rebinds only proven zero-input PREPARED and retries only proven REJECTED/no commands until one physical input",
 });
+emitQualityProofObservation({
+  lawId: "LAW-LOCAL-BROWSER-SESSION-003-V50", evidenceMode: "exam.golden",
+  clauses: ["forbidden:18", "forbidden:2", "forbidden:3", "summary"],
+  locator: "acceptance:local-browser-terminal:job-target-golden",
+  observedValue: "job-bound Target acquisition and physical replacement preserve operator pages; exact source reads leave WAL unchanged, reject wrong identities, multiple URLs and corrupt or missing locators, and an unresolved sibling does not block the selected confirmed effect",
+});

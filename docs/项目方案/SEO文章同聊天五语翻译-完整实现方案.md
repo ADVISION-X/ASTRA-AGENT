@@ -84,7 +84,7 @@ Runtime001/002/003/004/005/006/007的多条缺证据是同一Runtime验收在首
 
 #### Q2 单族施工设计：原Exam序列（可施工）
 
-本轮只处理Q2，其余族保持未实施。原J1/J2/J3身份及三份旧票已恢复：均对`9ed47e370`的同一对象裁生产者具体序列违规、裁修，严格validator保留。当前02a2d5d的同一数组、两个模式及validator与该旧对象原字节相同，READY再次在115→emit461→createExamReceipt390、写receipt前报`QUALITY_EXAM_RECEIPT_INVALID`；不是新判题，不用旧票代替当前质量结果。主Codex工程分档轻度：单一现有producer的封闭排列合同，根因、消费者及正误区分已直接闭合，无生产行为、身份、持久化或跨仓语义变化。
+Q2这一次差异只处理排序，其余族保持未实施。原J1/J2/J3身份及三份旧票已恢复：均对`9ed47e370`的同一对象裁生产者具体序列违规、裁修，严格validator保留。当前02a2d5d的同一数组、两个模式及validator与该旧对象原字节相同，READY再次在115→emit461→createExamReceipt390、写receipt前报`QUALITY_EXAM_RECEIPT_INVALID`；不是新判题，不用旧票代替当前质量结果。主Codex工程分档轻度：单一现有producer的封闭排列合同，根因、消费者及正误区分已直接闭合，无生产行为、身份、持久化或跨仓语义变化。
 
 唯一Owner为AGENT.agent-production-runtime；施工仅原`scripts/acceptance/agent-production-runtime.acceptance.ts`的Runtime001两个Exam共用`clauses`声明及本节执行记录。原`emitQualityProofObservation`→`createExamReceipt/validateExamReceiptPayload`→`quality-runner`→逐法报告为全部消费者；注册由package原acceptance组和quality-routes唯一登记，运行栈与反向符号引用闭合，无新入口。Runtime001-V83、质量证据施工图、原Manifest及共享validator直接复用，规范无须修改。八项成员及其真实断言/traces是必要证据，删除会漏法；其它原验收、后续006/004/007证明、调用顺序、两个模式、candidate/run/producer/case/hash、非空/去重/字节序及失败传播全部直接保留，不能为纠正排列删成员或放宽校验。
 
@@ -95,6 +95,27 @@ Runtime001/002/003/004/005/006/007的多条缺证据是同一Runtime验收在首
 主Codex已完整重读闭环Skill两遍并完成三轮设计核对：①有效法案/原字节排序合同与两模式未变；②报告缺证据反查到同一首receipt、真实调用及下游消费者，非多个业务故障；③删除反事实和混合文件保留、零新结构、有限拒绝/失败与原生证据时点。两遍规范自检分别核源头向下与receipt向上：规范/蓝图无需改动，没有未结规范冲突，禁止改validator换绿。实施后仍须两轮主审与只读实际建设审查，再回原生链。此设计不是READY或业务完成。
 
 Q2施工事实：主Codex删除原错误`clauses`属性后，423639即时读取原call，确认该属性及旧错误序列缺席、原producer与两模式仍在；随后从原合同重建上述唯一八项字节序声明。两轮主审实际比较完整文件：除一个属性排列外原字节相等，八成员/模式/全部await/后续proof及validator、法案/蓝图、生产文件均未变；候选差异仅本方案与原验收两路径。原J2已只读审这两路径实际代码及设计，未发现本单源码finding；他未亲眼观察中间删除，过程证据仍明确归主Codex原工具，不以最终diff伪称子审亲验。真实receipt及连带缺证据是否消除留待本轮原生READY。
+
+#### Q3 单族施工设计：原定位义务的证据接缝（可施工）
+
+进入事实：244c1321dc2efb27583be6453c96f0fc86a844fd的完整READY退出1，Runtime八法全PASS，Q2执行/缺证据已消失；剩Q3四条分母、Q4十项结构与Q5两处误判。本次只修Q3，不改Q4/Q5。四条义务、Owner、required modes与原庭裁修边界均保持；主Codex定中度，原J1已独立核代码、既有场景及native发出时序，主Codex核原件后完成下列收敛。J1先前称多U/坏密文等未覆盖，补查486行原验收后已明确更正：289—330现有真实Store/Acquirer正反场景已覆盖，不新增同义题。
+
+| 原子工单/原Owner与允许路径 | 真实承接、第一断裂与最窄处理 |
+| --- | --- |
+| Q3-A，architecture-boundary；`scripts/acceptance/architecture-boundary.acceptance.ts`原golden | 中央先发现并完成全部原Product验收；原文章题实际验证revision0 fresh、当前授权revision1文章不fresh、两个review仍fresh、附件/三轮/完整结果；恢复Owner/import反例保留。原observation未登记Architecture001:11。在该原golden补11及对应实际观察描述，不新增Product名单、AST业务检查或第二receipt，不声称证明Browser私有WAL。 |
+| Q3-G，gpt；`src/capabilities/gpt/acceptance/gpt-production-browser-lifecycle.acceptance.ts`原state-machine | 原入口先await artifact/source/live交接、选择失败、资格不提前消费、ack不消费选择等真实场景，再发唯一state-machine observation；未登记GPT002:9。只在此原observation补9和相符描述，保留原property/state-machine成员及全部support。不借GPT001 PASS、不复制G1检查或新增validator；原Probe检查继续保留。 |
+| Q3-B3，local-browser-session；原`inspector.ts`、`local-browser-proof-support.ts`及`local-browser-provider-effect-recovery.acceptance.ts` | 原inspectTargetClaimGuards已检查当前job完整历史、指定effect、exact reader、唯一U、located模式与导航；为003原static.ast登记18。原003 golden在auto-pairing后、provider-recovery前发出，尚不能包含后者289—330断言。删除proof-support中这一早发单元→即时核原位置及同law/mode发出点缺席→在原provider-recovery全部断言完成后重建唯一同locator golden，保留原2/3/summary并按字节序加入18。原collector按同run/candidate/script收集全部已执行assertion文件，后发才能同时保全前序auto-pairing与当前effect证据；不重跑场景、不保留双发。 |
+| Q3-B6，同原Browser Owner；仅原`inspector.ts`的006 static.ast覆盖 | 原Navigation已核两个located用途及fresh/bound禁U/canonical policy；原Node sendControlFrame→encryptedFrame→Worker onMessage的四模式真实正例在auto-pairing前完成。原Opaque检查核唯一加密WAL、exact reader、UPDATE只改原密文及诊断无URL，原CLAIM严格字段不含U。只为这些既有真实检查登记Browser006:5，不加同义运输validator；006未声明Exam，禁止为凑数加Exam或把真实测试冒充其dynamic。 |
+
+跨Owner边界由各自原输入/typed输出及本域证据承接；不是令Architecture/GPT重查Browser私有数据库。原case与检查删除会失去fresh/revision/选择失败、错来源/多U/损坏、未知保全或URL隐私的独立保护，故全部直接复用。原gpt-inspector及G1布尔函数均保留，不新增二次执行/循环导入/共享检查平台；原Browser目标/加密/诊断等所有检查和122个mutant不删、不放宽。Runtime、Product、GPT/Browser生产代码、Provider、控制合同、Task Result24、Capability4、数据库、日志、WAL/Outbox及运行启停的修改均无。法案/施工图/Manifest/registry/required modes/quality核心、package及quality-routes修改均无，无规范冲突；本单只修现役义务的证据交付。
+
+施工分类：仅003原早发receipt单元真正删除后同Owner重建；四处覆盖/观察描述明确局部修改，其余检查/场景为事先裁定保留。不得把整个质检系统称重构。删除时不保存旧单元加工回填、不从Git恢复旧载体，不复制第二producer。原recovery486行，新增唯一003 emission预计不超过8行、无新函数/分支/import，须实测保持≤500；其余为原数组/描述局部变更，无新文件、抽象、存储、Owner或兼容。若出现不能承接的真实新分支或预算超限，停依赖修改回本节，不先堆后拆。
+
+验收：先核原四义务→本表实际检查/断言→receipt发出时点→逐法覆盖；规范不变、Clauses只增原遗漏索引，0003 golden仅一个且在两组真实断言完成后，0006仍只有原Static及deferred dynamic。再沿原入口运行受影响普通验收，保留缺effect/异job/多U/坏密文与payload、未知不挡指定effect、选择失败阻输入、cache/source零页面、fresh/review及完整Flow反例。原生CHANGE→提交首推→完整READY后，读实际003 receipt必须同时含auto-pairing/acquisition与provider-recovery的真实trace，GPT002含artifact-recovery真实trace；核四个LAW_CLAUSE_DENOMINATOR_MISMATCH消失，Q4/Q5未修如实保留。无新增Provider输入或生产动态验收，本轮不装服务。
+
+主Codex三轮设计核对已完成：①源头/四条现文/各Owner及required mode与实际原件正查，未借质量故障改法；②由完整报告与receipt反查原注册、support、collector及跨进程trace，确认真实已有覆盖与003早发首断；③删除反事实、原件保留、唯一发出点/字节序、486→≤500预算、零新执行与失败回接反查。两轮规范自检分别按源头向下和实际接收证据向上核，无需改法/施工图或冻结语义。原J1已沿相同身份独立复核本设计及五路径、四条现文、collector/runner和本候选报告，未发现施工前阻断；其未运行测试，也未据文字宣称代码或质量已完成；实施后主Codex两轮审实际差额，再由原只读审查者审建设遗漏后回原生链。失败不补造trace/receipt、不吞错/减分母/改超时，相关新事实才回原庭；无回退或清账。
+
+Q3施工事实：56a757即时核原support的003 emission与全acceptance同locator缺席，002/005仍在；随后原recovery末尾重建唯一003，最终492行。主Codex两遍实际核六路径差异、原检查/断言/await、clauses顺序及生产/规范零变更；原J1实际复核五个源码及原件无可操作finding，没有把其未亲验的即时删除当独立过程证据。实际receipt/traces及分母错误消除仍交当前候选的原生READY，不以源码审查冒充通过。
 
 ## 2. 受影响图、交叉查漏及保留裁决
 

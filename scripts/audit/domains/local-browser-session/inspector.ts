@@ -108,10 +108,10 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
     lawResults: [
       lawResult("LAW-LOCAL-BROWSER-SESSION-001-V4", staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9)),
       lawResult("LAW-LOCAL-BROWSER-SESSION-002-V6", staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13)),
-      lawResult("LAW-LOCAL-BROWSER-SESSION-003-V50", staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17)),
+      lawResult("LAW-LOCAL-BROWSER-SESSION-003-V50", staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18)),
       lawResult("LAW-LOCAL-BROWSER-SESSION-004-V59", staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23), false),
       lawResult("LAW-LOCAL-BROWSER-SESSION-005-V6", staticClauses(0, 1, 2, 3, 4, 5, 6)),
-      lawResult("LAW-LOCAL-BROWSER-SESSION-006-V49", staticClauses(0, 1, 2, 3, 4)),
+      lawResult("LAW-LOCAL-BROWSER-SESSION-006-V49", staticClauses(0, 1, 2, 3, 4, 5)),
     ], inspectedFiles: evaluation.inspectedFiles,
   });
 };

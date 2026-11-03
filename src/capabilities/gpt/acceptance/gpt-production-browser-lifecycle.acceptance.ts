@@ -13,7 +13,7 @@ emitQualityProofObservation({
 });
 emitQualityProofObservation({
   lawId: "LAW-GPT-002-V34", evidenceMode: "exam.state-machine",
-  clauses: ["forbidden:0", "forbidden:3", "forbidden:5", "forbidden:6", "summary"],
+  clauses: ["forbidden:0", "forbidden:3", "forbidden:5", "forbidden:6", "forbidden:9", "summary"],
   locator: "acceptance:gpt:confirmed-readback-state-machine",
-  observedValue: "pending releases the lease stop survives deadline and confirmed recovery performs zero submit",
+  observedValue: "pending releases the lease, stop survives deadline, and confirmed recovery performs zero submit; cached and source results perform zero page actions, the next authorized turn selects the original URL inside its atomic call before input, and selection failures retain the pending handoff and block input",
 });

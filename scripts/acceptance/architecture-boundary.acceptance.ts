@@ -212,9 +212,9 @@ process.stdout.write("[ACCEPTANCE][architecture-boundary] PASS\n");
 emitQualityProofObservation({
   lawId,
   evidenceMode: "exam.golden",
-  clauses: ["forbidden:10", "forbidden:8", "forbidden:9", "summary"],
+  clauses: ["forbidden:10", "forbidden:11", "forbidden:8", "forbidden:9", "summary"],
   locator: "acceptance:architecture-boundary",
-  observedValue: "The byte-exact frozen Tombstone remained present; Catalog and Capability Manifest identities matched independent Product acceptances; central Product-content mutants and Product, Runtime, and GPT cross-attempt business-recovery authority mutants were rejected while same-attempt mechanisms remained in production",
+  observedValue: "The byte-exact frozen Tombstone remained present; Catalog and Capability Manifest identities matched independent Product acceptances; authorized article revision continued without fresh preparation while revision zero and both reviews remained fresh; central Product-content and cross-attempt business-recovery authority mutants were rejected",
 });
 {
   const lawId = targetLawId;
