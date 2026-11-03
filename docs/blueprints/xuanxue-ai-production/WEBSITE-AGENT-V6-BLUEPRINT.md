@@ -1,4 +1,4 @@
-# production-runtime 生产级施工图 V69
+# production-runtime 生产级施工图 V70
 
 正常停止沿现役单链：App信号→Workbench停止接单→Runtime同步draining→原iteration与active任务收尾→原Store/网站status读回→原资源关闭。
 停止意图约束新/恢复生产claim；下述W5仅允许已封存source运输，绝不abort在途Product；原claim在实际fetch前检查drain_state，停止前已经发送的合法grant仍由原worker执行。
@@ -16,13 +16,13 @@ blocked实例在真实停机时由原Store关闭入口只读核未完成任务/O
 ```blueprint-record
 {
   "schemaVersion": 1,
-  "blueprintId": "agent-production-runtime-v69",
+  "blueprintId": "agent-production-runtime-v70",
   "status": "active",
   "owner": "agent-production-runtime",
   "lawIds": [
     "LAW-AGENT-PRODUCTION-RUNTIME-001-V83",
     "LAW-AGENT-PRODUCTION-RUNTIME-002-V12",
-    "LAW-AGENT-PRODUCTION-RUNTIME-003-V52",
+    "LAW-AGENT-PRODUCTION-RUNTIME-003-V53",
     "LAW-AGENT-PRODUCTION-RUNTIME-004-V49",
     "LAW-AGENT-PRODUCTION-RUNTIME-005-V45",
     "LAW-AGENT-PRODUCTION-RUNTIME-006-V50",
@@ -131,7 +131,7 @@ Runtime 对外只发布 Agent Route Capability Manifest。它从 Mediator 取得
 
 Product、GPT、Browser、Forensics、Runtime Log、App Shell、Startup、Website 继续由各自 active law、blueprint、spec 与唯一 Manifest primary Owner 守住文件及接口边界。Runtime 文档只记录上表接口边，不复制其业务流程、DOM、模型策略、Provider 操作或发布裁决。
 
-generated image 沿 task-result v23 的原链运输。GPT 取得的已鉴权原始 Provider bytes 先由 Forensics 按原字节/hash封存并读回；Product 只作 EXIF 方向应用及去 metadata WebP 编码，保留方向应用后的原宽高。Runtime 不解码图片，只校验 WebP、hash/bytes、整数宽高并运输现役 V6 receipt。Website staging 独立解码宽高并绑定同一 result payload；任何层不得 resize/crop/pad 或设尺寸、比例、总像素拒收门，原图不上传，V6 receipt 不增加宽高字段，也不新增图片链。
+generated image 沿 task-result v24 的原链运输。GPT 取得的已鉴权原始 Provider bytes 先由 Forensics 按原字节/hash封存并读回；Product 只作 EXIF 方向应用及去 metadata WebP 编码，保留方向应用后的原宽高。Runtime 不解码图片，只校验 WebP、hash/bytes、整数宽高并运输现役 V6 receipt。Website staging 独立解码宽高并绑定同一 result payload；任何层不得 resize/crop/pad 或设尺寸、比例、总像素拒收门，原图不上传，V6 receipt 不增加宽高字段，也不新增图片链。
 
 
 GPT 页面 selector 的语义冻结只属于 GPT Child，Browser 只机械执行 typed query，Runtime 只消费 Child terminal。mutation 前是否自动选中精确 system Tab、激活后的 Target/Document 重验、输入前 activation generation 与 `BROWSER_TARGET_NOT_INTERACTIVE` 结算都只属于 Browser Authority；Runtime 不接收 tabId、不调用激活/窗口聚焦、不读取 Browser 私有状态，也不建立第二 precondition、WAL、恢复或重试。该变更不得进入 Runtime 配置、Manifest 字段或跨仓合同；Website 任务、Outbox、artifact receipt 与 business admission receipt 主链保持不变。
@@ -215,7 +215,7 @@ Runtime 自身代码保持 production 目录内的直接模块关系。不得新
 Website ai-acceptance 是唯一 provider。AGENT 三份 spec 的现役身份为：
 
 - Agent Route Capability Manifest provider：version 4；只发布 current session 支持的 `product_id + action_id + task_contract_version + result_contract_version`；Product Profile、Skill、Prompt、Flow、实现名称、版本和 hash 均不得对外发布或参与任务身份；
-- Website Agent Task Result consumer dependency：version 23；精确消费 Website 唯一 provider 的43路由、43参数类型和43结果合同。任务与结果 envelope 仍为1，图片及本地化沿原运输合同；旧18版本及旧联合起名生产路由无活动 reader、alias 或兼容分支。公开格式从 route.result_contract 原样投影到对应 Product Prompt，Product 不保存第二份业务输出 Schema。
+- Website Agent Task Result consumer dependency：version 24；精确消费 Website 唯一 provider 的43路由、43参数类型和43结果合同。任务与结果 envelope 仍为1，图片及本地化沿原运输合同；旧18版本及旧联合起名生产路由无活动 reader、alias 或兼容分支。公开格式从 route.result_contract 原样投影到对应 Product Prompt，Product 不保存第二份业务输出 Schema。
 - N4本地化三个primary只消费localization-primary-archives.v1的reference/work两个ZIP，按唯一provider有序role与scope运输。原Product私有reader机械核外层bytes/hash、两根目录/完整成员、UTF-8、有界解压和原源关联，包二reference_source_hash绑定包一机器原源原始字节；静态消费ContextBundle.v4及完整产品/页面背景，只输出Website指定message_items；动态只恢复原正式source_content/source_order与三政策，不重做source-protection、不取得研究材料。旧单JSON/四JSON生产reader物理退出，无双读或桥；四review、其余40route、原结果格式/单次submit/父链/接收完成边界不变。工单资格、余缺、去重、更正、current及业务采用仍只归Website。
 - Xuanxue AI Production V6 consumer dependency：version 49。保留 v39 的 `same_accepted_attempt` grant 语义，永久停止只消费 Website exact job absence，包含管理员未完成 Work Order 清除与获授权的隐私未完成质量反思清除。false 是 fresh attempt，true 必须同时命中 AGENT 本地同 attempt durable authority，否则在 Product 与任何 Website 写入前失败关闭。v45 切换须逐 job 在原 Website 行锁保全旧 accepted attempt、first fact、结果/Outbox/Browser 来源 manifest 与旧 session/fence，禁止把未完成 attempt 当清空条件；旧 session supersede 后，其旧 claim receipt 失去动作授权，新 session 只经 v45 同一 claim 的已鉴权 `source_evidence[]` 对账并取得原 attempt 的当前 lease/fence 或旧结果交付授权。旧 session/receipt 只作历史证据，不提供旧版兼容写入或第二撤权路径。Website 的`ai_production_devices.max_in_flight`仍是当前N的唯一持久Owner并唯一持有限流cohort；Runtime不保存或配置当前N/权威cohort。心跳只报告去重本地在途数，claim请求只按合同安全上限、本地in-flight和executor可用量提出，Website在设备事实行锁内收紧最终grant。Browser action capacity始终为1；Runtime只消费Website当前授权、有限`retry_not_before`、三个next action、typed effect outcome、provider_cooldown receipt与完整结果接收回执。 v45 grant 校验中 `result_revision>0` 可由真实领域 `prior_result_rejection` 或同一 Website claim/event 的 exact `delivery_priority_replay_grant` 支撑；当前 grant 来源互斥：真实领域 rejection 对应 `prior_result_rejection`，风险 replay 对应 exact 风险 grant 且 `prior_result_rejection=null`；旧 rejection 只留原 Website job events，不下发为本轮 Product 修正指令。Product 风险 revision 从原入口执行；已完成的旧调用只按来源 seal 复用原 submit/checkpoint 产物，新的 revision promptHash 可变化，耗尽调用才用当前 prompt 与风险 grant fresh 输入；Website claim 与 provider cooldown notice 复用同一原 job revision reader。
 - Website 在 V6 v45 内部对 fresh grant 使用固定五阶容量递补并拥有唯一 product_id 映射：先按现役 N 扣除在途取得 fresh 剩余名额，再按 claimable fresh job 的阶级由高到低、同阶 `created_at,job_id` 填充；高阶足以填满剩余名额时低阶不得领取，高阶不足时下一阶使用空闲名额。Website 先用 SQL 排除稳定不合格项，recovery 与 fresh 各最多复核32个已锁候选；只有锁后资格并发漂移耗尽预算时当前 receipt 可欠填并由下一次 claim 重试。已在途 job 只按现役容量计入在途数，当前不可领取的高阶 job 不额外冻结空位。该规则不增加 V6 wire 字段或 AGENT 调度职责；Runtime 仍只请求有界容量并机械执行 Website 已签 grant，不保存 tier、不按等待时间提升任务，也不拒绝已 durable accept 的 attempt 恢复、同 effect 读回、Outbox 交付或 admission 收尾。每个 job 仍独占自己的 Tab，Browser 物理动作 lane 仍为 1；GPT 等待不占用 Browser lane。
@@ -250,7 +250,7 @@ consumer dependency 的 contract body 只能包含 contractId、version、provid
 
 未知、缺失、额外、重复、顺序漂移或语义不等一律失败关闭。新增的唯一固定 catalog route 是 `localization_static_catalog + produce_locale_catalog`，仍由现有 `localization-production` Product Plugin 私有执行，不新增 Plugin、Runtime、队列、公开 candidate/selector action 或第二恢复链。不得手写 route allowlist、第二支持表、compatibility、alias、fallback、bridge 或 shadow projection。
 
-`FROZEN-PUBLIC-KNOWLEDGE-PROVIDER-FORMAT-ONLY-001` 固定：Public Knowledge 的 Provider 可见输出格式只来自 Website 唯一 canonical `result_contract` 的机械投影，Product 只把当前 research/article 子合同原样写进 exact Prompt。research 顶层只要求 `schema_version,decision,topic_manifest,research_markdown,citations,research_claim_units` 六字段，article 顶层只要求 `schema_version,title,editor_note,article_markdown,safety_notes` 五字段；Provider 多余字段由 Website 唯一 parser 丢弃，不得拒收。该合同只约束交付结构、字段类型、枚举、引用 identity/marker 关系与 Markdown 语法，不得规定选题结论、分析方法、推理过程、观点立场、证据解释或图片创意；Product Skill 正文不得注入 Provider Prompt，AGENT 不得复制、扩写或另建格式/质量 validator，不得重塑 Provider 输出字段类型或追加第二 reception sidecar。改变或删除本冻结边界，必须由用户在未来任务中明确解冻并同步替换双仓施工图、合同、实现与唯一质检。
+`FROZEN-PUBLIC-KNOWLEDGE-PROVIDER-FORMAT-ONLY-001` 固定：Public Knowledge 的 Provider 可见输出格式只来自 Website 唯一 canonical `result_contract` 的机械投影，Product 只把当前 research/article 子合同原样写进 exact Prompt。research 顶层只要求 `schema_version,decision,topic_manifest,research_markdown,citations,research_claim_units` 六字段，article 顶层只要求 `schema_version,title,editor_note,article_markdown,safety_notes,verbatim_quotes` 六字段（article-output.v4），由原同一写作回合提供 `verbatim_quotes:[{text,citation_ids}]`，显式空集仍可表达；Provider 多余字段由 Website 唯一 parser 丢弃，不得拒收；Product 继续按公开 schema 接收完整原对象并沿原 package 交付，新增直引字段的原字节/原 citation 机械核验及同 admission 事务存储只属于 Website，不增加 AGENT validator。该合同只约束交付结构、字段类型、枚举、引用 identity/marker 关系与 Markdown 语法，不得规定选题结论、分析方法、推理过程、观点立场、证据解释或图片创意；Product Skill 正文不得注入 Provider Prompt，AGENT 不得复制、扩写或另建格式/质量 validator，不得重塑 Provider 输出字段类型或追加第二 reception sidecar。改变或删除本冻结边界，必须由用户在未来任务中明确解冻并同步替换双仓施工图、合同、实现与唯一质检。
 
 Website 在签发任务前唯一判断业务参数值是否合法。Runtime 先把 product_id/action_id 解析为有界字符串，再按 current route projection 与 Route Capability Manifest 精确解析；grant 不再冻结或比较任何 Product Plugin 身份。除此之外 Runtime 只校验 authenticated session/claim/grant/fence、task wire/schema/hash、当前 contract/projection/control contract version，以及 route/key/material/relation/result-contract 与当前 projection 的机械一致性；不得保存 `bazi_analysis_kind`、locale、localization resource kind、Product package/version 或 Bazi reusable candidate 的业务白名单，不得按 action 名推导 review/continuation，不得维护 `routeProducesGeneratedImage`、手写 Product/Action 支持表或硬编码 primary 数量。Product Plugin 通过 Product-facing execution contract 取得当前 task、materials、当前 Website route policy 与 GPT public facade，只校验完成自身执行所必需的局部 artifact、Skill 与 result 组装前置，不复判 Website 业务资格，也不读取 Runtime 私有 transport、store、lease、Outbox 或 recovery 模块。
 
@@ -332,7 +332,7 @@ CHANGE、READY、RELEASE 是不同候选阶段。Runtime 的静态或动态 PASS
 每次候选都必须重新证明：
 
 1. 八条 Runtime law、稳定 blueprintId、三份 active contractRef 与 Runtime 唯一 Manifest 的 lawIds 相互一致；Architecture Boundary law 与 Manifest 独立保持其现役一一对应；越界 `ownedPaths` 只在同一候选的一次原子修改中归位，并立即证明无无主、无重叠、无 Runtime manifest-owner-drift。
-2. task-result provider/dependency/projection精确为23，V6为49、capability为4、task/result envelope为1；43条route的参数键、材料role/media/trust/owner/顺序/基数、relation及result_contract逐项核对，未知、缺失、额外、重复、错序或错身份失败关闭。九专业使用完整冻结资料，商业零八字；图片原链、Website领域receipt、原effect/WAL、限流和来源seal/rejection/risk授权全部保持原合同。
+2. task-result provider/dependency/projection精确为24，V6为49、capability为4、task/result envelope为1；43条route的参数键、材料role/media/trust/owner/顺序/基数、relation及result_contract逐项核对，未知、缺失、额外、重复、错序或错身份失败关闭。九专业使用完整冻结资料，商业零八字；图片原链、Website领域receipt、原effect/WAL、限流和来源seal/rejection/risk授权全部保持原合同。
 3. route projection为43 routes、43 parameter types、43 result contracts；reservation、bazi_private_base_input、result_contract.private_base及旧联合起名活动route均为零。
 4. 所有 AI 产品按 LAW-AGENT-PRODUCTION-RUNTIME-004-V49 验收接收完成边界；旧 base/Bazi/review admission 完成门退出 Runtime。
 5. credential 失败类别分别得到稳定脱敏 typed code，且 claim/Provider mutation 增量为零。
@@ -360,7 +360,7 @@ V6.46仅将同一协议容量支持上限扩到6；当前N仍由Website设备行
 
 ## W5：取消退役的唯一机械交接（2026-11-02授权施工）
 
-V6 control provider/consumer固定为49，task-result23、Capability4与43路由保持。Website原T1 Owner决定退役、保护集合、T2与新G；AGENT仅消费当前exact签控制并保全/运输真实机械事实，不追读GPT答案，不裁业务风险。普通未取消需求的完整来源验证、Provider防重和风险授权不变。
+V6 control provider/consumer固定为49，当前task-result24、Capability4与43路由保持。Website原T1 Owner决定退役、保护集合、T2与新G；AGENT仅消费当前exact签控制并保全/运输真实机械事实，不追读GPT答案，不裁业务风险。普通未取消需求的完整来源验证、Provider防重和风险授权不变。
 
 完整Product输出先于首个结果JSON网络请求，由原Store在task-owned results/<既有attempt hash>/complete-output.json同步保全原JSON.stringify(payload) UTF-8文本、evidence_refs、generated-image typed receipts、原身份及execution_receipt_hash；SQLite immediate写锁内验当前attempt/未seal、fsync/rename/目录fsync/readback，seal同锁核原件。损坏或异身份保持局部unknown，不能误封口、覆盖或重做Provider。同attempt delivery_only只用该原件走原Outbox，不进入Product。candidate_hash沿既有execution_receipt_hash，不用envelope hash。
 

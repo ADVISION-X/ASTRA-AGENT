@@ -13,7 +13,7 @@ import { productionRoutePolicy } from "../../../src/lib/local-runtime/production
 import { browserProviderEffectIdentityHash } from
   "../../../src/lib/browser/exact-target/browser-command-postcondition.js";
 import { hashCanonical } from "../../../src/mediator/product-plugin-contract.js";
-import { parsePublicKnowledgeArticle, parsePublicKnowledgeResearch, publicKnowledgeTurnContract } from "../../../src/plugins/public-knowledge-article-pipeline/result-contract.js";
+import { parseProductResult, parsePublicKnowledgeArticle, parsePublicKnowledgeResearch, publicKnowledgeTurnContract } from "../../../src/plugins/public-knowledge-article-pipeline/result-contract.js";
 import {
   exerciseSeoAttachmentReconcileFailure,
   exerciseSeoFlow,
@@ -89,13 +89,39 @@ assert.equal((wrongTypeResearch.topic_manifest as Record<string, unknown>).secon
   "AGENT must preserve a Provider field-type error for the Website owner to judge");
 assert.equal(parsePublicKnowledgeArticle(JSON.stringify({
   ...articleOutput(),
-}), produceRoute).schema_version, "public-knowledge-article-output.v3");
+}), produceRoute).schema_version, "public-knowledge-article-output.v4");
 
 const decline = await exerciseSeoFlow(plugin, "produce_article", "decline");
 assert.deepEqual(decline.calls.map((call) => call.child), initialText);
 assert.equal(decline.calls.some((call) => call.productStepId === "article_synthesis"), false);
+assert.equal((decline.completed.payload as Readonly<Record<string, unknown>>).article, null);
+assert.equal((decline.completed.payload as Readonly<Record<string, unknown>>).image, null);
 
 const proceed = await exerciseSeoFlow(plugin, "produce_article", "proceed");
+const deliveredPackage = proceed.completed.payload as Readonly<Record<string, unknown>>;
+assert.deepEqual(deliveredPackage.research, researchOutput("proceed"),
+  "the original research citation identity must reach the same complete package unchanged");
+assert.deepEqual(deliveredPackage.article, articleOutput(),
+  "the original three-turn flow must deliver the full v4 article including exact quote bytes and citation tokens");
+const { verbatim_quotes: _quotes, ...missingQuotes } = articleOutput();
+for (const article of [
+  { ...articleOutput(), verbatim_quotes: [] },
+  missingQuotes,
+  { ...articleOutput(), verbatim_quotes: "wrong-field-type" },
+  { ...articleOutput(), verbatim_quotes: [{ text: "absent from Markdown", citation_ids: ["unknown-citation"] }] },
+  { ...articleOutput(), unrelated_field: { original: true } },
+]) {
+  const received = parsePublicKnowledgeArticle(JSON.stringify(article), produceRoute);
+  assert.deepEqual(received, article,
+    "AGENT must preserve empty/missing/malformed quote fields and extras for the Website parser");
+  const delivered = parseProductResult(seoTask("produce_article"),
+    { ...deliveredPackage, article: received }, produceRoute);
+  assert.equal(delivered.article, received, "the original final package parser must retain the entire article object");
+}
+assert.throws(() => parsePublicKnowledgeArticle(JSON.stringify({
+  ...articleOutput(), schema_version: "public-knowledge-article-output.v3",
+}), produceRoute), /PUBLIC_KNOWLEDGE_ARTICLE_INVALID/u,
+"the original schema gate must reject v3 rather than add a second reader");
 for (const action of ["produce_article", "accuracy_challenge", "quality_reflection"] as const) {
   const state = createHarness(action), context = createContext(state, "proceed");
   await plugin.execute(seoTask(action), { ...context, resultRevision: { ...context.resultRevision, revision: 1 } });
@@ -133,7 +159,7 @@ const promptContract = (prompt: string) => prompt.split("\n")
 assert.equal(promptContract(prompts[0]!), JSON.stringify(publicKnowledgeTurnContract(produceRoute, "research")));
 assert.equal(promptContract(prompts[1]!), JSON.stringify(publicKnowledgeTurnContract(produceRoute, "article")));
 assert.match(prompts[0]!, /public-knowledge-research-output\.v3/u);
-assert.match(prompts[1]!, /public-knowledge-article-output\.v3/u);
+assert.match(prompts[1]!, /public-knowledge-article-output\.v4/u);
 assert.match(prompts[0]!, /输出子合同只约束交付格式与字段关系，不限制你的选题、分析、推理、观点或证据解释/u);
 assert.match(prompts[1]!, /输出子合同只约束交付格式与字段关系，不限制你的分析、推理、观点或证据解释/u);
 assert.match(prompts[0]!, /"field_relations":\{"cluster_ids_unique_and_from_current_domain_archive":true/u);

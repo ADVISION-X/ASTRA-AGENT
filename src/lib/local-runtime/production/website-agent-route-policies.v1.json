@@ -1,7 +1,7 @@
 {
   "schema_version": "website-agent-route-policies.v1",
   "contract_id": "ai-acceptance.website-agent-task-result",
-  "contract_version": 23,
+  "contract_version": 24,
   "parameter_types": {
     "admitted_identity_catalog_hash": "sha256",
     "analysis_kind": "bazi_analysis_kind",
@@ -1347,13 +1347,14 @@
           }
         },
         "article": {
-          "schema_version": "public-knowledge-article-output.v3",
+          "schema_version": "public-knowledge-article-output.v4",
           "exact_fields": [
             "schema_version",
             "title",
             "editor_note",
             "article_markdown",
-            "safety_notes"
+            "safety_notes",
+            "verbatim_quotes"
           ],
           "field_types": {
             "string": [
@@ -1364,6 +1365,9 @@
             ],
             "string_array": [
               "safety_notes"
+            ],
+            "object_array": [
+              "verbatim_quotes"
             ]
           },
           "required_nonempty": [
@@ -1405,7 +1409,8 @@
           },
           "field_relations": {
             "every_research_citation_has_article_marker": true,
-            "every_article_citation_marker_references_research_citation": true
+            "every_article_citation_marker_references_research_citation": true,
+            "every_verbatim_quote_references_existing_research_citations": true
           },
           "citation_id_example": "S1",
           "citation_marker_example": "[S1]",
@@ -1414,6 +1419,25 @@
             "outer_brackets": "required_single_pair",
             "inner_brackets": "forbidden",
             "line_breaks": "forbidden"
+          },
+          "verbatim_quote_format": {
+            "exact_fields": [
+              "text",
+              "citation_ids"
+            ],
+            "field_types": {
+              "string": [
+                "text"
+              ],
+              "string_array": [
+                "citation_ids"
+              ]
+            },
+            "text_must_be_nonempty_exact_article_substring": true,
+            "citation_ids_reference": "research.citations.citation_id",
+            "citation_ids_must_be_nonempty": true,
+            "empty_quote_array_allowed": true,
+            "covers_inline_and_block_verbatim_classical_quotes": true
           }
         },
         "image": {

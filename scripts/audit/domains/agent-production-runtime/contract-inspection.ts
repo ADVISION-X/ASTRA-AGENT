@@ -8,7 +8,7 @@ import { producerClaimRoutesFor } from "../../shared/proof-observation.js";
 export const LAWS = {
   core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V83",
   credential: "LAW-AGENT-PRODUCTION-RUNTIME-002-V12",
-  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V52",
+  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V53",
   admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V49",
   database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V45",
   storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V50",
@@ -179,7 +179,7 @@ const inspectAdmission = (context: InspectorContext, findings: InspectorFinding[
 
 const inspectDependencies = (context: InspectorContext, findings: InspectorFinding[]): void => {
   for (const [name, id, version] of [
-    ["website-agent-task-result", "ai-acceptance.website-agent-task-result", 23],
+    ["website-agent-task-result", "ai-acceptance.website-agent-task-result", 24],
     ["xuanxue-ai-production-v6", "ai-acceptance.xuanxue-ai-production-v6", 49],
   ] as const) {
     const path = `docs/specs/agent-production-runtime/${name}.dependency.spec.json`;
@@ -197,7 +197,7 @@ const inspectDependencies = (context: InspectorContext, findings: InspectorFindi
       result_contract?: unknown; material_roles: { role: string; media_types: string[]; trust_class: string;
         may_issue_instruction: boolean; storage_class: string; owner_scope_policy: string }[]; required_parameter_keys: string[] }[] };
   const identities = projection.routes.map((route) => `${route.product_id}\0${route.action_id}`);
-  const currentRoutes = projection.contract_version === 23 && projection.routes.length === 43
+  const currentRoutes = projection.contract_version === 24 && projection.routes.length === 43
     && Object.keys(projection.parameter_types).length === 43
     && projection.routes.filter((route) => route.result_contract !== undefined).length === 43
     && new Set(identities).size === 43
@@ -213,7 +213,7 @@ const inspectDependencies = (context: InspectorContext, findings: InspectorFindi
     ["localization_reference_archive", "localization_work_archive"].map(role => [role, ["application/zip"], "locked_fact", false, storage, owner]));
   });
   reject(findings, LAWS.route, "static.contract", projectionPath, "current-route-projection", currentRoutes && twoArchives,
-    "Projection must carry task-result v23 and the exact 43/43/43/0 provider denominators without a private base.");
+    "Projection must carry task-result v24 and the exact 43/43/43/0 provider denominators without a private base.");
   inspectProviderGenerator(context, findings);
 };
 const providerProjectionDecodesOriginalBytes = (generator: SourceFile): boolean => {

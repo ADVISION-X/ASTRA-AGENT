@@ -4,7 +4,7 @@ import type { ProductionRoutePolicy } from "../../../mediator/product-plugin-con
 export type { ProductionRoutePolicy } from "../../../mediator/product-plugin-contract.js";
 
 if (projection.schema_version !== "website-agent-route-policies.v1" || projection.contract_id !== "ai-acceptance.website-agent-task-result"
-  || projection.contract_version !== 23 || Object.keys(projection.parameter_types).length !== 43 || projection.routes.length !== 43) {
+  || projection.contract_version !== 24 || Object.keys(projection.parameter_types).length !== 43 || projection.routes.length !== 43) {
   throw new Error("PRODUCTION_ROUTE_POLICY_PROJECTION_INVALID");
 }
 export const productionRoutePolicies: readonly ProductionRoutePolicy[] = Object.freeze(projection.routes.map((route) => Object.freeze({
