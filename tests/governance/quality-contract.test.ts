@@ -344,10 +344,10 @@ test("each Dynamic mode authenticates its native object, clause binding, and obs
   } as const;
   const routes = {
     browser: { lawId: "LAW-LOCAL-BROWSER-SESSION-001-V4", clauses: ["forbidden:6"] },
-    service: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V82", clauses: ["summary"] },
-    database: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V82", clauses: ["forbidden:0", "forbidden:2"] },
-    storage: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V82", clauses: ["forbidden:2"] },
-    provider: { lawId: "LAW-GPT-001-V68", clauses: ["forbidden:0", "forbidden:3", "forbidden:7"] },
+    service: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V83", clauses: ["summary"] },
+    database: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V83", clauses: ["forbidden:0", "forbidden:2"] },
+    storage: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V83", clauses: ["forbidden:2"] },
+    provider: { lawId: "LAW-GPT-001-V69", clauses: ["forbidden:0", "forbidden:3", "forbidden:7"] },
     authorization: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-002-V12", clauses: ["forbidden:1", "forbidden:2"] },
     recovery: { lawId: "LAW-RUNTIME-LOG-SPINE-001-V8", clauses: ["summary"] },
   } as const;
@@ -1359,7 +1359,7 @@ test("every active law scope is deterministic, owned, unique, and includes all c
 
 test("active mutation inspectors use one DISPATCHED chain inside each law scope", () => {
   const registry = buildRegistry();
-  const agentLaw = registry.laws.find((law) => law.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V82");
+  const agentLaw = registry.laws.find((law) => law.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V83");
   assert.ok(agentLaw);
   const agentTargets = computeTargetPaths(agentLaw, registry);
   const crossOwnerPaths = [
@@ -1568,11 +1568,11 @@ test("Extension command failure preserves its original redacted intent identity"
 });
 test("Browser media inspection rejects alternate identities, missing guards and duplicate input", () => {
   const path = "src/lib/browser/chrome-extension/extension-command-runtime.ts";
-  verifyBrowserBoundaryMutants("LAW-LOCAL-BROWSER-SESSION-006-V48", inspectOpaqueAuthorityBoundary, [
+  verifyBrowserBoundaryMutants("LAW-LOCAL-BROWSER-SESSION-006-V49", inspectOpaqueAuthorityBoundary, [
     [path, 'case "authenticated-media": return', 'case "other-media": return'],
     [path, "switch (command.kind) {", 'switch ("never-media") {'],
     [path, "switch (command.kind) {", "if (false) switch (command.kind) {"],
-    ["src/lib/browser/chrome-extension/extension-target-authority.ts", "() => this.executeRegisteredCommandCycle(command, target, mutationClass, exactCallIdentityHash, assertCommandActive, commandDeadlineAt)", "() => Promise.resolve(undefined)"],
+    ["src/lib/browser/chrome-extension/extension-target-authority.ts", "() => this.executeRegisteredCommandCycle(command, target, mutationClass, exactCallIdentityHash, assertCommandActive, commandDeadlineAt, permit)", "() => Promise.resolve(undefined)"],
     [path, "switch (command.kind) {", "executeAuthenticatedMedia(runtime, target, command.canonicalConversationUrl, command.userTurnId, command.semanticMediaId, lifecycle.assertCurrent); switch (command.kind) {"],
     [path, "command.userTurnId, command.semanticMediaId, lifecycle.assertCurrent", "command.userTurnId, command.semanticMediaId, () => undefined"],
     [path, "command.userTurnId, command.semanticMediaId, lifecycle.assertCurrent", "command.semanticMediaId, command.userTurnId, lifecycle.assertCurrent"],
@@ -1732,7 +1732,7 @@ test("GPT001 native AST and contract routes reject text settlement and attachmen
     ["--import", "tsx", resolve("scripts/audit/shared/quality-inspector-worker.ts")],
     { encoding: "utf8", maxBuffer: 10 * 1024 * 1024, env: { ...process.env,
       GOVERNANCE_SEALED_ROOT: root, GOVERNANCE_INSPECTION_REQUEST: requestPath } }), "gpt")
-    .lawResults.find(law => law.lawId === "LAW-GPT-001-V68")!;
+    .lawResults.find(law => law.lawId === "LAW-GPT-001-V69")!;
   const ownModes = (law: ReturnType<typeof inspect>) => law.assertions
     .filter(assertion => ["static.ast", "static.contract"].includes(assertion.evidenceMode))
     .map(assertion => assertion.passed);

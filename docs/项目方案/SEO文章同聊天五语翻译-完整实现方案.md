@@ -68,6 +68,20 @@
 
 L2新增证据（不重复施工）：网站原任务 `01a19ba5-ef29-7d52-8f8d-935aa23347dd` 正在原Owner修复领取与旧材料退役。已核其原工具 `call_f069bd4db1e34b75b46b7e955b715d12` 输出（原JSONL17988）：15张2026-10-09旧文章翻译单中，候选0249322e的纯读材料解析抛ZodError/AI_PRODUCTION_MATERIAL_SOURCE_OWNER_ROLE_CONFLICT，栈落readMaterialSourceRecipe→aiProductionJobMaterialBindingsAreResolvable；这是当前候选可复现的领单故障机制，尚无本附件请求栈的逐请求因果证明。该任务已在修改job-claim-selection/material-source-contract，本任务保留其差异，不抢写第二套处理、不把其自述通过当本轮READY；后续读回其原生提交/报告与当前接口。四个首轮claim请求：`aipclaim_dfa565e1-9a4b-450d-822e-f4928be0262f`、`aipclaim_200fa770-56ed-444a-95d3-8c32ddce04e6`、`aipclaim_e5b841d5-8018-44cc-94fd-d3ebbb468816`、`aipclaim_e6287eeb-1462-4e70-ba6e-d58ef3b0aa8b`，原run为 `.grasseye-local/runtime-logs/agent/ede19bbd-53ba-4afe-b006-3f382ebdcb73-0001.jsonl`。当前Website stdout只在原Terminal，经工具读取被安全拒绝，不绕过；优先用既存同身份数据库回执/纯读回路径补证。旧空api.log不作为本次原件。此处只登记已证清单与设计断点，不预填未知修复或发布通过。
 
+### 1.5 本轮原生 READY 的独立问题清单（不冒充业务事故）
+
+当前 AGENT 候选 `9ed47e370043a362278ca008573ac5ff83441a88`，CHANGE退出0并完成首次推送；随后原生READY退出1，唯一报告为`scripts/audit/reports/law-quality.report.json`。不以此前局部验收或建设审查代替本次失败。
+
+| 根因族/待决对象 | 原始事实与处理边界 |
+| --- | --- |
+| Q1 本次法案后继的消费者交付遗漏 | `tests/governance/quality-contract.test.ts`仍有七处Runtime001-V82、GPT001-V68、Browser006-V48现役查找/producer引用；当前分别为V83/V69/V49，部分反例因此取不到对象。本次升版的直接引用遗漏须保留断言原位更正，不换动态“任取最新”、不减反例。 已只更正这七个现役字符串，并把原Browser媒体反例的执行闭包锚点同步为现役新增permit参数，恶意替换及拒绝断言不变；两遍主审确认只含八处直接消费者更新、test/assert数量与规范/validator原字节不变。原Dynamic绑定回归通过；原GPT001反例完整执行约164秒通过，其它未变分支复用本次原件；Browser旧锚点更新后原反例通过（b26cd8）。 |
+| Q2 Runtime Exam回执数组顺序 | 原脚本115–118的八项clauses按数值直觉排序，原回执合同要求UTF-8字节顺序，导致QUALITY_EXAM_RECEIPT_INVALID；HEAD^已存在同序列，不归因为本次lawId改动。固定J1/J2/J3均裁生产者具体序列违规、裁修，严格validator保留。只能纠正序列，八项成员、两个Exam模式与真实traces均保留；不得吞错、补造receipt或改变validator。 |
+| Q3 新增定位用途条款的证明分母 | Architecture001-V20、GPT002-V34、Browser003-V50及Browser006-V49各新增了完全相同的用途条款，当前原生覆盖集合未覆盖其新增索引，报告LAW_CLAUSE_DENOMINATOR_MISMATCH。先审这些具体条款在各Owner中的必要性、现有真实检查/验收与合法证据落点，不直接追加clauses声称已证，不降低分母或绕过冻结。 |
+| Q4 Runtime结构预算 | 报告列10项STATIC_CODE_PURITY_FUNCTION_BUDGET，落在9个现役文件：failure-transport/store-schema验收support、Runtime authority-inspection、runtime-claim/loops/source-handoff/source-readback-proofs、store-source-readback、worker-session；source-handoff有两项。尚须核原始metrics及保留反事实，不把全部判为本轮URL迭代引入，不为过门直接拆小函数或压行。 |
+| Q5 Outbox保守未知计数与catch判定 | store-outbox.ts的两处`catch { return true; }`同时被Code-Purity及System-Security指为假成功/失败开放；真实位置在原历史候选filter，true会增加未决候选计数。先核其消费者及实际放行/阻断方向，再裁质量还是生产；不凭布尔字面量定成功语义，不改历史/Outbox或扩大恢复权。 |
+
+Runtime001/002/003/004/005/006/007的多条缺证据是同一Runtime验收在首个非法receipt处中断的连带项，不能按law行数复制故障。Q1/Q2/Q3/Q4/Q5暂分开，不无证合并为一个根因；READY中严格单族修复，完成后重走change→推送→ready。新对象先按原庭与闭环准入裁定必要性；未闭合的规范/方案不进入依赖代码。L2网站原Owner聊天已因模型容量错误终止，原工作树修复保留，但不承诺网站提交、READY或运行500恢复；本聊天不夹带其其它改动提交。
+
 ## 2. 受影响图、交叉查漏及保留裁决
 
 发现来源A：`src/mediator/product-plugin-catalog.ts`的13个Plugin/43条route与Website canonical route policy穷举注册。来源B：反向追踪`prepare_clean_gpt_chat`、`context.gpt.execute/readConfirmedSubmit`、`browserFor`、Target acquisition、精确选择、WAL/来源读写及结果consumer。来源C：当前状态类型、SQLite读者、现有验收与inspector调用。A/B一致：跨任务续聊仅文章翻译和固定catalog；内部限流ack独立保留。B/C暴露下列接缝，不由拟改文件倒推分母。
