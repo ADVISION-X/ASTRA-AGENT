@@ -70,7 +70,7 @@ L2新增证据（不重复施工）：网站原任务 `01a19ba5-ef29-7d52-8f8d-9
 
 ### 1.5 本轮原生 READY 的独立问题清单（不冒充业务事故）
 
-当前 AGENT 候选 `9ed47e370043a362278ca008573ac5ff83441a88`，CHANGE退出0并完成首次推送；随后原生READY退出1，唯一报告为`scripts/audit/reports/law-quality.report.json`。不以此前局部验收或建设审查代替本次失败。
+原候选 `9ed47e370043a362278ca008573ac5ff83441a88` 的CHANGE及首推已完成，随后READY失败；Q1已在`635e83dae`修复。2026-11-04，独立的WA-20261104-02接缝在`02a2d5d1846096a53179a1fb0ddc8129a8ea10bc`完成CHANGE及首推，本次完整原生READY退出1，唯一报告仍为`scripts/audit/reports/law-quality.report.json`，39法分母完整，Q2—Q5原故障继续存在。该接缝的唯一方案在Website《全系统本地化-完整实现方案.md》§19.11，本节只接续原CI质量故障，不将其并入article v4产品建设。
 
 | 根因族/待决对象 | 原始事实与处理边界 |
 | --- | --- |
@@ -81,6 +81,20 @@ L2新增证据（不重复施工）：网站原任务 `01a19ba5-ef29-7d52-8f8d-9
 | Q5 Outbox保守未知计数与catch判定 | store-outbox.ts的两处`catch { return true; }`同时被Code-Purity及System-Security指为假成功/失败开放；真实位置在原历史候选filter，true会增加未决候选计数。先核其消费者及实际放行/阻断方向，再裁质量还是生产；不凭布尔字面量定成功语义，不改历史/Outbox或扩大恢复权。 |
 
 Runtime001/002/003/004/005/006/007的多条缺证据是同一Runtime验收在首个非法receipt处中断的连带项，不能按law行数复制故障。Q1/Q2/Q3/Q4/Q5暂分开，不无证合并为一个根因；READY中严格单族修复，完成后重走change→推送→ready。新对象先按原庭与闭环准入裁定必要性；未闭合的规范/方案不进入依赖代码。L2网站原Owner聊天已因模型容量错误终止，原工作树修复保留，但不承诺网站提交、READY或运行500恢复；本聊天不夹带其其它改动提交。
+
+#### Q2 单族施工设计：原Exam序列（可施工）
+
+本轮只处理Q2，其余族保持未实施。原J1/J2/J3身份及三份旧票已恢复：均对`9ed47e370`的同一对象裁生产者具体序列违规、裁修，严格validator保留。当前02a2d5d的同一数组、两个模式及validator与该旧对象原字节相同，READY再次在115→emit461→createExamReceipt390、写receipt前报`QUALITY_EXAM_RECEIPT_INVALID`；不是新判题，不用旧票代替当前质量结果。主Codex工程分档轻度：单一现有producer的封闭排列合同，根因、消费者及正误区分已直接闭合，无生产行为、身份、持久化或跨仓语义变化。
+
+唯一Owner为AGENT.agent-production-runtime；施工仅原`scripts/acceptance/agent-production-runtime.acceptance.ts`的Runtime001两个Exam共用`clauses`声明及本节执行记录。原`emitQualityProofObservation`→`createExamReceipt/validateExamReceiptPayload`→`quality-runner`→逐法报告为全部消费者；注册由package原acceptance组和quality-routes唯一登记，运行栈与反向符号引用闭合，无新入口。Runtime001-V83、质量证据施工图、原Manifest及共享validator直接复用，规范无须修改。八项成员及其真实断言/traces是必要证据，删除会漏法；其它原验收、后续006/004/007证明、调用顺序、两个模式、candidate/run/producer/case/hash、非空/去重/字节序及失败传播全部直接保留，不能为纠正排列删成员或放宽校验。
+
+根因片区仅错误排列声明：先物理删除该旧`clauses`属性→当场核Runtime001原call中无该属性且旧序列缺席→按现役UTF-8字节序在原call重建唯一声明`0,1,10,11,2,3,5,summary`。不保存/加工旧数组、不删整文件或原验收骨架，不新增排序helper、schema、状态、测试文件、兼容链或第二回执。共处文件的其它职责先裁直接保留；其当前134行，序列替换不增函数/分支/导出或结构预算。业务、Provider、网站、数据库、WAL/Outbox和运行启停修改均无，Q3—Q5不在该次修复差异中。
+
+验收分两部分：过程用真实删除/即时缺席/重建工具记录核，不靠最终diff冒称；功能先核八成员集合与原序列相等且新序列符合原validator，完整原Runtime验收在原生CHANGE运行、退出0后提交首推，再完整READY真实产生两个模式的本候选receipt及traces，核Q2执行故障和其连带缺证据消失。普通无proof context的验收退出0不能单独关闭receipt问题；其余族仍失败如实保留，不增加同义考题或手工预跑全READY。失败保留原故障及结果，停本单写入分析；无回退/改账/吞错授权，新事实影响原判才回原庭。
+
+主Codex已完整重读闭环Skill两遍并完成三轮设计核对：①有效法案/原字节排序合同与两模式未变；②报告缺证据反查到同一首receipt、真实调用及下游消费者，非多个业务故障；③删除反事实和混合文件保留、零新结构、有限拒绝/失败与原生证据时点。两遍规范自检分别核源头向下与receipt向上：规范/蓝图无需改动，没有未结规范冲突，禁止改validator换绿。实施后仍须两轮主审与只读实际建设审查，再回原生链。此设计不是READY或业务完成。
+
+Q2施工事实：主Codex删除原错误`clauses`属性后，423639即时读取原call，确认该属性及旧错误序列缺席、原producer与两模式仍在；随后从原合同重建上述唯一八项字节序声明。两轮主审实际比较完整文件：除一个属性排列外原字节相等，八成员/模式/全部await/后续proof及validator、法案/蓝图、生产文件均未变；候选差异仅本方案与原验收两路径。原J2已只读审这两路径实际代码及设计，未发现本单源码finding；他未亲眼观察中间删除，过程证据仍明确归主Codex原工具，不以最终diff伪称子审亲验。真实receipt及连带缺证据是否消除留待本轮原生READY。
 
 ## 2. 受影响图、交叉查漏及保留裁决
 

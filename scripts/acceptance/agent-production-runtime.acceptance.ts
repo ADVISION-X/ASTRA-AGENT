@@ -113,7 +113,7 @@ await verifyAttemptFailureReadbackRuntimeContract();
 await exerciseProductionRuntimeSourceBoundaries();
 for (const evidenceMode of ["exam.property", "exam.state-machine"] as const) {
   emitQualityProofObservation({ lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V83", evidenceMode,
-    clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "forbidden:3", "forbidden:5", "forbidden:10", "forbidden:11", "summary"],
+    clauses: ["forbidden:0", "forbidden:1", "forbidden:10", "forbidden:11", "forbidden:2", "forbidden:3", "forbidden:5", "summary"],
     locator: `acceptance:agent-production-runtime:runtime-authority:${evidenceMode}`,
     observedValue: "Original durable ledger, immutable failure readback, same-attempt delivery, bounded lease renewal, session rotation and pending Website admission exercised without a second lifecycle." });
 }
