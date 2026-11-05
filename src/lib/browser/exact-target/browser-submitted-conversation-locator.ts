@@ -1,3 +1,4 @@
+import { GPT_RETRY_CHILD, assertGptRetryTerminalPayload } from "./browser-gpt-retry-contract.js";
 import { createHash } from "node:crypto";
 import type Database from "better-sqlite3";
 import type { BrowserExecutionBinding } from "../infrastructure/browser-authority-broker.js";
@@ -10,12 +11,28 @@ import { assertSubmitRecoveryPayload } from "./browser-submit-recovery-payload.j
 import type { BrowserDomObservationPacketV2 } from "./browser-dom-intent.js";
 
 const SCHEMA = "grasseye.browser.submitted-conversation-locator.v1";
-type SubmitIdentity = Readonly<{ exactCallIdentityHash: `sha256:${string}`; providerEffectIdentityHash: `sha256:${string}` }>;
+type SubmitIdentity = Readonly<{ childCapabilityId: string; callId: string; exactCallIdentityHash: `sha256:${string}`; providerEffectIdentityHash: `sha256:${string}` }>;
 const hash = (value: unknown): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(canonicalizeBrowserAuthorityValue(value)).digest("hex")}`;
 const record = (value: unknown): Readonly<Record<string, unknown>> => {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("BROWSER_PROVIDER_RECOVERY_ANCHOR_INVALID");
   return value as Readonly<Record<string, unknown>>;
+};
+
+/** A retry stays in its verified root conversation; only the new action identity is bound. */
+export const retrySubmittedConversationLocator = (root: BrowserSubmittedConversationLocator,
+  identity: Readonly<{ logicalMutationId: `sha256:${string}` | null; exactCallIdentityHash: `sha256:${string}` }>,
+  proof: import("./browser-gpt-retry-contract.js").GptRetryTerminalPayload,
+): BrowserSubmittedConversationLocator => {
+  if (!identity.logicalMutationId || root.userTurnId !== proof.userTurnId) {
+    throw new Error("BROWSER_PROVIDER_RECOVERY_ANCHOR_INVALID");
+  }
+  const unsigned = { schemaVersion: SCHEMA, providerEffectIdentityHash: identity.logicalMutationId,
+    submitExactCallIdentityHash: identity.exactCallIdentityHash,
+    canonicalConversationUrl: root.canonicalConversationUrl, userTurnId: proof.userTurnId,
+    targetRefHash: proof.targetRefHash, documentRefHash: proof.documentRefHash,
+    observationRevisionHash: proof.observationRevisionHash, observedAt: proof.observedAt };
+  return Object.freeze({ ...unsigned, locatorHash: hash(unsigned) }) as BrowserSubmittedConversationLocator;
 };
 
 const decodeBoundLocator = (payload: unknown, proof: Readonly<Record<string, unknown>>,
@@ -41,7 +58,11 @@ const decodeBoundLocator = (payload: unknown, proof: Readonly<Record<string, unk
 /** One projection for immutable historical receipts and independently bound new locators. */
 export const readSubmittedConversationLocator = (envelope: ProviderRecoveryPayload,
   identity: SubmitIdentity): BrowserSubmittedConversationLocator | null => {
-  try { assertSubmitRecoveryPayload(envelope.terminalPayload, identity); }
+  try {
+    if (identity.childCapabilityId === GPT_RETRY_CHILD) assertGptRetryTerminalPayload(envelope.terminalPayload, identity);
+    else if (identity.childCapabilityId === "submit_exact_gpt_turn_once") assertSubmitRecoveryPayload(envelope.terminalPayload, identity);
+    else throw new Error("BROWSER_PROVIDER_RECOVERY_ANCHOR_INVALID");
+  }
   catch { throw new Error("BROWSER_PROVIDER_RECOVERY_ANCHOR_INVALID"); }
   const proof = record(envelope.terminalPayload);
   if (envelope.locatorPayload !== undefined) return decodeBoundLocator(envelope.locatorPayload, proof, identity);
@@ -95,7 +116,8 @@ export const bindSubmittedConversationLocator = (input: Readonly<{
   ) as readonly LocatorRow[];
   if (rows.length !== 1 || !rows[0]!.provider_recovery_payload) throw new Error("BROWSER_SOURCE_EFFECT_IDENTITY_MISMATCH");
   const row = rows[0]!, envelope = unsealProviderRecoveryPayload(input.payloadKey, row.command_id, row.provider_recovery_payload);
-  const identity = { exactCallIdentityHash: row.exact_call_identity_hash, providerEffectIdentityHash: row.logical_mutation_id };
+  const identity = { childCapabilityId: "submit_exact_gpt_turn_once", callId: input.submitCallId,
+    exactCallIdentityHash: row.exact_call_identity_hash, providerEffectIdentityHash: row.logical_mutation_id };
   const existing = readSubmittedConversationLocator(envelope, identity);
   const locator = locatorFromObservation(input.packet, row, currentDocumentRef, record(envelope.terminalPayload));
   if (existing) {

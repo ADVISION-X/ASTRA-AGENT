@@ -1,3 +1,4 @@
+import type { GptStoppedEmptyClick } from "./browser-gpt-retry-contract.js";
 import { canonicalizeBrowserAuthorityValue } from "../transport/browser-authority-frame-codec.js";
 import { bindSubmittedConversationLocator } from "./browser-submitted-conversation-locator.js";
 import { browserMutationReceiptBindingProjection, browserMutationTerminalFactBytes, type BrowserMutationTerminalFact } from "./browser-observation-receipt.js";
@@ -81,8 +82,10 @@ export class BrowserMutationStore extends BrowserMutationEvidence {
     if (!this.provenanceVerified) throw new Error("BROWSER_WAL_HISTORY_UNVERIFIED");
   }
 
-  public prepare(input: BrowserMutationIdentity): void {
+  public prepare(input: BrowserMutationIdentity, retry?: GptStoppedEmptyClick): void {
     this.assertRuntimeTaskProvenance();
+    if (["retry_exact_gpt_response_once", "open_exact_gpt_retry_menu"].includes(input.childCapabilityId) !== (retry !== undefined))
+      throw new Error("BROWSER_PROVIDER_EFFECT_OLD_INPUT_UNAUTHORIZED");
     if (input.deliveryPriorityReplayGrantHash !== null
       && (input.effectScope !== "provider_effect" || input.resultRevision < 1
         || !/^sha256:[a-f0-9]{64}$/u.test(input.deliveryPriorityReplayGrantHash))) {
@@ -98,6 +101,7 @@ export class BrowserMutationStore extends BrowserMutationEvidence {
       throw new Error("BROWSER_ATOMIC_STEP_IDENTITY_REQUIRED");
     }
     this.database.transaction(() => {
+      if (retry) this.assertGptRetryPreparation(input, retry);
       const rebindCommand = input.effectScope === "provider_effect"
         ? this.assertProviderEffectHistory(input) : null;
       const reusableNoInput = input.effectScope === "provider_effect"
@@ -372,7 +376,7 @@ export class BrowserMutationStore extends BrowserMutationEvidence {
       }
       if (current?.state !== "DISPATCHED") throw new Error("BROWSER_MUTATION_STATE_CONFLICT");
       const sealed = receipt.submitRecoveryPayload === null ? null : sealProviderRecoveryPayload(
-        this.payloadKey, fact.commandId, { terminalPayload: receipt.submitRecoveryPayload });
+        this.payloadKey, fact.commandId, this.providerRecoveryEnvelope(command.identity, receipt.submitRecoveryPayload));
       const result = this.database.prepare(`update browser_mutations set state=?,mutation_outcome=?,
         reason=?,native_cause_code=?,proof_hash=?,provider_recovery_payload=?,physical_input_count=?,
         terminal_at=?,updated_at=? where command_id=? and state='DISPATCHED'`).run(

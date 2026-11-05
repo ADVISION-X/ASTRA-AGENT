@@ -76,4 +76,4 @@ for (const retiredPath of [
 }
 
 process.stdout.write("[ACCEPTANCE][app-shell-ui] PASS\n");
-emitQualityProofObservation({ lawId: "LAW-APP-SHELL-UI-001-V3", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:10","forbidden:11","forbidden:2","forbidden:3","forbidden:4","forbidden:8","forbidden:9","summary"], locator: "acceptance:app-shell-ui:single-shell-layout", observedValue: "single governed App Shell production authority matrix, allowed actions and retired surfaces verified" });
+emitQualityProofObservation({ lawId: "LAW-APP-SHELL-UI-001-V4", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:10","forbidden:11","forbidden:2","forbidden:3","forbidden:4","forbidden:8","forbidden:9","summary"], locator: "acceptance:app-shell-ui:single-shell-layout", observedValue: "single governed App Shell production authority matrix, allowed actions and retired surfaces verified" });

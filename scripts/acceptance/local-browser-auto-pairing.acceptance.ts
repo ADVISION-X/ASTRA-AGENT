@@ -172,7 +172,7 @@ urls.set(3, "https://chatgpt.com/"); switchTab(99); await execute(click); const 
 urls.set(3, "https://chatgpt.com/"); await execute(click); assert.equal(activated.length, activationCount);
 for (const mode of ["origin", "away-back", "before-input", "discarded"] as const) {
   process.stderr.write(`[QUALITY][browser-interaction:case] ${mode}\n`);
-  const before = inputs.length; urls.set(3, mode === "origin" ? "http://127.0.0.1:4173/" : "https://chatgpt.com/");
+  const before = inputs.length; urls.set(3, mode === "origin" ? "http://127.0.0.1:4174/" : "https://chatgpt.com/");
   if (mode === "away-back") state.switchReadCountdown = 2;
   if (mode === "before-input") state.switchBeforeInput = true;
   if (mode === "discarded") discarded.add(3);

@@ -19,7 +19,7 @@ const clearanceReadbackValid = (row: Readonly<Record<string, unknown>>,
 };
 const readConfirmedSubmit = async (input: AtomicReadbackInput): Promise<GptChildCapabilityResult | null> => {
   const { intent, context, priorOutcome, browser } = input;
-  if (intent.childCapabilityId !== "submit_exact_gpt_turn_once") return null;
+  if (intent.childCapabilityId !== "submit_exact_gpt_turn_once" && intent.childCapabilityId !== "retry_exact_gpt_response_once") return null;
   const projected = projectBrowserFact(intent, context);
   if (!projected || projected.fact.browserOutcome !== "CONFIRMED" || projected.fact.mutationOutcome !== "confirmed"
     || priorOutcome.physicalInputCount !== 1 || !priorOutcome.terminalAt || !priorOutcome.providerEffectIdentityHash

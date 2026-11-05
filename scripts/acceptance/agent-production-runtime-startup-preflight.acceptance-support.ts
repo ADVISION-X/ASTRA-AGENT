@@ -11,6 +11,7 @@ import {
   readProductionCredential,
 } from "../../src/lib/local-runtime/production/credential.js";
 import { startProductionRuntime } from "../../src/lib/local-runtime/production/runtime.js";
+import { productionControlContractVersion } from "../../src/lib/local-runtime/production/control-contract-dependency.js";
 import {
   productionRuntimeTaskRoot,
   productionRuntimeTaskPath,
@@ -57,7 +58,7 @@ const assertDependencyProjection = async (): Promise<void> => {
     await writeFile(dependencyPath, JSON.stringify(dependency), { mode: 0o600 });
     assert.deepEqual(await verifyProductionDependency({
       agentDependencyPath: dependencyPath,
-    }), { status: "READY", version: 49 });
+    }), { status: "READY", version: 1 });
   
     const contract = dependency.contract as Record<string, unknown>;
     await writeFile(dependencyPath, JSON.stringify({
@@ -68,7 +69,16 @@ const assertDependencyProjection = async (): Promise<void> => {
       verifyProductionDependency({ agentDependencyPath: dependencyPath }),
       /AI_PRODUCTION_DEPENDENCY_INVALID/u,
     );
-  
+
+    for (const mismatch of [
+      { ...dependency, contract: { ...contract, contractId: "ai-acceptance.xuanxue-ai-production-v6" } },
+      { ...dependency, contract: { ...contract, providerRepo: "ADVISION-X/xuanxue-web" } },
+      ...[49, 50].map(version => ({ ...dependency, version, contract: { ...contract, version } })),
+    ]) {
+      await writeFile(dependencyPath, JSON.stringify(mismatch), { mode: 0o600 });
+      await assert.rejects(verifyProductionDependency({ agentDependencyPath: dependencyPath }), /AI_PRODUCTION_DEPENDENCY_INVALID/u);
+    }
+
     assert.equal(DeviceCredentialSchema.parse(validDeviceCredential).device_epoch, 7);
     assert.throws(() => DeviceCredentialSchema.parse({
       ...validDeviceCredential,
@@ -96,6 +106,9 @@ const assertCredentialValueFailures = async (credentialTemporary: string): Promi
     const invalidOrigin = path.join(credentialTemporary, "invalid-origin");
     await writeCredential(invalidOrigin, { ...validDeviceCredential, origin: "ftp://example.com" });
     await expectCredentialCode(invalidOrigin, "PRODUCTION_CREDENTIAL_ORIGIN_INVALID");
+    const copiedDevice = path.join(credentialTemporary, "copied-device");
+    await writeCredential(copiedDevice, { ...validDeviceCredential, origin: "http://127.0.0.1:4173" });
+    await expectCredentialCode(copiedDevice, "PRODUCTION_CREDENTIAL_ORIGIN_INVALID");
   
     const permissiveFile = path.join(credentialTemporary, "permissive-file");
     await writeCredential(permissiveFile, validDeviceCredential, 0o644);
@@ -332,7 +345,7 @@ try {
   assert.equal(health.cloudState, "contract_blocked");
   assert.equal(health.executionState, "blocked");
   assert.equal(health.claimAdmissionState, "blocked");
-  assert.equal(health.controlContractVersion, 49,
+  assert.equal(health.controlContractVersion, productionControlContractVersion,
     "blocked diagnostics must retain only the consumer contract version needed for exact comparison");
   assert.equal(health.lastErrorCode, "AI_SESSION_BINDING_MISMATCH");
   await assert.rejects(bindingMismatchRuntime.close(), /RUNTIME_SHUTDOWN_INCOMPLETE/u,

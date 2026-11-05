@@ -22,7 +22,7 @@ import { createInspectorContextFixture } from "../audit/shared/inspector-context
 type FixtureConfig = { entryScripts: string[] };
 type ExpectedFinding = { checkId: string; fileIncludes?: string; messageIncludes?: string; symbolName?: string };
 
-const LAW_IDS = ["LAW-CODE-PURITY-001-V6", "LAW-CODE-PURITY-002-V2", "LAW-CODE-PURITY-003-V3"];
+const LAW_IDS = ["LAW-CODE-PURITY-001-V6", "LAW-CODE-PURITY-002-V3", "LAW-CODE-PURITY-003-V5"];
 const FIXTURE_ROOT = resolveFromRepo("scripts/acceptance/fixtures/code-purity-zombie-deep");
 const RUNTIME_ROOT = resolveFromRepo("tmp/code-purity-zombie-deep-runtime");
 
@@ -187,4 +187,4 @@ for (const [caseName, expected] of forbidden) assert.equal(hasFinding(caseName, 
 assert.ok(runCase("zombie-to-zombie-chain").filter((finding) => finding.checkId === "code-purity/zombie-file").length >= 3);
 rmSync(RUNTIME_ROOT, { force: true, recursive: true });
 console.log("code-purity-zombie-deep-acceptance-ok");
-emitQualityProofObservation({ lawId: "LAW-CODE-PURITY-003-V3", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","forbidden:4","summary"], locator: "acceptance:code-purity:zombie-mutant-matrix", observedValue: "required zombie mutants rejected, verification-only roots excluded, allowed production ownership retained, and the frozen existence proof remained exact" });
+emitQualityProofObservation({ lawId: "LAW-CODE-PURITY-003-V5", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","forbidden:4","summary"], locator: "acceptance:code-purity:zombie-mutant-matrix", observedValue: "required zombie mutants rejected, verification-only roots excluded, allowed production ownership retained, and the frozen existence proof remained exact" });

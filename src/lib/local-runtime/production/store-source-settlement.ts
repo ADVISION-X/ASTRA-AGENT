@@ -1,7 +1,8 @@
 import { executionFailure } from "../../execution-failure.js";
 import { hashCanonical } from "./contracts.js";
 import { isAttemptFailureFirstFact } from "./store-foundation.js";
-import type { SourceAttemptHandoff, SourceReadbackCallProof,
+import { rejectedSourceCallMembers } from "./source-readback-contract.js";
+import type { SourceAttemptHandoff, RejectedSourceCall, SourceReadbackCallProof,
   SourceReadbackEffectProof, SourceReadbackObservation } from "./source-readback-contract.js";
 
 const validHash = (value: string): boolean => /^sha256:[a-f0-9]{64}$/u.test(value);
@@ -46,7 +47,8 @@ const validNegativeObservation = (
   && [observation.observation_revision_hash, observation.canonical_conversation_hash,
     observation.user_turn_hash].every(validHash)
   && (observation.pending_cause === "exact-user-turn-unavailable"
-    || observation.pending_cause === "adjacent-assistant-missing");
+    || observation.pending_cause === "adjacent-assistant-missing"
+    || observation.pending_cause === "response-stopped-empty");
 
 export const validSourceReadbackObservation = (observation: SourceReadbackObservation): boolean => {
   if (!validObservationIdentity(observation)) return false;
@@ -104,12 +106,37 @@ const validQuiescenceProof = (manifest: SignedManifest): boolean => {
       .map((call) => call.source_effect_set_hash).sort())
     && proofHash === hashCanonical(body);
 };
+const rejectedIdentityValid = (value: unknown): value is NonNullable<RejectedSourceCall["original_submit"]> => isObject(value)
+  && hasKeys(value, "call_id|child_capability_id|effect_identity_hash|product_step_id|source_effect_set_hash")
+  && ["call_id", "child_capability_id", "product_step_id"].every(key =>
+    typeof (value as Record<string, unknown>)[key] === "string" && (value as Record<string, string>)[key]!.length > 0)
+  && ["effect_identity_hash", "source_effect_set_hash"].every(key =>
+    typeof (value as Record<string, unknown>)[key] === "string" && validHash((value as Record<string, string>)[key]!));
+const rejectedGroupShapeValid = (value: unknown): boolean => {
+  if (value === null || rejectedIdentityValid(value)) return true;
+  if (!isObject(value) || !hasKeys(value,
+    "call_id|child_capability_id|effect_identity_hash|original_submit|prior_retries|product_step_id|source_effect_set_hash")) return false;
+  const group = value as RejectedSourceCall;
+  const { original_submit: root, prior_retries: priors, ...primary } = group;
+  if (!rejectedIdentityValid(primary) || !rejectedIdentityValid(root) || !root || !Array.isArray(priors)
+    || priors.length !== 4 || root.child_capability_id !== "submit_exact_gpt_turn_once"
+    || primary.child_capability_id !== "retry_exact_gpt_response_once" || root.product_step_id !== primary.product_step_id) return false;
+  const prefix = `stopped-empty-retry:${root.effect_identity_hash.slice(7)}:`;
+  return primary.call_id === `${prefix}5` && priors.every((item, index) => {
+    if (!isObject(item)) return false;
+    const { ordinal, ...identity } = item as Record<string, unknown>;
+    return rejectedIdentityValid(identity) && ordinal === index + 1 && identity.call_id === `${prefix}${index + 1}`
+      && identity.product_step_id === primary.product_step_id && identity.child_capability_id === primary.child_capability_id;
+  }) && new Set(rejectedSourceCallMembers(group).map(member => member.effect_identity_hash)).size === 6;
+};
 export const validSourceHandoff = (value: unknown): value is SourceAttemptHandoff => {
   if (!isObject(value) || !hasKeys(value, sourceHandoffKeys)) return false;
   const manifest = value as SourceAttemptHandoff;
   if (!["attempt_handoff", "delivery_priority_replay"].includes(manifest.kind)
     || !["zero", "possible", "unknown"].includes(manifest.browser_input_state)
     || !Array.isArray(manifest.replay_calls) || !Array.isArray(manifest.readback_proofs)
+    || !rejectedGroupShapeValid(manifest.rejected_call)
+    || manifest.rejected_call !== null && (manifest.kind !== "attempt_handoff" || manifest.browser_input_state !== "possible")
     || !manifest.replay_calls.every(validReplayCallShape)
     || !manifest.readback_proofs.every(validReadbackProofShape)
     || manifest.browser_input_state === "zero" && manifest.input_quiescence_proof !== null) {
@@ -216,7 +243,8 @@ const replaySettlements = (row: Row, manifest: SignedManifest): AcceptedSourceSe
 const settledRejectionFirstFact = (
   row: Row, manifest: SignedManifest,
 ): Readonly<{ effectIdentityHash: `sha256:${string}`;
-  evidenceRef: string; evidenceHash: `sha256:${string}` }> => {
+  evidenceRef: string; evidenceHash: `sha256:${string}`;
+  stoppedEmptyProof: import("./terminal-failure.js").AttemptFailureFirstFact["failure_core"]["stopped_empty_proof"] }> => {
   const raw = row.first_fact_raw;
   const first = raw === null ? null : JSON.parse(raw) as unknown;
   if (!first || !isAttemptFailureFirstFact(first)
@@ -232,27 +260,34 @@ const settledRejectionFirstFact = (
   }
   return Object.freeze({ effectIdentityHash: first.failure_core.provider_effect_identity_hash,
     evidenceRef: first.failure_core.evidence_ref,
-    evidenceHash: first.failure_core.evidence_hash });
+    evidenceHash: first.failure_core.evidence_hash, stoppedEmptyProof: first.failure_core.stopped_empty_proof });
 };
 
-const rejectionSettlement = (row: Row, manifest: SignedManifest): AcceptedSourceSettlement => {
+const rejectionSettlements = (row: Row, manifest: SignedManifest): readonly AcceptedSourceSettlement[] => {
   const first = settledRejectionFirstFact(row, manifest);
-  const rejectedCall = manifest.rejected_call;
-  if (!rejectedCall || !manifest.replay_calls.some((call) =>
-      call.product_step_id === rejectedCall.product_step_id
-      && call.call_id === rejectedCall.call_id
-      && call.child_capability_id === rejectedCall.child_capability_id
-      && call.source_effect_set_hash === rejectedCall.source_effect_set_hash)
-    || rejectedCall.effect_identity_hash !== first.effectIdentityHash) {
+  const group = manifest.rejected_call;
+  if (!group || group.effect_identity_hash !== first.effectIdentityHash) {
     throw executionFailure("failed", "PRODUCTION_SOURCE_REJECTION_INVALID");
   }
-  return Object.freeze({ kind: "rejection_settled", sourceAttemptId: row.source_attempt_id,
-    sourceHandoffSealHash: row.seal_hash,
-    effectIdentityHash: first.effectIdentityHash,
-    evidenceRef: first.evidenceRef, evidenceHash: first.evidenceHash,
-    sourceEffectSetHash: rejectedCall.source_effect_set_hash,
-    productStepId: rejectedCall.product_step_id, callId: rejectedCall.call_id,
-    childCapabilityId: rejectedCall.child_capability_id });
+  const members = rejectedSourceCallMembers(group), proof = first.stoppedEmptyProof;
+  const authorities = proof ? [
+    { effect: proof.original_effect_identity_hash, ref: proof.original_wal_authority_ref, hash: proof.original_wal_authority_hash },
+    ...proof.retries.map(retry => ({ effect: retry.effect_identity_hash, ref: retry.wal_authority_ref, hash: retry.wal_authority_hash })),
+  ] : [{ effect: first.effectIdentityHash, ref: first.evidenceRef, hash: first.evidenceHash }];
+  if (members.length !== authorities.length || new Set(members.map(member => member.effect_identity_hash)).size !== members.length) {
+    throw executionFailure("failed", "PRODUCTION_SOURCE_REJECTION_INVALID");
+  }
+  return Object.freeze(members.map(member => {
+    const authority = authorities.find(item => item.effect === member.effect_identity_hash);
+    const call = manifest.replay_calls.find(item => item.product_step_id === member.product_step_id
+      && item.call_id === member.call_id && item.child_capability_id === member.child_capability_id
+      && item.source_effect_set_hash === member.source_effect_set_hash);
+    if (!authority || !call) throw executionFailure("failed", "PRODUCTION_SOURCE_REJECTION_INVALID");
+    return Object.freeze({ kind: "rejection_settled" as const, sourceAttemptId: row.source_attempt_id,
+      sourceHandoffSealHash: row.seal_hash, effectIdentityHash: member.effect_identity_hash,
+      evidenceRef: authority.ref, evidenceHash: authority.hash, sourceEffectSetHash: member.source_effect_set_hash,
+      productStepId: member.product_step_id, callId: member.call_id, childCapabilityId: member.child_capability_id });
+  }));
 };
 
 const indexByIssuedAttempt = (rows: readonly Row[]): Map<string, Row> => {
@@ -308,7 +343,7 @@ export const acceptedSourceSettlements = (
       continue;
     }
     if (manifest.kind === "attempt_handoff" && manifest.browser_input_state === "possible") {
-      settled.push(rejectionSettlement(row, manifest));
+      settled.push(...rejectionSettlements(row, manifest));
       settled.push(...checkpointSettlements(row, manifest));
     }
   }

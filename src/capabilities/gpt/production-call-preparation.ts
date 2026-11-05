@@ -36,7 +36,8 @@ export const acquireProductionBrowserCall = async (
   if (priorEffectKnown && call.child === "acknowledge_known_gpt_rate_limit") {
     return browsers.browserForRateLimitRecovery(call.sessionKey, call.productStepId, call.callId);
   }
-  return browsers.browserFor(call.sessionKey, call.productStepId, call.callId, call.child === "prepare_clean_gpt_chat");
+  return browsers.browserFor(call.sessionKey, call.productStepId, call.callId,
+    call.child === "prepare_clean_gpt_chat" || call.child === "prepare_clean_gpt_work");
 };
 export const recoverPersistedCheckpoint = async <K extends GptChildCapabilityId>(input: Readonly<{
   evidenceStore: Parameters<typeof readPersistedGptTextResponse>[0]["evidenceStore"];
@@ -66,17 +67,20 @@ export const runProductionAtomicPhase = async (input: Readonly<{
   confirmedProviderEffectReadback?: import("./contract.js").GptExecutionContext["confirmedProviderEffectReadback"];
   submittedConversationLocator?: import("./contract.js").GptExecutionContext["submittedConversationLocator"];
   browserAtomicIdentity?: BrowserAtomicStepIdentity;
+  stoppedEmptyRetryAuthorized?: boolean; stoppedEmptyConversationUrl?: string;
   assertProviderInputAllowed: () => void; rateLimitAckDispatchNotAfter?: number;
   recordConfirmedProviderEffectReadback?: NonNullable<
     import("./contract.js").GptExecutionContext["recordConfirmedProviderEffectReadback"]
   >;
 }>): Promise<ProductionGptAtomicCallResult> => executeProductionGptAtomicCall({
+  ...(input.stoppedEmptyRetryAuthorized === undefined ? {} : { stoppedEmptyRetryAuthorized: input.stoppedEmptyRetryAuthorized }),
+  ...(input.stoppedEmptyConversationUrl === undefined ? {} : { stoppedEmptyConversationUrl: input.stoppedEmptyConversationUrl }),
   dataDir: input.dataDir, gpt: input.gpt, browsers: input.browsers, intent: input.intent,
   browserCall: input.browserCall, signal: input.signal, resultRevision: input.resultRevision,
   ...(input.submittedConversationLocator ? { submittedConversationLocator: input.submittedConversationLocator } : {}),
   ...(input.confirmedProviderEffectReadback ? { confirmedProviderEffectReadback: input.confirmedProviderEffectReadback } : {}),
   ...(input.browserAtomicIdentity ? { browserAtomicIdentity: input.browserAtomicIdentity } : {}),
-  ...(input.childCapabilityId === "submit_exact_gpt_turn_once"
+  ...(["submit_exact_gpt_turn_once", "retry_exact_gpt_response_once"].includes(input.childCapabilityId)
     ? { assertProviderInputAllowed: input.assertProviderInputAllowed } : {}),
   ...(input.rateLimitAckDispatchNotAfter === undefined ? {}
     : { rateLimitAckDispatchNotAfter: input.rateLimitAckDispatchNotAfter }),

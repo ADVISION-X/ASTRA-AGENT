@@ -1,3 +1,4 @@
+import { productionControlContractVersion } from "../../src/lib/local-runtime/production/control-contract-dependency.js";
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 import { mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -216,47 +217,49 @@ const sourceTransportFetch = (state: RuntimeState, batches: string[][],
     previous_generation_valid_until: null });
   return async (input, init) => {
     const pathname = new URL(String(input)).pathname, body = JSON.parse(String(init?.body ?? "{}")) as Record<string, unknown>;
-    let data: unknown;
-    if (pathname.endsWith("/sessions/open")) data = { session: { device_id: validDeviceCredential.device_id,
-      worker_session_id: "session:retirement", worker_session_epoch: 1, control_contract_version: 49, attestation_seq: sequence },
-      session_credential: credential() };
-    else if (pathname.endsWith("/heartbeat")) {
+    if (pathname.endsWith("/sessions/open")) return Response.json({ ok: true, data: { session: {
+      device_id: validDeviceCredential.device_id, worker_session_id: "session:retirement", worker_session_epoch: 1,
+      control_contract_version: productionControlContractVersion, attestation_seq: sequence }, session_credential: credential() } });
+    if (pathname.endsWith("/heartbeat")) {
       sequence++; generation++;
       assert.equal(body.drain_state, state.draining ? "draining" : "open");
-      data = { session_credential: credential(), attestation_receipt: {
+      return Response.json({ ok: true, data: { session_credential: credential(), attestation_receipt: {
         schema_version: "xuanxue-ai-runtime-attestation-receipt.v6", receipt_id: `attestation:${sequence}`,
         receipt_hash: hashCanonical(body), worker_session_id: "session:retirement", worker_session_epoch: 1,
         attestation_seq: sequence, payload_hash: hashCanonical(body), server_signature: HASH_A,
-        issued_at: new Date().toISOString(), expires_at: "2099-01-01T00:00:00.000Z", claim_eligible: false, reason_codes: [] } };
-    } else if (pathname.endsWith("/device-status")) {
+        issued_at: new Date().toISOString(), expires_at: "2099-01-01T00:00:00.000Z", claim_eligible: false, reason_codes: [] } } });
+    }
+    if (pathname.endsWith("/device-status")) {
       const jobId = decodeURIComponent(pathname.split("/").at(-2)!); fault.statusJobIds.push(jobId);
-      data = await deviceStatusWithoutAdmission(jobId, fault.cancelledDelivery,
+      const data = await deviceStatusWithoutAdmission(jobId, fault.cancelledDelivery,
         "ACTIVE_ATTEMPT", fault.cancelledDelivery ? "ADMIN_AI_WORK_ORDER_REPLACEMENT" : null).request();
-    } else if (pathname.includes("/artifacts/")) {
+      return Response.json({ ok: true, data });
+    }
+    if (pathname.includes("/artifacts/")) {
       const bytes = Buffer.from(init!.body as Uint8Array), hash = sha256(bytes);
-      data = { schema_version: "xuanxue-ai-material-receipt.v6", state: "staged",
+      return Response.json({ ok: true, data: { schema_version: "xuanxue-ai-material-receipt.v6", state: "staged",
         role: pathname.split("/").at(-2), artifact_id: decodeURIComponent(pathname.split("/").at(-1)!),
         sha256: hash, receipt_hash: hashCanonical({ pathname, hash }), object_ref: `object:${hash}`,
-        media_type: "application/json", byte_length: bytes.byteLength };
-    } else if (pathname.endsWith("/terminal")) {
-      data = { schema_version: "xuanxue-ai-terminal-receipt.v6", job_id: body.job_id,
-        terminal_status: "completed", payload_hash: body.payload_hash, failure: null, first_terminal: true,
-        device_id: validDeviceCredential.device_id, device_epoch: validDeviceCredential.device_epoch,
-        worker_session_id: "session:retirement", worker_session_epoch: 1,
-        runtime_attestation_receipt_hash: HASH_A };
+        media_type: "application/json", byte_length: bytes.byteLength } });
     }
-    else if (pathname.endsWith("/jobs/claim")) {
+    if (pathname.endsWith("/terminal")) return Response.json({ ok: true, data: {
+      schema_version: "xuanxue-ai-terminal-receipt.v6", job_id: body.job_id,
+      terminal_status: "completed", payload_hash: body.payload_hash, failure: null, first_terminal: true,
+      device_id: validDeviceCredential.device_id, device_epoch: validDeviceCredential.device_epoch,
+      worker_session_id: "session:retirement", worker_session_epoch: 1,
+      runtime_attestation_receipt_hash: HASH_A } });
+    if (pathname.endsWith("/jobs/claim")) {
       const sources = body.source_evidence as SourceAttemptHandoff[], candidates = body.delivery_candidates as unknown[];
       assert.ok(sources.length > 0 && sources.length + candidates.length <= 6); assert.equal(candidates.length, 0);
       assert.equal(body.runtime_attestation_receipt_hash, state.session.latestAttestation.receipt_hash);
       batches.push(sources.map(source => source.job_id));
-      data = { schema_version: "xuanxue-ai-claim-batch-receipt.v6", request_id: body.request_id,
+      return Response.json({ ok: true, data: { schema_version: "xuanxue-ai-claim-batch-receipt.v6", request_id: body.request_id,
         request_payload_hash: hashCanonical(body), claim_batch_id: `batch:${batches.length}`,
         outcome: state.draining ? "DRAINING" : "CLAIM_BLOCKED", jobs: fault.unexpectedGrant ? [{}] : [],
-        server_now: new Date().toISOString(), next_claim_after_ms: 1_000, queue_epoch: 1, reason_codes: [] };
-    } else if (pathname.endsWith("/close")) data = {};
-    else throw new Error(`UNEXPECTED_SOURCE_TRANSPORT:${pathname}`);
-    return new Response(JSON.stringify({ ok: true, data }), { status: 200, headers: { "content-type": "application/json" } });
+        server_now: new Date().toISOString(), next_claim_after_ms: 1_000, queue_epoch: 1, reason_codes: [] } });
+    }
+    if (pathname.endsWith("/close")) return Response.json({ ok: true, data: {} });
+    throw new Error(`UNEXPECTED_SOURCE_TRANSPORT:${pathname}`);
   };
 };
 

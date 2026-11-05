@@ -26,7 +26,8 @@ export const exactAssistantTurnReply = (intent: Extract<BrowserDomIntent, { kind
 });
 export const EXPECTED_GPT_CHILD_IDS = Object.freeze(["acknowledge_known_gpt_rate_limit", "attach_approved_gpt_files_once", "checkpoint_gpt_generated_image",
   "checkpoint_gpt_text_response", "close_gpt_execution_profile", "open_gpt_attachment_control", "open_gpt_execution_profile", "open_gpt_model_selector_v3",
-  "get_submitted_gpt_conversation_url", "prepare_clean_gpt_chat", "reconcile_gpt_attachment_set", "select_gpt_model_from_start_v3", "select_gpt_reasoning_from_start_v3", "submit_exact_gpt_turn_once", "write_exact_gpt_prompt"].sort());
+  "get_submitted_gpt_conversation_url", "prepare_clean_gpt_chat", "prepare_clean_gpt_work", "open_exact_gpt_retry_menu", "retry_exact_gpt_response_once",
+  "reconcile_gpt_attachment_set", "select_gpt_model_from_start_v3", "select_gpt_reasoning_from_start_v3", "submit_exact_gpt_turn_once", "write_exact_gpt_prompt"].sort());
 type Options = Readonly<{ initialPending?: number; initialRecovery?: BrowserAtomicStepOutcome; initialRecoveryIdentity?: BrowserAtomicStepIdentity; exposeInitialRecoveryOutsideAtomic?: boolean;
   initialUrl?: string; navigationEpochAdvanceOnMutation?: number; navigationEpochAdvanceOnWait?: number;
   authenticatedMedia?: Awaited<ReturnType<BrowserTargetLease["readAuthenticatedMedia"]>>;

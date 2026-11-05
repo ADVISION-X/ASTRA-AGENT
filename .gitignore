@@ -10,6 +10,7 @@ node_modules/
 output/
 .grasseye-data/
 .grasseye-local/
+.astra-local/
 .grasseye-local/browser-profiles/
 .grasseye-demo-data/
 .playwright-cli/

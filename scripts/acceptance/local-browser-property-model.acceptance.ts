@@ -48,7 +48,7 @@ const subtle = webcrypto.subtle as SubtleCrypto, pairingSecret = "7".repeat(64);
 const signing = await subtle.generateKey({ name: "ECDSA", namedCurve: "P-256" }, true, ["sign", "verify"]);
 const ecdh = await subtle.generateKey({ name: "ECDH", namedCurve: "P-256" }, true, ["deriveBits"]);
 const deadline = new Date(Date.now() + 20_000).toISOString();
-const hello = { extensionId: "emkmbecadncngofidjgocmifhbonifgm", extensionVersion: "1.0.0",
+const hello = { extensionId: "dmkfldicnhofmlgkoajpjbmeicgijgnl", extensionVersion: "1.0.0",
   releaseBuildId: "build-00000000-0000-4000-8000-000000000007", deadline,
   clientSigningPublicJwk: publicSigningJwk(await subtle.exportKey("jwk", signing.publicKey)),
   clientEcdhPublicKey: base64Url(new Uint8Array(await subtle.exportKey("raw", ecdh.publicKey))) };

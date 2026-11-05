@@ -1,4 +1,5 @@
 import { canonicalizeBrowserAuthorityValue, decodeBrowserAuthorityFrame, encodeBrowserAuthorityFrame, type BrowserAuthorityFrame } from "../transport/browser-authority-frame-codec.js";
+import { ASTRA_BROWSER_SOCKET_URL } from "../profile/browser-application-identity.js";
 import { browserMutationTerminalFactShapeValid } from "../exact-target/browser-observation-receipt.js";
 import { executeExtensionCommandReply, readExtensionCommandPayload } from "./extension-command-runtime.js";
 import { clearExtensionPermitAuthority, setExtensionPermitAuthority } from "./command-permit-validator.js";
@@ -17,7 +18,7 @@ import { answerPairChallenge, readServerReadyPermit, verifyServerAuthenticated,
   type AuthenticatedSession, type PendingPairing } from "./websocket-pairing-proof.js";
 
 declare const __GRASSEYE_RELEASE_BUILD_ID__: string;
-const SOCKET_URL = "ws://127.0.0.1:4173/browser-authority/v1", AUTH_EPOCH = 1;
+const SOCKET_URL = ASTRA_BROWSER_SOCKET_URL, AUTH_EPOCH = 1;
 type SocketState = "IDLE" | "CONNECTING" | "PAIRING" | "CONNECTED" | "CLOSED";
 const canAttemptAutomaticPairing = (state: SocketState): boolean => !["CONNECTING", "PAIRING", "CONNECTED"].includes(state);
 

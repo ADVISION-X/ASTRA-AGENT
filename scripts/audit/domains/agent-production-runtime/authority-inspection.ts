@@ -393,13 +393,13 @@ const inspectOutboxJobBoundaries = (context: InspectorContext, findings: Inspect
       .some((call) => call.getArguments()[0]?.getText() === "jobId"),
     "The retained proof reader must stay exact-job and read-only, separate from production business execution.");
 };
-
-const inspectFactoryRetirement = (context: InspectorContext, findings: InspectorFinding[]): void => {
+const inspectCompleteOutputRetirement = (context: InspectorContext, findings: InspectorFinding[]): void => {
   const execution = bodyFor(sourceFor(context, runtimePath("runtime-claim-operations")), "executeAndUpload");
   const complete = calls(execution, "input.state.store.preserveCompleteOutput")[0];
   const upload = calls(execution, "uploadAndStageResult")[0];
   const preserve = method(context, "store-source-readback", "ProductionStoreSourceReadback", "preserveCompleteOutput");
   const seal = method(context, "store-source-readback", "ProductionStoreSourceReadback", "sealSourceHandoff");
+  const eligibility = method(context, "store-source-readback", "ProductionStoreSourceReadback", "assertSourceSealTask");
   const immediate = (node: Node | undefined) => calls(node).some(call => {
     const expression = call.getExpression();
     return Node.isPropertyAccessExpression(expression) && expression.getName() === "immediate";
@@ -408,11 +408,15 @@ const inspectFactoryRetirement = (context: InspectorContext, findings: Inspector
   const delivery = bodyFor(sourceFor(context, runtimePath("runtime-claim-preproduct")), "deliverExistingResult");
   reject(findings, LAWS.core, "static.ast", runtimePath("store-source-readback"), "complete-output-before-json-and-seal",
     !!complete && !!upload && complete.getStart() < upload.getStart()
-    && immediate(preserve) && immediate(seal) && hasCall(seal, "this.hasPendingCompleteOutput")
+    && immediate(preserve) && immediate(seal) && hasCall(seal, "this.assertSourceSealTask")
+    && hasCall(eligibility, "this.hasPendingCompleteOutput")
     && ["writeFileSync", "fsyncSync", "renameSync", "readCompleteOutputFile"].every(name => hasCall(file, name))
     && hasCall(delivery, "state.store.readCompleteOutput") && hasCall(delivery, "uploadProductionResult")
     && hasCall(delivery, "deliverTerminalProductionIntent"),
     "Complete output must survive before the first JSON request, share the source-seal writer lock and use original delivery.");
+};
+
+const inspectSourceTransportRetirement = (context: InspectorContext, findings: InspectorFinding[]): void => {
   const loops = sourceFor(context, runtimePath("runtime-loops")), discovery = bodyFor(loops, "nextStatusJobIds");
   const iteration = bodyFor(loops, "workerIteration"), candidates = bodyFor(loops, "readDeliveryCandidates");
   reject(findings, LAWS.storage, "static.ast", runtimePath("runtime-loops"), "all-state-bounded-authority-discovery",
@@ -435,7 +439,8 @@ const inspectFactoryRetirement = (context: InspectorContext, findings: Inspector
 };
 
 export const inspectAgentAuthorityAst = (context: InspectorContext, findings: InspectorFinding[]): void => {
-  inspectFactoryRetirement(context, findings);
+  inspectCompleteOutputRetirement(context, findings);
+  inspectSourceTransportRetirement(context, findings);
   inspectDiagnosticAuthorityBoundary(context, findings);
   inspectResultStaging(context, findings);
   inspectAdmissionCompletion(context, findings);

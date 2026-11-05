@@ -18,6 +18,7 @@ export type GptFailureProofFacts = Readonly<{
   browserFact: GptChildBrowserFact | null;
   nativeFailureCode: string | null;
   stoppedEmptyProof?: ProviderStoppedEmptyProof | null;
+  emptyEndedAt?: string;
 }>;
 
 const knownGptDialogAuthority = (

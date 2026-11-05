@@ -20,7 +20,7 @@ import { ProductionGptChildTools } from "../production-child-tools.js";
 import { readPersistedGptImageEvidence } from "../evidence-artifacts.js";
 import { createWorkbenchEvidenceStore } from "../../../lib/local-runtime/workbench-evidence-support.js";
 import { exactAssistantTurnReply } from "./gpt-exact-target-browser-fixture.js";
-import { browserExactCallIdentityHash, type BrowserAtomicStepIdentity, type BrowserDomIntent } from "../../../lib/browser/browser-authority-api.js";
+import { browserExactCallIdentityHash, type BrowserAtomicStepIdentity, type BrowserDomIntent, type BrowserJobHistoryEvidence } from "../../../lib/browser/browser-authority-api.js";
 import { browserExecutionFailure } from "../../../lib/browser/browser-failure.js";
 
 const digest = (value: string | Uint8Array): `sha256:${string}` => `sha256:${createHash("sha256").update(value).digest("hex")}`;
@@ -63,7 +63,8 @@ try {
   const outcome = { state: "confirmed", mutationOutcome: "confirmed", providerEffectIdentityHash: A, terminalAt: "2026-09-13T00:00:00.000Z",
     failureCode: null, nativeFailureCode: null, authorityRef: "browser-mutation:submit", authorityHash: B, targetRef: "target:recovery",
     documentRef: "document:recovery", physicalInputCount: 1, downloadGuidHash: null, downloadCompleted: false, identityRevalidated: true, terminalPayload,
-    conversationLocator: readSubmittedConversationLocator({ terminalPayload }, { exactCallIdentityHash: exact, providerEffectIdentityHash: A }) } as const;
+    conversationLocator: readSubmittedConversationLocator({ terminalPayload }, { exactCallIdentityHash: exact, providerEffectIdentityHash: A,
+      childCapabilityId: original.childCapabilityId, callId: original.callId }) } as const;
   const browser = { target: { targetRef: outcome.targetRef }, document: { documentRef: outcome.documentRef }, writerFenceHash: A,
     readAtomicStepOutcome: (identity: BrowserAtomicStepIdentity) => { if (identity.childCapabilityId !== original.childCapabilityId) { atomicReads += 1; return null; }
       assert.deepEqual(identity, original); return outcome; }, runAtomicStep: async (_identity: unknown, action: () => Promise<unknown>) => action(),
@@ -134,10 +135,21 @@ try {
   assert.deepEqual([atomicReads, pageReads, appends], [1, 1, 1]);
   const sourceEffect = digest("source-effect"), sourceWal = digest("source-wal"), sourcePrompt = digest("old-prompt"), newPrompt = digest("new-prompt");
   let sourceReads = 0, sourceAcquisitions = 0; const checkpoints: unknown[] = [];
-  const sourceAuthority = { readSourceConfirmedProviderEffect: () => { sourceReads += 1; return { exactCallIdentityHash: exact, inputHash: original.inputHash,
+  const sourceAuthority = { readJobBrowserHistoryEvidence: (requestedJobId: string): BrowserJobHistoryEvidence => {
+    assert.equal(requestedJobId, jobId);
+    return { historyHash: digest(`history:${sourceEffect}`), rowCount: 1, walHistoryVerified: true,
+      unresolvedCommandSetHash: digest("[]"), unresolvedCommandCount: 0, replayCalls: [{
+        productStepId: "research", callId: "turn-submit", childCapabilityId: "submit_exact_gpt_turn_once", sourceEffectSetHash: A }],
+      replayEffects: [{ attemptId, resultRevision: 0, state: "CONFIRMED", mutationOutcome: "confirmed", physicalInputCount: 1,
+        productStepId: "research", callId: "turn-submit", childCapabilityId: "submit_exact_gpt_turn_once", sourceEffectSetHash: A,
+        effectIdentityHash: sourceEffect, authorityRef: "browser-mutation:source", rawWalAuthorityHash: sourceWal,
+        rawAnchorProofHash: sourceWal, walAuthorityHash: sourceWal, anchorState: "trusted", anchorProofHash: sourceWal,
+        canonicalConversationHash: digest(url), userTurnHash: digest(user) }] };
+  }, readSourceConfirmedProviderEffect: () => { sourceReads += 1; return { exactCallIdentityHash: exact, inputHash: original.inputHash,
     actionOrdinal: 1, terminalPayload: { ...terminalPayload, promptHash: sourcePrompt },
     conversationLocator: readSubmittedConversationLocator({ terminalPayload: { ...terminalPayload, promptHash: sourcePrompt } },
-      { exactCallIdentityHash: exact, providerEffectIdentityHash: sourceEffect }), authorityRef: "browser-mutation:source", authorityHash: sourceWal, terminalAt: outcome.terminalAt }; },
+      { exactCallIdentityHash: exact, providerEffectIdentityHash: sourceEffect,
+        childCapabilityId: original.childCapabilityId, callId: original.callId }), authorityRef: "browser-mutation:source", authorityHash: sourceWal, terminalAt: outcome.terminalAt }; },
     acquireJobBoundTargetLease: async () => { sourceAcquisitions += 1; throw new Error("SOURCE_REUSE_ACQUIRED_TARGET"); } };
   const replay = new ProductionGptChildTools(join(root, "replay"), A, createGptAbilityGroup(), evidence, sourceAuthority as never, logger("replay"), control).createExecution({
     ...input, attemptId: "new-attempt", resultRevision: 1, leaseVersion: 2, deliveryPriorityReplayCalls: [{ productStepId: "corpus_research", callId: "turn-submit",

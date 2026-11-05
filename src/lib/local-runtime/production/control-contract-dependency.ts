@@ -8,9 +8,9 @@ const ProductionControlDependencySchema = z.object({
   specKind: z.literal("cross-repo-dependency"),
   version: z.number().int().positive(),
   contract: z.object({
-    contractId: z.literal("ai-acceptance.xuanxue-ai-production-v6"),
-    providerRepo: z.literal("ADVISION-X/xuanxue-web"),
-    version: z.number().int().positive(),
+    contractId: z.literal("astra.production-control-v6"),
+    providerRepo: z.literal("ADVISION-X/AI-Paper-Factory"),
+    version: z.literal(dependencyArtifact.contract.version),
   }).strict(),
 }).passthrough().superRefine((dependency, context) => {
   if (dependency.version !== dependency.contract.version) {

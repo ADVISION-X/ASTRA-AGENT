@@ -21,7 +21,7 @@ const dynamicClaimContract = (/* GOVERNANCE_DYNAMIC_CLAIM_CONTRACT_BEGIN */
     "LAW-LOCAL-APP-SHELL-001-V6:dynamic.service": {"claims": {"forbidden:4": [{"path": "/facts/listener_count", "operator": "equals", "expected": 1}], "forbidden:8": [{"path": "/facts/readiness_component_count", "operator": "gte", "expected": 2}, {"path": "/facts/readiness_components_distinct", "operator": "equals", "expected": true}]}},
     "LAW-LOCAL-APP-SHELL-003-V4:dynamic.service": {"claims": {"forbidden:0": [{"path": "/facts/readiness_component_count", "operator": "gte", "expected": 2}, {"path": "/facts/readiness_components_distinct", "operator": "equals", "expected": true}]}},
     "LAW-STARTUP-ENTRYPOINT-001-V4:dynamic.service": {"claims": {"forbidden:5": [{"path": "/facts/production_task_count", "operator": "equals", "expected": 0}, {"path": "/facts/shell_http_available", "operator": "equals", "expected": true}]}},
-    "LAW-STARTUP-ENTRYPOINT-002-V4:dynamic.service": {"claims": {"forbidden:0": [{"path": "/facts/foreign_repository_child_process_count", "operator": "equals", "expected": 0}]}}
+    "LAW-STARTUP-ENTRYPOINT-002-V5:dynamic.service": {"claims": {"forbidden:0": [{"path": "/facts/foreign_repository_child_process_count", "operator": "equals", "expected": 0}]}}
   }
 }
 /* GOVERNANCE_DYNAMIC_CLAIM_CONTRACT_END */) as const;
@@ -219,9 +219,9 @@ const browserClauses = clausesFor("LAW-LOCAL-APP-SHELL-001-V6", "dynamic.browser
 const shellClauses = clausesFor("LAW-LOCAL-APP-SHELL-001-V6", "dynamic.service");
 const degradedClauses = clausesFor("LAW-LOCAL-APP-SHELL-003-V4", "dynamic.service");
 const startupProcessClauses = clausesFor("LAW-STARTUP-ENTRYPOINT-001-V4", "dynamic.service");
-const startupListenerClauses = clausesFor("LAW-STARTUP-ENTRYPOINT-002-V4", "dynamic.service");
+const startupListenerClauses = clausesFor("LAW-STARTUP-ENTRYPOINT-002-V5", "dynamic.service");
 const degradedValue = `${runtimeValue};components=${componentNames.length}`;
-const startupProcessValue = `${runtimeValue};startup=grasseye:start;cleanup=verified`;
+const startupProcessValue = `${runtimeValue};startup=astra:start;cleanup=verified`;
 const startupListenerValue = `${runtimeValue};listenerOwner=${root};cleanup=verified`;
 writeReceipt(browserReceiptPath, {
   clauses: browserClauses, evidenceMode: "dynamic.browser", lawId: "LAW-LOCAL-APP-SHELL-001-V6",
@@ -240,7 +240,7 @@ writeReceipt(startupProcessReceiptPath, { clauses: startupProcessClauses, eviden
   lawId: "LAW-STARTUP-ENTRYPOINT-001-V4", observedValue: startupProcessValue,
   observation: serviceObservation("grasseye-startup-shell") });
 writeReceipt(startupListenerReceiptPath, { clauses: startupListenerClauses, evidenceMode: "dynamic.service",
-  lawId: "LAW-STARTUP-ENTRYPOINT-002-V4", observedValue: startupListenerValue,
+  lawId: "LAW-STARTUP-ENTRYPOINT-002-V5", observedValue: startupListenerValue,
   observation: serviceObservation("grasseye-local-listener") });
 const nativeReceipt = (receiptPath: string): string => createHash("sha256").update(readFileSync(receiptPath)).digest("hex");
 emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-LOCAL-APP-SHELL-001-V6", evidenceMode: "dynamic.browser", clauses: browserClauses,
@@ -253,6 +253,6 @@ emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-LOCAL-APP-
 emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-STARTUP-ENTRYPOINT-001-V4", evidenceMode: "dynamic.service", clauses: startupProcessClauses,
   locator: startupProcessReceiptPath, receipt: nativeReceipt(startupProcessReceiptPath),
   observedValue: startupProcessValue });
-emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-STARTUP-ENTRYPOINT-002-V4", evidenceMode: "dynamic.service", clauses: startupListenerClauses,
+emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-STARTUP-ENTRYPOINT-002-V5", evidenceMode: "dynamic.service", clauses: startupListenerClauses,
   locator: startupListenerReceiptPath, receipt: nativeReceipt(startupListenerReceiptPath),
   observedValue: startupListenerValue });

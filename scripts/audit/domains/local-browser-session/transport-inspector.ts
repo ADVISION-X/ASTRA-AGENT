@@ -8,7 +8,6 @@ import {
   identifiers,
   requireSource,
   sourcePaths,
-  stringLiterals,
   targetAuthorityPath,
   extensionCommandRuntimePath,
 } from "./inspector-support.js";
@@ -21,9 +20,12 @@ const inspectSocketShape = (
   const socketCreations = actor.getDescendantsOfKind(SyntaxKind.NewExpression)
     .filter((node) => Node.isIdentifier(node.getExpression())
       && astIdentifierName(node.getExpression()) === "WebSocket");
-  const socketUrls = stringLiterals(actor)
-    .filter((value) => value === "ws://127.0.0.1:4173/browser-authority/v1");
-  if (socketCreations.length === 1 && socketUrls.length === 1) return;
+  const canonicalUrl = actor.getImportDeclarations().some(declaration =>
+    declaration.getModuleSpecifierValue() === "../profile/browser-application-identity.js"
+    && declaration.getNamedImports().some(name => name.getName() === "ASTRA_BROWSER_SOCKET_URL"));
+  if (socketCreations.length === 1 && canonicalUrl
+    && actor.getVariableDeclaration("SOCKET_URL")?.getInitializer()?.getText() === "ASTRA_BROWSER_SOCKET_URL"
+    && socketCreations[0]?.getArguments()[0]?.getText() === "SOCKET_URL") return;
   findings.push(createLocalFinding({
     checkId: "browser-authority/terminal-authority",
     lawId,

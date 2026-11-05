@@ -3,7 +3,7 @@ import type { AddressInfo } from "node:net";
 import { createWorkbenchServer } from "../../src/app/create-workbench-server.js";
 import type { GrassEyeWorkbenchHandle } from "../../src/lib/local-runtime/workbench-handle.js";
 
-export const localBaseUrl = "http://127.0.0.1:4173";
+export const localBaseUrl = "http://127.0.0.1:4174";
 export const externalOrigin = "https://external.example.com";
 
 export type FakeWorkbench = GrassEyeWorkbenchHandle & {

@@ -1,8 +1,8 @@
-# production-runtime 生产级施工图 V70
+# production-runtime 生产级施工图 V71
 
 正常停止沿现役单链：App信号→Workbench停止接单→Runtime同步draining→原iteration与active任务收尾→原Store/网站status读回→原资源关闭。
 停止意图约束新/恢复生产claim；下述W5仅允许已封存source运输，绝不abort在途Product；原claim在实际fetch前检查drain_state，停止前已经发送的合法grant仍由原worker执行。
-结束对象是每张已领取Agent任务的独立成果步骤，完成资格仅引用 LAW-AGENT-PRODUCTION-RUNTIME-004-V49；不等待网站未领取后继任务。
+结束对象是每张已领取Agent任务的独立成果步骤，完成资格仅引用 LAW-AGENT-PRODUCTION-RUNTIME-004-V50；不等待网站未领取后继任务。
 真实失败核原first fact与同身份release receipt/attempt failure，业务需求及恢复记录保留；需要重新claim的恢复留给下一次原worker。
 Browser未决、接收未确认成果、未结清冷却、关闭不明或资源失败只能异常收尾，禁止报告完整退出成功；冷却原Website session仍不得close。
 不增加表、Outbox、恢复worker、派单合同或超时体系。Workbench等待迟到init/retry并保持资源引用，Browser和原HTTP关闭后才封producer。
@@ -16,18 +16,18 @@ blocked实例在真实停机时由原Store关闭入口只读核未完成任务/O
 ```blueprint-record
 {
   "schemaVersion": 1,
-  "blueprintId": "agent-production-runtime-v70",
+  "blueprintId": "agent-production-runtime-v71",
   "status": "active",
   "owner": "agent-production-runtime",
   "lawIds": [
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V83",
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V85",
     "LAW-AGENT-PRODUCTION-RUNTIME-002-V12",
-    "LAW-AGENT-PRODUCTION-RUNTIME-003-V53",
-    "LAW-AGENT-PRODUCTION-RUNTIME-004-V49",
-    "LAW-AGENT-PRODUCTION-RUNTIME-005-V45",
-    "LAW-AGENT-PRODUCTION-RUNTIME-006-V50",
-    "LAW-AGENT-PRODUCTION-RUNTIME-007-V50",
-    "LAW-AGENT-PRODUCTION-RUNTIME-008-V51"
+    "LAW-AGENT-PRODUCTION-RUNTIME-003-V55",
+    "LAW-AGENT-PRODUCTION-RUNTIME-004-V50",
+    "LAW-AGENT-PRODUCTION-RUNTIME-005-V46",
+    "LAW-AGENT-PRODUCTION-RUNTIME-006-V51",
+    "LAW-AGENT-PRODUCTION-RUNTIME-007-V51",
+    "LAW-AGENT-PRODUCTION-RUNTIME-008-V52"
   ],
   "contractRefs": [
     "docs/specs/agent-production-runtime/agent-route-capability-manifest.provider.spec.json",
@@ -35,22 +35,162 @@ blocked实例在真实停机时由原Store关闭入口只读核未完成任务/O
     "docs/specs/agent-production-runtime/xuanxue-ai-production-v6.dependency.spec.json"
   ],
   "dependencyEdges": [
-    {"contractRef":"docs/specs/agent-production-runtime/website-agent-task-result.dependency.spec.json","from":{"domain":"agent-production-runtime","repo":"local"},"to":{"domain":"ai-acceptance","repo":"ADVISION-X/xuanxue-web"}},
-    {"contractRef":"docs/specs/agent-production-runtime/xuanxue-ai-production-v6.dependency.spec.json","from":{"domain":"agent-production-runtime","repo":"local"},"to":{"domain":"ai-acceptance","repo":"ADVISION-X/xuanxue-web"}},
-    {"contractRef":null,"from":{"domain":"agent-production-runtime","repo":"local"},"to":{"domain":"architecture-boundary","repo":"local"}},
-    {"contractRef":null,"from":{"domain":"agent-production-runtime","repo":"local"},"to":{"domain":"forensics-persistence-capability","repo":"local"}},
-    {"contractRef":null,"from":{"domain":"agent-production-runtime","repo":"local"},"to":{"domain":"gpt","repo":"local"}},
-    {"contractRef":null,"from":{"domain":"agent-production-runtime","repo":"local"},"to":{"domain":"local-browser-session","repo":"local"}},
-    {"contractRef":null,"from":{"domain":"agent-production-runtime","repo":"local"},"to":{"domain":"runtime-log-spine","repo":"local"}},
-    {"contractRef":null,"from":{"domain":"agent-production-runtime","repo":"local"},"to":{"domain":"system-security","repo":"local"}},
-    {"contractRef":null,"from":{"domain":"app-shell-ui","repo":"local"},"to":{"domain":"agent-production-runtime","repo":"local"}},
-    {"contractRef":null,"from":{"domain":"local-app-shell","repo":"local"},"to":{"domain":"agent-production-runtime","repo":"local"}},
-    {"contractRef":null,"from":{"domain":"startup-entrypoint","repo":"local"},"to":{"domain":"agent-production-runtime","repo":"local"}}
+    {
+      "contractRef": "docs/specs/agent-production-runtime/website-agent-task-result.dependency.spec.json",
+      "from": {
+        "domain": "agent-production-runtime",
+        "repo": "local"
+      },
+      "to": {
+        "domain": "v6-transport",
+        "repo": "ADVISION-X/AI-Paper-Factory"
+      }
+    },
+    {
+      "contractRef": "docs/specs/agent-production-runtime/xuanxue-ai-production-v6.dependency.spec.json",
+      "from": {
+        "domain": "agent-production-runtime",
+        "repo": "local"
+      },
+      "to": {
+        "domain": "v6-transport",
+        "repo": "ADVISION-X/AI-Paper-Factory"
+      }
+    },
+    {
+      "contractRef": null,
+      "from": {
+        "domain": "agent-production-runtime",
+        "repo": "local"
+      },
+      "to": {
+        "domain": "architecture-boundary",
+        "repo": "local"
+      }
+    },
+    {
+      "contractRef": null,
+      "from": {
+        "domain": "agent-production-runtime",
+        "repo": "local"
+      },
+      "to": {
+        "domain": "forensics-persistence-capability",
+        "repo": "local"
+      }
+    },
+    {
+      "contractRef": null,
+      "from": {
+        "domain": "agent-production-runtime",
+        "repo": "local"
+      },
+      "to": {
+        "domain": "gpt",
+        "repo": "local"
+      }
+    },
+    {
+      "contractRef": null,
+      "from": {
+        "domain": "agent-production-runtime",
+        "repo": "local"
+      },
+      "to": {
+        "domain": "local-browser-session",
+        "repo": "local"
+      }
+    },
+    {
+      "contractRef": null,
+      "from": {
+        "domain": "agent-production-runtime",
+        "repo": "local"
+      },
+      "to": {
+        "domain": "runtime-log-spine",
+        "repo": "local"
+      }
+    },
+    {
+      "contractRef": null,
+      "from": {
+        "domain": "agent-production-runtime",
+        "repo": "local"
+      },
+      "to": {
+        "domain": "system-security",
+        "repo": "local"
+      }
+    },
+    {
+      "contractRef": null,
+      "from": {
+        "domain": "app-shell-ui",
+        "repo": "local"
+      },
+      "to": {
+        "domain": "agent-production-runtime",
+        "repo": "local"
+      }
+    },
+    {
+      "contractRef": null,
+      "from": {
+        "domain": "local-app-shell",
+        "repo": "local"
+      },
+      "to": {
+        "domain": "agent-production-runtime",
+        "repo": "local"
+      }
+    },
+    {
+      "contractRef": null,
+      "from": {
+        "domain": "startup-entrypoint",
+        "repo": "local"
+      },
+      "to": {
+        "domain": "agent-production-runtime",
+        "repo": "local"
+      }
+    }
   ],
   "prohibitedDependencyEdges": [
-    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V83","to":{"domain":"app-shell-ui","repo":"local"}},
-    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V83","to":{"domain":"local-app-shell","repo":"local"}},
-    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V83","to":{"domain":"startup-entrypoint","repo":"local"}}
+    {
+      "from": {
+        "domain": "agent-production-runtime",
+        "repo": "local"
+      },
+      "lawId": "LAW-AGENT-PRODUCTION-RUNTIME-001-V85",
+      "to": {
+        "domain": "app-shell-ui",
+        "repo": "local"
+      }
+    },
+    {
+      "from": {
+        "domain": "agent-production-runtime",
+        "repo": "local"
+      },
+      "lawId": "LAW-AGENT-PRODUCTION-RUNTIME-001-V85",
+      "to": {
+        "domain": "local-app-shell",
+        "repo": "local"
+      }
+    },
+    {
+      "from": {
+        "domain": "agent-production-runtime",
+        "repo": "local"
+      },
+      "lawId": "LAW-AGENT-PRODUCTION-RUNTIME-001-V85",
+      "to": {
+        "domain": "startup-entrypoint",
+        "repo": "local"
+      }
+    }
   ]
 }
 ```
@@ -68,7 +208,7 @@ Website claim + lease/grant/fence
   -> one SQLite transaction: staged result + terminal Outbox intent
   -> 当前 job 停止后续续租准入并等待真实在途续租收束
   -> 当前 grant/fence 下立即由原 Outbox 首次交付原 terminal body
-  -> Website 完整结果接收回执（LAW-AGENT-PRODUCTION-RUNTIME-004-V49）
+  -> Website 完整结果接收回执（LAW-AGENT-PRODUCTION-RUNTIME-004-V50）
   -> Runtime 原请求/receipt/hash 核验并同身份 local completed
   -> 释放业务席位；原唯一 worker 按原标记收束 completed Target cleanup
 ```
@@ -125,13 +265,13 @@ Website 已持久裁决 `WAIT_NEW_ATTEMPT` 且原 job 事件/claim receipt 已�
 
 原 accepted attempt 的 Provider 输入可能已发生而结果未就绪时，Runtime 先保留旧 effect/WAL 与机械有效结果，Website 原 claim 重授同 attempt 的零输入读回 lease。Browser 对每个旧 effect 只从唯一 WAL 取得 canonical conversation URL + 提交时 exact userTurnId；文本回答由原 Product turnMarker 在当前 Document 定位，图片仍以原 exact userTurnId 定位；live Target 可复用则同 URL 零导航，Target 已丢失则当前 lease 直接创建当前 system Target 并最多一次精确导航，不先报 old-target failure。可信 locator 的真实有界 exact negative observation 才证明原答案不可机械取得；WAL 无可信 locator 时出具 typed unaddressable，明确保留旧答案可能存在，不扫描旧 Tab/标题/侧栏。读回成功优先沿原身份 stage/Outbox/Website admission；时间等待、空证据和旧 Target 缺席均不构成负读回。原 `production_attempt_handoffs` 仅按 source effect/call、原 WAL authority、checkpoint/Forensics artifact、exact readback 或 unaddressable 的 typed proof 保存来源 seal，不持久 Target 身份；完整 replay_calls 与逐 effect readback_proofs 一一对应，settled_reusable 调用仅归还原答案，replay_exhausted 子集才进入 Website 风险 grant，rejection_settled/risk_authorized/historical_settled 保留原事件血缘。`readback_exhaustion_hash` 只覆盖真实耗尽子集。历史DISPATCHED只保留未知事实，input_quiescence_proof在原真实terminal_wal完整时可附带，否则为null，不作当前资格门，也不证明答案不存在或授Provider输入。Website 仍在原 job 行锁核旧结果/Outbox/admission 缺席、完整 source seal、风险授权调用集合与旧 fence 后持久签发新 revision；Browser 在真实输入前再核 current Target/Document/permit/原 WAL。本次已撤销未完成 V43 job 的来源不得进入 V44；已完成 job 的旧签事件仅作原值历史取证，不进入活动 claim。
 
-`TOMBSTONE-RECOVERY-AUTHORITY-001` 继续固定 Website 是未删除需求的唯一业务恢复决策 Owner；八字新业务任务只消费 Website 已入库并精确绑定的父报告材料，且每次从 clean GPT chat 执行。同一SEO文章的五个翻译task由Website按严格locale顺序签发provider_continuation direct parent，zh-HK直连已接纳zh-CN生成task，后四个直连已接纳前序翻译task。固定catalog保持各locale/cohort独立task/result/admission，同cohort仅派当前最早未闭合locale；部分合格后仅失败ID进入下一张后继任务。首任务fresh且parent triple全空，后继只携Website已接纳的直接前驱三元组，Browser只从父WAL唯一URL续聊。Runtime只在Website已签provider_continuation且父结果ref/hash与本地completed父结果精确相等后，读取该结果实际采纳的全部原checkpoint来源证据，并按原父job、来源attempt、result revision、product step、实际call、submit Child及原WAL authority/hash整体验真；完成attempt和child当前step不得代替原来源。跨attempt复用须核既有accepted source settlement及reused_checkpoint，同attempt正常live/cache不新增grant门。Browser逐项沿原exact source reader只读CONFIRMED且可信的原effect locator，全部采纳来源的canonical URL非空且全等后才为当前job独占Target精确导航；缺失、未决、篡改、矛盾或URL冲突均零Provider输入失败关闭，不得任选来源或fallback。来源只作locator选择，不跨仓、不新持久化且永不进入child provider effect identity或业务恢复裁决。仅为核图片采用关系，GPT原Owner可按精确parent job/source attempt/checkpoint identity读取既有gpt-image-source-binding.v1身份描述，核原ref/integrity hash及conversation/user hash后只向Runtime回传originalArtifactRef；这是封闭身份元数据，不得读取父文本、父原图bytes、Prompt或旧页面，描述不进入Product，也不新增Forensics端口、schema或存储。异步来源验证在原dispatchPlugin进入Mediator同步context工厂前完成；原readSourceReadbackObservations、readAcceptedSourceSettlements和Browser公开全历史typed reader是唯一来源。固定catalog首任务fresh，后继顺序续聊。Runtime不读取Provider URL、不选择父任务、不判断业务父资格，也不新增父关系或continuation持久化。已确认Provider effect跨进程只能读取同一结果且物理submit增量恒为零；continuation store/frontier/CAS、private base、fork、兼容桥及第二恢复链恒为零。
+`TOMBSTONE-RECOVERY-AUTHORITY-001` 继续固定 Website 是未删除需求的唯一业务恢复决策 Owner；八字新业务任务只消费 Website 已入库并精确绑定的父报告材料，且每次从 clean GPT chat 执行。同一SEO文章的五个翻译task由Website按严格locale顺序签发provider_continuation direct parent，zh-HK直连已接纳zh-CN生成task，后四个直连已接纳前序翻译task。固定catalog保持各locale/cohort独立task/result/admission，同cohort仅派当前最早未闭合locale；部分合格后仅失败ID进入下一张后继任务。首任务fresh且parent triple全空，后继只携Website已接纳的直接前驱三元组，Browser只从父WAL唯一URL续聊。Runtime只在Website已签provider_continuation且父结果ref/hash与本地completed父结果精确相等后，读取该结果实际采纳的全部原checkpoint来源证据，并按原父job、来源attempt、result revision、product step、实际call、submit或已验真附属retry Child及原WAL authority/hash整体验真；完成attempt和child当前step不得代替原来源。跨attempt复用须核既有accepted source settlement及reused_checkpoint，同attempt正常live/cache不新增grant门。Browser逐项沿原exact source reader只读CONFIRMED且可信的原effect locator，全部采纳来源的canonical URL非空且全等后才为当前job独占Target精确导航；缺失、未决、篡改、矛盾或URL冲突均零Provider输入失败关闭，不得任选来源或fallback。来源只作locator选择，不跨仓、不新持久化且永不进入child provider effect identity或业务恢复裁决。仅为核图片采用关系，GPT原Owner可按精确parent job/source attempt/checkpoint identity读取既有gpt-image-source-binding.v1身份描述，核原ref/integrity hash及conversation/user hash后只向Runtime回传originalArtifactRef；这是封闭身份元数据，不得读取父文本、父原图bytes、Prompt或旧页面，描述不进入Product，也不新增Forensics端口、schema或存储。异步来源验证在原dispatchPlugin进入Mediator同步context工厂前完成；原readSourceReadbackObservations、readAcceptedSourceSettlements和Browser公开全历史typed reader是唯一来源。固定catalog首任务fresh，后继顺序续聊。Runtime不读取Provider URL、不选择父任务、不判断业务父资格，也不新增父关系或continuation持久化。已确认Provider effect跨进程只能读取同一结果且物理submit增量恒为零；continuation store/frontier/CAS、private base、fork、兼容桥及第二恢复链恒为零。
 
 Runtime 对外只发布 Agent Route Capability Manifest。它从 Mediator 取得冻结、不可变、纯数据的 `product_id + action_id + task_contract_version + result_contract_version` 路由集合，随后在本域校验 Manifest schema/hash并用于当前 session attestation 与 claim 资格。Product Plugin 名称、版本、Skill hash 与 Catalog 实现身份不得进入 Website job、request、accepted attempt、grant、result、artifact、terminal 或 Browser effect；Runtime 源码不得直接或间接取得 `ProductPlugin` 实例、Product Skill 正文、`parseResult`、`assemblePayload` 或其它 Product 可执行回调；Product Plugin 也不得 import、re-export、dynamic import 或 side-effect import Runtime 私有模块。
 
 Product、GPT、Browser、Forensics、Runtime Log、App Shell、Startup、Website 继续由各自 active law、blueprint、spec 与唯一 Manifest primary Owner 守住文件及接口边界。Runtime 文档只记录上表接口边，不复制其业务流程、DOM、模型策略、Provider 操作或发布裁决。
 
-generated image 沿 task-result v24 的原链运输。GPT 取得的已鉴权原始 Provider bytes 先由 Forensics 按原字节/hash封存并读回；Product 只作 EXIF 方向应用及去 metadata WebP 编码，保留方向应用后的原宽高。Runtime 不解码图片，只校验 WebP、hash/bytes、整数宽高并运输现役 V6 receipt。Website staging 独立解码宽高并绑定同一 result payload；任何层不得 resize/crop/pad 或设尺寸、比例、总像素拒收门，原图不上传，V6 receipt 不增加宽高字段，也不新增图片链。
+保留的现役 V6 公共媒体能力不因旧产品退休改变机械边界。GPT 取得的已鉴权原始 Provider bytes 先由 Forensics 按原字节/hash封存并读回；Product 只作 EXIF 方向应用及去 metadata WebP 编码，保留方向应用后的原宽高。Runtime 不解码图片，只校验 WebP、hash/bytes、整数宽高并运输现役 V6 receipt。Website staging 独立解码宽高并绑定同一 result payload；任何层不得 resize/crop/pad 或设尺寸、比例、总像素拒收门，原图不上传，V6 receipt 不增加宽高字段，也不新增图片链。
 
 
 GPT 页面 selector 的语义冻结只属于 GPT Child，Browser 只机械执行 typed query，Runtime 只消费 Child terminal。mutation 前是否自动选中精确 system Tab、激活后的 Target/Document 重验、输入前 activation generation 与 `BROWSER_TARGET_NOT_INTERACTIVE` 结算都只属于 Browser Authority；Runtime 不接收 tabId、不调用激活/窗口聚焦、不读取 Browser 私有状态，也不建立第二 precondition、WAL、恢复或重试。该变更不得进入 Runtime 配置、Manifest 字段或跨仓合同；Website 任务、Outbox、artifact receipt 与 business admission receipt 主链保持不变。
@@ -212,53 +352,21 @@ Runtime 自身代码保持 production 目录内的直接模块关系。不得新
 
 ## 4. 跨仓合同与业务完成
 
-Website ai-acceptance 是唯一 provider。AGENT 三份 spec 的现役身份为：
+跨仓 task/result 的唯一来源为 ADVISION-X/AI-Paper-Factory 的 astra.website-agent-task-result v2；V6 仍为该仓 astra.production-control-v6 初版1。Route Capability Manifest 唯一来源为 ADVISION-X/ASTRA-AGENT 的 astra-agent.route-capability-manifest v1，authority 为本仓 production/catalog.ts 的纯数据投影。consumer dependency 只含 contractId、version、providerRepo，普通启动不读取未绑定提供方工作树。
 
-- Agent Route Capability Manifest provider：version 4；只发布 current session 支持的 `product_id + action_id + task_contract_version + result_contract_version`；Product Profile、Skill、Prompt、Flow、实现名称、版本和 hash 均不得对外发布或参与任务身份；
-- Website Agent Task Result consumer dependency：version 24；精确消费 Website 唯一 provider 的43路由、43参数类型和43结果合同。任务与结果 envelope 仍为1，图片及本地化沿原运输合同；旧18版本及旧联合起名生产路由无活动 reader、alias 或兼容分支。公开格式从 route.result_contract 原样投影到对应 Product Prompt，Product 不保存第二份业务输出 Schema。
-- N4本地化三个primary只消费localization-primary-archives.v1的reference/work两个ZIP，按唯一provider有序role与scope运输。原Product私有reader机械核外层bytes/hash、两根目录/完整成员、UTF-8、有界解压和原源关联，包二reference_source_hash绑定包一机器原源原始字节；静态消费ContextBundle.v4及完整产品/页面背景，只输出Website指定message_items；动态只恢复原正式source_content/source_order与三政策，不重做source-protection、不取得研究材料。旧单JSON/四JSON生产reader物理退出，无双读或桥；四review、其余40route、原结果格式/单次submit/父链/接收完成边界不变。工单资格、余缺、去重、更正、current及业务采用仍只归Website。
-- Xuanxue AI Production V6 consumer dependency：version 49。保留 v39 的 `same_accepted_attempt` grant 语义，永久停止只消费 Website exact job absence，包含管理员未完成 Work Order 清除与获授权的隐私未完成质量反思清除。false 是 fresh attempt，true 必须同时命中 AGENT 本地同 attempt durable authority，否则在 Product 与任何 Website 写入前失败关闭。v45 切换须逐 job 在原 Website 行锁保全旧 accepted attempt、first fact、结果/Outbox/Browser 来源 manifest 与旧 session/fence，禁止把未完成 attempt 当清空条件；旧 session supersede 后，其旧 claim receipt 失去动作授权，新 session 只经 v45 同一 claim 的已鉴权 `source_evidence[]` 对账并取得原 attempt 的当前 lease/fence 或旧结果交付授权。旧 session/receipt 只作历史证据，不提供旧版兼容写入或第二撤权路径。Website 的`ai_production_devices.max_in_flight`仍是当前N的唯一持久Owner并唯一持有限流cohort；Runtime不保存或配置当前N/权威cohort。心跳只报告去重本地在途数，claim请求只按合同安全上限、本地in-flight和executor可用量提出，Website在设备事实行锁内收紧最终grant。Browser action capacity始终为1；Runtime只消费Website当前授权、有限`retry_not_before`、三个next action、typed effect outcome、provider_cooldown receipt与完整结果接收回执。 v45 grant 校验中 `result_revision>0` 可由真实领域 `prior_result_rejection` 或同一 Website claim/event 的 exact `delivery_priority_replay_grant` 支撑；当前 grant 来源互斥：真实领域 rejection 对应 `prior_result_rejection`，风险 replay 对应 exact 风险 grant 且 `prior_result_rejection=null`；旧 rejection 只留原 Website job events，不下发为本轮 Product 修正指令。Product 风险 revision 从原入口执行；已完成的旧调用只按来源 seal 复用原 submit/checkpoint 产物，新的 revision promptHash 可变化，耗尽调用才用当前 prompt 与风险 grant fresh 输入；Website claim 与 provider cooldown notice 复用同一原 job revision reader。
-- Website 在 V6 v45 内部对 fresh grant 使用固定五阶容量递补并拥有唯一 product_id 映射：先按现役 N 扣除在途取得 fresh 剩余名额，再按 claimable fresh job 的阶级由高到低、同阶 `created_at,job_id` 填充；高阶足以填满剩余名额时低阶不得领取，高阶不足时下一阶使用空闲名额。Website 先用 SQL 排除稳定不合格项，recovery 与 fresh 各最多复核32个已锁候选；只有锁后资格并发漂移耗尽预算时当前 receipt 可欠填并由下一次 claim 重试。已在途 job 只按现役容量计入在途数，当前不可领取的高阶 job 不额外冻结空位。该规则不增加 V6 wire 字段或 AGENT 调度职责；Runtime 仍只请求有界容量并机械执行 Website 已签 grant，不保存 tier、不按等待时间提升任务，也不拒绝已 durable accept 的 attempt 恢复、同 effect 读回、Outbox 交付或 admission 收尾。每个 job 仍独占自己的 Tab，Browser 物理动作 lane 仍为 1；GPT 等待不占用 Browser lane。
-- v45 风险 revision 的 target-local 重新准备：既有 `delivery_priority_replay_grant` 精确绑定当前同accepted attempt和原已签source，Website以ACTIVE_ATTEMPT重授原grant；Browser独立证当前attempt输入zero、前后完整历史未漂移且walHistoryVerified；历史unresolved只保留事实，不作同grant当前回接门，旧possible effects逐一由现役acceptedSourceSettlements/historicalEffectsSettled核call/Child/WAL/anchor和已签血缘。首因failure_core中scope/Child/outcome缺失只属不可变诊断，不能夺去上述事实核验成立的当前授权；完整provider zero失败仍须原provenZeroInputCallMatches指定调用证明。Browser再以当前fence/Target重做准备且守原指定call风险输入上限；Provider一旦有本轮输入或未知则只按同effect零提交读回。此分支不签新attempt、不复制grant、不增加事件、恢复状态或第二历史来源。failure_core不回填，release_descriptor只按原lease授权重绑。
-- v45 跨 revision 接力：`browser_input_state=zero` 只描述当前 `source_attempt_id` 的 Provider 输入；Browser 全历史仍须核验，旧 revision 的可能输入必须已由 Website 精确 rejection receipt 或原已签风险授权事件及签出当前 attempt 的 source handoff/event 逐 effect 结算。旧 effect 不因当前 attempt 的 target-local 失败重新进入本轮读回或重提集合。Website 验当前 accepted attempt、前次签发事件、旧 fence 与原结果/Outbox 缺席，才可签同 revision 新 attempt。每个历史 effect 的观察绑定其形成时不再漂移的 effect-set 前缀 hash；本次逐调用 proof 另绑定包含当前全体旧 effect 的集合 hash，新增 revision 不得使旧观察失效。
-- v45 的 `source_evidence[].readback_proofs` 是新 claim 合同的必填逐旧 effect 证明，Website 已拒绝整个旧结果的分支允许 `attempt_handoff + possible`：恰有一条 rejected call 以原 first fact 与 Website rejection receipt 精确绑定，其余旧调用逐项已结算，原 WAL 未决 command、全历史 effect、Outbox 均须核清。风险重放仍由逐调用耗尽证明与 Website 独立 grant 授权。v43 旧 session、旧 claim receipt 不授权 v45 动作；切换先停止旧动作，再由 Website v45 与 AGENT v45 原 job 重新对账并开新 session，不删除 accepted attempt、WAL 或 Outbox。
-- 连续 revision 的同一 rejected call 可同时含更早的已结算 effect：`source_evidence.rejected_call` 精确指出本次 first failure/Website rejection 对应调用及当前完整 effect-set hash；该调用的 readback proof 只覆盖旧 effect，本次被拒 effect 由原 failure/receipt 核，Browser 必须证明该调用除此之外没有遗漏的可能输入。旧 effect 可以由原 Website 精确 rejection receipt 结算，也可以由此前已签 `delivery_priority_replay_authorized_v6` event 的原 source seal、指定调用 grant hash 与逐 effect 耗尽证明结算；后者不冒充本次 rejection 或当前风险重提。旧风险授权结算不因观察证明超过 24 小时而失效，Website 须读回原已签事件，Browser 仍核完整 WAL/调用集合；普通未结算旧 effect 仍须当前逐 effect 证明。
-- 调用级 `historical_settled` 只汇总 effect 级 `rejection_settled` 与 `risk_authorized`，既不复用旧答案，也不进入本次风险 grant；`settled_reusable` 只由未拒绝 checkpoint 决定，`replay_exhausted` 只由本次未结算 effect 的适用路径耗尽决定。所有调用仍留在完整 replay_calls 与历史 hash 中。 同call可同时有旧risk/rejection结算及新checkpoint；至少一个真实checkpoint才是settled_reusable。Store只提取真实checkpoint子集，其余历史保留原祖先验真，不伪造checkpoint或要求全部历史effect均checkpoint。 连续合法零提交来源可在不同seal保留同一checkpoint；原消费者仅对同effect、同kind且完整checkpoint/WAL/anchor内容完全相等的祖先重复事实正常读回，保留每个seal及历史，内容冲突仍拒绝。
-- V44 切换前仍需旧来源恢复的未完成 job，须按原合同收敛或在用户明确撤销后由 Website 原领域 Owner 清除；AGENT 只按 exact Website absence 清除对应 task、handoff、Outbox、材料、结果与 Browser WAL。未知 `DISPATCHED` 不伪造 terminal；已完成 job 与历史事件不改写。活动来源祖先读回只需 V44 后，不建立 V43 解析器或旧协议 claim/写入授权。
+唯一投影生成器读取提供方 exact bytes，核完整 routes、parameter_types、result_contracts 及材料顺序、repeatable、min_count、信任与 owner scope。提供方公开集合与本仓唯一 Catalog 必须双向一致；未知、缺失、重复、额外或语义漂移失败关闭。旧命理、SEO、本地化公开路由和 v24 投影退出，不保留兼容入口或第二支持表。
 
+论文生产工厂是唯一研究产品。S00 在产品内持有固定跨技能 Flow；C01、S01—S10 各持独立 Skill、提示词、内部 Flow 和结果合同。Catalog 只接入 S00 与沿用付款观察插件；叶工序由 S00 单向静态调用，不能互调、调 Runtime 私有实现或各自完成外部任务。付款观察保留原 Chat、材料和原结果链，核准及到账主权不进入插件。
 
-九个专业 primary 分别为 BZ05/BZ03/BZ04、QM03/QM04、HH02/HH03、人物命名和独立商业命名。前七个使用原 ready_corpus_archive ZIP0及对应完整私有案卷 ZIP1，人物及商业命名各使用一个 naming_context_package ZIP0。材料仍按唯一 provider 的 role/ordinal/media/trust/owner 合同运输，instructions_authority=false；命名包内包含本次所选合格典籍，人物包还含本人已交付 BZ05，商业包不要求出生资料、盘或 BZ05。BZ05直接取得完整事实及条件，不以命盘PDF为前置；BZ03/BZ04保留各Product现役完整父报告ZIP reader与身份/hash核验，不另建共享解包层。
+当前研究业务动作分别承接售前提纲、工作区准备、证据研究、全文写作复核、文件准备、归档及原资产维护；S00 在每次授权内执行固定技能段，不按 Skill 编号新建持久任务。各段只回必要决定、问题、版本、实际读取覆盖及产物引用；完整正文、原件和过程文件留本单 Work。原件使用本单限定读取权；付款附件及控制 JSON 仍沿原材料链。
 
-各 Product 独占专业 Skill、静态 Flow 与自身一次无损接收。原 observed response artifact 先封存，再由原唯一 JSON object 提取器接收；primary只核公开 schema、route及必要锁定身份，未知内容字段原样保留，不在 AGENT 复制领域的嵌套章节、数量、引用闭包或内容考官。公开数组字段 uncertainties/limitations/safety_notes 的字符串表示可在所属 Product 内包为单元素数组；review的单 issue object可包为issues数组，review不套primary身份/schema。除此不改正文、不补业务字段、不翻译旧字段含义。Website领域consumer继续唯一执行完整业务验收与admission；Localization与公开知识文章各自现役接收例外保持。已无Product消费者的 commonReport/resultDual/parseReview 及其出口退出，必要 JSON/object/locked/exact/hash/stringArray 原件保留，不另建共享归一器或第二接收链。
+Runtime 只注入当前产生执行身份和限定对象 Work-access 端口，不暴露 lease/session、签业务授权或保存 Product 步骤。S00 在一个业务任务结束时沿原 complete/Outbox 返回一次同身份结果；同结果重投保留原 producing attempt/fence。AGENT 完成仅依 LAW-AGENT-PRODUCTION-RUNTIME-004-V50 的同完整结果回执；网站领域接纳、发布及客户可领取分别认定。
 
-Website Naming 接纳仍由原 coordinator 的 A 领域真实提交→B 商业与最终 admission 同事务闭合，其领域 receipt 与业务席位口径保留；AGENT 交付仅引用 LAW-AGENT-PRODUCTION-RUNTIME-004-V49，不运输 Naming business_object_ref，不因 A/B 后续失败重做 Product 或建立第二 Outbox。
+S06/S08 在独立 Work 上下文实际核读本单同版原件。S10 实际装配可编辑 DOCX 与可解包 ZIP，核许可与保密后由 Work 固定脚本按精确授权条件直传 R2，并完整 GET 核字节/hash；AGENT 不取回完整生产文件中转。上传未知先读原对象，不重生成论文、不盲重传；脚本报告及原清单沿原结果链交付。
 
-task-result23的N4无桥切换只关闭受影响三个primary旧格式的新建单/新grant；Website原Owner裁定并收束仍依赖旧生产parser的任务与effect，不删旧单伪零、不改历史材料。原合法结果及Outbox继续原身份交付，已成功接收结果由Website自行采用，不要求领域/商业pending归零才算AGENT完工。替换实际执行器前，原Owner按既有drain收束该执行器全部在途调用与durable writer，核零在途事务及获准exact backup；安装双方匹配候选、关闭旧worker/session后按原机制启用新session，不重enrollment。Capability4的route hash不能单独证明支持ZIP，以原部署构建及session事实读回确认全部可领取执行器匹配后才开放三生产新格式。其余40route语义不变；无数据库迁移、历史任务转换、旧parser、双读写或桥，未知不能伪造收束，已有新effect/结果后不得用代码或DB回退抹去事实。
-
-
-良辰吉日由独立zeji-personal-selection Product按自身Skill研究；produce为fresh，原accuracy_challenge/quality_reflection只作finding。原五类parameter不新增；一份受控zeji_reading_guide在前，ready_corpus_archive及zeji_input_bundle两个repeatable组各至少一份且顺序连续，material_id为source_task_id:role:part（part从0连续），ordinal全局连续；旧非repeatable角色仍严格一份。原64附件技术上限整体失败关闭，不裁书、日、时域或条件。资料生成、实际读取和研究完成分别核实。原Provider输出合同完整投影，未知专业字段保留；PDF仍归Website。
-
-consumer dependency 的 contract body 只能包含 contractId、version、providerRepo。普通启动只校验本仓最小 dependency，不读取未绑定 Website 工作树；跨仓 participant commit 只属于 RELEASE 证据。
-
-唯一 route projection generator 必须机械得到并逐项校验：
-
-- 43 routes；
-- 43 parameter types；
-- 43 result contracts；
-- 0 条 reservation route；
-- 每条 route 的 parameters、materials、relations、result_contract 与 Website provider 语义完全一致。
-
-未知、缺失、额外、重复、顺序漂移或语义不等一律失败关闭。新增的唯一固定 catalog route 是 `localization_static_catalog + produce_locale_catalog`，仍由现有 `localization-production` Product Plugin 私有执行，不新增 Plugin、Runtime、队列、公开 candidate/selector action 或第二恢复链。不得手写 route allowlist、第二支持表、compatibility、alias、fallback、bridge 或 shadow projection。
+以下旧 Public Knowledge 冻结专业合同作为独立保留边界，不产生旧产品登记或论文产品资格，不改动其冻结文本：
 
 `FROZEN-PUBLIC-KNOWLEDGE-PROVIDER-FORMAT-ONLY-001` 固定：Public Knowledge 的 Provider 可见输出格式只来自 Website 唯一 canonical `result_contract` 的机械投影，Product 只把当前 research/article 子合同原样写进 exact Prompt。research 顶层只要求 `schema_version,decision,topic_manifest,research_markdown,citations,research_claim_units` 六字段，article 顶层只要求 `schema_version,title,editor_note,article_markdown,safety_notes,verbatim_quotes` 六字段（article-output.v4），由原同一写作回合提供 `verbatim_quotes:[{text,citation_ids}]`，显式空集仍可表达；Provider 多余字段由 Website 唯一 parser 丢弃，不得拒收；Product 继续按公开 schema 接收完整原对象并沿原 package 交付，新增直引字段的原字节/原 citation 机械核验及同 admission 事务存储只属于 Website，不增加 AGENT validator。该合同只约束交付结构、字段类型、枚举、引用 identity/marker 关系与 Markdown 语法，不得规定选题结论、分析方法、推理过程、观点立场、证据解释或图片创意；Product Skill 正文不得注入 Provider Prompt，AGENT 不得复制、扩写或另建格式/质量 validator，不得重塑 Provider 输出字段类型或追加第二 reception sidecar。改变或删除本冻结边界，必须由用户在未来任务中明确解冻并同步替换双仓施工图、合同、实现与唯一质检。
-
-Website 在签发任务前唯一判断业务参数值是否合法。Runtime 先把 product_id/action_id 解析为有界字符串，再按 current route projection 与 Route Capability Manifest 精确解析；grant 不再冻结或比较任何 Product Plugin 身份。除此之外 Runtime 只校验 authenticated session/claim/grant/fence、task wire/schema/hash、当前 contract/projection/control contract version，以及 route/key/material/relation/result-contract 与当前 projection 的机械一致性；不得保存 `bazi_analysis_kind`、locale、localization resource kind、Product package/version 或 Bazi reusable candidate 的业务白名单，不得按 action 名推导 review/continuation，不得维护 `routeProducesGeneratedImage`、手写 Product/Action 支持表或硬编码 primary 数量。Product Plugin 通过 Product-facing execution contract 取得当前 task、materials、当前 Website route policy 与 GPT public facade，只校验完成自身执行所必需的局部 artifact、Skill 与 result 组装前置，不复判 Website 业务资格，也不读取 Runtime 私有 transport、store、lease、Outbox 或 recovery 模块。
-
-本地化 task 不再跨仓携带 `resource_kind`；`localization_report_translation + report_translation` 与 `localization_article_translation + article_translation` 已是唯一业务类型身份。Website 内部领域 `resource_kind` 继续由 Website 自己消费，不投影给 AGENT，也不建立 alias、映射或兼容字段。
-
-动态本地化 primary route 的 Provider payload 只使用 `terminal-localization-model-output.v2` 一份输出 schema，并只包含 `schema_version + source_resource_id + source_version + source_sha256 + target_locale + localized_structured_payload`。route 的 `product_id + action_id` 已由 task/result envelope 唯一携带，payload 禁止重复 `action_id`；Website `result_contract` 只以 `contract_version=3 + output_schema_version=terminal-localization-model-output.v2` 公开该格式，Product 原样写入 Prompt，AGENT 只机械核公开 schema 与 locked source/locale，Website staging 不复制本地化领域裁决，最终语义校验与 admission receipt 仍只属于 Website localization Domain Consumer。不保留 v1/v2 双读、fallback、compatibility、alias 或第二 parser。
-
-AGENT 接收完成与复工仅引用 `LAW-AGENT-PRODUCTION-RUNTIME-004-V49`。device-status 的领域观察字段保留给 Website，Runtime 不再解析 base/Bazi/review admission 作为完成门；原接收对账入口、hydrate、Store 事务和恢复调用顺序保持。
 
 ## 5. 工单、Provider effect 与唯一恢复决策
 
@@ -273,14 +381,13 @@ Website 签发 attempt + lease + fence
 -> Browser 对同一 provider_effect_identity 跨 attempt/进程最多 physical dispatch 一次
 -> AGENT 得到完整结果或 typed failure
 -> 完整结果只形成一个 payload identity，并经唯一 Outbox 幂等交付
--> Website 接收节点引用 LAW-AGENT-PRODUCTION-RUNTIME-004-V49；网站领域事务另行完成业务入库
+-> Website 接收节点引用 LAW-AGENT-PRODUCTION-RUNTIME-004-V50；网站领域事务另行完成业务入库
 ```
 
 执行失败后 Runtime 先核原 first fact/release；Website 已确认并签当前 ACTIVE_ATTEMPT 时按原 CAS durable accept，不再以本地失败分类重复否决，原 Browser WAL/当前 grant 仍唯一裁决现实输入。Website 唯一裁决：存在机械有效结果则继续原身份交付；无结果且全历史零输入则同 job 新 attempt；已可能输入则旧 effect 零 submit 读回；原答案有界核验不可得且Browser 已核完整 WAL effect 历史及现役有界 exact readback 或 typed unaddressable后才签指定调用的新 revision 风险授权。坏/缺/矛盾 failure fact 不再终止需求，当前危险动作失败关闭且有限再检查。接收前的原结果不可得或原 effect 结算仍按原 rejection/source 授权；成功接收后的领域失败只由 Website 消费原结果。
 
 Browser provider effect identity 不含 Product Plugin 或 `attempt_id`，固定由 `job_id + result_revision + product_step_id + call_id + child_id + request_hash + payload_hash` 组成。AGENT 内部实现、attempt、进程、lease、fence、Target、Document 变化不得制造新 effect；同一 identity 的 physical dispatch 总数至多一。每次 mutation 与 Website 写请求仍校验当前 fence，旧 fence 的 Provider、结果及其他业务 mutation 迟到写请求全部拒绝；原 `provider_cooldown` 事故通知只按原身份交付事实，不恢复旧执行权。
 
-`FROZEN-EXACT-TARGET-POLL-RESULT-REVISION-001`：Runtime只有在 Browser Authority为 PRESENT时才提出不超过合同安全上限、本地可用 executor与去重在途余量的有界 claim，Website才按当前设备 N签发新 grant。每个获 grant且需要 GPT的 job由 Browser懒建一个独占 system Target；submit后正常轮询保留绑定，第一次及后续observation前都释放唯一Browser lease/lane并立即进入唯一FIFO；GPT Child只计算至少70秒的最早资格，剩余deadline不足70秒时不重新acquisition，BrowserLaneCoordinator作为唯一计时Owner只按原请求至少70秒eligibleAt、原到期/取消及原单lane空闲条件放行；跨任务已具资格观察可在原串行车道连续执行，填写/附件上传与结算等原占用不能被轮询到期抢占，不保留跨任务随机等待或观察终结通知。具备资格后取得当前 live Target 或直接创建当前 Target，以同一 confirmed effect 的 canonical URL 精确选择会话；文本按原 Product turnMarker 在当前 Document 唯一定位 user/assistant，图片仍按原 exact userTurnId 定位；同 URL Page.navigate=0，不同 URL 最多一次精确导航，重验 current Document 并 fresh observe一次。停止按钮存在时Runtime只运输pending；只有同一位点停止按钮连续消失且回答连续为空满20分钟时才运输 `GPT_RESPONSE_STOPPED_EMPTY` 及其Provider observation fact，任一次停止按钮出现、回答非空或身份失真均归零。每轮都先查同一 WAL effect，再以 `confirmed-readback`为该 job取得精确 system Target；不得回 GPT首页，只按 WAL canonical URL零次或最多一次精确导航并 fresh readback。唯一 Browser WAL的 `logical_mutation_id`仍直接作为公开 `provider_effect_identity_hash`，Runtime只运输 typed fact且不得读取 Browser私有 SQLite。Website只沿一条现役拒绝链处理两类事实：稳定不可用结果绑定独立settled result hash；停思考空回答绑定独立Provider observation fact hash。每个hash-bound事实只写一个rejection receipt并签发一个新revision，其他现实输入默认在同一accepted attempt零submit收敛；原答案有界不可得且Browser 已核完整 WAL effect 历史及现役有界 exact readback 或 typed unaddressable后，仅Website持久风险grant的新revision/指定调用可一次受控风险输入。不得增加第二 WAL、queue、store、Owner、状态机、兼容桥或 fallback。
 
 lease release 只使用一个由 `job_id + attempt_id + lease_version + payload_hash` 确定性生成的 `request_id`；不得再复制 `idempotency_key`。同一 attempt 的同 effect readback 失败只允许 Website 记录首条失败事实，后续 release 只验证相同 `provider_effect_identity_hash` 并释放当前 lease，不以新的墙钟时间制造第二失败身份。
 
@@ -314,7 +421,7 @@ agent-production-runtime 只有全仓原生 quality:check 中的一份 Manifest�
 
 某一候选只有另获 AGENT 内相邻域原子归位明确授权后才可施工，且文字授权不等于已完成。法案、Inspector、测试、proof 与混合文件必须先在同一未提交 CHANGE 候选中准备完成；所有接收域与 Runtime 的 `ownedPaths` 在此期间保持原值。文件拆分完成后只允许一次原子修改：architecture-boundary 在已拥有的 Mediator/Product 边界内接收 `src/mediator/product-plugin-catalog.ts` 与 `src/mediator/product-plugin-contract.ts`，保留已归位的 `src/mediator/agent-production-route.ts`；agent-production-runtime 同时物理删除旧 Product-facing `plugin.ts` 和全部旧 import 边，而不是删除真实消费者。旧文件内容只按以下唯一映射归位：Product 类型、执行 context、产品中性 checkpoint/fault receipt 与结果校验 primitives 进入 `product-plugin-contract.ts`；12 个 Product 的唯一 composition、Skill 读取/hash、route identity 与单次 dispatch 进入 `product-plugin-catalog.ts`；artifact upload、Outbox、transport receipt 与 envelope 继续留在 Runtime；业务 parser/assembly 继续留在各 Product。现役 provider spec 已绑定的 `catalog.ts#agentPluginCapabilityManifest` 原位删除旧 Product imports、Plugin object、Skill text 与 route registry，只保留 Runtime 自有的 product-opaque Manifest publisher。不得再建立第三个 common/helper/adapter 层。其它相邻域只有在当前候选真实涉及其 Owner 路径时才参与。随后立即重建唯一 registry 并证明 `UNOWNED_PRODUCTION_FILE=0`、`MULTIPLE_PRIMARY_OWNERS=0` 与 Runtime manifest-owner-drift=0。不得先接收、先删除、建立临时第二 Manifest、兼容 re-export 或形成中间 READY/RELEASE 候选。
 
-静态证据必须来自 Manifest Owner、AST、JSON、resolved import、实际 symbol consumer、合同或状态机结果；路径名、字符串包含、文件存在、fixture 数量、历史 report、self-check 或另一个裁决不得产生 PASS。检查器必须拒绝任一 Runtime-owned source 对 `src/plugins/**` 的 direct/re-export/dynamic/side-effect import、任一 Product source 对 Runtime 私有模块的反向 import，以及通过旧 Catalog、alias 或中转模块形成的同义边；不得再为 `src/lib/local-runtime/**` 或旧 Catalog 设置豁免。Runtime acceptance 不运行完整 Product Flow，不启动 GPT/Browser 业务动作，不裁决内容，不要求 40 个 Website job 全量入库。现有 Product/Runtime acceptance 必须用确定性 stub 证明 generated-image 的同一 artifact intent 只上传一次、Product 只在取得真实 typed receipt 后组装并执行 final parse、Runtime 收到的 final output 不含 `assemblePayload`、`parseResult` 或 Plugin object。现有 Architecture/Runtime acceptance 还必须从唯一 architecture Catalog snapshot 机械逐字段投影并证明 provider v4 Route Capability Manifest 的 schema、product/action route、task/result contract version 与 canonical route hash 精确一致，并证明跨仓及持久身份中的 Product Plugin 名称、版本与 Skill hash 为零。`architecture-boundary` 的 Exam 只能从 architecture-owned 唯一 Catalog、Runtime 发布的 Route Capability Manifest 与 `scripts/acceptance/product-plugins/**` 发现 route、证明一一对应、执行并汇总各 Product 自有测试；中央入口不得手写 Product Plugin 或 primary product/action 列表，不得保存任一 Product 的 Prompt、Child 顺序、checkpoint、分支、恢复规则或 expected result body，生产 `src/plugins/**` 不得 import 测试代码。
+静态证据必须来自 Manifest Owner、AST、JSON、resolved import、实际 symbol consumer、合同或状态机结果；路径名、字符串包含、文件存在、fixture 数量、历史 report、self-check 或另一个裁决不得产生 PASS。检查器必须拒绝任一 Runtime-owned source 对 `src/plugins/**` 的 direct/re-export/dynamic/side-effect import、任一 Product source 对 Runtime 私有模块的反向 import，以及通过旧 Catalog、alias 或中转模块形成的同义边；不得再为 `src/lib/local-runtime/**` 或旧 Catalog 设置豁免。Runtime acceptance 不运行完整 Product Flow，不启动 GPT/Browser 业务动作，不裁决内容，不要求 40 个 Website job 全量入库。现有 Product/Runtime acceptance 必须用确定性 stub 证明 generated-image 的同一 artifact intent 只上传一次、Product 只在取得真实 typed receipt 后组装并执行 final parse、Runtime 收到的 final output 不含 `assemblePayload`、`parseResult` 或 Plugin object。现有 Architecture/Runtime acceptance 还必须从唯一 architecture Catalog snapshot 机械逐字段投影并证明 astra-agent.route-capability-manifest v1 的 schema、product/action route、task/result contract version 与 canonical route hash 精确一致，并证明跨仓及持久身份中的 Product Plugin 名称、版本与 Skill hash 为零。`architecture-boundary` 的 Exam 只能从 architecture-owned 唯一 Catalog、Runtime 发布的 Route Capability Manifest 与 `scripts/acceptance/product-plugins/**` 发现 route、证明一一对应、执行并汇总各 Product 自有测试；中央入口不得手写 Product Plugin 或 primary product/action 列表，不得保存任一 Product 的 Prompt、Child 顺序、checkpoint、分支、恢复规则或 expected result body，生产 `src/plugins/**` 不得 import 测试代码。
 
 Runtime 唯一 dynamic proof 只声明：
 
@@ -332,11 +439,11 @@ CHANGE、READY、RELEASE 是不同候选阶段。Runtime 的静态或动态 PASS
 每次候选都必须重新证明：
 
 1. 八条 Runtime law、稳定 blueprintId、三份 active contractRef 与 Runtime 唯一 Manifest 的 lawIds 相互一致；Architecture Boundary law 与 Manifest 独立保持其现役一一对应；越界 `ownedPaths` 只在同一候选的一次原子修改中归位，并立即证明无无主、无重叠、无 Runtime manifest-owner-drift。
-2. task-result provider/dependency/projection精确为24，V6为49、capability为4、task/result envelope为1；43条route的参数键、材料role/media/trust/owner/顺序/基数、relation及result_contract逐项核对，未知、缺失、额外、重复、错序或错身份失败关闭。九专业使用完整冻结资料，商业零八字；图片原链、Website领域receipt、原effect/WAL、限流和来源seal/rejection/risk授权全部保持原合同。
-3. route projection为43 routes、43 parameter types、43 result contracts；reservation、bazi_private_base_input、result_contract.private_base及旧联合起名活动route均为零。
-4. 所有 AI 产品按 LAW-AGENT-PRODUCTION-RUNTIME-004-V49 验收接收完成边界；旧 base/Bazi/review admission 完成门退出 Runtime。
+2. task-result provider/dependency/projection精确为24，V6为ASTRA独立初版1、capability为4、task/result envelope为1；43条route的参数键、材料role/media/trust/owner/顺序/基数、relation及result_contract逐项核对，未知、缺失、额外、重复、错序或错身份失败关闭。九专业使用完整冻结资料，商业零八字；图片原链、Website领域receipt、原effect/WAL、限流和来源seal/rejection/risk授权全部保持原合同。
+3. route projection 与当前唯一 ASTRA task/result 提供方逐路由、参数、材料、关系及结果合同双向一致，旧业务路由与兼容投影为零。
+4. 所有 AI 产品按 LAW-AGENT-PRODUCTION-RUNTIME-004-V50 验收接收完成边界；旧 base/Bazi/review admission 完成门退出 Runtime。
 5. credential 失败类别分别得到稳定脱敏 typed code，且 claim/Provider mutation 增量为零。
-6. Runtime-owned source 对 Product Plugin 的 direct/re-export/dynamic/side-effect import 为零；Product source 对 Runtime 私有 production module 的 import 为零；唯一 architecture-owned Catalog 与 Runtime Manifest publisher 只以冻结纯数据 route snapshot 连接，provider v4 Route Capability Manifest 只含 product/action 与 task/result contract version，跨仓及持久身份的 Product Plugin 名称、版本、Skill hash 字段为零。
+6. Runtime-owned source 对 Product Plugin 的 direct/re-export/dynamic/side-effect import 为零；Product source 对 Runtime 私有 production module 的 import 为零；唯一 architecture-owned Catalog 与 Runtime Manifest publisher 只以冻结纯数据 route snapshot 连接，astra-agent.route-capability-manifest v1 只含 product/action 与 task/result contract version，跨仓及持久身份的 Product Plugin 名称、版本、Skill hash 字段为零。
 7. Runtime 三表、精确列/主键/唯一索引/外键、WAL、integrity_check、foreign_key_check 和数据不变量可重复读回；`production_leases`、`production_gpt_consultations`、旧 `production_continuations` 与任何 GPT continuation store 均不存在；Browser WAL 不含 consultation identity、source task、continuation checkpoint 或 frontier，只保留执行 fence、effect terminal 与同-effect加密 locator；private base、reservation、fork、第二 lane/store 与 Product checkpoint 消费者为零；Runtime 普通启动迁移与删除增量为零。
 8. authority 数据库缺失、不可读、损坏/查询异常、记录缺失、hash mismatch 分别可观察并失败关闭。
 9. storage inventory 在未变数据上重复得到同一目录/字节分母；dry-run 写入、移动与删除增量为零。
@@ -350,7 +457,7 @@ CHANGE、READY、RELEASE 是不同候选阶段。Runtime 的静态或动态 PASS
 17. Runtime proof 只声明本域四种 dynamic mode；GPT、Browser、Runtime Log 的原生 proof 均可独立运行，Runtime 相邻 proof assertion 为零，任何未解耦 route 都阻断 RELEASE。
 18. Runtime CHANGE/READY 不替 Website、Product、GPT、Browser 宣称业务完成；最终业务完成仍以 Website admission/storage 为准。
 19. 各域现有唯一 inspector、acceptance 与适用 proof 分别覆盖本域 active law 的 summary、全部 forbidden 与全部 evidenceModes；Owner-bound import mutant 必须证明 Runtime→Plugin、Plugin→Runtime private 与旧 Catalog 豁免都会失败关闭，全部被替代路径的生产消费清零，不新增第二 checker、proof 或 verdict。
-20. N=1..6下去重业务在途数不得超过 Website当前设备配置；每个 active execution或 admission pending job各占一个席位。AGENT 本地完成仅引用 LAW-AGENT-PRODUCTION-RUNTIME-004-V49，Website 业务容量仍按原领域事实计算，Browser Target 清理只作诊断且独立受 lane 安全门约束；Website 持久 WAIT_NEW_ATTEMPT 仅在旧 READY/Outbox/候选确证不可恢复、原证据交接完成后释放旧 attempt 席位；永久撤权或删除按原 Owner 精确清理。ACTIVE_ATTEMPT regrant不新增席位，CONSUME_CURRENT_RESULT继续占原席位，缩容不终止既有执行。任意时刻 Browser物理 lane与 active claim至多一个；每个正常观察请求首次/后续资格至少70秒；跨任务已具资格观察可连续串行，填写/上传/结算占用中不能抢占。八字另须证明 BZ05/BZ03/BZ04每个业务任务均 fresh且精确消费本轮Website父报告材料；同一SEO文章六个task按direct parent共享一个canonical conversation URL；固定catalog同cohort首任务fresh、后继及失败ID补译任务携已接纳直接前驱三元组并共享父WAL唯一URL；每job仍独占Target、一次submit，错误parent或篡改已采纳来源的product step须在Provider输入前失败。continuation controller/store/frontier/CAS、fork与private base为零。
+20. N=1..6下去重业务在途数不得超过 Website当前设备配置；每个 active execution或 admission pending job各占一个席位。AGENT 本地完成仅引用 LAW-AGENT-PRODUCTION-RUNTIME-004-V50，Website 业务容量仍按原领域事实计算，Browser Target 清理只作诊断且独立受 lane 安全门约束；Website 持久 WAIT_NEW_ATTEMPT 仅在旧 READY/Outbox/候选确证不可恢复、原证据交接完成后释放旧 attempt 席位；永久撤权或删除按原 Owner 精确清理。ACTIVE_ATTEMPT regrant不新增席位，CONSUME_CURRENT_RESULT继续占原席位，缩容不终止既有执行。任意时刻 Browser物理 lane与 active claim至多一个；每个正常观察请求首次/后续资格至少70秒；跨任务已具资格观察可连续串行，填写/上传/结算占用中不能抢占。八字另须证明 BZ05/BZ03/BZ04每个业务任务均 fresh且精确消费本轮Website父报告材料；同一SEO文章六个task按direct parent共享一个canonical conversation URL；固定catalog同cohort首任务fresh、后继及失败ID补译任务携已接纳直接前驱三元组并共享父WAL唯一URL；每job仍独占Target、一次submit，错误parent或篡改已采纳来源的product step须在Provider输入前失败。continuation controller/store/frontier/CAS、fork与private base为零。
 
 付款 primary 的唯一公开输出请求来自 Website canonical route 的 `result_contract`，Product 原样投影到 Prompt，基础接收不复制其中枚举或领域拒收规则；付款领域 Consumer 在原 prepare 中机械校验该格式，原 no_payment_change 与同 client admission 保持。GPT acquisition/观察早退的真实调用身份复用原 childSpan 的 gpt-call typedIdentity（job/attempt/step/callId:Child），不增加 metadata。V6 的 Child 属于原 Browser fact：无 Browser effect 时 scope/Child/outcome/provider_effect_identity_hash 均为空，已有 effect 时其来源 Child 与 evidence 对始终优先，不能以当前 GPT 调用身份替代。历史 first fact 不回填。
 
@@ -360,7 +467,7 @@ V6.46仅将同一协议容量支持上限扩到6；当前N仍由Website设备行
 
 ## W5：取消退役的唯一机械交接（2026-11-02授权施工）
 
-V6 control provider/consumer固定为49，当前task-result24、Capability4与43路由保持。Website原T1 Owner决定退役、保护集合、T2与新G；AGENT仅消费当前exact签控制并保全/运输真实机械事实，不追读GPT答案，不裁业务风险。普通未取消需求的完整来源验证、Provider防重和风险授权不变。
+V6 control provider/consumer固定为ASTRA独立初版1，当前task-result24、Capability4与43路由保持。Website原T1 Owner决定退役、保护集合、T2与新G；AGENT仅消费当前exact签控制并保全/运输真实机械事实，不追读GPT答案，不裁业务风险。普通未取消需求的完整来源验证、Provider防重和风险授权不变。
 
 完整Product输出先于首个结果JSON网络请求，由原Store在task-owned results/<既有attempt hash>/complete-output.json同步保全原JSON.stringify(payload) UTF-8文本、evidence_refs、generated-image typed receipts、原身份及execution_receipt_hash；SQLite immediate写锁内验当前attempt/未seal、fsync/rename/目录fsync/readback，seal同锁核原件。损坏或异身份保持局部unknown，不能误封口、覆盖或重做Provider。同attempt delivery_only只用该原件走原Outbox，不进入Product。candidate_hash沿既有execution_receipt_hash，不用envelope hash。
 
@@ -375,3 +482,7 @@ V6 control provider/consumer固定为49，当前task-result24、Capability4与43
 ## 同一SEO文章获准修订的原会话定位
 
 同一SEO文章已由Website授权的新result revision当前turn，Browser可从当前job既有WAL的全部可信CONFIRMED locator候选核出非空且唯一的canonical URL，经原confirmed-readback在该U重建当前准备并执行；这只确定执行位置，不复用旧正文、旧准备、旧输入授权或执行进度。指定effect必须沿原exact reader核验，缺失不得改选历史；未指定effect时不得取latest或第一条，缺失、损坏或URL冲突零危险输入失败关闭。旧unknown及无锚点事实原样保留，不视为零输入或可复用来源，也不成为其它精确effect或兄弟job的全局门。新Provider输入仍只取Website当前精确grant与Browser完整WAL防重裁决；其它产品的fresh、业务恢复唯一Owner及URL不跨仓不新持久化边界保持。
+
+## 原回答空结束的五次机械重试
+
+普通回答观察为零输入：保留exact job—system Target唯一绑定，40秒静默、GPT只给至少70秒eligibleAt，BrowserLaneCoordinator为唯一计时Owner，在唯一FIFO依原到期/取消及原lane空闲放行；不足70秒不acquire，填写/上传/结算不被抢占，不新增timer或账号随机等待。每轮先核同effect WAL，以confirmed-readback取当前Target并核current Document；canonical URL相同零导航，否则最多一次Browser-owned Page.navigate并经2500ms fresh readback，不回首页。文本以原Product marker唯一user及真实紧邻唯一assistant，图片沿原exact userTurnId。文本未挂载时只在原observation预算内按实时容器几何/进展物化、无固定步数，图片最多48步，均命令截止前3秒结束；命中立即原子读取，零CDP输入/点击/搜索/展开/WAL。stop存在不得按时长、空文本或deadline判停；观察使用原execution单调预算/abort，不保留20分钟空等或替代计时窗。五次耗尽proof唯一为gpt-stopped-empty-after-five-retries.v1，精确七顶层schema_version/original_effect_identity_hash/original_wal_authority_ref/original_wal_authority_hash/retries/terminal_observation_revision_hash/terminal_observed_at；retries恰好五项严格ordinal1..5，各含ordinal/effect_identity_hash/wal_authority_ref/wal_authority_hash/pre_empty_observation_revision_hash，effect互异、原Browser authority可验。retry i+1前置空观察结算i，最后空观察在原first fact；顶层failure为retry5真实CONFIRMED/confirmed/evidence。Website沿原job事务唯一rejection绑定terminal observation及整链，拒收集合仅为真实根submit+retry1..5六effect；rejected_call主项retry5，仅该情形附original_submit及prior_retries恰好ordinal1..4，各用原call/effect字段验同一receipt。其它历史逐项原证明，普通RESULT_SETTLED_UNUSABLE仍单effect。原Store/Outbox/source seal及accepted历史字节不迁移、不重签，不设第二reader/队列/表；历史已签原raw只经原seal及原first-fact绑定回读，不成为新current proof。本条已依用户本轮原文授权定点替换并重新冻结；未来改变仍须用户明确解冻并同步现役法案、施工图、合同、实现及唯一原生质检；普通修复或CI不隐含解冻。

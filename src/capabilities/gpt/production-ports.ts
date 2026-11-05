@@ -25,7 +25,7 @@ export type GptProductionExecutionInput = Readonly<{
     canonicalConversationUrl: string; userTurnId: string;
   }>) => void;
   readbackOnlyCalls?: readonly Readonly<{ productStepId: string; callId: string;
-    childCapabilityId: "submit_exact_gpt_turn_once"; source?: Readonly<{ sourceAttemptId: string; sourceResultRevision: number; effectIdentityHash: `sha256:${string}`; walAuthorityHash: `sha256:${string}` }> }>[];
+    childCapabilityId: "submit_exact_gpt_turn_once" | "retry_exact_gpt_response_once"; source?: Readonly<{ sourceAttemptId: string; sourceResultRevision: number; effectIdentityHash: `sha256:${string}`; walAuthorityHash: `sha256:${string}` }> }>[];
   jobId: string;
   productId: string;
   ownerRef: string;
@@ -67,6 +67,7 @@ export interface GptEvidenceStorePort {
 }
 
 export interface GptProductionBrowserAuthority {
+  readJobBrowserHistoryEvidence(jobId: string): import("../../lib/browser/browser-authority-api.js").BrowserJobHistoryEvidence;
   readConfirmedRateLimitAcknowledgement(input: Readonly<{
     jobId: string; attemptId: string; resultRevision: number; incidentRequestId: string;
   }>): Readonly<{ terminalAt: string }> | null;

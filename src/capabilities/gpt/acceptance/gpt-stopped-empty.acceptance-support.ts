@@ -1,123 +1,83 @@
 import { governanceAssert as assert } from "../../../../scripts/audit/shared/governance-exam-assert.js";
+import { executionFailure, executionFailureMetadata } from "../../../lib/execution-failure.js";
+import { buildGptExecutionProfile } from "../index.js";
+import { gptCanonicalHash } from "../contract.js";
+import { productionGptAtomicIdentity } from "../production-atomic-call.js";
+import { repairStoppedEmptyResponse } from "../production-stopped-empty-retry.js";
+import { createGptAcceptanceHarness } from "./gpt-acceptance-harness.js";
+import { fakeBrowser, exactAssistantTurnReply } from "./gpt-exact-target-browser-fixture.js";
+import { conversationUrl } from "./gpt-conversation-fixture.js";
 
-import {
-  advanceStoppedEmptyWindow,
-  GPT_STOPPED_EMPTY_CONFIRMATION_MS,
-} from "../children/checkpoint_gpt_text_response/handler.js";
-import { throwGptChildFailure } from "../production-child-support.js";
-import { serializeTerminalFailureTransport } from
-  "../../../lib/local-runtime/production/terminal-failure.js";
-import type { GptChildCapabilityResult } from "../contract.js";
-
-const stoppedEmptyObservation = (input: Readonly<{
-  generatingRaw?: number;
-  semanticText?: string;
-  observedAt?: string;
-  identityHash?: `sha256:${string}`;
-}> = {}) => ({
-  generatingRaw: input.generatingRaw ?? 0,
-  semanticText: input.semanticText ?? "",
-  observedAt: input.observedAt ?? "2026-09-16T00:00:00.000Z",
-  identityHash: input.identityHash ?? `sha256:${"a".repeat(64)}` as `sha256:${string}`,
-});
-
-const verifyStoppedEmptyWindow = (): void => {
-  const emptyWindow = advanceStoppedEmptyWindow(null, stoppedEmptyObservation(), 10_000);
-  assert.deepEqual(emptyWindow, { window: {
-    sinceMonotonicMs: 10_000,
-    firstObservedAt: "2026-09-16T00:00:00.000Z",
-    observationCount: 1,
-    identityHash: `sha256:${"a".repeat(64)}`,
-  }, confirmed: false });
-  assert.equal(advanceStoppedEmptyWindow(
-    emptyWindow.window, stoppedEmptyObservation({ observedAt: "2026-09-16T00:19:59.999Z" }),
-    10_000 + GPT_STOPPED_EMPTY_CONFIRMATION_MS - 1,
-  ).confirmed, false);
-  const confirmed = advanceStoppedEmptyWindow(
-    emptyWindow.window, stoppedEmptyObservation({ observedAt: "2026-09-16T00:20:00.000Z" }),
-    10_000 + GPT_STOPPED_EMPTY_CONFIRMATION_MS,
-  );
-  assert.equal(confirmed.confirmed, true);
-  assert.equal(confirmed.window?.observationCount, 2);
-  assert.deepEqual(advanceStoppedEmptyWindow(
-    emptyWindow.window, stoppedEmptyObservation({ generatingRaw: 1 }),
-    10_000 + GPT_STOPPED_EMPTY_CONFIRMATION_MS,
-  ), { window: null, confirmed: false });
-  assert.deepEqual(advanceStoppedEmptyWindow(
-    emptyWindow.window, stoppedEmptyObservation({ semanticText: "answer" }),
-    10_000 + GPT_STOPPED_EMPTY_CONFIRMATION_MS,
-  ), { window: null, confirmed: false });
-  const identityReset = advanceStoppedEmptyWindow(
-    emptyWindow.window, stoppedEmptyObservation({
-      observedAt: "2026-09-16T00:20:00.000Z",
-      identityHash: `sha256:${"b".repeat(64)}`,
-    }),
-    10_000 + GPT_STOPPED_EMPTY_CONFIRMATION_MS,
-  );
-  assert.equal(identityReset.confirmed, false);
-  assert.equal(identityReset.window?.sinceMonotonicMs, 10_000 + GPT_STOPPED_EMPTY_CONFIRMATION_MS);
-  assert.equal(identityReset.window?.observationCount, 1);
-};
-
-const verifyStoppedEmptyTransport = (): void => {
-  const terminalRevision = `sha256:${"c".repeat(64)}` as const;
-  const stoppedEmptyProof = Object.freeze({
-    firstObservedAt: "2026-09-16T00:00:00.000Z",
-    terminalObservedAt: "2026-09-16T00:20:00.000Z",
-    continuousMonotonicMs: GPT_STOPPED_EMPTY_CONFIRMATION_MS,
-    observationCount: 16,
-    identityHash: `sha256:${"a".repeat(64)}` as const,
-    terminalObservationRevisionHash: terminalRevision,
-  });
-  let transported: unknown = null;
-  try {
-    throwGptChildFailure({
-      status: "failed", value: null, failureCode: "GPT_RESPONSE_STOPPED_EMPTY",
-      failureCause: null, failureBrowserEffect: null, reasoningRequirementResult: null,
-      proof: {
-        schemaVersion: "gpt-child-capability-proof.v2",
-        childCapabilityId: "checkpoint_gpt_text_response", childContractVersion: 6,
-        childStatus: "failed", childReasonCode: "GPT_RESPONSE_STOPPED_EMPTY",
-        exactCallIdentityHash: `sha256:${"1".repeat(64)}`, internalDecisionCode: "FAIL_CLOSED",
-        executionId: "execution:stopped-empty", jobId: "job:stopped-empty",
-        attemptId: "attempt:stopped-empty", resultRevision: 0,
-        productStepId: "step:stopped-empty", callId: "call:stopped-empty",
-        inputHash: `sha256:${"2".repeat(64)}`, actionOrdinal: 1,
-        authorityRefHashes: [`sha256:${"3".repeat(64)}`],
-        factResultIds: ["gpt-assistant-turn-fact:stopped-empty"],
-        candidateCardinality: { raw: 1, eligible: 1 }, observationRevisionHash: terminalRevision,
-        committedMutation: "no", postconditionResult: "failed", browserFact: null,
-        nativeFailureCode: "GPT_RESPONSE_STOPPED_EMPTY", stoppedEmptyProof,
-        startedAt: "2026-09-16T00:00:00.000Z", endedAt: "2026-09-16T00:20:00.000Z",
-        evidenceRef: "gpt-child-proof:stopped-empty", evidenceHash: `sha256:${"4".repeat(64)}`,
-      },
-    } satisfies GptChildCapabilityResult<"checkpoint_gpt_text_response">,
-    undefined, undefined, {
-      exactCallIdentityHash: `sha256:${"5".repeat(64)}`,
-      providerEffectIdentityHash: `sha256:${"6".repeat(64)}`,
-      childCapabilityId: "submit_exact_gpt_turn_once", effectScope: "provider_effect",
-      browserOutcome: "CONFIRMED", mutationOutcome: "confirmed",
-      terminalAt: "2026-09-15T23:59:00.000Z", evidenceRef: "browser-mutation:submit",
-      evidenceHash: `sha256:${"7".repeat(64)}`,
-    });
-  } catch (error) { transported = serializeTerminalFailureTransport(error); }
-  assert.equal(Reflect.get(transported as object, "evidence_ref"), "browser-mutation:submit");
-  assert.equal(Reflect.get(transported as object, "evidence_hash"), `sha256:${"7".repeat(64)}`);
-  assert.equal(Reflect.get(transported as object, "child_proof_ref"), "gpt-child-proof:stopped-empty");
-  assert.equal(Reflect.get(transported as object, "child_proof_hash"), `sha256:${"4".repeat(64)}`);
-  assert.deepEqual(Reflect.get(transported as object, "stopped_empty_proof"), {
-    first_observed_at: stoppedEmptyProof.firstObservedAt,
-    terminal_observed_at: stoppedEmptyProof.terminalObservedAt,
-    continuous_monotonic_ms: stoppedEmptyProof.continuousMonotonicMs,
-    observation_count: stoppedEmptyProof.observationCount,
-    identity_hash: stoppedEmptyProof.identityHash,
-    terminal_observation_revision_hash: terminalRevision,
-  });
-  assert.equal(Reflect.get(transported as object, "provider_effect_identity_hash"),
-    `sha256:${"6".repeat(64)}`);
-};
-
-export const verifyStoppedEmptyRecoveryContract = (): void => {
-  verifyStoppedEmptyWindow();
-  verifyStoppedEmptyTransport();
-};
+const hash = (digit: string): `sha256:${string}` => `sha256:${digit.repeat(64)}`;
+type Repair = Parameters<typeof repairStoppedEmptyResponse>[0];
+async function fixture(completeAfter: number, unconfirmed = false, budget = 5) {
+  const harness = createGptAcceptanceHarness("five-retry-contract");
+  const input = { canonicalConversationUrl: conversationUrl, probeBudgetMs: 200_000,
+    userTurnId: "00000000-0000-4000-8000-000000000003", turnMarker: "five-retry" };
+  const intent = harness.buildIntent("checkpoint_gpt_text_response", input);
+  const atomic = productionGptAtomicIdentity(intent, 0);
+  let replies = 0, retries = 0, menus = 0, budgets = 0;
+  const observe = async () => {
+    const browser = fakeBrowser(command => {
+      if (command.kind !== "readExactAssistantTurn") throw new Error("RETRY_OBSERVATION_MUST_NOT_MUTATE");
+      return exactAssistantTurnReply(command, replies >= completeAfter ? "complete response" : "");
+    }).browser;
+    return browser.runAtomicStep(atomic, () => harness.gpt.execute(intent, { dataDir: "/tmp/gpt-five-retry-contract",
+      browser, browserAtomicIdentity: atomic, stoppedEmptyRetryAuthorized: true,
+      waitForProviderObservation: async () => "reobserve" }));
+  };
+  const initial = await observe();
+  const profile = buildGptExecutionProfile({ profileRef: "acceptance:five-retry", startModelDisplayName: "GPT-5.6 Sol",
+    requestedReasoningValue: 5, executorIdentityRef: "acceptance", acceptanceRef: "acceptance", acceptanceVersion: "v1" });
+  const evidence = { evidenceRef: "evidence:retry", evidenceHash: hash("b"), sourceAttemptId: intent.attemptId,
+    exactCallIdentityHash: hash("c"), artifactRefs: [] };
+  const root: Repair["root"] = { exactCallIdentityHash: hash("c"), childCapabilityId: "submit_exact_gpt_turn_once",
+    effectScope: "provider_effect", browserOutcome: "CONFIRMED", mutationOutcome: "confirmed",
+    providerEffectIdentityHash: hash("a"), terminalAt: new Date().toISOString(), evidenceRef: "browser-mutation:root",
+    evidenceHash: hash("b"), submitIdentity: { ...atomic, childCapabilityId: "submit_exact_gpt_turn_once", callId: "submit" },
+    canonicalConversationUrl: conversationUrl, userTurnId: input.userTurnId };
+  const repair: Repair = { dataDir: "/tmp/gpt-five-retry-contract", signal: new AbortController().signal,
+    call: { sessionKey: "five-retry", productStepId: intent.productStepId, callId: intent.callId,
+      actionOrdinal: intent.actionOrdinal, child: "checkpoint_gpt_text_response", input },
+    intent, root, profile, promptHash: gptCanonicalHash("approved original prompt"), initial, readRetry: () => null,
+    assertBudget: () => { budgets += 1; if (budgets > budget) throw executionFailure("failed", "RETRY_BUDGET_EXHAUSTED"); },
+    executeMenu: async call => { menus += 1; assert.equal(call.input.retryOrdinal, menus);
+      return { ...evidence, value: { state: "menu-ready" }, effectReceipt: null }; },
+    executeRetry: async call => {
+      retries += 1;
+      assert.equal(call.callId, `stopped-empty-retry:${hash("a").slice(7)}:${retries}`);
+      assert.equal(call.input.previousEffectIdentityHash, retries === 1 ? hash("a") : hash(String(retries - 1)));
+      assert.equal(call.input.approvedModel, profile.startModelDisplayName);
+      return { ...evidence, value: { state: "generation-started", userTurnId: input.userTurnId,
+        promptHash: repair.promptHash, preEmptyObservationRevisionHash: hash("d") }, effectReceipt: {
+        effectScope: "provider_effect", providerEffectIdentityHash: hash(String(retries)),
+        outcome: unconfirmed ? "DISPATCHED" : "CONFIRMED", mutationOutcome: "confirmed", terminalAt: new Date().toISOString(),
+        evidenceRef: `browser-mutation:retry:${retries}`, evidenceHash: hash(String(retries)) } };
+    }, observe: async () => { replies += 1; return observe(); },
+  };
+  return { repair, counts: () => ({ menus, retries, budgets }) };
+}
+export async function verifyStoppedEmptyRecoveryContract(): Promise<void> {
+  const recovered = await fixture(1);
+  assert.equal((await repairStoppedEmptyResponse(recovered.repair)).status, "success");
+  assert.equal(recovered.counts().retries, 1);
+  const fifth = await fixture(5);
+  assert.equal((await repairStoppedEmptyResponse(fifth.repair)).status, "success");
+  assert.equal(fifth.counts().retries, 5);
+  const exhausted = await fixture(6);
+  const result = await repairStoppedEmptyResponse(exhausted.repair);
+  assert.equal(result.status, "failed");
+  assert.equal(result.failureCode, "GPT_RESPONSE_STOPPED_EMPTY");
+  assert.equal(result.proof.stoppedEmptyProof?.retries.length, 5);
+  assert.deepEqual(result.proof.stoppedEmptyProof?.retries.map(retry => retry.ordinal), [1, 2, 3, 4, 5]);
+  assert.equal(result.proof.browserFact?.providerEffectIdentityHash, hash("5"));
+  assert.equal(new Set(result.proof.stoppedEmptyProof?.retries.map(retry => retry.effectIdentityHash)).size, 5);
+  const unknown = await fixture(6, true);
+  await assert.rejects(repairStoppedEmptyResponse(unknown.repair), /GPT_RETRY_BROWSER_RECEIPT_INVALID/u);
+  assert.equal(unknown.counts().retries, 1);
+  const limited = await fixture(6, false, 2);
+  let failure: unknown;
+  try { await repairStoppedEmptyResponse(limited.repair); } catch (error) { failure = error; }
+  assert.equal(limited.counts().retries, 2);
+  assert.equal(executionFailureMetadata(failure)?.browserEffect?.providerEffectIdentityHash, hash("2"));
+}

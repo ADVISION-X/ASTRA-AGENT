@@ -71,7 +71,7 @@ export const inspectGptProviderProbeOwnerContract = (context: InspectorContext, 
     && ["active.browser.pendingMutationCount() > 0", "const eligibleAt = Date.now() + PROVIDER_OBSERVATION_MIN_INTERVAL_MS",
       'productStepId, callId, observationDeadlineAt, "confirmed-readback", eligibleAt',
       "canonicalConversationUrl: active.confirmedProviderEffect!.canonicalConversationUrl", 'mode: "product-call-settlement"'].every(token => waitText.includes(token))
-    && before(waitText, 'if (eligibleAt > observationDeadlineAt) return "deadline"', "await active.facade.park(")
+    && before(waitText, 'if (observationDeadlineAt !== null && eligibleAt > observationDeadlineAt) return "deadline"', "await active.facade.park(")
     && before(waitText, "assertConfirmedProviderReadback(active, this.browserAuthority, this.execution.jobId, this.execution.attemptId)", "await active.facade.park(")
     && before(waitText, "await active.facade.park(", "await this.acquireBrowserLease(")
     && before(waitText, "await this.acquireBrowserLease(", 'kind: "selectExactGptConversation"')
@@ -103,7 +103,7 @@ export const inspectGptProviderProbeOwnerContract = (context: InspectorContext, 
     && retired(settlement?.getDescendantsOfKind(SyntaxKind.TryStatement)[0]?.getFinallyBlock())
     && waitText.includes("if (!current || current.call !== active)")
     && acquisitionCatch.includes('failureCode(error) === "V6_DEADLINE_BUDGET_EXHAUSTED"')
-    && acquisitionCatch.includes("!this.execution.abortSignal.aborted && Date.now() >= observationDeadlineAt")
+    && acquisitionCatch.includes("!this.execution.abortSignal.aborted && observationDeadlineAt !== null && Date.now() >= observationDeadlineAt")
     && calls(acquisition?.getCatchClause(), "failureCode").length === 1
     && acquisition?.getCatchClause()?.getDescendantsOfKind(SyntaxKind.ThrowStatement).length === 1;
   check(leaseHandoffIsSafe(),

@@ -171,10 +171,33 @@ export abstract class ProductionStoreSourceReadback extends ProductionStoreFound
     return parsed as SourceReadbackObservation[];
   }
 
-  public sealSourceHandoff(manifest: SourceAttemptHandoff, retirementControl?: ControlIntent): void {
+  private assertSourceSealTask(manifest: SourceAttemptHandoff, current: StoredProductionTask | null,
+    outbox: ReturnType<ProductionStoreSourceReadback["readResultOutboxHistoryEvidence"]>,
+    retirement: boolean): asserts current is StoredProductionTask {
+    const jobId = manifest.job_id, attemptId = manifest.source_attempt_id;
+    if (!current || current.status !== "failed" && !(retirement && current.result
+        && this.readResultReceivingReceipt(jobId, attemptId, current.result))
+      || current.current_attempt_id !== attemptId || outbox.candidateCount !== 0
+      || outbox.historyHash !== manifest.outbox_history_hash || current.staged_result !== null
+      || this.hasPendingCompleteOutput(jobId, attemptId, retirement ? undefined : manifest)
+      || !retirement && manifest.readback_proofs.some(proof => proof.disposition === "unresolved"
+        || proof.effects.some(effect => effect.unresolved !== undefined))) {
+      throw executionFailure("failed", "PRODUCTION_SOURCE_HANDOFF_CONFLICT");
+    }
+  }
+
+  private assertSourceSealManifest(manifest: SourceAttemptHandoff,
+    current: StoredProductionTask, firstRaw: string | null): void {
     const { seal_hash: sealHash, ...body } = manifest;
-    const jobId = manifest.job_id;
-    const attemptId = manifest.source_attempt_id;
+    if (manifest.source_task_hash !== hashCanonical(current.task)
+      || manifest.first_fact_raw_hash !== targetlessFirstFactHash(firstRaw)
+      || hashCanonical(body) !== sealHash || !validSourceHandoff(manifest)) {
+      throw executionFailure("failed", "PRODUCTION_SOURCE_HANDOFF_CONFLICT");
+    }
+  }
+
+  public sealSourceHandoff(manifest: SourceAttemptHandoff, retirementControl?: ControlIntent): void {
+    const sealHash = manifest.seal_hash, jobId = manifest.job_id, attemptId = manifest.source_attempt_id;
     const reason = `SOURCE_HANDOFF_SEALED|${sealHash}`;
     this.database.transaction(() => {
       const current = this.readTask(jobId);
@@ -182,49 +205,32 @@ export abstract class ProductionStoreSourceReadback extends ProductionStoreFound
       const outbox = this.readResultOutboxHistoryEvidence(jobId, attemptId);
       const retirement = retirementControl?.job_id === jobId && retirementControl.intent === "cancel_requested"
         && retirementControl.reason_code === "ADMIN_AI_WORK_ORDER_REPLACEMENT" && retirementControl.control_epoch > 0;
-      if (!current || current.status !== "failed" && !(retirement && current.result
-          && this.readResultReceivingReceipt(jobId, attemptId, current.result))
-        || current.current_attempt_id !== attemptId
-        || outbox.candidateCount !== 0 || outbox.historyHash !== manifest.outbox_history_hash
-        || current.staged_result !== null
-        || this.hasPendingCompleteOutput(jobId, attemptId, retirement ? undefined : manifest)
-        || !retirement && manifest.readback_proofs.some(proof => proof.disposition === "unresolved"
-          || proof.effects.some(effect => effect.unresolved !== undefined))
-        || manifest.source_task_hash !== hashCanonical(current.task)
-        || manifest.first_fact_raw_hash !== targetlessFirstFactHash(firstRaw)
-        || hashCanonical(body) !== sealHash || !validSourceHandoff(manifest)) {
-        throw executionFailure("failed", "PRODUCTION_SOURCE_HANDOFF_CONFLICT");
-      }
+      this.assertSourceSealTask(manifest, current, outbox, retirement);
+      this.assertSourceSealManifest(manifest, current, firstRaw);
       const existing = this.database.prepare(`select seal_hash,source_manifest_json,first_fact_raw,sealed_at
         from production_attempt_handoffs where job_id=? and source_attempt_id=?`).get(
         jobId, attemptId,
       ) as { seal_hash: string | null; source_manifest_json: string | null;
         first_fact_raw: string | null; sealed_at: string | null } | undefined;
-      if (this.sourceAttemptClosed(jobId, attemptId)) {
-        if (existing?.seal_hash === sealHash && existing.sealed_at !== null
-          && existing.source_manifest_json === json(manifest)
-          && existing.first_fact_raw === firstRaw) return;
+      const serialized = json(manifest);
+      if (existing && (existing.seal_hash !== null || existing.sealed_at !== null)) {
+        if (existing.seal_hash === sealHash && existing.sealed_at !== null
+          && existing.source_manifest_json === serialized && existing.first_fact_raw === firstRaw) return;
         throw executionFailure("failed", "PRODUCTION_SOURCE_HANDOFF_CONFLICT");
       }
       const changed = current.status === "completed" ? null : this.database.prepare(`update production_tasks
         set current_reason=?,updated_at=?
         where job_id=? and status='failed' and current_attempt_id=?
-          and staged_result_json is null`).run(
-        reason, now(), jobId, attemptId,
-      );
-      if (changed && changed.changes !== 1) {
-        throw executionFailure("failed", "PRODUCTION_SOURCE_HANDOFF_CONFLICT");
-      }
+          and staged_result_json is null`).run(reason, now(), jobId, attemptId);
+      if (changed && changed.changes !== 1) throw executionFailure("failed", "PRODUCTION_SOURCE_HANDOFF_CONFLICT");
       if (!existing) this.database.prepare(`insert into production_attempt_handoffs(
         job_id,source_attempt_id,issued_attempt_id,seal_hash,source_manifest_json,
         first_fact_raw,sealed_at,accepted_at,readback_observations_json
-      ) values(?,?,null,?,?,?,?,null,'[]')`).run(
-        jobId, attemptId, sealHash, json(manifest), firstRaw, now(),
-      );
+      ) values(?,?,null,?,?,?,?,null,'[]')`).run(jobId, attemptId, sealHash, serialized, firstRaw, now());
       else this.database.prepare(`update production_attempt_handoffs
         set seal_hash=?,source_manifest_json=?,first_fact_raw=?,sealed_at=?
         where job_id=? and source_attempt_id=? and seal_hash is null`).run(
-        sealHash, json(manifest), firstRaw, now(), jobId, attemptId,
+        sealHash, serialized, firstRaw, now(), jobId, attemptId,
       );
     }).immediate();
   }

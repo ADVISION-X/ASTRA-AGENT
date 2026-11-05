@@ -6,7 +6,9 @@ import { requireMutationOutcome, terminalFailureFields } from "./browser-mutatio
 import type { AtomicStepRow, BrowserAtomicStepOutcome, BrowserExactCallMutationFact,
   BrowserMutationIdentity, BrowserMutationOutcome, BrowserMutationState } from "./browser-mutation-types.js";
 import { unsealProviderRecoveryPayload } from "./browser-mutation-payload.js";
-import { readSubmittedConversationLocator } from "./browser-submitted-conversation-locator.js";
+import { readSubmittedConversationLocator, retrySubmittedConversationLocator } from "./browser-submitted-conversation-locator.js";
+import { assertGptRetryTerminalPayload, GPT_RETRY_CHILD, GPT_RETRY_LIMIT, gptRetryCallId,
+  gptRetryActionProjection, type GptStoppedEmptyClick } from "./browser-gpt-retry-contract.js";
 import { readJobReplayEffects } from "./browser-mutation-replay-evidence.js";
 const assertSettledRowTiming = (
   row: Pick<AtomicStepRow, "action_ordinal" | "state" | "terminal_at">, actionOrdinal: number,
@@ -22,6 +24,74 @@ const assertSettledRowTiming = (
 export class BrowserMutationEvidence {
   protected provenanceVerified = false;
   public constructor(protected readonly database: Database.Database, protected readonly payloadKey: Buffer) {}
+
+  private confirmedGptRetryEffect(input: BrowserMutationIdentity, effect: `sha256:${string}`,
+    child: "submit_exact_gpt_turn_once" | typeof GPT_RETRY_CHILD) {
+    const rows = this.database.prepare(`select exact_call_identity_hash,action_ordinal,target_ref,call_id
+      from browser_mutations where job_id=? and attempt_id=? and result_revision=? and product_step_id=?
+        and child_capability_id=? and logical_mutation_id=? and state='CONFIRMED'
+        and mutation_outcome='confirmed' and physical_input_count=1 limit 2`).all(input.jobId, input.attemptId,
+      input.resultRevision, input.productStepId, child, effect) as readonly Readonly<{
+        exact_call_identity_hash: `sha256:${string}`; action_ordinal: number; target_ref: string; call_id: string }>[];
+    if (rows.length !== 1) throw new Error("BROWSER_SOURCE_EFFECT_IDENTITY_MISMATCH");
+    const row = rows[0]!, outcome = this.readAtomicStepOutcome({ jobId: input.jobId, attemptId: input.attemptId,
+      exactCallIdentityHash: row.exact_call_identity_hash, actionOrdinal: row.action_ordinal,
+      targetRef: row.target_ref, effectScope: "provider_effect" });
+    if (!outcome?.conversationLocator || outcome.state !== "confirmed" || !outcome.terminalPayload) {
+      throw new Error("BROWSER_PROVIDER_RECOVERY_ANCHOR_INVALID");
+    }
+    return { row, outcome, proof: outcome.terminalPayload as Readonly<Record<string, unknown>> };
+  }
+
+  protected assertGptRetryPreparation(input: BrowserMutationIdentity, request: GptStoppedEmptyClick): void {
+    const provider = request.action === "regenerate";
+    if (input.deliveryPriorityReplayGrantHash !== null || input.actionOrdinal !== 1
+      || input.childCapabilityId !== (provider ? GPT_RETRY_CHILD : "open_exact_gpt_retry_menu")
+      || input.effectScope !== (provider ? "provider_effect" : "target_local")
+      || input.callId !== gptRetryCallId(request.originalEffectIdentityHash, request.retryOrdinal)) {
+      throw new Error("BROWSER_PROVIDER_EFFECT_OLD_INPUT_UNAUTHORIZED");
+    }
+    const history = this.jobHistoryEvidence(input.jobId);
+    const root = this.confirmedGptRetryEffect(input, request.originalEffectIdentityHash, "submit_exact_gpt_turn_once");
+    if (root.outcome.conversationLocator!.canonicalConversationUrl !== request.canonicalConversationUrl
+      || root.proof.userTurnId !== request.originalUserTurnId || root.proof.promptHash !== request.promptHash) {
+      throw new Error("BROWSER_SOURCE_EFFECT_IDENTITY_MISMATCH");
+    }
+    const prefix = `stopped-empty-retry:${request.originalEffectIdentityHash.slice(7)}:`;
+    const effects = history.replayEffects.filter(effect => effect.childCapabilityId === GPT_RETRY_CHILD
+      && effect.callId.startsWith(prefix));
+    let previous = request.originalEffectIdentityHash;
+    for (let ordinal = 1; ordinal < request.retryOrdinal; ordinal += 1) {
+      const members = effects.filter(effect => effect.callId === gptRetryCallId(request.originalEffectIdentityHash, ordinal));
+      if (members.length !== 1) throw new Error("BROWSER_PROVIDER_EFFECT_OLD_INPUT_UNAUTHORIZED");
+      const member = members[0]!, old = this.confirmedGptRetryEffect(input, member.effectIdentityHash, GPT_RETRY_CHILD);
+      const proof = old.proof;
+      if (proof.originalEffectIdentityHash !== request.originalEffectIdentityHash
+        || proof.previousEffectIdentityHash !== previous || proof.retryOrdinal !== ordinal
+        || proof.profileHash !== request.profileHash || proof.turnMarkerHash !== request.turnMarkerHash
+        || proof.userTurnId !== request.originalUserTurnId || proof.promptHash !== request.promptHash
+        || old.outcome.conversationLocator!.canonicalConversationUrl !== request.canonicalConversationUrl) {
+        throw new Error("BROWSER_SOURCE_EFFECT_IDENTITY_MISMATCH");
+      }
+      previous = member.effectIdentityHash;
+    }
+    if (effects.length !== request.retryOrdinal - 1 || request.retryOrdinal > GPT_RETRY_LIMIT
+      || request.previousEffectIdentityHash !== previous) throw new Error("BROWSER_EXACT_CALL_REPLAY_FORBIDDEN");
+  }
+
+  protected providerRecoveryEnvelope(identity: BrowserMutationIdentity, payload: Readonly<Record<string, unknown>>) {
+    if (identity.childCapabilityId !== GPT_RETRY_CHILD) return { terminalPayload: payload };
+    assertGptRetryTerminalPayload(payload, identity);
+    const projection = gptRetryActionProjection({ ...payload, originalUserTurnId: payload.userTurnId });
+    const expected = `sha256:${createHash("sha256").update(JSON.stringify(projection)).digest("hex")}`;
+    if (expected !== identity.payloadHash) throw new Error("BROWSER_RECONCILIATION_IDENTITY_MISMATCH");
+    const root = this.confirmedGptRetryEffect(identity, payload.originalEffectIdentityHash, "submit_exact_gpt_turn_once");
+    if (!identity.logicalMutationId) throw new Error("BROWSER_PROVIDER_RECOVERY_ANCHOR_INVALID");
+    return { terminalPayload: payload,
+      locatorPayload: retrySubmittedConversationLocator(root.outcome.conversationLocator!, {
+        logicalMutationId: identity.logicalMutationId, exactCallIdentityHash: identity.exactCallIdentityHash,
+      }, payload) };
+  }
 
   public jobHistoryEvidence(jobId: string): Readonly<{
     historyHash: `sha256:${string}`; rowCount: number; walHistoryVerified: boolean;
@@ -165,7 +235,7 @@ export class BrowserMutationEvidence {
 
   public countProviderTurnDispatches(jobId: string, attemptId: string): number {
     const row = this.database.prepare(`select count(*) as count from browser_mutations
-      where job_id=? and attempt_id=? and child_capability_id='submit_exact_gpt_turn_once'
+      where job_id=? and attempt_id=? and child_capability_id in ('submit_exact_gpt_turn_once','retry_exact_gpt_response_once')
         and state in ('DISPATCHED','CONFIRMED','REJECTED')`).get(jobId, attemptId) as { count: number };
     return Number(row.count);
   }
@@ -192,7 +262,7 @@ export class BrowserMutationEvidence {
         parameters: [input.jobId, input.exactCallIdentityHash, input.effectScope, input.attemptId] },
     }[input.effectScope];
     const rows = this.database.prepare(
-      `select command_id,logical_mutation_id,target_ref,document_ref,state,mutation_outcome,reason,native_cause_code,
+      `select command_id,logical_mutation_id,call_id,child_capability_id,target_ref,document_ref,state,mutation_outcome,reason,native_cause_code,
               terminal_at,action_ordinal,physical_input_count,download_guid_hash,download_completed,
               media_identity_revalidated,provider_recovery_payload
        from browser_mutations
@@ -228,7 +298,8 @@ export class BrowserMutationEvidence {
       identityRevalidated: row.media_identity_revalidated === 1,
       terminalPayload: recovered?.terminalPayload ?? null,
       conversationLocator: recovered && input.effectScope === "provider_effect" && row.state === "CONFIRMED"
-        ? readSubmittedConversationLocator(recovered, { exactCallIdentityHash: input.exactCallIdentityHash,
+        ? readSubmittedConversationLocator(recovered, { callId: row.call_id, childCapabilityId: row.child_capability_id,
+          exactCallIdentityHash: input.exactCallIdentityHash,
           providerEffectIdentityHash: row.logical_mutation_id! }) : null,
     });
   }

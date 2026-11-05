@@ -14,7 +14,7 @@ import type { ProductionGptBrowserCall, ProductionGptBrowserLifecycle } from "./
 import type { GptEvidenceStorePort, GptProductionExecutionInput as ExecutionInput } from "./production-ports.js";
 
 export const confirmedSubmitIdentity = (
-  execution: ExecutionInput, call: ProductGptCallInput<"submit_exact_gpt_turn_once">,
+  execution: ExecutionInput, call: ProductGptCallInput<"submit_exact_gpt_turn_once" | "retry_exact_gpt_response_once">,
   existing: BrowserProviderEffectStepCallFact,
 ): Readonly<{ atomicIdentity: BrowserAtomicStepIdentity; exactCallIdentityHash: GptHash }> => {
   const fact = existing.mutation;
@@ -43,7 +43,7 @@ export const confirmedSubmitIdentity = (
 
 export const submitEffect = (
   fact: BrowserExactCallMutationFact, exactCallIdentityHash: GptHash,
-  childCapabilityId: "submit_exact_gpt_turn_once",
+  childCapabilityId: "submit_exact_gpt_turn_once" | "retry_exact_gpt_response_once",
 ): GptChildBrowserFact => {
   if (fact.effectScope !== "provider_effect"
     || !fact.providerEffectIdentityHash || !/^sha256:[a-f0-9]{64}$/u.test(fact.providerEffectIdentityHash)) {

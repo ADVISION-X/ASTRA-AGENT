@@ -2,6 +2,7 @@ import { governanceAssert as assert } from "../audit/shared/governance-exam-asse
 
 import { ensureCurrentBrowserRuntimeArtifact } from "../startup/lib/browser-runtime-artifact.mjs";
 import {
+  getOpenCommand,
   buildChromeWindowRestoreScript,
   restoreWorkbenchWindowIfChromeHasNoWindow,
 } from "../startup/lib/open-workbench-page.mjs";
@@ -51,20 +52,30 @@ await assert.rejects(
   "startup must fail closed when the rebuilt artifact still fails readback",
 );
 
-const restoreScript = buildChromeWindowRestoreScript("http://127.0.0.1:4173");
+const opening = getOpenCommand("http://127.0.0.1:4174", "darwin");
+assert.equal(opening.command, "open");
+assert.deepEqual(opening.args, ["-a", opening.browserPath, "http://127.0.0.1:4174"]);
+assert.equal(opening.args.some(value => /user-data-dir|profile-directory|^--args$|^-n$/u.test(value)), false,
+  "startup must reuse the current signed-in Chrome instead of creating a clean profile or another instance");
+assert.throws(() => getOpenCommand("http://127.0.0.1:4173", "darwin"), /ASTRA_WORKBENCH_ORIGIN_MISMATCH/u);
+const restoreScript = buildChromeWindowRestoreScript("http://127.0.0.1:4174");
 assert.match(restoreScript, /if \(count of windows\) > 0 then return "already_visible"/u);
-assert.match(restoreScript, /if \(count of windows\) = 0 then make new window/u);
-assert.doesNotMatch(restoreScript, /make new tab/u);
+assert.doesNotMatch(restoreScript, /make new tab|user-data-dir|profile-directory/u);
 let restoreRuns = 0;
 const visible = await restoreWorkbenchWindowIfChromeHasNoWindow(
-  "http://127.0.0.1:4173",
+  "http://127.0.0.1:4174",
   "darwin",
-  async () => { restoreRuns += 1; return { stdout: "already_visible", stderr: "" }; },
+  async (command, args) => {
+    assert.equal(command, "osascript");
+    assert.deepEqual(args, ["-e", restoreScript]);
+    restoreRuns += 1;
+    return { stdout: "already_visible", stderr: "" };
+  },
 );
 assert.equal(visible.handoffMode, "already_visible");
 assert.equal(restoreRuns, 1);
 const unsupported = await restoreWorkbenchWindowIfChromeHasNoWindow(
-  "http://127.0.0.1:4173",
+  "http://127.0.0.1:4174",
   "linux",
   async () => { restoreRuns += 1; return { stdout: "", stderr: "" }; },
 );

@@ -1,3 +1,4 @@
+import { gptRetryMutationReceipt, assertGptRetryTerminalPayload, GPT_RETRY_CHILD } from "./browser-gpt-retry-contract.js";
 import type { BrowserMutationIdentity } from "./browser-mutation-types.js";
 import { BROWSER_ERROR_CODES } from "../protocol/generated/browser-protocol.generated.js";
 import { assertSubmitRecoveryPayload } from "./browser-submit-recovery-payload.js";
@@ -358,6 +359,8 @@ export const decodeBrowserMutationReceipt = (
 ): BrowserMutationReceipt => {
   if (!mutationCommandValid(command)) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
   const value = result && typeof result === "object" ? result as Record<string, unknown> : {};
+  if (command.kind === "dom-intent" && command.intent.kind === "click" && command.intent.gptStoppedEmpty && value.gptRetryState !== undefined)
+    return gptRetryMutationReceipt(command.intent.gptStoppedEmpty, value);
   const mutationCount = value.mutationCount;
   if ((mutationCount !== 0 && mutationCount !== 1) || typeof value.postconditionVerified !== "boolean"
     || (value.zeroActionSatisfied === true && value.qualificationRejected === true)) {
@@ -383,6 +386,9 @@ export const verifyBrowserMutationTerminalFact = (
   const confirmedSubmit = receipt.terminal === "confirmed" && receipt.mutationOutcome === "confirmed"
     && identity.childCapabilityId === "submit_exact_gpt_turn_once" && identity.effectScope === "provider_effect";
   if (confirmedSubmit) assertSubmitRecoveryPayload(receipt.submitRecoveryPayload, identity);
+  else if (receipt.terminal === "confirmed" && receipt.mutationOutcome === "confirmed"
+    && identity.childCapabilityId === GPT_RETRY_CHILD && identity.effectScope === "provider_effect")
+    assertGptRetryTerminalPayload(receipt.submitRecoveryPayload, identity);
   else if (receipt.submitRecoveryPayload !== null) throw new Error("BROWSER_RECONCILIATION_RECEIPT_INVALID");
   return receipt;
 };

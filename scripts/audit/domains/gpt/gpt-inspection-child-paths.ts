@@ -22,6 +22,8 @@ export const GPT_RETIRED_SHARED_SEMANTIC_PATHS = [
   `${GPT_ROOT}/web/children/response-children.ts`, `${GPT_ROOT}/web/children/text-response-children.ts`,
 ] as const;
 export const GPT_CONVERSATION_HANDLER_PATHS = [
+  gptChildHandlerPath("prepare_clean_gpt_work"),
+  gptChildFilePath("prepare_clean_gpt_work", "selectors.ts"),
   gptChildHandlerPath("prepare_clean_gpt_chat"),
   ...["prepare_clean_gpt_chat"].flatMap((id) => [
     gptChildFilePath(id, "observation.ts"), gptChildFilePath(id, "selectors.ts"),

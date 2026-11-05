@@ -24,10 +24,6 @@ import {
 import { PRODUCTION_BUSINESS_CAPACITY_MAX } from "./control-contract-dependency.js";
 import { ProductionWorkerSession } from "./worker-session.js";
 import { ProductionRuntimeStore } from "./store.js";
-import type {
-  GeneratedImageArtifact,
-  GeneratedImageResultReceipt,
-} from "../../../mediator/product-plugin-contract.js";
 import type { CompleteProductionOutput } from "./store-complete-output.js";
 import { executionFailure } from "../../execution-failure.js";
 import { productionCloudFetch } from "./cloud-transport.js";
@@ -136,6 +132,7 @@ export async function downloadProductionMaterials(
   const verified: LocalProductionMaterial[] = [];
   const ordered = [...job.material_refs].sort((a, b) => a.ordinal - b.ordinal);
   for (const reference of ordered) {
+    if (reference.role === "research_input") continue;
     signal.throwIfAborted();
     const headers = await session.authorizationHeaders(fenceHeaders(job));
     signal.throwIfAborted();
@@ -302,93 +299,6 @@ async function uploadJsonObject(
       signal: AbortSignal.timeout(120_000),
     });
     return UploadedResultReceiptSchema.parse(parseJsonEnvelope(await response.json() as unknown, response.status));
-  });
-}
-
-async function uploadGeneratedImage(
-  session: ProductionWorkerSession,
-  store: ProductionRuntimeStore,
-  job: ClaimedProductionTask,
-  image: GeneratedImageArtifact,
-): Promise<UploadedResultReceipt> {
-  const uploadArtifactId = `${image.artifact_id}_${hashCanonical({
-    attempt_id: job.grant.attempt_id,
-    role: "generated_image",
-  }).slice(7, 23)}`;
-  const requestId = `aipresult_${hashCanonical({ job_id: job.job_id, attempt_id: job.grant.attempt_id,
-    role: "generated_image", hash: image.sha256 }).slice(7, 47)}`;
-  const pathname = `/internal/ai-production/v6/jobs/${encodeURIComponent(job.job_id)}/artifacts/generated_image/${encodeURIComponent(uploadArtifactId)}`;
-  const bytes = Buffer.from(image.webp_bytes);
-  if (bytes.byteLength !== image.bytes || sha256(bytes) !== image.sha256
-    || image.media_type !== "image/webp"
-    || !Number.isSafeInteger(image.width)
-    || !Number.isSafeInteger(image.height)) {
-    throw executionFailure("failed", "GENERATED_IMAGE_LOCAL_IDENTITY_MISMATCH");
-  }
-  const delivered = store.readOutboxAuthority(requestId);
-  if (delivered?.state === "delivered") {
-    return exactGeneratedImageReceipt(store.readOutboxResponse(requestId), image, uploadArtifactId);
-  }
-  const durableHeaders = {
-    ...fenceHeaders(job),
-    "content-type": "image/webp",
-    "x-ai-request-id": requestId,
-    "x-ai-content-sha256": image.sha256,
-    "x-ai-content-bytes": String(image.bytes),
-  };
-  store.enqueue({ idempotency_key: requestId, kind: "artifact", path: pathname, method: "PUT", headers: durableHeaders, body: bytes });
-  return store.deliverOutbox(requestId, async (write) => {
-    const response = await productionCloudFetch(`${session.device.server_base_url.replace(/\/+$/u, "")}${write.path}`, {
-      method: write.method,
-      headers: await session.authorizationHeaders(write.headers),
-      body: Buffer.from(write.body),
-      signal: AbortSignal.timeout(120_000),
-    });
-    return exactGeneratedImageReceipt(
-      parseJsonEnvelope(await response.json() as unknown, response.status),
-      image, uploadArtifactId,
-    );
-  });
-}
-
-const exactGeneratedImageReceipt = (
-  value: unknown,
-  image: GeneratedImageArtifact,
-  uploadArtifactId: string,
-): UploadedResultReceipt => {
-  const receipt = UploadedResultReceiptSchema.parse(value);
-  if (receipt.artifact_id !== uploadArtifactId
-    || receipt.role !== "generated_image"
-    || receipt.sha256 !== image.sha256
-    || receipt.byte_length !== image.bytes
-    || receipt.media_type !== image.media_type) {
-    throw executionFailure("failed", "GENERATED_IMAGE_WEBSITE_RECEIPT_MISMATCH");
-  }
-  return receipt;
-};
-
-export async function uploadProductionGeneratedImage(
-  session: ProductionWorkerSession,
-  store: ProductionRuntimeStore,
-  job: ClaimedProductionTask,
-  image: GeneratedImageArtifact,
-): Promise<Readonly<{
-  receipt: GeneratedImageResultReceipt;
-  transportReceipt: UploadedResultReceipt;
-}>> {
-  const transportReceipt = await uploadGeneratedImage(session, store, job, image);
-  return Object.freeze({
-    transportReceipt,
-    receipt: Object.freeze({
-      artifact_id: transportReceipt.artifact_id,
-      object_ref: transportReceipt.object_ref,
-      sha256: transportReceipt.sha256,
-      receipt_hash: transportReceipt.receipt_hash,
-      bytes: transportReceipt.byte_length,
-      mime_type: image.media_type,
-      width: image.width,
-      height: image.height,
-    }),
   });
 }
 

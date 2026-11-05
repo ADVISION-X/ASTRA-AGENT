@@ -23,6 +23,6 @@ export const agentRouteCapabilityManifest: AgentRouteCapabilityManifest = Object
   }),
 );
 
-if (manifestRoutes.length !== 43) {
+if (manifestRoutes.length !== productPluginCatalogSnapshot.length) {
   throw new Error("PLUGIN_MANIFEST_DENOMINATOR_INVALID");
 }

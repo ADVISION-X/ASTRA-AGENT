@@ -7,12 +7,15 @@ import { typedBrowserExecutionFailure } from "../../browser/browser-authority-ap
 import { typedRuntimeTransportFailure } from "./transport-failure.js";
 
 export type SerializedStoppedEmptyProof = Readonly<{
-  first_observed_at: string;
-  terminal_observed_at: string;
-  continuous_monotonic_ms: number;
-  observation_count: number;
-  identity_hash: `sha256:${string}`;
+  schema_version: "gpt-stopped-empty-after-five-retries.v1";
+  original_effect_identity_hash: `sha256:${string}`;
+  original_wal_authority_ref: string;
+  original_wal_authority_hash: `sha256:${string}`;
+  retries: readonly Readonly<{ ordinal: number; effect_identity_hash: `sha256:${string}`;
+    wal_authority_ref: string; wal_authority_hash: `sha256:${string}`;
+    pre_empty_observation_revision_hash: `sha256:${string}` }>[];
   terminal_observation_revision_hash: `sha256:${string}`;
+  terminal_observed_at: string;
 }>;
 
 export type SerializedExecutionFailure = Readonly<{
@@ -86,7 +89,7 @@ const settledResultRevision = (failure: SerializedTerminalFailure): boolean =>
   && failure.stopped_empty_proof === null;
 
 const stoppedEmptyRevision = (failure: SerializedTerminalFailure): boolean =>
-  confirmedProviderEffect(failure) && failure.child_capability_id === "submit_exact_gpt_turn_once"
+  confirmedProviderEffect(failure) && failure.child_capability_id === "retry_exact_gpt_response_once"
   && failure.child_proof_ref !== null && failure.child_proof_hash !== null
   && failure.stopped_empty_proof !== null && failure.settled_result_payload_hash === null;
 
@@ -125,12 +128,16 @@ export const serializeTerminalFailure = (
     child_proof_ref: metadata?.childProof?.evidenceRef ?? null,
     child_proof_hash: metadata?.childProof?.evidenceHash ?? null,
     stopped_empty_proof: stoppedEmpty ? Object.freeze({
-      first_observed_at: stoppedEmpty.firstObservedAt,
-      terminal_observed_at: stoppedEmpty.terminalObservedAt,
-      continuous_monotonic_ms: stoppedEmpty.continuousMonotonicMs,
-      observation_count: stoppedEmpty.observationCount,
-      identity_hash: stoppedEmpty.identityHash,
+      schema_version: stoppedEmpty.schemaVersion,
+      original_effect_identity_hash: stoppedEmpty.originalEffectIdentityHash,
+      original_wal_authority_ref: stoppedEmpty.originalWalAuthorityRef,
+      original_wal_authority_hash: stoppedEmpty.originalWalAuthorityHash,
+      retries: Object.freeze(stoppedEmpty.retries.map(retry => Object.freeze({ ordinal: retry.ordinal,
+        effect_identity_hash: retry.effectIdentityHash, wal_authority_ref: retry.walAuthorityRef,
+        wal_authority_hash: retry.walAuthorityHash,
+        pre_empty_observation_revision_hash: retry.preEmptyObservationRevisionHash }))),
       terminal_observation_revision_hash: stoppedEmpty.terminalObservationRevisionHash,
+      terminal_observed_at: stoppedEmpty.terminalObservedAt,
     }) : null,
     cause: executionFailureCause(error),
   });

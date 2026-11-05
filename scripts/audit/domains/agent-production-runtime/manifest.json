@@ -3,10 +3,14 @@
   "capabilityDomain": "agent-production-runtime",
   "status": "active",
   "lawIds": [
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V83", "LAW-AGENT-PRODUCTION-RUNTIME-002-V12",
-    "LAW-AGENT-PRODUCTION-RUNTIME-003-V53", "LAW-AGENT-PRODUCTION-RUNTIME-004-V49",
-    "LAW-AGENT-PRODUCTION-RUNTIME-005-V45", "LAW-AGENT-PRODUCTION-RUNTIME-006-V50",
-    "LAW-AGENT-PRODUCTION-RUNTIME-007-V50", "LAW-AGENT-PRODUCTION-RUNTIME-008-V51"
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V85",
+    "LAW-AGENT-PRODUCTION-RUNTIME-002-V12",
+    "LAW-AGENT-PRODUCTION-RUNTIME-003-V55",
+    "LAW-AGENT-PRODUCTION-RUNTIME-004-V50",
+    "LAW-AGENT-PRODUCTION-RUNTIME-005-V46",
+    "LAW-AGENT-PRODUCTION-RUNTIME-006-V51",
+    "LAW-AGENT-PRODUCTION-RUNTIME-007-V51",
+    "LAW-AGENT-PRODUCTION-RUNTIME-008-V52"
   ],
   "ownedPaths": [
     "docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md",
@@ -21,7 +25,6 @@
     "scripts/acceptance/agent-production-runtime-failure-readback.acceptance-support.ts",
     "scripts/acceptance/agent-production-runtime-failure-transport.acceptance-support.ts",
     "scripts/acceptance/agent-production-runtime-fixtures.ts",
-    "scripts/acceptance/agent-production-runtime-generated-image.acceptance-support.ts",
     "scripts/acceptance/agent-production-runtime-lease-renew-retry-support.ts",
     "scripts/acceptance/agent-production-runtime-ledger.acceptance.ts",
     "scripts/acceptance/agent-production-runtime-material-lease.acceptance-support.ts",
@@ -34,6 +37,7 @@
     "scripts/acceptance/agent-production-runtime-startup-preflight.acceptance-support.ts",
     "scripts/acceptance/agent-production-runtime-startup.acceptance.ts",
     "scripts/acceptance/agent-production-runtime-store-schema.acceptance-support.ts",
+    "scripts/acceptance/agent-production-runtime-work-access.acceptance-support.ts",
     "scripts/acceptance/agent-production-runtime.acceptance.ts",
     "scripts/acceptance/agent-production-runtime.real-proof-support.ts",
     "scripts/acceptance/agent-production-runtime.real-proof.ts",

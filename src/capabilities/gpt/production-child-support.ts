@@ -43,10 +43,14 @@ const proofFacts = (result: GptChildCapabilityResult) => ({ decision: result.pro
   factResultIds: result.proof.factResultIds, candidateCardinality: result.proof.candidateCardinality,
   authorityRefHashes: result.proof.authorityRefHashes, observationRevisionHash: result.proof.observationRevisionHash,
   mutationOutcome: result.proof.committedMutation, browserFact: result.proof.browserFact, nativeFailureCode: result.proof.nativeFailureCode,
+  ...(result.proof.emptyEndedAt ? { emptyEndedAt: result.proof.emptyEndedAt } : {}),
   ...(result.proof.stoppedEmptyProof ? { stoppedEmptyProof: result.proof.stoppedEmptyProof } : {}) });
 export const throwGptChildFailure = (result: GptChildCapabilityResult, evidenceRef: string = result.proof.evidenceRef,
   causeEventId?: string, confirmedProviderEffect?: GptChildBrowserFact | null): never => {
-  const native = nativeFailureCause(result), original = proofFacts(result), preflight = result.proof.browserFact?.knownGptRateLimitPreflightFact;
+  const native = result.exactReadbackNegativeObservation
+    ? executionFailure("failed", result.failureCode ?? "GPT_EXACT_READBACK_UNAVAILABLE",
+      { metadata: { exactReadbackNegativeObservation: result.exactReadbackNegativeObservation } })
+    : nativeFailureCause(result), original = proofFacts(result), preflight = result.proof.browserFact?.knownGptRateLimitPreflightFact;
   const facts = confirmedProviderEffect && preflight ? { ...original, mutationOutcome: confirmedProviderEffect.mutationOutcome,
     browserFact: Object.freeze({ ...confirmedProviderEffect, knownGptRateLimitPreflightFact: preflight }) } : original;
   const effect = confirmedProviderEffect ?? facts.browserFact;
@@ -56,7 +60,8 @@ export const throwGptChildFailure = (result: GptChildCapabilityResult, evidenceR
       : { evidenceRef, evidenceHash: result.proof.evidenceHash };
   const error = gptExecutionFailure(result.failureCode ?? "GPT_CHILD_FAILED", { mutationOutcome: facts.mutationOutcome, evidence,
     browserEffect: confirmedProviderEffect ?? result.failureBrowserEffect ?? null, proofFacts: facts,
-    childProof: result.failureCode === "GPT_RESPONSE_STOPPED_EMPTY" ? { evidenceRef, evidenceHash: result.proof.evidenceHash } : null,
+    childProof: result.failureCode === "GPT_RESPONSE_STOPPED_EMPTY"
+      ? { evidenceRef: result.proof.evidenceRef, evidenceHash: result.proof.evidenceHash } : null,
     ...(native ? { cause: native } : {}) });
   throw causeEventId ? withRuntimeLogCause(error, causeEventId) : error;
 };
@@ -70,11 +75,12 @@ export const terminalizeGptChildResult = (span: RuntimeSpanHandle, result: GptCh
   return terminal.eventId;
 };
 export const terminalizeGptChildError = (span: RuntimeSpanHandle, error: unknown,
-  confirmedProviderEffect?: ProductionGptBrowserCall["confirmedProviderEffect"]): never => {
+  confirmedProviderEffect?: GptChildBrowserFact | null): never => {
   const causeEventId = runtimeLogCauseEventId(error), original = typedExecutionFailure(error)
     ?? executionFailure("failed", failureCode(error, "GPT_CHILD_RUNTIME_FAILED"), { cause: error });
   const gpt = typedGptExecutionFailure(error);
-  const failure = confirmedProviderEffect ? gptExecutionFailure(original.code, { mutationOutcome: confirmedProviderEffect.mutationOutcome,
+  const preserveRetry = executionFailureMetadata(error)?.browserEffect?.childCapabilityId === "retry_exact_gpt_response_once";
+  const failure = confirmedProviderEffect && !preserveRetry ? gptExecutionFailure(original.code, { mutationOutcome: confirmedProviderEffect.mutationOutcome,
     evidence: { evidenceRef: confirmedProviderEffect.evidenceRef, evidenceHash: confirmedProviderEffect.evidenceHash },
     browserEffect: confirmedProviderEffect, proofFacts: gpt?.proofFacts ?? null,
     childProof: executionFailureMetadata(original)?.childProof ?? null, cause: original }) : original;

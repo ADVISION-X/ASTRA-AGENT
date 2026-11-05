@@ -31,6 +31,23 @@ const parseCloudResponse = async (response: Response): Promise<unknown> => {
       ?? runtimeTransportFailure("AI_PRODUCTION_HTTP_ENVELOPE_INVALID", response.status, error);
   }
 };
+const parseDrainingClaimPacket = (init: RequestInit): Record<string, unknown> => {
+  let body: unknown;
+  try { body = typeof init.body === "string" ? JSON.parse(init.body) : null; }
+  catch { throw executionFailure("failed", "PRODUCTION_CLAIM_STOPPED"); }
+  if (!body || typeof body !== "object" || Array.isArray(body)) throw executionFailure("failed", "PRODUCTION_CLAIM_STOPPED");
+  const packet = body as Record<string, unknown>;
+  if ((init.method ?? "GET").toUpperCase() !== "POST"
+    || Object.keys(packet).sort().join("|") !== "control_protocol_version|delivery_candidates|request_id|requested_new_limit|runtime_attestation_receipt_hash|schema_version|source_evidence|worker_session_epoch|worker_session_id"
+    || packet.schema_version !== "xuanxue-ai-claim-request.v6" || packet.control_protocol_version !== "xuanxue-ai-production-v6"
+    || typeof packet.request_id !== "string" || !packet.request_id
+    || !Number.isSafeInteger(packet.requested_new_limit) || Number(packet.requested_new_limit) < 1
+    || Number(packet.requested_new_limit) > PRODUCTION_BUSINESS_CAPACITY_MAX) {
+    throw executionFailure("failed", "PRODUCTION_CLAIM_STOPPED");
+  }
+  return packet;
+};
+
 export interface ProductionRuntimeState {
   readonly agent_attested_in_flight: number;
   readonly browser_action_in_flight: 0 | 1;
@@ -287,20 +304,10 @@ export class ProductionWorkerSession {
   }
 
   private assertDrainingSourceClaim(init: RequestInit): void {
-    let body: unknown;
-    try { body = typeof init.body === "string" ? JSON.parse(init.body) : null; }
-    catch { throw executionFailure("failed", "PRODUCTION_CLAIM_STOPPED"); }
-    if (!body || typeof body !== "object" || Array.isArray(body)) throw executionFailure("failed", "PRODUCTION_CLAIM_STOPPED");
-    const packet = body as Record<string, unknown>;
-    const sources = packet.source_evidence;
-    if ((init.method ?? "GET").toUpperCase() !== "POST"
-      || Object.keys(packet).sort().join("|") !== "control_protocol_version|delivery_candidates|request_id|requested_new_limit|runtime_attestation_receipt_hash|schema_version|source_evidence|worker_session_epoch|worker_session_id"
-      || packet.schema_version !== "xuanxue-ai-claim-request.v6" || packet.control_protocol_version !== "xuanxue-ai-production-v6"
-      || typeof packet.request_id !== "string" || !packet.request_id
-      || packet.worker_session_id !== this.workerSessionId || packet.worker_session_epoch !== this.workerSessionEpoch
+    const packet = parseDrainingClaimPacket(init), sources = packet.source_evidence;
+    if (packet.worker_session_id !== this.workerSessionId || packet.worker_session_epoch !== this.workerSessionEpoch
       || packet.runtime_attestation_receipt_hash !== this.attestation?.receipt_hash || this.attestedDrainState !== "draining"
-      || !this.runtimeState().ledger_reconciled || !Number.isSafeInteger(packet.requested_new_limit)
-      || Number(packet.requested_new_limit) < 1 || Number(packet.requested_new_limit) > PRODUCTION_BUSINESS_CAPACITY_MAX
+      || !this.runtimeState().ledger_reconciled
       || !Array.isArray(packet.delivery_candidates) || packet.delivery_candidates.length !== 0
       || !Array.isArray(sources) || sources.length === 0 || sources.length > PRODUCTION_BUSINESS_CAPACITY_MAX
       || sources.some(source => {

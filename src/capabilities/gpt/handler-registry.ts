@@ -1,3 +1,5 @@
+import { openExactGptRetryMenuHandler } from "./children/open_exact_gpt_retry_menu/handler.js";
+import { retryExactGptResponseOnceHandler } from "./children/retry_exact_gpt_response_once/handler.js";
 import { getSubmittedGptConversationUrlHandler } from "./children/get_submitted_gpt_conversation_url/handler.js";
 import { attachApprovedGptFilesOnceHandler } from "./children/attach_approved_gpt_files_once/handler.js";
 import { acknowledgeKnownGptRateLimitHandler } from "./children/acknowledge_known_gpt_rate_limit/handler.js";
@@ -9,6 +11,7 @@ import { openGptAttachmentControlHandler } from "./children/open_gpt_attachment_
 import { openGptExecutionProfileHandler } from "./children/open_gpt_execution_profile/handler.js";
 import { openGptModelSelectorV3Handler } from "./children/open_gpt_model_selector_v3/handler.js";
 import { prepareCleanGptChatHandler } from "./children/prepare_clean_gpt_chat/handler.js";
+import { prepareCleanGptWorkHandler } from "./children/prepare_clean_gpt_work/handler.js";
 import { reconcileGptAttachmentSetHandler } from "./children/reconcile_gpt_attachment_set/handler.js";
 import { selectGptModelFromStartV3Handler } from "./children/select_gpt_model_from_start_v3/handler.js";
 import { submitExactGptTurnOnceHandler } from "./children/submit_exact_gpt_turn_once/handler.js";
@@ -17,6 +20,9 @@ import type { GptChildCapabilityId } from "./contract.js";
 import type { GptChildHandler } from "./web/child-handler.js";
 
 export const gptChildHandlers = Object.freeze({
+  prepare_clean_gpt_work: prepareCleanGptWorkHandler,
+  open_exact_gpt_retry_menu: openExactGptRetryMenuHandler,
+  retry_exact_gpt_response_once: retryExactGptResponseOnceHandler,
   acknowledge_known_gpt_rate_limit: acknowledgeKnownGptRateLimitHandler,
   prepare_clean_gpt_chat: prepareCleanGptChatHandler,
   open_gpt_execution_profile: openGptExecutionProfileHandler,

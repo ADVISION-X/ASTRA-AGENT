@@ -175,7 +175,7 @@ const verifySingleLocalEnvironmentInjection = async (): Promise<void> => {
     scripts?: Record<string, string>;
   };
   assert.equal(
-    packageJson.scripts?.["grasseye:start"],
+    packageJson.scripts?.["astra:start"],
     "node --import tsx --env-file-if-exists=.env.local scripts/startup/launch-grasseye.mjs",
     "the sole startup command must make the enrolled cloud worker configuration available without a second environment loader",
   );
@@ -197,6 +197,10 @@ const verifySingleLocalEnvironmentInjection = async (): Promise<void> => {
     /mtimeMs|package\.json is newer|package-lock\.json is newer/u,
     "ordinary production startup must inspect dependency reality instead of filesystem timestamps",
   );
+  assert.throws(() => execFileSync(process.execPath,
+    ["--import", "tsx", "scripts/startup/launch-grasseye.mjs", "--no-open"],
+    { env: { ...process.env, GRASSEYE_PORT: "4173" }, timeout: 5_000, stdio: "pipe" }),
+  /ASTRA_LOCAL_IDENTITY_MISMATCH/u, "ASTRA must reject the other application's port before cleaning any listener");
 };
 
 const verifyNodeRuntimeContract = async (): Promise<void> => {
@@ -365,6 +369,11 @@ const verifyUnpackedWebSocketPreflight = async (): Promise<void> => {
     assert.equal(rebuilt.releaseState, "UNPACKED_WEBSOCKET_AUTHORITY");
     assert.equal(rebuilt.authorityState, "BROWSER_AUTHORITY_ABSENT");
     assert.notEqual(rebuilt.releaseBuildId, current.releaseBuildId);
+    const manifestPath = path.join(fixture, "src/lib/browser/chrome-extension/manifest.json");
+    const wrongApplication = JSON.parse(await readFile(manifestPath, "utf8")) as Record<string, unknown>;
+    wrongApplication.key = "YW5vdGhlci1hcHBsaWNhdGlvbg==";
+    await writeFile(manifestPath, JSON.stringify(wrongApplication));
+    assert.throws(build, /ASTRA manifest key must derive/u, "a foreign key must never be released under the ASTRA extension ID");
   } finally {
     await rm(fixture, { recursive: true, force: true });
   }
@@ -434,7 +443,7 @@ export async function runStartupInitializationHealthAcceptance(): Promise<void> 
 await runStartupInitializationHealthAcceptance();
 process.stdout.write("startup initialization health acceptance: PASS\n");
 emitQualityProofObservation({ lawId: "LAW-STARTUP-ENTRYPOINT-001-V4", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:10","forbidden:2","forbidden:3","forbidden:4","forbidden:5","forbidden:6","forbidden:7","forbidden:8","forbidden:9","summary"], locator: "acceptance:startup:shell-survives-dependency-failure", observedValue: "diagnostic Shell remains ready while execution dependency is blocked" });
-emitQualityProofObservation({ lawId: "LAW-STARTUP-ENTRYPOINT-002-V4", evidenceMode: "exam.golden", clauses: ["forbidden:3","forbidden:4","forbidden:5","forbidden:6","summary"], locator: "acceptance:startup:local-port-and-artifact-boundary", observedValue: "current-source artifact sync, unpacked preflight and repository-owned listener cleanup verified" });
+emitQualityProofObservation({ lawId: "LAW-STARTUP-ENTRYPOINT-002-V5", evidenceMode: "exam.golden", clauses: ["forbidden:3","forbidden:4","forbidden:5","forbidden:6","summary"], locator: "acceptance:startup:local-port-and-artifact-boundary", observedValue: "current-source artifact sync, unpacked preflight and repository-owned listener cleanup verified" });
 
 const serviceRoot = await mkdtemp(path.join(tmpdir(), "owned-node-shutdown-"));
 try {

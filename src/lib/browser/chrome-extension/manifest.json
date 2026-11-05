@@ -1,12 +1,23 @@
 {
   "manifest_version": 3,
   "minimum_chrome_version": "120",
-  "name": "GrassEye Browser Authority",
+  "name": "ASTRA Browser Authority",
   "version": "1.0.0",
-  "description": "GrassEye 工作台的固定目录本地浏览器授权扩展。",
-  "background": { "service_worker": "service-worker.js", "type": "module" },
-  "permissions": ["debugger", "alarms"],
-  "action": { "default_title": "GrassEye 自动连接与精确 ChatGPT 认领状态", "default_popup": "pairing.html" },
-  "host_permissions": ["http://127.0.0.1/*"],
-  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsEQ2YAHUA2tK1fM/pla39a81peJ03vFR17ZEYjB5pN1suJLQzVY73pmTti8Qf2WSiTwkHoyfNStR90SH/MNnh8v9v+yR86nwfeEAHehgK6mOeDPkvJyxGTrMLQw1ZA0R23+BPcIdEpEOFPTlsYsGbJo9j3b+W+tTcgK79AGQA+iBPykOCdIWKW2gyy2jXLgRWiiLI2Sh76h+GywHX+JHjG8KCb6eCTelj9/MQ7i6ZIdBCSIDvwlbOOyOFNXkKxeN3CPkTCD6kyoyA4xh6OAdPzziqbUg3vbPV+JOWSOyMRZ3EWkz6xIqWm0+SwvqDwlHqrcPOHJS6ii7yyF367lmZwIDAQAB"
+  "description": "ASTRA-AGENT 独立工作台的固定目录本地浏览器授权扩展。",
+  "background": {
+    "service_worker": "service-worker.js",
+    "type": "module"
+  },
+  "permissions": [
+    "debugger",
+    "alarms"
+  ],
+  "action": {
+    "default_title": "ASTRA 自动连接与精确 ChatGPT 认领状态",
+    "default_popup": "pairing.html"
+  },
+  "host_permissions": [
+    "http://127.0.0.1/*"
+  ],
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAtzsVS7V+Qb6M6g2Bsz9pwb4FLeKIetIsCrJvgXlxlqxg1d8eY3OulLqTPtR/SaZA7IBK1/amnf4/Z6u9zoZyfDa8ugdWZCPjnqLZ5ldpvu3kcUf2h11oPrr2G26X16U9B+K+QucDLkIe3tui9O34VEFwQq1z7uYxeBL+MQs5+VHyCnYYZoW990My7dD9Q55SznY+qOFtL+VyJe48FO+hWXKY1C6WIm4X29ouUPkKDMsyTGNTbYbgx72dnBBvobfKtTTlq2EPxRxMyc8KjwniDOomQkRuPVCFtVS+txHTP6wUUpfhu1UwITxJzq+hsrCDxXW5/qJVOYaIRkaZsSJBxQIDAQAB"
 }

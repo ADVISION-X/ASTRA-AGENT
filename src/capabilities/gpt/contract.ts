@@ -11,7 +11,7 @@ import type {
   GptHash,
   GptReasoningRequirementResult,
 } from "./child-types.js";
-import type { ProviderStoppedEmptyProof } from "../../lib/execution-failure.js";
+import type { ProviderStoppedEmptyProof, ExactReadbackNegativeObservation } from "../../lib/execution-failure.js";
 import type { KnownGptRateLimitPreflightFact } from
   "../../lib/browser/exact-target/browser-gpt-rate-limit-preflight.js";
 
@@ -70,9 +70,20 @@ interface ChildCapabilityContract {
 }
 
 const GPT_CHILD_CONTRACTS = {
+  prepare_clean_gpt_work: { childCapabilityId: "prepare_clean_gpt_work", contractVersion: 1,
+    semanticIntent: "prepare one empty fresh Work composer", owner: "gpt", inputSchema: "gpt.prepare_clean_gpt_work.input.v1",
+    requiredTargetKind: "chatgpt", profile: "TARGET_LOCAL_MUTATION", boundedWait: true,
+    decisions: ["DONE", "ACT", "WAIT", "FAIL_CLOSED"], precondition: "current job fresh root empty composer with coherent mode identity",
+    actionQualification: "empty fresh Chat composer with exactly one enabled Work mode", mutationBudget: "zero-or-one-browser-input",
+    oneObservationOrMutation: "at-most-one-mutation", positivePostcondition: "same current document empty fresh Work composer",
+    negativePostcondition: "draft prior turns attachments generation ambiguous mode stale or unknown input fails closed",
+    evidenceSchema: "gpt-child-capability-proof.v2", evidenceBoundary: "hashes-refs-counts-typed-causes-only",
+    failureClassification: ["failed"], replayPolicy: "target-local-per-generation" },
+  open_exact_gpt_retry_menu: {"childCapabilityId": "open_exact_gpt_retry_menu", "contractVersion": 1, "semanticIntent": "open the stopped-empty original user turn owned retry menu", "owner": "gpt", "inputSchema": "gpt.open_exact_gpt_retry_menu.input.v1", "requiredTargetKind": "chatgpt", "profile": "TARGET_LOCAL_MUTATION", "boundedWait": true, "decisions": ["DONE", "ACT", "FAIL_CLOSED"], "precondition": "current ordinary grant original confirmed root continuous retry ordinal and unchanged exact stopped-empty response", "actionQualification": "one original turn retry trigger with a mutually owned menu", "mutationBudget": "zero-or-one-browser-input", "oneObservationOrMutation": "at-most-one-mutation", "positivePostcondition": "fresh original turn owned retry menu or a changed response with zero input", "negativePostcondition": "identity drift unknown input unproven generation or ambiguous menu fails closed", "evidenceSchema": "gpt-child-capability-proof.v2", "evidenceBoundary": "hashes-refs-counts-typed-causes-only", "failureClassification": ["failed"], "replayPolicy": "target-local-per-generation"} ,
+  retry_exact_gpt_response_once: {"childCapabilityId": "retry_exact_gpt_response_once", "contractVersion": 1, "semanticIntent": "regenerate the stopped-empty original user turn once", "owner": "gpt", "inputSchema": "gpt.retry_exact_gpt_response_once.input.v1", "requiredTargetKind": "chatgpt", "profile": "PROVIDER_EFFECT_ONCE", "boundedWait": true, "decisions": ["ACT", "FAIL_CLOSED"], "precondition": "current ordinary grant original confirmed root continuous retry ordinal and unchanged exact stopped-empty response", "actionQualification": "one enabled default retry in the original turn owned menu", "mutationBudget": "exactly-one-browser-input", "oneObservationOrMutation": "at-most-one-mutation", "positivePostcondition": "fresh exact original user generation has started", "negativePostcondition": "identity drift unknown input unproven generation or ambiguous menu fails closed", "evidenceSchema": "gpt-child-capability-proof.v2", "evidenceBoundary": "hashes-refs-counts-typed-causes-only", "failureClassification": ["failed"], "replayPolicy": "provider-effect-once"} ,
   acknowledge_known_gpt_rate_limit: { childCapabilityId: "acknowledge_known_gpt_rate_limit", contractVersion: 2, semanticIntent: "acknowledge the one exact known GPT rate-limit dialog after Runtime persisted the provider gate", owner: "gpt", inputSchema: "gpt.acknowledge_known_gpt_rate_limit.input.v1", requiredTargetKind: "chatgpt", profile: "TARGET_LOCAL_MUTATION", boundedWait: true, decisions: ["ACT", "FAIL_CLOSED"], precondition: "Runtime provider cooldown intent is durable and the same target document exact dialog fact is bound", actionQualification: "one exact known dialog and one enabled exact acknowledgement button", mutationBudget: "exactly-one-browser-input", oneObservationOrMutation: "at-most-one-mutation", positivePostcondition: "after at least 2500ms the exact known dialog is absent on the same document", negativePostcondition: "absent multiple mismatched disabled stale or unknown state fails closed without another click", evidenceSchema: "gpt-child-capability-proof.v2", evidenceBoundary: "hashes-refs-counts-typed-causes-only", failureClassification: ["failed"], replayPolicy: "target-local-per-generation" },
   reconcile_gpt_attachment_set: { childCapabilityId: "reconcile_gpt_attachment_set", contractVersion: 3, semanticIntent: "prove all and only approved attachments are ready", owner: "gpt", inputSchema: "gpt.reconcile_gpt_attachment_set.input.v1", requiredTargetKind: "chatgpt", profile: "DOM_OBSERVATION", boundedWait: true, decisions: ["DONE", "WAIT", "FAIL_CLOSED"], precondition: "approved provider display names and Product timeout", actionQualification: "never", mutationBudget: "zero", oneObservationOrMutation: "bounded-observation", positivePostcondition: "one composer exact visible approved attachment card set and zero scoped spinner and pending action", negativePostcondition: "composer or attachment ambiguity unexpected duplicate card or Product deadline fails closed", evidenceSchema: "gpt-child-capability-proof.v2", evidenceBoundary: "hashes-refs-counts-typed-causes-only", failureClassification: ["failed"], replayPolicy: "observation-only" },
-  checkpoint_gpt_text_response: { childCapabilityId: "checkpoint_gpt_text_response", contractVersion: 6, semanticIntent: "checkpoint exact assistant outerHTML and deterministic semantic text", owner: "gpt", inputSchema: "gpt.checkpoint_gpt_text_response.input.v3", requiredTargetKind: "chatgpt", profile: "DOM_OBSERVATION", boundedWait: false, decisions: ["DONE", "FAIL_CLOSED"], precondition: "confirmed canonical conversation and exact user turn identity", actionQualification: "never", mutationBudget: "zero", oneObservationOrMutation: "bounded-observation", positivePostcondition: "one revision-bound task-owned artifact binds the exact adjacent assistant turn DOM and semantic text hashes", negativePostcondition: "zero multiple stale revision drift wrong adjacency content hash drift or unproven twenty-minute stopped-empty window fails closed", evidenceSchema: "gpt-child-capability-proof.v2", evidenceBoundary: "hashes-refs-counts-typed-causes-only", failureClassification: ["failed"], replayPolicy: "observation-only" },
+  checkpoint_gpt_text_response: { childCapabilityId: "checkpoint_gpt_text_response", contractVersion: 7, semanticIntent: "checkpoint exact assistant outerHTML and deterministic semantic text", owner: "gpt", inputSchema: "gpt.checkpoint_gpt_text_response.input.v3", requiredTargetKind: "chatgpt", profile: "DOM_OBSERVATION", boundedWait: false, decisions: ["DONE", "FAIL_CLOSED"], precondition: "confirmed canonical conversation and exact user turn identity", actionQualification: "never", mutationBudget: "zero", oneObservationOrMutation: "bounded-observation", positivePostcondition: "one revision-bound task-owned artifact binds the exact adjacent assistant turn DOM and semantic text hashes", negativePostcondition: "zero multiple stale revision drift wrong adjacency content hash drift or an unproven exact empty-ended observation fails closed", evidenceSchema: "gpt-child-capability-proof.v2", evidenceBoundary: "hashes-refs-counts-typed-causes-only", failureClassification: ["failed"], replayPolicy: "observation-only" },
   checkpoint_gpt_generated_image: { childCapabilityId: "checkpoint_gpt_generated_image", contractVersion: 6, semanticIntent: "checkpoint the exact assistant image content", owner: "gpt", inputSchema: "gpt.checkpoint_gpt_generated_image.input.v3", requiredTargetKind: "chatgpt", profile: "DOM_OBSERVATION", boundedWait: false, decisions: ["DONE", "FAIL_CLOSED"], precondition: "confirmed canonical conversation and exact user turn identity", actionQualification: "never", mutationBudget: "zero", oneObservationOrMutation: "bounded-observation", positivePostcondition: "one unique authenticated image byte artifact is bound to the exact adjacent assistant turn and current Browser authority", negativePostcondition: "zero multiple changed unauthorized wrong-adjacency or byte-invalid media fails closed without any viewer save or native download action", evidenceSchema: "gpt-child-capability-proof.v2", evidenceBoundary: "hashes-refs-counts-typed-causes-only", failureClassification: ["failed"], replayPolicy: "observation-only" },
   prepare_clean_gpt_chat: { childCapabilityId: "prepare_clean_gpt_chat", contractVersion: 5, semanticIntent: "prove a fresh Chat-mode root and clear only an otherwise isolated stale draft", owner: "gpt", inputSchema: "gpt.prepare_clean_gpt_chat.input.v1", requiredTargetKind: "chatgpt", profile: "TARGET_LOCAL_MUTATION", boundedWait: true, decisions: ["DONE", "ACT", "WAIT", "FAIL_CLOSED"], precondition: "one composer zero turns attachments generating and one complementary Chat/Work mode pair", actionQualification: "either one exact Work-to-Chat click on an empty fresh root or a nonempty isolated stale exact editable draft", mutationBudget: "zero-or-one-browser-input", oneObservationOrMutation: "at-most-one-mutation", positivePostcondition: "revision-bound exact Chat-selected empty editable draft with zero prior state", negativePostcondition: "the Browser-owned post-action packet proves missing ambiguous noncomplementary or non-Chat mode, prior state, or uncleared draft", evidenceSchema: "gpt-child-capability-proof.v2", evidenceBoundary: "hashes-refs-counts-typed-causes-only", failureClassification: ["failed"], replayPolicy: "target-local-per-generation" },
   open_gpt_execution_profile: { childCapabilityId: "open_gpt_execution_profile", contractVersion: 3, semanticIntent: "open the unique execution profile popup", owner: "gpt", inputSchema: "gpt.open_gpt_execution_profile.input.v2", requiredTargetKind: "chatgpt", profile: "TARGET_LOCAL_MUTATION", boundedWait: true, decisions: ["DONE", "ACT", "WAIT", "FAIL_CLOSED"], precondition: "same-Document six-query profile topology is fully absent hydrating or fully open on an approved reasoning scale", actionQualification: "five profile rows absent and one collapsed qualified trigger", mutationBudget: "zero-or-one-browser-input", oneObservationOrMutation: "at-most-one-mutation", positivePostcondition: "same mutation packet proves one active simple-view popup reasoning topology on scale zero through five and expanded trigger", negativePostcondition: "partial ambiguity invalid scale ineligible candidate document drift timeout or incomplete same-packet topology fails closed", evidenceSchema: "gpt-child-capability-proof.v2", evidenceBoundary: "hashes-refs-counts-typed-causes-only", failureClassification: ["failed"], replayPolicy: "target-local-per-generation" },
@@ -146,6 +157,7 @@ export interface GptChildCapabilityProof {
   readonly browserFact: GptChildBrowserFact | null;
   readonly nativeFailureCode: string | null;
   readonly stoppedEmptyProof?: ProviderStoppedEmptyProof;
+  readonly emptyEndedAt?: string;
   readonly startedAt: string;
   readonly endedAt: string;
   readonly evidenceRef: string;
@@ -155,6 +167,7 @@ export interface GptChildCapabilityProof {
 type GptChildResultCommon = Readonly<{
   proof: GptChildCapabilityProof;
   reasoningRequirementResult: GptReasoningRequirementResult | null;
+  exactReadbackNegativeObservation?: ExactReadbackNegativeObservation;
   failureCause: Readonly<{ name: string; code: string | null }> | null;
   failureBrowserEffect: Readonly<{
     effectScope: "target_local" | "provider_effect";
@@ -184,9 +197,11 @@ export type GptExecutionContext = Readonly<{
   browserAtomicIdentity?: BrowserAtomicStepIdentity;
   signal?: AbortSignal;
   waitForProviderObservation?: (
-    observationDeadlineAt: number,
+    observationDeadlineAt: number | null,
     reason: GptProviderObservationWaitReason,
   ) => Promise<"reobserve" | "deadline">;
+  stoppedEmptyRetryAuthorized?: boolean;
+  stoppedEmptyConversationUrl?: string;
   assertProviderInputAllowed?: () => void;
   rateLimitAckDispatchNotAfter?: number;
   submittedConversationLocator?: Awaited<ReturnType<BrowserTargetLease["readSubmittedConversationUrl"]>>;
@@ -216,7 +231,7 @@ export type GptProviderObservationWaitReason =
   | "exact-user-turn-unavailable"
   | "adjacent-assistant-missing"
   | "stop-present"
-  | "stopped-empty-confirming"
+  | "response-stopped-empty"
   | "generated-image-source-pending";
 
 export const gptExactCallIdentityHash = (

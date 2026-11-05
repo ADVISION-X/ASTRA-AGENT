@@ -263,25 +263,25 @@ export class ProductionGptBrowserLifecycle {
     productStepId: string,
     callId: string,
     childCapabilityId: GptChildCapabilityId,
-    observationDeadlineAt: number,
+    observationDeadlineAt: number | null,
     reason: GptProviderObservationWaitReason,
   ): Promise<"reobserve" | "deadline"> {
     if (childCapabilityId !== "checkpoint_gpt_text_response"
       && childCapabilityId !== "checkpoint_gpt_generated_image") {
       throw executionFailure("failed", "GPT_PROVIDER_PROBE_CHILD_INVALID");
     }
-    if (!Number.isFinite(observationDeadlineAt)) throw executionFailure("failed", "GPT_PROVIDER_OBSERVATION_DEADLINE_INVALID");
+    if (observationDeadlineAt !== null && !Number.isFinite(observationDeadlineAt)) throw executionFailure("failed", "GPT_PROVIDER_OBSERVATION_DEADLINE_INVALID");
     const current = this.activeBrowser;
     if (!current || current.call !== active) {
       throw executionFailure("failed", "GPT_BROWSER_SESSION_TRANSITION_UNSETTLED");
     }
-    if (Date.now() >= observationDeadlineAt) return "deadline";
+    if (observationDeadlineAt !== null && Date.now() >= observationDeadlineAt) return "deadline";
     if (active.browser.pendingMutationCount() > 0) {
       throw executionFailure("failed", "BROWSER_NORMAL_PROVIDER_WAIT_WITH_PENDING_MUTATION");
     }
     assertConfirmedProviderReadback(active, this.browserAuthority, this.execution.jobId, this.execution.attemptId);
     const eligibleAt = Date.now() + PROVIDER_OBSERVATION_MIN_INTERVAL_MS;
-    if (eligibleAt > observationDeadlineAt) return "deadline";
+    if (observationDeadlineAt !== null && eligibleAt > observationDeadlineAt) return "deadline";
     this.emitProviderWaitLog(active, productStepId, callId, childCapabilityId, reason);
     try {
       await active.facade.park({ reason: "gpt-provider-observation-wait", mode: "product-call-settlement" });
@@ -295,7 +295,7 @@ export class ProductionGptBrowserLifecycle {
       );
     } catch (error) {
       if (failureCode(error) === "V6_DEADLINE_BUDGET_EXHAUSTED"
-        && !this.execution.abortSignal.aborted && Date.now() >= observationDeadlineAt) return "deadline";
+        && !this.execution.abortSignal.aborted && observationDeadlineAt !== null && Date.now() >= observationDeadlineAt) return "deadline";
       throw error;
     }
     this.activeBrowser = current;
@@ -316,7 +316,7 @@ export class ProductionGptBrowserLifecycle {
       "exact-user-turn-unavailable": "GPT_PROVIDER_WAIT_EXACT_USER_TURN_UNAVAILABLE",
       "adjacent-assistant-missing": "GPT_PROVIDER_WAIT_ADJACENT_ASSISTANT_MISSING",
       "stop-present": "GPT_PROVIDER_WAIT_STOP_PRESENT",
-      "stopped-empty-confirming": "GPT_PROVIDER_WAIT_STOPPED_EMPTY_CONFIRMING",
+      "response-stopped-empty": "GPT_PROVIDER_WAIT_RESPONSE_STOPPED_EMPTY",
     } as const;
     if (childCapabilityId === "checkpoint_gpt_generated_image"
       && reason === "generated-image-source-pending") {
@@ -340,7 +340,7 @@ export class ProductionGptBrowserLifecycle {
       | "GPT_PROVIDER_WAIT_EXACT_USER_TURN_UNAVAILABLE"
       | "GPT_PROVIDER_WAIT_ADJACENT_ASSISTANT_MISSING"
       | "GPT_PROVIDER_WAIT_STOP_PRESENT"
-      | "GPT_PROVIDER_WAIT_STOPPED_EMPTY_CONFIRMING",
+      | "GPT_PROVIDER_WAIT_RESPONSE_STOPPED_EMPTY",
   ): void {
     const callIdentity = `${productStepId}:${callId}:${childCapabilityId}:${code}`;
     const emittedAt = performance.now();

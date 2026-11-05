@@ -28,11 +28,26 @@ const catalogPluginIds = (
   project: Parameters<typeof listActiveSourceFiles>[0],
 ): readonly string[] => {
   const catalog = project.getSourceFiles().find((file) => getRepoSourcePath(file) === catalogPath);
-  return [...new Set(catalog?.getImportDeclarations()
+  const roots = [...new Set(catalog?.getImportDeclarations()
     .map((declaration) => declaration.getModuleSpecifierValue())
     .filter((specifier) => specifier.startsWith(catalogPluginPrefix))
     .map((specifier) => specifier.slice(catalogPluginPrefix.length).split("/")[0])
-    .filter((pluginId): pluginId is string => Boolean(pluginId)) ?? [])].sort();
+    .filter((pluginId): pluginId is string => Boolean(pluginId)) ?? [])];
+  const visited = new Set<string>();
+  const pending = roots.flatMap(id => project.getSourceFiles().filter(file =>
+    getRepoSourcePath(file).startsWith(`src/plugins/${id}/`)));
+  while (pending.length > 0) {
+    const file = pending.pop()!;
+    const path = getRepoSourcePath(file);
+    if (visited.has(path)) continue;
+    visited.add(path);
+    for (const edge of collectResolvedModuleTargets(file)) {
+      if (!edge.targetPath.startsWith("src/plugins/") || visited.has(edge.targetPath)) continue;
+      const target = project.getSourceFiles().find(source => getRepoSourcePath(source) === edge.targetPath);
+      if (target) pending.push(target);
+    }
+  }
+  return [...new Set([...visited].map(pluginIdFromSourcePath).filter((id): id is string => Boolean(id)))].sort();
 };
 
 const sourcePluginIds = (

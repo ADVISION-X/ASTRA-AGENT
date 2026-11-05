@@ -1,17 +1,16 @@
-import { join, resolve } from "node:path";
+import { resolve } from "node:path";
+import { ASTRA_BROWSER_EXTENSION_ID, ASTRA_BROWSER_PROFILE_REF, ASTRA_DATA_DIRECTORY } from "./browser-application-identity.js";
 
-export const GRASSEYE_BROWSER_EXTENSION_ID = "emkmbecadncngofidjgocmifhbonifgm";
+export const GRASSEYE_BROWSER_EXTENSION_ID = ASTRA_BROWSER_EXTENSION_ID;
 
 export type BrowserProfileConfig = Readonly<{
   profileRef: string;
-  profileDir: string;
   extensionId: string;
   unpackedExtensionDirectory: string;
 }>;
 
-export const resolveProductionBrowserProfileConfig = (dataDir: string): BrowserProfileConfig => ({
-  profileRef: "grasseye-managed-browser-profile-v1",
-  profileDir: join(dataDir, "browser", "profile"),
+export const resolveProductionBrowserProfileConfig = (): BrowserProfileConfig => ({
+  profileRef: ASTRA_BROWSER_PROFILE_REF,
   extensionId: GRASSEYE_BROWSER_EXTENSION_ID,
-  unpackedExtensionDirectory: resolve(process.cwd(), ".grasseye-local", "browser-build", "extension"),
+  unpackedExtensionDirectory: resolve(process.cwd(), ASTRA_DATA_DIRECTORY, "browser-build", "extension"),
 });

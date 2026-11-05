@@ -1,3 +1,4 @@
+import { productionControlContractVersion } from "../../src/lib/local-runtime/production/control-contract-dependency.js";
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 
 import type { ProductionExecutionLease } from "../../src/lib/local-runtime/production/contracts.js";
@@ -73,7 +74,7 @@ const renewSessionFetch = (
     const url = String(input);
     if (url.endsWith("/sessions/open")) return successfulJsonResponse({
       session: { device_id: validDeviceCredential.device_id, worker_session_id: "worker-session:renew-retry",
-        worker_session_epoch: 1, control_contract_version: 49, attestation_seq: 0 },
+        worker_session_epoch: 1, control_contract_version: productionControlContractVersion, attestation_seq: 0 },
       session_credential: {
         schema_version: "xuanxue-ai-worker-session-credential.v6",
         worker_session_id: "worker-session:renew-retry", worker_session_epoch: 1,

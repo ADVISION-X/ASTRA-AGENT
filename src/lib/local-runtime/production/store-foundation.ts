@@ -92,29 +92,25 @@ const serializedFailureKeys = ["browser_outcome", "cause", "child_capability_id"
   "stopped_empty_proof"];
 const serializedTerminalFailureKeys = [...serializedFailureKeys,
   "provider_effect_identity_hash", "settled_result_payload_hash"].sort();
-const stoppedEmptyTimestampsValid = (row: Record<string, unknown>): boolean =>
-  typeof row.first_observed_at === "string" && Number.isFinite(Date.parse(row.first_observed_at))
-  && new Date(row.first_observed_at).toISOString() === row.first_observed_at
-  && typeof row.terminal_observed_at === "string" && Number.isFinite(Date.parse(row.terminal_observed_at))
-  && new Date(row.terminal_observed_at).toISOString() === row.terminal_observed_at
-  && Date.parse(row.terminal_observed_at) >= Date.parse(row.first_observed_at);
-const stoppedEmptyCountersValid = (row: Record<string, unknown>): boolean =>
-  Number.isSafeInteger(row.continuous_monotonic_ms) && Number(row.continuous_monotonic_ms) >= 1_200_000
-  && Number.isSafeInteger(row.observation_count) && Number(row.observation_count) >= 2;
-const stoppedEmptyHashesValid = (row: Record<string, unknown>): boolean =>
-  [row.identity_hash, row.terminal_observation_revision_hash]
-    .every((hash) => typeof hash === "string" && /^sha256:[a-f0-9]{64}$/u.test(hash));
+const stoppedProofRecord = (value: unknown): value is Record<string, unknown> =>
+  value !== null && typeof value === "object" && !Array.isArray(value);
+const stoppedProofHash = (value: unknown): boolean => typeof value === "string" && /^sha256:[a-f0-9]{64}$/u.test(value);
+const stoppedProofWalRef = (value: unknown): boolean => typeof value === "string" && /^browser-mutation:[^\s]+$/u.test(value);
+const stoppedProofRetryValid = (value: unknown, index: number): value is Record<string, unknown> => stoppedProofRecord(value)
+  && Object.keys(value).sort().join("|") === "effect_identity_hash|ordinal|pre_empty_observation_revision_hash|wal_authority_hash|wal_authority_ref"
+  && value.ordinal === index + 1 && stoppedProofWalRef(value.wal_authority_ref)
+  && [value.effect_identity_hash, value.wal_authority_hash, value.pre_empty_observation_revision_hash].every(stoppedProofHash);
 const serializedStoppedEmptyProofValid = (value: unknown): boolean => {
   if (value === null) return true;
-  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
-  const row = value as Record<string, unknown>;
-  return JSON.stringify(Object.keys(row).sort()) === JSON.stringify([
-    "continuous_monotonic_ms", "first_observed_at", "identity_hash", "observation_count",
-    "terminal_observation_revision_hash", "terminal_observed_at",
-  ])
-    && stoppedEmptyTimestampsValid(row)
-    && stoppedEmptyCountersValid(row)
-    && stoppedEmptyHashesValid(row);
+  if (!stoppedProofRecord(value) || Object.keys(value).sort().join("|") !== ["schema_version", "original_effect_identity_hash",
+    "original_wal_authority_ref", "original_wal_authority_hash", "retries", "terminal_observation_revision_hash",
+    "terminal_observed_at"].sort().join("|") || value.schema_version !== "gpt-stopped-empty-after-five-retries.v1"
+    || ![value.original_effect_identity_hash, value.original_wal_authority_hash, value.terminal_observation_revision_hash].every(stoppedProofHash)
+    || !stoppedProofWalRef(value.original_wal_authority_ref) || typeof value.terminal_observed_at !== "string"
+    || !Number.isFinite(Date.parse(value.terminal_observed_at)) || new Date(value.terminal_observed_at).toISOString() !== value.terminal_observed_at
+    || !Array.isArray(value.retries) || value.retries.length !== 5 || !value.retries.every(stoppedProofRetryValid)) return false;
+  return new Set([value.original_effect_identity_hash, ...value.retries.map(retry => retry.effect_identity_hash)]).size === 6
+    && new Set([value.original_wal_authority_ref, ...value.retries.map(retry => retry.wal_authority_ref)]).size === 6;
 };
 const serializedEvidenceValid = (row: Record<string, unknown>): boolean => {
   const refValid = row.evidence_ref === null
@@ -175,13 +171,17 @@ const settledResultHashValid = (row: Record<string, unknown>): boolean =>
       && /^sha256:[a-f0-9]{64}$/u.test(row.settled_result_payload_hash)
     : row.settled_result_payload_hash === null;
 
-const stoppedEmptyTransportValid = (row: Record<string, unknown>): boolean =>
-  row.code !== "GPT_RESPONSE_STOPPED_EMPTY"
-    ? row.stopped_empty_proof === null && row.child_proof_ref === null && row.child_proof_hash === null
-    : row.effect_scope === "provider_effect" && row.browser_outcome === "CONFIRMED"
-      && row.child_capability_id === "submit_exact_gpt_turn_once"
-      && row.mutation_outcome === "confirmed" && row.stopped_empty_proof !== null
-      && serializedChildProofValid(row);
+const stoppedEmptyTransportValid = (row: Record<string, unknown>): boolean => {
+  if (row.code !== "GPT_RESPONSE_STOPPED_EMPTY") return row.stopped_empty_proof === null
+    && row.child_proof_ref === null && row.child_proof_hash === null;
+  const proof = row.stopped_empty_proof;
+  const terminal = stoppedProofRecord(proof) && Array.isArray(proof.retries) ? proof.retries[4] : null;
+  return row.effect_scope === "provider_effect" && row.browser_outcome === "CONFIRMED"
+    && row.child_capability_id === "retry_exact_gpt_response_once" && row.mutation_outcome === "confirmed"
+    && proof !== null && serializedStoppedEmptyProofValid(proof) && serializedChildProofValid(row)
+    && stoppedProofRecord(terminal) && row.provider_effect_identity_hash === terminal.effect_identity_hash
+    && row.evidence_ref === terminal.wal_authority_ref && row.evidence_hash === terminal.wal_authority_hash;
+};
 
 const terminalFailureTransportValid = (row: Record<string, unknown>): boolean =>
   providerEffectIdentityValid(row) && settledResultHashValid(row) && stoppedEmptyTransportValid(row)

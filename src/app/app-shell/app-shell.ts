@@ -13,7 +13,7 @@ export const renderAppShell = (): string => `<!doctype html>
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>GrassEye AGENT Workbench</title>
+  <title>ASTRA-AGENT Workbench</title>
   <style>${renderWorkbenchHomeStyles()}</style>
 </head>
 <body class="inspector-collapsed" data-active-skill="production-runtime">

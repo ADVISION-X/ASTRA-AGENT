@@ -4,13 +4,14 @@ import { execFile as execFileCallback } from "node:child_process";
 import { copyFile, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { dirname, relative, resolve, sep } from "node:path";
 import { promisify } from "node:util";
+import { ASTRA_DATA_DIRECTORY, ASTRA_BROWSER_EXTENSION_ID } from "../profile/browser-application-identity.ts";
 
 const execFile = promisify(execFileCallback);
 const workspaceRoot = resolve(process.cwd());
 const sourceRoot = resolve(workspaceRoot, "src/lib/browser/chrome-extension");
-const buildRoot = resolve(workspaceRoot, ".grasseye-local/browser-build");
+const buildRoot = resolve(workspaceRoot, ASTRA_DATA_DIRECTORY, "browser-build");
 const fixedOutputDirectory = resolve(buildRoot, "extension");
-const releaseRecordPath = resolve(workspaceRoot, ".grasseye-local/browser-release/release-record.json");
+const releaseRecordPath = resolve(workspaceRoot, ASTRA_DATA_DIRECTORY, "browser-release/release-record.json");
 const esbuildBinary = resolve(workspaceRoot, "node_modules/esbuild/bin/esbuild");
 
 const sha256 = (value) => `sha256:${createHash("sha256").update(value).digest("hex")}`;
@@ -25,6 +26,9 @@ const sourceManifest = async () => {
   const manifest = await readJson(manifestPath);
   assert.equal(manifest.manifest_version, 3, "Browser extension must remain MV3.");
   assert.equal(manifest.background?.service_worker, "service-worker.js", "Browser extension must expose only service-worker.js.");
+  const publicKeyHash = createHash("sha256").update(Buffer.from(manifest.key, "base64")).digest("hex").slice(0, 32);
+  const derivedId = [...publicKeyHash].map(value => String.fromCharCode(97 + Number.parseInt(value, 16))).join("");
+  assert.equal(derivedId, ASTRA_BROWSER_EXTENSION_ID, "ASTRA manifest key must derive the fixed application extension ID.");
   return manifestPath;
 };
 
@@ -107,7 +111,7 @@ const writeExtensionReleaseRecord = async (outputDirectory, extensionTreeHash, r
   const releaseRecord = {
     schemaVersion: "grasseye.browser.unpacked-release.v1",
     releaseBuildId,
-    extensionId: "emkmbecadncngofidjgocmifhbonifgm",
+    extensionId: ASTRA_BROWSER_EXTENSION_ID,
     version: JSON.parse(manifestSource.toString("utf8")).version,
     extensionDirectoryHashV1: extensionTreeHash,
     manifestHash: sha256(manifestSource),

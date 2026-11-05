@@ -210,9 +210,13 @@ export const reconcileCompletedBrowserTargets = async (state: RuntimeState): Pro
 type AuthorityReadback = Readonly<{ task: StoredProductionTask; remote: RemoteProductionDeviceJobStatus }>;
 const compareJobIds = (a: string, b: string): number => Buffer.compare(Buffer.from(a), Buffer.from(b));
 
-const recordJobReadbackFailure = (state: RuntimeState, jobId: string, error: unknown): void => {
+const isSharedTransportAuthorizationFailure = (error: unknown): boolean => {
   const transport = typedRuntimeTransportFailure(error);
-  if (!typedExecutionFailure(error) || transport && [401, 403].includes(transport.httpStatus)) throw error;
+  return Boolean(transport && [401, 403].includes(transport.httpStatus));
+};
+
+const recordJobReadbackFailure = (state: RuntimeState, jobId: string, error: unknown): void => {
+  if (!typedExecutionFailure(error) || isSharedTransportAuthorizationFailure(error)) throw error;
   state.lastErrorCode = failureCode(error, "EXECUTION_RECONCILIATION_PENDING");
   state.lastErrorReason = safeReason(error);
   state.store.setCurrentReason(jobId, state.lastErrorCode);
@@ -240,11 +244,15 @@ const readDeliveryCandidates = (state: RuntimeState): NonNullable<Parameters<typ
   return candidates.sort((a, b) => compareJobIds(a.job_id, b.job_id));
 };
 
+const circularJobPage = (ids: readonly string[], cursor: string | null, limit: number): string[] => [
+  ...ids.filter(id => cursor === null || compareJobIds(id, cursor) > 0),
+  ...ids.filter(id => cursor !== null && compareJobIds(id, cursor) <= 0),
+].slice(0, limit);
+
 const nextStatusJobIds = (state: RuntimeState): readonly string[] => {
   if (state.draining && state.drainJobIds) {
     const ids = [...state.drainJobIds].sort(compareJobIds), cursor = state.lastStatusJobId;
-    const page = [...ids.filter(id => cursor === null || compareJobIds(id, cursor) > 0),
-      ...ids.filter(id => cursor !== null && compareJobIds(id, cursor) <= 0)].slice(0, 32);
+    const page = circularJobPage(ids, cursor, 32);
     state.lastStatusJobId = page.at(-1) ?? null;
     return page;
   }
@@ -345,8 +353,7 @@ const workerIteration = async (state: RuntimeState): Promise<number> => {
     try { await reconcile(); }
     catch (error) {
       if (!typedExecutionFailure(error) && !failureCode(error).startsWith("BROWSER_")) throw error;
-      const transport = typedRuntimeTransportFailure(error);
-      if (transport && [401, 403].includes(transport.httpStatus)) throw error;
+      if (isSharedTransportAuthorizationFailure(error)) throw error;
       state.lastErrorCode = failureCode(error, "PROVIDER_RECOVERY_PENDING");
       state.lastErrorReason = safeReason(error);
     }
@@ -378,8 +385,7 @@ const workerIteration = async (state: RuntimeState): Promise<number> => {
   const sources = sourceEvidence.filter(source => !candidates.has(source.job_id));
   const transportIds = [...new Set([...sources.map(source => source.job_id), ...candidates])].sort(compareJobIds);
   const cursor = state.lastTransportJobId;
-  const page = [...transportIds.filter(id => cursor === null || compareJobIds(id, cursor) > 0),
-    ...transportIds.filter(id => cursor !== null && compareJobIds(id, cursor) <= 0)].slice(0, PRODUCTION_BUSINESS_CAPACITY_MAX);
+  const page = circularJobPage(transportIds, cursor, PRODUCTION_BUSINESS_CAPACITY_MAX);
   const selected = new Set(page);
   const recoveryOnlyClaim = availableNewSlots <= 0 && hasExistingAttemptRecovery;
   if (page.length) state.lastTransportJobId = page[page.length - 1]!;

@@ -1,3 +1,4 @@
+import { assertGptStoppedEmptyIntent, type GptStoppedEmptyClick } from "./browser-gpt-retry-contract.js";
 const BROWSER_DOM_FIELD_VALUES = [
   "id", "testId", "turnKey", "tagName", "type", "role", "name", "label",
   "ariaLabel", "ariaLabelledBy", "ariaControls", "ariaExpanded", "ariaChecked", "ariaPressed", "ariaValueMin", "ariaValueMax", "ariaValueNow",
@@ -130,6 +131,7 @@ export type BrowserDomIntent =
   | Readonly<{ kind: "readAttribute"; selector: string; name: string; /** Caller capacity hint; Browser never truncates. */ maxChars: number; maxMatches?: number; expectedMatches?: number; matchIndex?: number; textContains?: string; scope?: BrowserDomReadScope }>
   | Readonly<{
     kind: "click";
+    gptStoppedEmpty?: GptStoppedEmptyClick;
     selector: string;
     expectedText?: string;
     expectedTextEquals?: BrowserDomExactText;
@@ -461,6 +463,7 @@ const assertClickObservation = (
   if (timeoutInvalid(observation.timeoutMs)) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
 };
 const assertClickIntent = (intent: Extract<BrowserDomIntent, { kind: "click" }>): void => {
+  if (intent.gptStoppedEmpty !== undefined) return assertGptStoppedEmptyIntent(intent);
   assertTargetText(intent);
   assertPreClickExactOutgoingTurn(intent.preClickExactOutgoingTurn);
   if (intent.requiredClickPointSelector !== undefined

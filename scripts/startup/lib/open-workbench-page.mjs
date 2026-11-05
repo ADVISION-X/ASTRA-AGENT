@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
 import { spawn } from "node:child_process";
+import { ASTRA_LOCAL_ORIGIN } from "../../../src/lib/browser/profile/browser-application-identity.ts";
 
 const MACOS_CHROME_APP_CANDIDATES = [
   "/Applications/Google Chrome.app",
@@ -7,10 +8,6 @@ const MACOS_CHROME_APP_CANDIDATES = [
 ];
 
 const toFailureReason = (error) => (error instanceof Error ? error.message : String(error));
-
-function escapeAppleScriptString(value) {
-  return value.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
-}
 
 function runSpawn(command, args, options = {}) {
   return new Promise((resolve, reject) => {
@@ -39,43 +36,33 @@ function runSpawn(command, args, options = {}) {
   });
 }
 
-function buildChromeTabHandoffScript(url) {
-  const escapedUrl = escapeAppleScriptString(url);
-  return `
-tell application "Google Chrome" to activate
-tell application "Google Chrome"
-    if (count of windows) = 0 then
-        make new window
-        set URL of active tab of front window to "${escapedUrl}"
-        return "opened_new_window"
-    end if
-    repeat with w in windows
-        set tIndex to 1
-        repeat with t in tabs of w
-            set u to URL of t
-            if u is "${escapedUrl}" then
-                set active tab index of w to tIndex
-                set index of w to 1
-                return "focused_existing_tab"
-            end if
-            set tIndex to tIndex + 1
-        end repeat
-    end repeat
-    set frontTabUrl to URL of active tab of front window
-    if frontTabUrl is "${escapedUrl}" then
-        return "already_open"
-    end if
-    tell front window
-        make new tab with properties {URL:"${escapedUrl}"}
-        set active tab index to (count of tabs)
-    end tell
-    return "opened_new_tab"
-end tell
-`;
+export function resolveMacOsChromeAppPath() {
+  const configured = process.env.GRASSEYE_BROWSER_APP?.trim();
+  if (configured && existsSync(configured)) return configured;
+  const installed = MACOS_CHROME_APP_CANDIDATES.find(candidate => existsSync(candidate));
+  if (!installed) throw new Error("Google Chrome.app was not found. Set GRASSEYE_BROWSER_APP to the installed Chrome .app path.");
+  return installed;
+}
+
+export function getOpenCommand(url, platform = process.platform) {
+  if (new URL(url).origin !== ASTRA_LOCAL_ORIGIN) throw new Error("ASTRA_WORKBENCH_ORIGIN_MISMATCH");
+  if (platform === "darwin") {
+    const browserPath = resolveMacOsChromeAppPath();
+    return { command: "open", args: ["-a", browserPath, url], browserName: "Google Chrome", browserPath };
+  }
+  const browserPath = platform === "win32" ? "chrome" : "google-chrome";
+  return { command: browserPath, args: [url], browserName: "Google Chrome", browserPath };
+}
+
+export async function openWorkbenchPage(url, platform = process.platform) {
+  const command = getOpenCommand(url, platform);
+  await runSpawn(command.command, command.args);
+  return { ...command, handoffMode: "opened_current_chrome" };
 }
 
 export function buildChromeWindowRestoreScript(url) {
-  const escapedUrl = escapeAppleScriptString(url);
+  if (new URL(url).origin !== ASTRA_LOCAL_ORIGIN) throw new Error("ASTRA_WORKBENCH_ORIGIN_MISMATCH");
+  const escapedUrl = url.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
   return `
 if application "Google Chrome" is running then
     tell application "Google Chrome"
@@ -91,86 +78,9 @@ end tell
 `;
 }
 
-async function handoffToCurrentChromeTab(url) {
-  const browserAppPath = resolveMacOsChromeAppPath();
-  const result = await runSpawn("osascript", ["-e", buildChromeTabHandoffScript(url)]);
-  return {
-    browserName: "Google Chrome",
-    browserPath: browserAppPath,
-    command: "osascript",
-    args: ["-e", buildChromeTabHandoffScript(url)],
-    handoffMode: result.stdout || "focused_existing_tab",
-  };
-}
-
-async function tryMacOsChromeHandoff(url) {
-  try {
-    return await handoffToCurrentChromeTab(url);
-  } catch (error) {
-    throw new Error(`Chrome tab handoff failed: ${toFailureReason(error)}`);
-  }
-}
-
-export function resolveMacOsChromeAppPath() {
-  const configuredAppPath = process.env.GRASSEYE_BROWSER_APP?.trim();
-  if (configuredAppPath && existsSync(configuredAppPath)) {
-    return configuredAppPath;
-  }
-
-  for (const candidate of MACOS_CHROME_APP_CANDIDATES) {
-    if (existsSync(candidate)) {
-      return candidate;
-    }
-  }
-
-  throw new Error("Google Chrome.app was not found on this macOS host. Set GRASSEYE_BROWSER_APP to the installed Chrome .app path.");
-}
-
-export function getOpenCommand(url, platform = process.platform) {
-  if (platform === "darwin") {
-    const browserAppPath = resolveMacOsChromeAppPath();
-    return {
-      command: "open",
-      args: ["-a", browserAppPath, url],
-      browserName: "Google Chrome",
-      browserPath: browserAppPath,
-    };
-  }
-
-  if (platform === "win32") {
-    return { command: "cmd", args: ["/c", "start", "", "chrome", url], browserName: "Google Chrome", browserPath: "chrome" };
-  }
-
-  return { command: "google-chrome", args: [url], browserName: "Google Chrome", browserPath: "google-chrome" };
-}
-
-export async function openMainPage(url, platform = process.platform) {
-  if (platform === "darwin") {
-    return tryMacOsChromeHandoff(url);
-  }
-
-  const { command, args, browserName, browserPath } = getOpenCommand(url, platform);
-  await runSpawn(command, args, { stdio: "ignore" });
-
-  return {
-    browserName,
-    browserPath,
-    command,
-    args,
-  };
-}
-
-export async function openWorkbenchPage(url, platform = process.platform) {
-  return openMainPage(url, platform);
-}
-
-export async function restoreWorkbenchWindowIfChromeHasNoWindow(
-  url,
-  platform = process.platform,
-  spawnRunner = runSpawn,
-) {
+export async function restoreWorkbenchWindowIfChromeHasNoWindow(url, platform = process.platform, spawnRunner = runSpawn) {
   if (platform !== "darwin") return { handoffMode: "unsupported_platform_noop" };
   if (spawnRunner === runSpawn) resolveMacOsChromeAppPath();
   const result = await spawnRunner("osascript", ["-e", buildChromeWindowRestoreScript(url)]);
-  return { handoffMode: result.stdout || "already_visible" };
+  return { handoffMode: result.stdout || "opened_new_window" };
 }

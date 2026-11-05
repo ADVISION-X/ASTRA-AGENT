@@ -1,3 +1,4 @@
+import { GPT_RETRY_CHILD, gptRetryTerminalPayload } from "./browser-gpt-retry-contract.js";
 import { decodeBrowserMutationReceipt } from "./browser-mutation-receipt.js";
 import { bindBrowserMutationObservation, bindBrowserObservationPacket, browserObservationPacketRevisionBytes, browserMutationTerminalFactShapeValid, type BrowserMutationTerminalFact } from "./browser-observation-receipt.js";
 import { decodeKnownGptRateLimitPreflightReply, preflightReceiptObservationHash } from "./browser-special-mutation-receipt.js";
@@ -134,8 +135,15 @@ export const verifyNormalBrowserMutationReply = (
   if (Object.entries(mechanical).some(([key, value]) => fact.terminalReceipt[key as keyof typeof mechanical] !== value)) {
     throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
   }
-  const payload = mechanical.terminal === "confirmed" && mechanical.mutationOutcome === "confirmed"
+  let payload = mechanical.terminal === "confirmed" && mechanical.mutationOutcome === "confirmed"
     && permit.childCapabilityId === "submit_exact_gpt_turn_once" ? submitRecoveryPayload(bound) : null;
+  if (mechanical.terminal === "confirmed" && mechanical.mutationOutcome === "confirmed"
+    && permit.childCapabilityId === GPT_RETRY_CHILD && command.kind === "dom-intent"
+    && command.intent.kind === "click" && command.intent.gptStoppedEmpty) {
+    payload = gptRetryTerminalPayload(bound, command.intent.gptStoppedEmpty,
+      { exactCallIdentityHash: browserExactCallIdentityHash(permit), targetRefHash: hashText(permit.targetRef),
+        documentRefHash: hashText(permit.documentRef) });
+  }
   if (canonicalizeBrowserAuthorityValue(payload) !== canonicalizeBrowserAuthorityValue(fact.terminalReceipt.submitRecoveryPayload)) {
     throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
   }

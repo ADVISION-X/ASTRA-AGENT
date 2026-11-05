@@ -1,3 +1,4 @@
+import { GPT_RETRY_CHILD, gptRetryActionProjection } from "./browser-gpt-retry-contract.js";
 import type { BrowserCommandPermit } from "../transport/command-permit.js";
 import type { BrowserExecutionBinding } from "../infrastructure/browser-authority-broker.js";
 import { assertValidCommandPermit } from "../transport/command-permit.js";
@@ -58,7 +59,7 @@ const postconditionPair = (command: BrowserGovernedCommand): Readonly<{ positive
       case "fill": positive = { kind: "fill", selector: intent.selector, retainedValueHash: hashValue(intent.approvedText) }; break;
       case "click": positive = { kind: "click", selector: intent.selector,
         ...(intent.requiredClickPointSelector === undefined ? {} : { requiredClickPointSelector: intent.requiredClickPointSelector }),
-        precondition: intent.preClickExactOutgoingTurn, postcondition: intent.postClickAttribute ?? intent.postClickMatch
+        precondition: intent.gptStoppedEmpty ?? intent.preClickExactOutgoingTurn, postcondition: intent.postClickAttribute ?? intent.postClickMatch
           ?? intent.postClickObservation ?? intent.postClickUrl }; break;
       case "hover": positive = { kind: "hover", selector: intent.selector, postcondition: intent.postHoverAttribute }; break;
       case "doubleClick": positive = { kind: "doubleClick", selector: intent.selector, postcondition: intent.postDoubleClickMatch }; break;
@@ -71,7 +72,9 @@ const postconditionPair = (command: BrowserGovernedCommand): Readonly<{ positive
 };
 const mutationIdentity = (permit: BrowserCommandPermit, command: BrowserGovernedCommand): BrowserMutationIdentity => {
   const pair = postconditionPair(command), effectScope = permit.replayPolicy === "provider-effect-once" ? "provider_effect" : "target_local";
-  const exactCallIdentityHash = browserExactCallIdentityHash(permit), payloadHash = hashValue(command);
+  const exactCallIdentityHash = browserExactCallIdentityHash(permit), payloadHash = hashValue(
+    permit.childCapabilityId === GPT_RETRY_CHILD && command.kind === "dom-intent" && command.intent.kind === "click"
+      && command.intent.gptStoppedEmpty ? gptRetryActionProjection(command.intent.gptStoppedEmpty) : command);
   return { commandId: permit.commandId, logicalMutationId: effectScope === "provider_effect"
     ? browserProviderEffectIdentityHash(permit, payloadHash) : hashValue([exactCallIdentityHash, permit.targetRef]),
     exactCallIdentityHash, jobId: permit.jobId, resultRevision: permit.resultRevision, attemptId: permit.attemptId,
@@ -205,7 +208,9 @@ export class BrowserCommandActor {
     }
   }
   private prepareMutation(permit: BrowserCommandPermit, command: BrowserGovernedCommand, state: BrowserCommandExecutionState): void {
-    this.mutations.prepare(mutationIdentity(permit, command)); state.prepared = true;
+    const retry = command.kind === "dom-intent" && command.intent.kind === "click" ? command.intent.gptStoppedEmpty : undefined;
+    if (retry && hashValue(retry.turnMarker) !== retry.turnMarkerHash) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+    this.mutations.prepare(mutationIdentity(permit, command), retry); state.prepared = true;
     emitBrowserMutationEvent({ runtimeLogger: this.runtimeLogger, mutation: permit, outcome: "PREPARED", authorityHash: this.mutations.authorityHash(permit.commandId) });
     this.authorityGuard.assertCurrentAuthority(permit);
   }

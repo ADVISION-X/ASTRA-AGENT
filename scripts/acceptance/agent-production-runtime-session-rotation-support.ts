@@ -1,3 +1,4 @@
+import { productionControlContractVersion } from "../../src/lib/local-runtime/production/control-contract-dependency.js";
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -257,7 +258,7 @@ const createSessionFetch = (
   if (url.endsWith("/internal/ai-production/v6/sessions/open")) return successfulJsonResponse({
     session: {
       device_id: "device:atomic-claim", worker_session_id: "worker-session:atomic-claim",
-      worker_session_epoch: 1, control_contract_version: 49, attestation_seq: 0,
+      worker_session_epoch: 1, control_contract_version: productionControlContractVersion, attestation_seq: 0,
     },
     session_credential: credentialFor(1),
   });
@@ -442,7 +443,7 @@ export const exerciseHeartbeatResponseLossRecovery = async (): Promise<void> => 
       opens += 1;
       return successfulJsonResponse({
         session: { device_id: "device:atomic-claim", worker_session_id: "worker-session:atomic-claim",
-          worker_session_epoch: 1, control_contract_version: 49, attestation_seq: serverSequence },
+          worker_session_epoch: 1, control_contract_version: productionControlContractVersion, attestation_seq: serverSequence },
         session_credential: credentialFor(serverGeneration),
       });
     }

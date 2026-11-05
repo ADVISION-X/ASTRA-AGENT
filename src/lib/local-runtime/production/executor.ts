@@ -16,9 +16,8 @@ import { executionFailure, failureCode } from "../../execution-failure.js";
 import type { WorkbenchBrowserAuthority } from "../workbench-browser-authority-support.js";
 import { authorizeWebsiteAgentTask, dispatchWebsiteAgentTask } from "../../../mediator/agent-production-route.js";
 import type {
-  GeneratedImageArtifact,
-  GeneratedImageResultReceipt,
   ProductPluginOutput,
+  SharedExecutionContext,
 } from "../../../mediator/product-plugin-contract.js";
 import type {
   LocalProductionMaterial, ProductionExecutionLease, ProductionHash,
@@ -307,7 +306,7 @@ export class ProductionExecutor {
   private async dispatchPlugin(input: Readonly<{
     task: WebsiteAgentTask; materials: readonly LocalProductionMaterial[];
     lease: ProductionExecutionLease; span: RuntimeSpanHandle;
-    complete: (output: ProductPluginOutput) => Promise<WebsiteAgentResult>; uploadGeneratedImage: (artifact: GeneratedImageArtifact) => Promise<GeneratedImageResultReceipt>;
+    complete: (output: ProductPluginOutput) => Promise<WebsiteAgentResult>; workAccess: SharedExecutionContext["workAccess"];
   }>): Promise<Readonly<{
     result: WebsiteAgentResult;
     providerEffectReadbackProof: ProviderEffectReadbackProofV1 | null;
@@ -346,7 +345,8 @@ export class ProductionExecutor {
             revision: input.lease.result_revision,
             priorRejection: input.lease.prior_result_rejection,
           },
-          uploadGeneratedImage: input.uploadGeneratedImage,
+          producingExecution: { attempt_id: input.lease.attempt_id, execution_fence_hash: input.lease.execution_fence_hash },
+          ...(input.workAccess ? { workAccess: input.workAccess } : {}),
           complete: async (output) => {
             if (completionStarted) throw new Error("PLUGIN_RESULT_ALREADY_COMPLETED");
             completionStarted = true;
@@ -405,7 +405,7 @@ export class ProductionExecutor {
     lease: ProductionExecutionLease,
     parentSpanId: string,
     complete: (output: ProductPluginOutput) => Promise<WebsiteAgentResult>,
-    uploadGeneratedImage: (artifact: GeneratedImageArtifact) => Promise<GeneratedImageResultReceipt>,
+    workAccess?: SharedExecutionContext["workAccess"],
   ): Promise<ProductionExecutionResult> {
     const accepted = this.store.readTask(task.job_id);
     if (!accepted) throw new Error("PRODUCTION_DURABLE_IDENTITY_MISSING");
@@ -433,7 +433,7 @@ export class ProductionExecutor {
         artifacts: materials.map(productionMaterialBrowserArtifact),
       });
       const dispatched = await this.dispatchPlugin({
-        task, materials, lease, span, uploadGeneratedImage,
+        task, materials, lease, span, workAccess,
         complete: async output => { completedEnvelope = await complete(output); return completedEnvelope; },
       });
       const completedLease = browserArtifactLease;

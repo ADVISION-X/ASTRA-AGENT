@@ -8,7 +8,7 @@ import { exerciseExactModelSelection } from "./gpt-exact-target-model.acceptance
 import { execute, exerciseTransientProfileConfirmations, profile, profileFacts } from "./gpt-exact-target-profile-fixture.js";
 import "./gpt-reasoning-requirement.acceptance.js";
 assert.deepEqual(Object.keys(GPT_CHILD_CAPABILITY_CONTRACTS).sort(), EXPECTED_GPT_CHILD_IDS);
-assert.equal(EXPECTED_GPT_CHILD_IDS.length, 15); assertGptExactTargetSourceShape(import.meta.url);
+assert.equal(EXPECTED_GPT_CHILD_IDS.length, 18); assertGptExactTargetSourceShape(import.meta.url);
 
 const verifyFreshChat = async (): Promise<void> => {
   let samples = 0;
@@ -135,5 +135,30 @@ const verifyProfileFailure = async (): Promise<void> => {
     assert.equal(result.failureCode, "GPT_DOM_CONFIRMATION_IDENTITY_CHANGED"); assert.equal(result.proof.committedMutation, "no"); assert.equal(drift.physicalMutations(), 0);
   }
 };
-await verifyFreshChat(); await verifyChatMode(); await verifyProfileAction(); await verifyProfileFailure();
+const verifyFreshWork = async (): Promise<void> => {
+  for (const scenario of ["already-work", "select-work", "dirty", "wrong-postcondition", "wrong-attribute"] as const) {
+    let mode: "chat" | "work" = scenario === "already-work" ? "work" : "chat";
+    const facts = () => {
+      const chat = conversationFacts(scenario === "dirty" ? "draft" : "", { mode });
+      return { ...chat, user: chat["user-turns"], assistant: chat["assistant-turns"],
+        chat: chat["chat-mode"], work: chat["work-mode"] };
+    };
+    const fixture = fakeBrowser(intent => {
+      if (intent.kind === "observe") return coherentObservationPacket(intent, facts());
+      if (intent.kind !== "click" || !intent.postClickObservation) throw new Error("WORK_PREPARATION_MUST_ONLY_SELECT_WORK");
+      assert.equal(intent.expectedTextEquals, "工作");
+      mode = scenario === "wrong-postcondition" ? "chat" : "work";
+      const queries = intent.postClickObservation.queries.map(({ expectedEligibleCount: _count, ...query }) => query);
+      return { mutationCount: 1, postconditionVerified: true, clickedCandidateAttributeReadback: {
+        name: "aria-pressed", value: scenario === "wrong-attribute" ? "false" : "true", verified: scenario !== "wrong-attribute" },
+      postconditionObservation: coherentObservationPacket({ queries }, facts()) };
+    }, { enforceClickedAttributeReadback: true });
+    const result = await execute("prepare_clean_gpt_work", fixture.browser, { timeoutMs: 60_000 });
+    assert.equal(result.status, scenario === "already-work" || scenario === "select-work" ? "success" : "failed", scenario);
+    assert.equal(fixture.physicalMutations(), scenario === "already-work" || scenario === "dirty" ? 0 : 1, scenario);
+    if (scenario === "wrong-postcondition") assert.equal(result.proof.committedMutation, "confirmed");
+    if (scenario === "wrong-attribute") assert.equal(result.proof.committedMutation, "dispatched");
+  }
+};
+await verifyFreshChat(); await verifyChatMode(); await verifyFreshWork(); await verifyProfileAction(); await verifyProfileFailure();
 await exerciseTransientProfileConfirmations(); await exerciseExactModelSelection(); await exercisePreExecutionFailureEvidence();

@@ -1,8 +1,9 @@
 import { readFile } from "node:fs/promises";
+import { ASTRA_BROWSER_EXTENSION_ID } from "../profile/browser-application-identity.js";
 
 import type { ExtensionDirectoryHashV1 } from "./extension-directory-hash-v1.js";
 
-export const GRASSEYE_UNPACKED_EXTENSION_ID = "emkmbecadncngofidjgocmifhbonifgm";
+export const GRASSEYE_UNPACKED_EXTENSION_ID = ASTRA_BROWSER_EXTENSION_ID;
 
 export type UnpackedExtensionReleaseIdentity = Readonly<{
   schemaVersion: "grasseye.browser.unpacked-release.v1";

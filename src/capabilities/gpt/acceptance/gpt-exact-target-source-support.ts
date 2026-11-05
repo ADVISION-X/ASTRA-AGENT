@@ -66,7 +66,9 @@ export const assertGptExactTargetSourceShape = (baseUrl: string): void => {
 };
 const assertFrozenResponseCounterexamples = (source: string): void => {
   assert.equal(textResponseTwoGateSettlementIsFrozen(source), true);
-  assert.equal(textResponseTwoGateSettlementIsFrozen(source.replace("export const GPT_STOPPED_EMPTY", "/** Harmless documentation. */ export const GPT_STOPPED_EMPTY")), true);
+  const documented = "/** Harmless documentation. */\n" + source;
+  assert.notEqual(documented, source);
+  assert.equal(textResponseTwoGateSettlementIsFrozen(documented), true);
   const done = 'if (assistant && assistant.generatingRaw === 0 && assistant.semanticText.trim().length > 0) {';
   assert.ok(source.includes(done));
   assert.equal(textResponseTwoGateSettlementIsFrozen(source.replace(done, done.replace(") {", ") {} {"))), false,
@@ -79,28 +81,28 @@ const assertFrozenResponseCounterexamples = (source: string): void => {
   const nested = source.replace(settlement, "{ assertExtraGate(assistant); return " + settlement + "; }");
   assert.notEqual(nested, source); assert.equal(textResponseTwoGateSettlementIsFrozen(extra + nested), false);
   for (const [original, replacement] of [
-    ["sinceMonotonicMs: observedAt,", "sinceMonotonicMs: observedAt - 600_000,"],
     ["rawDomHtml: assistant.rawDomHtml,", 'rawDomHtml: assistant.semanticText.length > 100 && assistant.rawDomHtml || "",'],
-    ["const observedAt = performance.now();", "const observedAt = performance.now() * 2;"],
+    ["semanticTextHash: assistant.semanticTextHash", 'semanticTextHash: "invented"'],
     ["browser, userTurnId, turnMarker, conversationUrl", 'browser, userTurnId, "foreign-marker", conversationUrl'],
-    ["stoppedEmptyWindow = null;", "stoppedEmptyWindow = stoppedEmptyWindow;"],
+    ["negativeWindow.current = null;", "negativeWindow.current = negativeWindow.current;"],
     ["current.userTurnId === negative.userTurnId", "current.userTurnId !== negative.userTurnId"],
     ["observation.observationCount >= 2", "observation.observationCount >= 1"],
     ["Date.parse(observation.observedAt) > Date.parse(observation.firstObservedAt)", 'Date.parse(observation.observedAt) > Date.parse(observation.firstObservedAt) && observation.userTurnId === "fixed-id"'],
-    ["Math.floor(observedAt - window.sinceMonotonicMs)", "Math.floor((observedAt - window.sinceMonotonicMs) * 2)"],
-    ["return stoppedEmpty.window;", "return null;"],
-    ["return stoppedEmpty.window;","return\n  stoppedEmpty.window;"],
-    ["return settledTextResponse(assistant);","return\n  settledTextResponse(assistant);"],
-    ['gptExecutionFailure("GPT_RESPONSE_STOPPED_EMPTY",', 'gptExecutionFailure("GPT_RESPONSE_TIMEOUT",'],
+    ["return settledTextResponse(assistant);", "return\n settledTextResponse(assistant);"],
+    ['gptExecutionFailure("GPT_TEXT_RESPONSE_EMPTY_ENDED",', 'gptExecutionFailure("GPT_RESPONSE_STOPPED_EMPTY",'],
+    ['gptExecutionFailure("GPT_TEXT_RESPONSE_EMPTY_ENDED",', 'gptExecutionFailure("GPT_TEXT_RESPONSE_EMPTY_ENDED ",'],
+    ["context.stoppedEmptyRetryAuthorized === true", "context.stoppedEmptyRetryAuthorized !== true"],
     ["documentRefHash: assistant.documentRefHash,", "documentRefHash: assistant.documentRefHash, rawDomHash: assistant.rawDomHash,"],
     ["const gate = context.waitForProviderObservation;", "const gate = context.otherGate;"],
     ["if (exactResponseObserved) continue;", "if (exactResponseObserved) break;"],
     ['throw executionFailure("failed", "GPT_RESPONSE_TIMEOUT");', 'void executionFailure("failed", "GPT_RESPONSE_TIMEOUT");'],
-    ['gptExecutionFailure("GPT_RESPONSE_STOPPED_EMPTY",', 'gptExecutionFailure("GPT_RESPONSE_STOPPED_EMPTY ",'],
+    ['throw error;', 'void error;'],
     ["export const checkpointGptTextResponseHandler", "export let checkpointGptTextResponseHandler"],
   ]) {
     assert.ok(source.includes(original!));
-    assert.equal(textResponseTwoGateSettlementIsFrozen(source.replace(original!, replacement!)), false);
+    const changed = source.replace(original!, replacement!);
+    assert.notEqual(changed, source);
+    assert.equal(textResponseTwoGateSettlementIsFrozen(changed), false, original);
   }
 };
 const assertAttachmentInspectorCounterexamples = (baseUrl: string): void => {
@@ -120,7 +122,7 @@ const assertAttachmentInspectorCounterexamples = (baseUrl: string): void => {
   files.push("src/lib/browser/chrome-extension/extension-file-input-runtime.ts",
     "src/lib/browser/exact-target/browser-target-lease.ts");
   for (const path of files) project.createSourceFile(resolve(root, path), readFileSync(resolve(root, path), "utf8"));
-  const lawId = "LAW-GPT-002-V34", context: InspectorContext = { project, sealedRoot: root, selectedLawId: lawId,
+  const lawId = "LAW-GPT-002-V35", context: InspectorContext = { project, sealedRoot: root, selectedLawId: lawId,
     targetPaths: files, targetSet: { queryRef: "gpt-attachment-helper-counterexamples", count: files.length },
     lawRequirements: [], generatedPlan: [], planEntry: { capabilityDomain: "gpt", executionGroup: "domain", lawIds: [lawId],
       manifestPath: "scripts/audit/domains/gpt/manifest.json", ownerInspectorPath: "scripts/audit/domains/gpt/inspector.ts" } };

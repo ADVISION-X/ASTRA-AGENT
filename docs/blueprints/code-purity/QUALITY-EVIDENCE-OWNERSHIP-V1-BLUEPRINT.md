@@ -8,8 +8,8 @@
   "owner": "code-purity",
   "lawIds": [
     "LAW-CODE-PURITY-001-V6",
-    "LAW-CODE-PURITY-002-V2",
-    "LAW-CODE-PURITY-003-V3"
+    "LAW-CODE-PURITY-002-V3",
+    "LAW-CODE-PURITY-003-V5"
   ],
   "contractRefs": [],
   "dependencyEdges": [
@@ -63,6 +63,8 @@ Manifest primary Owner 只负责路径治理、结构检查与变更准入。Pro
 生产者只返回实际观察的 clauses。共享 core 校验 required `lawId/evidenceMode`、clauses 并集、ref kind/非空性、finding/outcome 与候选身份，不补 clauses、locator 或 PASS。
 
 ## Product 验收边界
+
+论文生产工厂由 S00 固定 Flow 单向调用 C01、S01—S10 独立执行单元。各单元正文必须进入其实际提示词；内部单元不登记为外部产品，不以目录数量冒充公开路由数量。旧 astra-research-project 十二正文先行例外已经退休，不新增内容豁免。代码活性按实际生产入口、调用图、符号消费者及执行验证认定；目录、测试或登记不能单独证明研究能力。
 
 `architecture-boundary` 是 `src/plugins/**`、薄 Mediator、与生产 import surface 分离的 Product 验收和精确关联项目文档的唯一 Manifest primary Owner。中央 `acceptance:architecture-boundary` 只从现役 Catalog/Capability Manifest 和 `scripts/acceptance/product-plugins/**` 发现 Plugin/test identity、核对一一对应、运行并汇总结果。
 

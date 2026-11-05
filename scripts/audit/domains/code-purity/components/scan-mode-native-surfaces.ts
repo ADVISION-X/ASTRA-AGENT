@@ -19,7 +19,7 @@ const readPackage = (context: InspectorContext): { scripts?: Record<string, unkn
 export const scanOwnerAstRoles = (
   governedFiles: readonly GovernedFile[], lawIds: readonly string[],
 ): InspectorFinding[] => {
-  const lawId = selectLawId(lawIds, "LAW-CODE-PURITY-002-V2");
+  const lawId = selectLawId(lawIds, "LAW-CODE-PURITY-002-V3");
   return governedFiles.filter((file) => file.owner === "unknown").map((file) => finding(
     lawId, "static.ast", file.repoPath, "code-purity/unowned-ast-role",
     `${file.repoPath} has no semantic Owner for its active syntax tree.`,
@@ -29,7 +29,7 @@ export const scanOwnerAstRoles = (
 export const scanOwnerFilesystemAuthority = (
   governedFiles: readonly GovernedFile[], lawIds: readonly string[],
 ): InspectorFinding[] => {
-  const lawId = selectLawId(lawIds, "LAW-CODE-PURITY-002-V2");
+  const lawId = selectLawId(lawIds, "LAW-CODE-PURITY-002-V3");
   const banned = ["bridge", "compatibility", "legacy", "shadow", "fallback", "planner", "workflow"];
   return governedFiles.flatMap((file) => {
     const token = banned.find((candidate) => file.repoPath.toLowerCase().split(/[/_.-]/u).includes(candidate));
@@ -44,7 +44,7 @@ export const scanOwnerFilesystemAuthority = (
 export const scanOwnerConfiguration = (
   context: InspectorContext, lawIds: readonly string[],
 ): InspectorFinding[] => {
-  const lawId = selectLawId(lawIds, "LAW-CODE-PURITY-002-V2");
+  const lawId = selectLawId(lawIds, "LAW-CODE-PURITY-002-V3");
   const pkg = readPackage(context);
   const findings: InspectorFinding[] = [];
   if (pkg.workspaces !== undefined) findings.push(finding(lawId, "static.config", "package.json",
@@ -61,7 +61,7 @@ export const scanOwnerConfiguration = (
 export const scanOwnerJsonAuthority = (
   context: InspectorContext, lawIds: readonly string[],
 ): InspectorFinding[] => {
-  const lawId = selectLawId(lawIds, "LAW-CODE-PURITY-002-V2");
+  const lawId = selectLawId(lawIds, "LAW-CODE-PURITY-002-V3");
   const scripts = readPackage(context).scripts;
   if (!scripts || Array.isArray(scripts) || typeof scripts !== "object") return [finding(
     lawId, "static.json", "package.json", "code-purity/json-script-registry",
@@ -77,7 +77,7 @@ export const scanOwnerJsonAuthority = (
 export const scanOwnerYamlAuthority = (
   context: InspectorContext, lawIds: readonly string[],
 ): InspectorFinding[] => {
-  const lawId = selectLawId(lawIds, "LAW-CODE-PURITY-002-V2");
+  const lawId = selectLawId(lawIds, "LAW-CODE-PURITY-002-V3");
   const repoPath = "pnpm-workspace.yaml";
   const source = readFileSync(resolve(context.sealedRoot, repoPath), "utf8");
   const topLevel = source.split(/\r?\n/u).filter((line) => /^[A-Za-z][A-Za-z0-9_-]*:/u.test(line))
@@ -100,7 +100,7 @@ const configuredEntrypointExists = (root: string, repoPath: string): boolean =>
 export const scanConfiguredEntrypointLiveness = (
   context: InspectorContext, lawIds: readonly string[],
 ): InspectorFinding[] => {
-  const lawId = selectLawId(lawIds, "LAW-CODE-PURITY-003-V3");
+  const lawId = selectLawId(lawIds, "LAW-CODE-PURITY-003-V5");
   return Object.entries(readPackage(context).scripts ?? {}).flatMap(([name, value]) => {
     if (typeof value !== "string") return [finding(lawId, "static.config", "package.json",
       "code-purity/config-entrypoint-type", `Script ${name} has no executable string entrypoint.`)];
@@ -113,7 +113,7 @@ export const scanConfiguredEntrypointLiveness = (
 export const scanJsonRegistryLiveness = (
   context: InspectorContext, lawIds: readonly string[],
 ): InspectorFinding[] => {
-  const lawId = selectLawId(lawIds, "LAW-CODE-PURITY-003-V3");
+  const lawId = selectLawId(lawIds, "LAW-CODE-PURITY-003-V5");
   const scripts = readPackage(context).scripts ?? {};
   const required = new Map([
     ["quality:check", "scripts/audit/governance.ts"],

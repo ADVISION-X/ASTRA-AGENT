@@ -1,3 +1,4 @@
+import { productionControlContractVersion } from "../../src/lib/local-runtime/production/control-contract-dependency.js";
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 import { agentRouteCapabilityManifest, productionCatalogHash } from "../../src/lib/local-runtime/production/catalog.js";
@@ -12,7 +13,7 @@ import { ADMISSION_JOB_ID, HASH_A, HASH_B, admissionReceipt, admissionReceiptFor
 import { exerciseOperationsAndBusinessAdmission } from "./agent-production-runtime-business-admission.acceptance-support.js";
 import { exerciseWorkerSessionRotation, exerciseHeartbeatResponseLossRecovery } from "./agent-production-runtime-session-rotation-support.js";
 import { exerciseLeaseRenewRetry } from "./agent-production-runtime-lease-renew-retry-support.js";
-import { exerciseGeneratedImageTransport } from "./agent-production-runtime-generated-image.acceptance-support.js";
+import { exerciseWorkAccessTransport } from "./agent-production-runtime-work-access.acceptance-support.js";
 import { verifyGptDialogMismatchRuntimeContract, verifyKnownGptRateLimitRuntimeContract } from "./agent-production-runtime-dialog-failure.acceptance-support.js";
 import { verifyAttemptFailureReadbackRuntimeContract } from "./agent-production-runtime-browser-failure.acceptance-support.js";
 import { exerciseProductionRuntimeSourceBoundaries } from "./agent-production-runtime-recovery-boundary.acceptance-support.js";
@@ -64,7 +65,7 @@ for (const reason_codes of [[], ["GLOBAL_QUEUE_EMPTY_OR_INELIGIBLE"], ["NO_UNFIN
 const sixTasks = Array.from({ length: 6 }, (_, index) =>
   claimTask({ ...primary, job_id: `job:capacity-six:${index}` }));
 const sixSession = {
-  workerSessionId: "worker:1", workerSessionEpoch: 1, controlContractVersion: 49,
+  workerSessionId: "worker:1", workerSessionEpoch: 1, controlContractVersion: productionControlContractVersion,
   async requestClaim(requestId: string, limit: number) {
     assert.equal(limit, 6);
     return { ...noDemand, request_id: requestId, outcome: "LEASE_GRANTED", jobs: sixTasks, reason_codes: [] };
@@ -106,27 +107,27 @@ await exerciseWorkerSessionRotation();
 await exerciseHeartbeatResponseLossRecovery();
 await verifySourceTransportGates();
 await exerciseLeaseRenewRetry();
-await exerciseGeneratedImageTransport(primary);
+await exerciseWorkAccessTransport();
 await verifyGptDialogMismatchRuntimeContract();
 await verifyKnownGptRateLimitRuntimeContract();
 await verifyAttemptFailureReadbackRuntimeContract();
 await exerciseProductionRuntimeSourceBoundaries();
 for (const evidenceMode of ["exam.property", "exam.state-machine"] as const) {
-  emitQualityProofObservation({ lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V83", evidenceMode,
+  emitQualityProofObservation({ lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V85", evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "forbidden:10", "forbidden:11", "forbidden:2", "forbidden:3", "forbidden:5", "summary"],
     locator: `acceptance:agent-production-runtime:runtime-authority:${evidenceMode}`,
     observedValue: "Original durable ledger, immutable failure readback, same-attempt delivery, bounded lease renewal, session rotation and pending Website admission exercised without a second lifecycle." });
 }
 for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) {
-  emitQualityProofObservation({ lawId: "LAW-AGENT-PRODUCTION-RUNTIME-004-V49", evidenceMode,
+  emitQualityProofObservation({ lawId: "LAW-AGENT-PRODUCTION-RUNTIME-004-V50", evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "summary"], locator: `acceptance:agent-production-runtime:receiving:${evidenceMode}`,
     observedValue: "Original receiving receipts close local delivery before domain consumption; bad or absent receipts preserve original recovery and immutable results." });
 }
-emitQualityProofObservation({ lawId: "LAW-AGENT-PRODUCTION-RUNTIME-007-V50", evidenceMode: "exam.golden",
+emitQualityProofObservation({ lawId: "LAW-AGENT-PRODUCTION-RUNTIME-007-V51", evidenceMode: "exam.golden",
   clauses: ["forbidden:0", "summary"], locator: "acceptance:agent-production-runtime:manifest-owner-fail-closed",
   observedValue: "Original ownership and recovery support accepted Runtime primary scope and rejected adjacent Product/Mediator ownership." });
 for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) {
-  emitQualityProofObservation({ lawId: "LAW-AGENT-PRODUCTION-RUNTIME-006-V50", evidenceMode,
+  emitQualityProofObservation({ lawId: "LAW-AGENT-PRODUCTION-RUNTIME-006-V51", evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "forbidden:3", "summary"],
     locator: `acceptance:agent-production-runtime:storage-and-retirement:${evidenceMode}`,
     observedValue: "Original inventory and retirement tests completed: exact ownership and orphan bytes, symlink rejection, recoverable byte preservation, 65 mixed-state jobs and reopen, precise absence, joined late writer and sibling protection." });

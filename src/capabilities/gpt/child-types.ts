@@ -1,3 +1,4 @@
+import type { GptStoppedEmptyRetryInput } from "../../lib/browser/browser-authority-api.js";
 import type { GptExecutionProfile } from "./schema.js";
 
 export type GptHash = `sha256:${string}`;
@@ -42,6 +43,9 @@ type GptResponseCheckpointInput = Readonly<{
 }>;
 
 export interface GptChildInputMap {
+  readonly prepare_clean_gpt_work: Readonly<{ timeoutMs: number }>;
+  readonly open_exact_gpt_retry_menu: GptStoppedEmptyRetryInput;
+  readonly retry_exact_gpt_response_once: GptStoppedEmptyRetryInput;
   readonly acknowledge_known_gpt_rate_limit: Readonly<{
     incidentRequestId: string;
     dialogHash: GptHash;
@@ -80,6 +84,11 @@ export interface GptChildInputMap {
 }
 
 export interface GptChildOutputMap {
+  readonly prepare_clean_gpt_work: Readonly<{ mode: "work"; draftEmpty: true }>;
+  readonly open_exact_gpt_retry_menu: Readonly<{ state: "menu-ready" | "response-changed" }>;
+  readonly retry_exact_gpt_response_once: Readonly<{ state: "generation-started";
+    preEmptyObservationRevisionHash: GptHash; userTurnId: string; promptHash: GptHash }>;
+
   readonly acknowledge_known_gpt_rate_limit: Readonly<{
     clearance: "confirmed_absent";
     acknowledgedAt: string;
@@ -147,5 +156,5 @@ export interface GptChildOutputMap {
 export type GptChildCapabilityId = keyof GptChildInputMap & keyof GptChildOutputMap;
 export type ProductGptChildCapabilityId = Exclude<
   GptChildCapabilityId,
-  "acknowledge_known_gpt_rate_limit"
+  "acknowledge_known_gpt_rate_limit" | "open_exact_gpt_retry_menu" | "retry_exact_gpt_response_once"
 >;

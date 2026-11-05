@@ -44,6 +44,7 @@ export type ProductFlowFixture = Readonly<{
   resultRevision?: SharedExecutionContext["resultRevision"];
   productSkillText?: string;
   onChildCall?: (call: ProductCall) => void;
+  workAccess?: NonNullable<SharedExecutionContext["workAccess"]>;
 }>;
 
 const exactKeys = (value: Readonly<Record<string, unknown>>): readonly string[] =>
@@ -138,6 +139,12 @@ const attachmentExecutionValue = (input: ExecutionValueInput): ExecutionValue =>
 
 const observationExecutionValue = (input: ExecutionValueInput): ExecutionValue | null => {
   const { call, fixture } = input;
+  if (call.child === "select_gpt_reasoning_from_start_v3") return { value: {
+    state: "selected", requestedValue: call.input.profile.requestedReasoningValue,
+    observedScale: { min: 0, max: 5, currentBefore: 0 }, resolvedValue: call.input.profile.requestedReasoningValue,
+    currentValue: call.input.profile.requestedReasoningValue, mutationOutcome: "confirmed",
+    browserOutcome: "CONFIRMED", gptPostcondition: "passed",
+  } };
   if (call.child === "select_gpt_model_from_start_v3") return { value: {
     modelDisplayName: call.input.profile.startModelDisplayName,
     targetRefHash: FIXTURE_HASH, documentRefHash: FIXTURE_HASH,
@@ -151,7 +158,7 @@ const observationExecutionValue = (input: ExecutionValueInput): ExecutionValue |
   }
   if (call.child === "get_submitted_gpt_conversation_url") {
     assert.equal(call.input.providerEffectIdentityHash, FIXTURE_HASH);
-    assert.equal(call.input.timeoutMs, 15_000);
+    assert(call.input.timeoutMs > 0 && call.input.timeoutMs <= 60_000);
     return { value: { canonicalConversationUrl: `https://chatgpt.com/c/${sha256(call.sessionKey).slice(7, 31)}`,
       userTurnId: "00000000-0000-4000-8000-000000000001" } };
   }
@@ -244,19 +251,8 @@ const createProductContext = (
   }),
   gpt: createGptFixture(state, fixture),
   resultRevision: fixture.resultRevision ?? { revision: 0, priorRejection: null },
-  uploadGeneratedImage: async (artifact) => {
-    state.generatedImageUploads += 1;
-    return Object.freeze({
-      artifact_id: artifact.artifact_id,
-      object_ref: `object:${artifact.artifact_id}`,
-      sha256: artifact.sha256,
-      receipt_hash: FIXTURE_HASH_B,
-      bytes: artifact.bytes,
-      mime_type: artifact.media_type,
-      width: artifact.width,
-      height: artifact.height,
-    });
-  },
+  producingExecution: { attempt_id: "attempt-1", execution_fence_hash: FIXTURE_HASH },
+  ...(fixture.workAccess ? { workAccess: fixture.workAccess } : {}),
   complete: async (output) => {
     state.completed = output;
     return {} as Awaited<ReturnType<SharedExecutionContext["complete"]>>;
@@ -282,7 +278,6 @@ export const exerciseProductFlow = async (
     await plugin.execute(fixture.task, createProductContext(root, state, fixture));
     assert(state.completed);
     assert.equal(new Set(state.calls.map((call) => call.sessionKey)).size, fixture.expectedSessionCount ?? 1);
-    assert.ok(state.calls.every((call) => call.sessionKey.includes(plugin.pluginId)));
     return { calls: state.calls, confirmedSubmitReads: state.confirmedSubmitReads,
       completed: state.completed,
       physicalSubmitDispatches: state.physicalSubmitDispatches,

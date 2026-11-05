@@ -31,6 +31,7 @@ const proofFor = (input: Readonly<{ intent: GptChildCapabilityIntent; startedAt:
     committedMutation: input.committedMutation ?? observed.mutationOutcome,
     postconditionResult: input.postconditionResult ?? observed.postconditionResult ?? "failed", browserFact: observed.browserFact,
     nativeFailureCode: input.nativeFailureCode ?? observed.nativeFailureCode,
+    ...(observed.emptyEndedAt ? { emptyEndedAt: observed.emptyEndedAt } : {}),
     ...(observed.stoppedEmptyProof ? { stoppedEmptyProof: observed.stoppedEmptyProof } : {}),
     startedAt: input.startedAt, endedAt: new Date().toISOString() };
   const evidenceHash = hash(JSON.stringify({ ...unsigned, startedAt: null, endedAt: null }));
@@ -95,6 +96,7 @@ export const failedGptChildExecutionResult = async <K extends GptChildCapability
     nativeFailureCode: error.nativeCause?.code ?? null, committedMutation, postconditionResult: failedPostcondition(observation, committedMutation) });
   await input.context.onProof?.(proof);
   const result = { status: "failed" as const, value: null, proof, failureCode: error.code, failureCause: error.nativeCause,
+    exactReadbackNegativeObservation: executionFailureMetadata(input.error)?.exactReadbackNegativeObservation,
     failureBrowserEffect: failureEffect(observation?.browserFact, error.browserEffect), reasoningRequirementResult: error.reasoningRequirementResult };
   const causeEventId = runtimeLogCauseEventId(input.error);
   if (causeEventId) withRuntimeLogCauseFact(result, causeEventId);

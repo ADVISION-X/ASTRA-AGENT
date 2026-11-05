@@ -4,10 +4,11 @@
   "status": "active",
   "lawIds": [
     "LAW-STARTUP-ENTRYPOINT-001-V4",
-    "LAW-STARTUP-ENTRYPOINT-002-V4"
+    "LAW-STARTUP-ENTRYPOINT-002-V5"
   ],
   "ownedPaths": [
     "docs/项目方案/AGENT停止接单与在途工单完整收尾-完整实现方案.md",
+    "docs/项目方案/ASTRA-AGENT同机隔离-完整实现方案.md",
     "scripts/acceptance/startup-browser-artifact-sync.acceptance.ts",
     "scripts/acceptance/startup-initialization-health.acceptance.ts",
     "scripts/audit/domains/startup-entrypoint/**",

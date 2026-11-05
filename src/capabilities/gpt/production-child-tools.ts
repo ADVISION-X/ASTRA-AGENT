@@ -1,3 +1,5 @@
+import type { GptExecutionProfile } from "./schema.js";
+import { repairStoppedEmptyResponse } from "./production-stopped-empty-retry.js";
 import {
   GPT_CHILD_CAPABILITY_CONTRACTS, gptCanonicalHash, gptExactCallIdentityHash,
   type GptAbilityGroup, type GptAnyChildCapabilityIntent, type GptChildCapabilityId,
@@ -27,6 +29,8 @@ type ReadbackRecorder = NonNullable<GptExecutionContext["recordConfirmedProvider
 type SubmitCall = ProductGptCallInput<"submit_exact_gpt_turn_once"> & Readonly<{ sessionKey: string }>;
 type ExecuteOptions = Readonly<{
   priorEffectKnown?: boolean; rateLimitAckDispatchNotAfter?: number;
+  stoppedEmptyRepair?: Readonly<{ profile: GptExecutionProfile; promptHash: GptHash }>;
+  stoppedEmptyRetryAuthorized?: boolean; stoppedEmptyConversationUrl?: string;
   confirmedSubmission?: ProductionGptBrowserCall["confirmedProviderEffect"];
   browserAtomicIdentity?: BrowserAtomicStepIdentity;
   confirmedProviderEffectReadback?: GptExecutionContext["confirmedProviderEffectReadback"];
@@ -160,9 +164,12 @@ export class ProductionGptChildTools {
         ...options, ...(submittedConversationLocator ? { submittedConversationLocator } : {}),
         dataDir: this.dataDir, gpt: this.gpt, browsers,
         intent: intent as GptAnyChildCapabilityIntent, browserCall,
+        stoppedEmptyRetryAuthorized: options.stoppedEmptyRetryAuthorized ?? this.stoppedEmptyRepairAllowed(execution, call, options),
         signal: execution.abortSignal, resultRevision: execution.resultRevision, childCapabilityId: call.child,
         assertProviderInputAllowed: () => this.providerRateLimitControl.assertProviderSubmitAllowed(),
       });
+      result = await this.repairTextResponse({ execution, browsers, call, options, intent: intent as GptAnyChildCapabilityIntent,
+        browserCall, result });
     } catch (error) {
       if (options.confirmedSubmission
         && !["BROWSER_GPT_DIALOG_UNRECOGNIZED", "BROWSER_KNOWN_GPT_RATE_LIMIT"].includes(failureCode(error))) {
@@ -175,6 +182,60 @@ export class ProductionGptChildTools {
       });
     }
     return this.settleChildOutcome({ execution, browsers, call, options, intent, span, browserCall, result });
+  }
+
+  private stoppedEmptyRepairAllowed(execution: ExecutionInput,
+    call: ProductGptCallInput<GptChildCapabilityId>, options: ExecuteOptions): boolean {
+    return call.child === "checkpoint_gpt_text_response" && options.stoppedEmptyRepair !== undefined
+      && options.confirmedSubmission?.providerEffectIdentityHash != null
+      && execution.sourceReuseZeroSubmitGrant !== true && !execution.sourceReusableCalls?.length
+      && !execution.readbackOnlyCalls?.length && !execution.deliveryPriorityReplayCalls?.length;
+  }
+
+  private async repairTextResponse(input: Readonly<{
+    execution: ExecutionInput; browsers: ProductionGptBrowserLifecycle;
+    call: ProductGptCallInput<GptChildCapabilityId> & Readonly<{ sessionKey: string }>;
+    options: ExecuteOptions; intent: GptAnyChildCapabilityIntent;
+    browserCall: ProductionGptBrowserCall | undefined; result: GptChildCapabilityResult;
+  }>): Promise<GptChildCapabilityResult> {
+    const { execution, browsers, options } = input;
+    if (!this.stoppedEmptyRepairAllowed(execution, input.call, options)
+      || input.result.status !== "failed" || input.result.failureCode !== "GPT_TEXT_RESPONSE_EMPTY_ENDED") return input.result;
+    const root = options.confirmedSubmission!, repair = options.stoppedEmptyRepair!;
+    const childOptions: ExecuteOptions = { ...options, stoppedEmptyRetryAuthorized: true,
+      stoppedEmptyConversationUrl: root.canonicalConversationUrl! };
+    return repairStoppedEmptyResponse({ dataDir: this.dataDir, signal: execution.abortSignal,
+      call: input.call as ProductGptCallInput<"checkpoint_gpt_text_response"> & { sessionKey: string },
+      intent: input.intent, root, profile: repair.profile, promptHash: repair.promptHash, initial: input.result,
+      readRetry: callId => this.browserAuthority.readProviderEffectStepCallFact({ ...execution,
+        productStepId: input.call.productStepId, callId, childCapabilityId: "retry_exact_gpt_response_once" }),
+      assertBudget: prior => this.assertProviderTurnBudget(execution, { child: "retry_exact_gpt_response_once" }, prior),
+      executeMenu: call => this.executeOne(execution, browsers, call, childOptions),
+      executeRetry: (call, prior) => this.executeStoppedEmptyRetry(execution, browsers, call, childOptions, prior),
+      observe: readbackOnly => runProductionAtomicPhase({ ...childOptions,
+        dataDir: this.dataDir, gpt: this.gpt, browsers, intent: input.intent, browserCall: input.browserCall,
+        signal: execution.abortSignal, resultRevision: execution.resultRevision, childCapabilityId: input.call.child,
+        stoppedEmptyRetryAuthorized: !readbackOnly,
+        assertProviderInputAllowed: () => this.providerRateLimitControl.assertProviderSubmitAllowed() }),
+    });
+  }
+
+  private async executeStoppedEmptyRetry(execution: ExecutionInput, browsers: ProductionGptBrowserLifecycle,
+    call: ProductGptCallInput<"retry_exact_gpt_response_once"> & { sessionKey: string }, options: ExecuteOptions,
+    prior: ReturnType<GptProductionBrowserAuthority["readProviderEffectStepCallFact"]>,
+  ): Promise<ProductGptChildResult<"retry_exact_gpt_response_once">> {
+    const zero = prior?.mutation.outcome === "REJECTED" && prior.mutation.mutationOutcome === "no"
+      && prior.mutation.physicalInputCount === 0;
+    if (!prior || zero) return this.executeOne(execution, browsers, call, options);
+    const effect = submitEffect(prior.mutation, prior.exactCallIdentityHash, call.child);
+    if (prior.mutation.outcome !== "CONFIRMED" || !prior.confirmedOutcome) {
+      throw gptExecutionFailure("PROVIDER_EFFECT_OUTCOME_UNPROVEN", { mutationOutcome: effect.mutationOutcome,
+        browserEffect: effect, evidence: { evidenceRef: effect.evidenceRef, evidenceHash: effect.evidenceHash } });
+    }
+    const restored = confirmedSubmitIdentity(execution, call, prior);
+    return this.executeOne(execution, browsers, call, { ...options, priorEffectKnown: true,
+      browserAtomicIdentity: restored.atomicIdentity,
+      confirmedProviderEffectReadback: { outcome: prior.confirmedOutcome, exactCallIdentityHash: restored.exactCallIdentityHash } });
   }
 
   private readSubmittedLocator(execution: ExecutionInput,
@@ -222,7 +283,8 @@ export class ProductionGptChildTools {
     browserCall: ProductionGptBrowserCall | undefined; result: GptChildCapabilityResult;
   }>): Promise<ProductGptChildResult<K>> {
     const { execution, browsers, call, options, intent, span, browserCall, result } = input;
-    const confirmedEffect = browserCall?.confirmedProviderEffect ?? options.confirmedSubmission ?? null;
+    const retryEffect = result.proof.browserFact?.childCapabilityId === "retry_exact_gpt_response_once" ? result.proof.browserFact : null;
+    const confirmedEffect = retryEffect ?? browserCall?.confirmedProviderEffect ?? options.confirmedSubmission ?? null;
     const closureError = await this.closeKnownRateLimitAndReadGate(execution, browsers, call, result);
     if (closureError) return terminalizeGptChildError(span, closureError, confirmedEffect);
     let persisted: Awaited<ReturnType<typeof persistGptChildOutcome>>;
@@ -333,8 +395,8 @@ export class ProductionGptChildTools {
       typeof input.abortSignal.reason === "string" ? input.abortSignal.reason : "PRODUCTION_EXECUTION_ABORTED");
   }
 
-  private assertProviderTurnBudget(execution: ExecutionInput, call: ProductGptCallInput<GptChildCapabilityId>, priorKnown: boolean): void {
-    if (priorKnown || call.child !== "submit_exact_gpt_turn_once") return;
+  private assertProviderTurnBudget(execution: ExecutionInput, call: Readonly<{ child: GptChildCapabilityId }>, priorKnown: boolean): void {
+    if (priorKnown || !["submit_exact_gpt_turn_once", "retry_exact_gpt_response_once"].includes(call.child)) return;
     this.providerRateLimitControl.assertProviderSubmitAllowed();
     if (this.browserAuthority.countProviderTurnDispatches(execution.jobId, execution.attemptId) >= execution.maxProviderTurns) {
       throw executionFailure("failed", "PROVIDER_TURN_BUDGET_EXHAUSTED");

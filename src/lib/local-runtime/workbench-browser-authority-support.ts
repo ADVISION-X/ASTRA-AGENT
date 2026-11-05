@@ -1,4 +1,5 @@
 import { resolve } from "node:path";
+import { ASTRA_DATA_DIRECTORY } from "../browser/profile/browser-application-identity.js";
 import { createDedicatedProfilePolicy } from "../browser/profile/dedicated-profile-policy.js";
 import { attestManagedPolicyReadback } from "../browser/profile/managed-policy-readback.js";
 import { createBrowserProfileEnrollment } from "../browser/profile/browser-profile-enrollment.js";
@@ -143,11 +144,11 @@ const startBrowserSupervisor = async (
   supervisor: BrowserInfrastructureSupervisor;
   releaseBuildId: string;
 }>> => {
-  const profileConfig = resolveProductionBrowserProfileConfig(dataDir);
+  const profileConfig = resolveProductionBrowserProfileConfig();
   const releaseIdentity = await readUnpackedExtensionReleaseIdentity(
     resolve(
       process.cwd(),
-      ".grasseye-local",
+      ASTRA_DATA_DIRECTORY,
       "browser-release",
       "release-record.json",
     ),

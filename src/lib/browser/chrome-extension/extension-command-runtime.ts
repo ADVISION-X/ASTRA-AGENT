@@ -1,3 +1,4 @@
+import { GPT_RETRY_CHILD, gptRetryTerminalPayload } from "../exact-target/browser-gpt-retry-contract.js";
 import { browserInteractionNativeCauseCode } from "../exact-target/browser-interaction-native-cause.js";
 import { assertValidCommandPermit, type BrowserCommandPermit } from "../transport/command-permit.js";
 import { canonicalizeBrowserAuthorityValue } from "../transport/browser-authority-frame-codec.js";
@@ -130,8 +131,14 @@ const projectExtensionMutation = async (
   ]);
   const bound = bindBrowserMutationObservation(command, raw, { exactCallIdentityHash, targetRefHash, documentRefHash, observationRevisionHash });
   const receipt = decodeBrowserMutationReceipt(command, bound, observationHash);
-  const payload = receipt.terminal === "confirmed" && receipt.mutationOutcome === "confirmed"
+  let payload = receipt.terminal === "confirmed" && receipt.mutationOutcome === "confirmed"
     && permit.childCapabilityId === "submit_exact_gpt_turn_once" ? submitRecoveryPayload(bound) : null;
+  if (receipt.terminal === "confirmed" && receipt.mutationOutcome === "confirmed"
+    && permit.childCapabilityId === GPT_RETRY_CHILD && command.kind === "dom-intent"
+    && command.intent.kind === "click" && command.intent.gptStoppedEmpty) {
+    payload = gptRetryTerminalPayload(bound, command.intent.gptStoppedEmpty,
+      { exactCallIdentityHash, targetRefHash, documentRefHash });
+  }
   return { receipt, payload };
 };
 

@@ -5,14 +5,15 @@ import { pathToFileURL } from "node:url";
 import { createWorkbenchServer } from "./create-workbench-server.js";
 import { createGrassEyeWorkbenchHandle } from "../lib/local-runtime/workbench-launch-contract.js";
 import { restoreWorkbenchWindowIfChromeHasNoWindow } from "../../scripts/startup/lib/open-workbench-page.mjs";
+import { ASTRA_LOCAL_HOST, ASTRA_LOCAL_PORT, ASTRA_DATA_DIRECTORY } from "../lib/browser/profile/browser-application-identity.js";
 
-const host = process.env.GRASSEYE_HOST ?? "127.0.0.1";
-const port = Number(process.env.GRASSEYE_PORT ?? 4173);
+const host = process.env.GRASSEYE_HOST ?? ASTRA_LOCAL_HOST;
+const port = Number(process.env.GRASSEYE_PORT ?? ASTRA_LOCAL_PORT);
 const baseUrl = `http://${host}:${port}`;
 const connections = new Map<Socket, Promise<void>>();
 let httpClosing = false;
 const workbench = createGrassEyeWorkbenchHandle({
-  dataDir: process.env.GRASSEYE_DATA_DIR ?? path.resolve(process.cwd(), ".grasseye-local"),
+  dataDir: process.env.GRASSEYE_DATA_DIR ?? path.resolve(process.cwd(), ASTRA_DATA_DIRECTORY),
   restoreBrowserHostVisibility: () => restoreWorkbenchWindowIfChromeHasNoWindow(baseUrl).then(() => undefined),
 });
 

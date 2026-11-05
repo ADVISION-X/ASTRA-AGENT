@@ -50,7 +50,7 @@ function browserExactUrl(expected) {
 }`;
 
 /** No await: marker, adjacency, body and stop are one current Document sample. */
-const EXACT_ASSISTANT_TURN_FUNCTION = `function (spec) {
+export const EXACT_ASSISTANT_TURN_FUNCTION = `function (spec) {
   ${MARKER_USER_SOURCE}
   ${BROWSER_CANONICAL_SEMANTIC_TEXT_READER_SOURCE}
   if (this !== document) throw new Error("BROWSER_DOCUMENT_INVALID");

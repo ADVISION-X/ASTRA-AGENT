@@ -5,7 +5,7 @@ import { unsealProviderRecoveryPayload } from "./browser-mutation-payload.js";
 
 type ReplayCall = Readonly<{ productStepId: string; callId: string;
   childCapabilityId: string; sourceEffectSetHash: `sha256:${string}` }>;
-type ReplayRow = Readonly<{ command_id: string; logical_mutation_id: `sha256:${string}` | null;
+type ReplayRow = Readonly<{ call_id: string; child_capability_id: string; command_id: string; logical_mutation_id: `sha256:${string}` | null;
   attempt_id: string; result_revision: number;
   exact_call_identity_hash: `sha256:${string}`;
   request_hash: `sha256:${string}`; payload_hash: `sha256:${string}`;
@@ -21,7 +21,8 @@ const readTrustedAnchor = (payloadKey: Buffer, row: ReplayRow): Readonly<{
   if (row.provider_recovery_payload === null) return null;
   const envelope = unsealProviderRecoveryPayload(payloadKey, row.command_id, row.provider_recovery_payload);
   if (!row.logical_mutation_id) throw new Error("BROWSER_PROVIDER_RECOVERY_ANCHOR_INVALID");
-  const locator = readSubmittedConversationLocator(envelope, { exactCallIdentityHash: row.exact_call_identity_hash,
+  const locator = readSubmittedConversationLocator(envelope, { callId: row.call_id, childCapabilityId: row.child_capability_id,
+    exactCallIdentityHash: row.exact_call_identity_hash,
     providerEffectIdentityHash: row.logical_mutation_id });
   if (!locator) return null;
   const proof = envelope.terminalPayload as Readonly<{ promptHash: `sha256:${string}` }>;
@@ -37,7 +38,7 @@ export const readJobReplayEffects = (input: Readonly<{
   providerEffectSetHash: (call: ReplayCall, beforeRevision: number) => `sha256:${string}`;
   authorityHash: (commandId: string) => `sha256:${string}`;
 }>) => input.replayCalls.flatMap((call) => {
-  const effects = input.database.prepare(`select command_id,logical_mutation_id,attempt_id,result_revision,
+  const effects = input.database.prepare(`select command_id,logical_mutation_id,call_id,child_capability_id,attempt_id,result_revision,
     exact_call_identity_hash,
     request_hash,payload_hash,
     state,mutation_outcome,physical_input_count,provider_recovery_payload,terminal_at

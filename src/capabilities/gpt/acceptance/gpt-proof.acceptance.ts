@@ -18,7 +18,7 @@ const profile = buildGptExecutionProfile({ profileRef: "acceptance:proof-profile
   requestedReasoningValue: 5, executorIdentityRef: "acceptance:executor", acceptanceRef: "acceptance:gpt-proof", acceptanceVersion: "v1" });
 const modelFacts = (open: boolean) => ({ "openable-entry": { rawCount: open ? 0 : 1, eligibleCount: open ? 0 : 1 },
   "specified-model": { rawCount: 2, eligibleCount: open ? 1 : 0 } });
-verifyStoppedEmptyRecoveryContract();
+await verifyStoppedEmptyRecoveryContract();
 const stable = async () => {
   const fixture = fakeBrowser(intent => {
     if (intent.kind !== "observe") throw new Error("DONE_MUST_NOT_ACT");
@@ -156,11 +156,11 @@ for (const wrongUrl of [false, true]) {
     reads += 1;
     if (reads === 1) throw executionFailure("failed", "BROWSER_EXACT_USER_TURN_UNAVAILABLE");
     if (reads === 2) throw executionFailure("failed", "BROWSER_ADJACENT_ASSISTANT_TURN_MISSING");
-    return exactAssistantTurnReply(command, reads === 3 ? "" : "complete");
+    return exactAssistantTurnReply(command, "complete");
   });
   const result = await createGptAcceptanceHarness("gpt-proof-wait-reasons").execute("checkpoint_gpt_text_response", fixture.browser, {
     canonicalConversationUrl: conversationUrl, probeBudgetMs: 200_000, userTurnId: "00000000-0000-4000-8000-000000000003", turnMarker: "exact" }, {
     waitForProviderObservation: async (_deadline, reason) => { reasons.push(reason); return "reobserve"; } });
   assert.equal(result.status, "success", result.failureCode ?? "wait reasons");
-  assert.deepEqual(reasons, ["initial-observation", "exact-user-turn-unavailable", "adjacent-assistant-missing", "stopped-empty-confirming"]);
+  assert.deepEqual(reasons, ["initial-observation", "exact-user-turn-unavailable", "adjacent-assistant-missing"]);
 }

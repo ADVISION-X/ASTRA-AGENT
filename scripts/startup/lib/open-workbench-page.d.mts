@@ -2,6 +2,7 @@ export type WorkbenchWindowRestoreResult = Readonly<{
   handoffMode: "opened_new_window" | "already_visible" | "unsupported_platform_noop" | string;
 }>;
 
+export function getOpenCommand(url: string, platform?: NodeJS.Platform): Readonly<{ command: string; args: string[]; browserName: string; browserPath: string }>;
 export function buildChromeWindowRestoreScript(url: string): string;
 export function restoreWorkbenchWindowIfChromeHasNoWindow(
   url: string,

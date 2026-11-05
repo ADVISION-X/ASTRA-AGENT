@@ -1,3 +1,4 @@
+import type { GptExecutionProfile } from "./schema.js";
 import type { GptExecutionContext, GptHash, ProductGptChildCapabilityId } from "./contract.js";
 import type { ProductGptCallInput, ProductGptChildResult } from "./product-api.js";
 import type { GptEvidenceStorePort, GptProductionExecutionInput } from "./production-ports.js";
@@ -23,6 +24,7 @@ type SubmittedStep = Readonly<{
   sourceAttemptId: string; sourceResultRevision: number;
   submitIdentity: BrowserAtomicStepIdentity | null; submitExactCallIdentityHash: GptHash;
   sourceReadback?: NonNullable<NonNullable<ExecutionInput["readbackOnlyCalls"]>[number]["source"]>;
+  approvedProfile?: GptExecutionProfile;
   terminalAt: string | null; settledResultPayloadHash: GptHash | null;
 }>;
 
@@ -46,6 +48,7 @@ export class ProductionGptExecutionSession {
   private readonly riskCompletedKeys = new Set<string>();
   private readonly riskSubmittedByStep = new Map<string, string>();
   private readonly pendingReadbacks: Map<string, NonNullable<ExecutionInput["readbackOnlyCalls"]>[number]>;
+  private readonly approvedProfiles = new Map<string, GptExecutionProfile>();
   private readonly submittedByStep = new Map<string, SubmittedStep>();
   private readonly proofByEffect = new Map<string, ProviderEffectReadbackProofV1>();
   private providerEffectReadbackProof: ProviderEffectReadbackProofV1 | null = null;
@@ -61,6 +64,7 @@ export class ProductionGptExecutionSession {
     private readonly executeOne: <K extends ProductGptChildCapabilityId>(
       call: SessionCall<K>, recorder: ReadbackRecorder, state: Readonly<{
         confirmedSubmission: ProductionGptBrowserCall["confirmedProviderEffect"];
+        stoppedEmptyRepair?: Readonly<{ profile: GptExecutionProfile; promptHash: GptHash }>;
         recordSubmitIdentity: (identity: BrowserAtomicStepIdentity) => void;
       }>,
     ) => Promise<ProductGptChildResult<K>>,
@@ -93,7 +97,7 @@ export class ProductionGptExecutionSession {
       readProviderEffectReadbackProof: () => this.providerEffectReadbackProof,
       decorateSettledResultFailure: (error: unknown) => this.decorateSettledResultFailure(error),
       settle: async (error: unknown | null) => {
-        try { await this.browsers.settle(error); } finally { this.submittedByStep.clear(); }
+        try { await this.browsers.settle(error); } finally { this.submittedByStep.clear(); this.approvedProfiles.clear(); }
       },
     });
   }
@@ -171,7 +175,7 @@ export class ProductionGptExecutionSession {
 
   private decorateSettledResultFailure(error: unknown): unknown {
     const submit = [...this.submittedByStep.values()].at(-1);
-    if (!submit) return error;
+    if (!submit || executionFailureMetadata(error)?.browserEffect?.childCapabilityId === "retry_exact_gpt_response_once") return error;
     const typed = typedExecutionFailure(error);
     const details = runtimeFailureFromError({ error, code: failureCode(error), responsibleOwner: "gpt" });
     const cause = typed ? Object.assign(new Error(typed.code, { cause: typed.cause }), {
@@ -200,10 +204,12 @@ export class ProductionGptExecutionSession {
   }
 
   private async execute<K extends ProductGptChildCapabilityId>(call: SessionCall<K>): Promise<ProductGptChildResult<K>> {
-    if (call.child === "prepare_clean_gpt_chat" || call.child === "submit_exact_gpt_turn_once") this.assertNewTurn();
+    if (call.child === "prepare_clean_gpt_chat" || call.child === "prepare_clean_gpt_work"
+      || call.child === "submit_exact_gpt_turn_once") this.assertNewTurn();
     this.assertActive();
     this.assertExecutionCall(call);
     const currentKey = `${call.sessionKey}\u0000${call.productStepId}`;
+    if (call.child === "prepare_clean_gpt_chat" || call.child === "prepare_clean_gpt_work") this.approvedProfiles.delete(currentKey);
     const currentSubmit = this.submittedByStep.get(currentKey);
     if (currentSubmit && (call.child === "checkpoint_gpt_text_response" || call.child === "checkpoint_gpt_generated_image")) {
       this.submittedByStep.set(currentKey, Object.freeze({ ...currentSubmit, settledResultPayloadHash: null }));
@@ -225,6 +231,8 @@ export class ProductionGptExecutionSession {
     let submitIdentity: BrowserAtomicStepIdentity | null = null;
     const result = await this.executeOne(call, this.recordConfirmedProviderEffectReadback, {
       confirmedSubmission: checkpoint || locator ? confirmedSubmission : null,
+      ...(call.child === "checkpoint_gpt_text_response" && submit?.approvedProfile
+        ? { stoppedEmptyRepair: { profile: submit.approvedProfile, promptHash: submit.submitPromptHash } } : {}),
       recordSubmitIdentity: (identity) => { submitIdentity = identity; },
     });
     await this.recordExecutedResult(call, result, submitIdentity);
@@ -233,9 +241,11 @@ export class ProductionGptExecutionSession {
 
   private async recordExecutedResult<K extends ProductGptChildCapabilityId>(call: SessionCall<K>,
     result: ProductGptChildResult<K>, submitIdentity: BrowserAtomicStepIdentity | null): Promise<void> {
+    if (call.child === "select_gpt_model_from_start_v3") this.approvedProfiles.set(
+      `${call.sessionKey}\u0000${call.productStepId}`, Object.freeze({ ...(call.input as { profile: GptExecutionProfile }).profile }));
     if (call.child === "submit_exact_gpt_turn_once") {
       this.captureSubmit(call.sessionKey, call.productStepId,
-        result as ProductGptChildResult<"submit_exact_gpt_turn_once">, submitIdentity);
+        result as ProductGptChildResult<"submit_exact_gpt_turn_once">, submitIdentity, true);
       const riskKey = productionCallKey({ productStepId: call.productStepId, callId: call.callId, childCapabilityId: call.child });
       if (this.riskCalls.has(riskKey)) this.riskSubmittedByStep.set(`${call.sessionKey}\u0000${call.productStepId}`, riskKey);
     }
@@ -293,18 +303,33 @@ export class ProductionGptExecutionSession {
         canonicalConversationUrl: checkpointInput.canonicalConversationUrl, userTurnId: checkpointInput.userTurnId,
         turnMarker: (call.input as { turnMarker: string }).turnMarker,
       });
-      this.input.recordSettledCheckpoint(Object.freeze({
-        providerEffectIdentityHash: submit.providerEffectIdentityHash,
-        browserAuthorityHash: submit.browserAuthorityHash, browserAuthorityRef: submit.browserAuthorityRef,
-        submitPromptHash: submit.submitPromptHash, canonicalConversationUrl: checkpointInput.canonicalConversationUrl,
-        userTurnId: submit.userTurnId, sourceAttemptId: submit.sourceAttemptId,
-        sourceResultRevision: submit.sourceResultRevision,
+      const companions = this.source.recordCurrentCheckpointGroup(Object.freeze({
+        providerEffectIdentityHash: submit.providerEffectIdentityHash, browserAuthorityRef: submit.browserAuthorityRef,
+        browserAuthorityHash: submit.browserAuthorityHash, sourceAttemptId: submit.sourceAttemptId,
+        sourceResultRevision: submit.sourceResultRevision, submitPromptHash: submit.submitPromptHash,
+        userTurnId: submit.userTurnId, canonicalConversationUrl: checkpointInput.canonicalConversationUrl,
         checkpointExactCallIdentityHash: result.exactCallIdentityHash,
         artifactRef: recovered.artifactRef, artifactContentHash: recovered.integrityHash,
-      }));
+      }), submit.submitIdentity?.productStepId ?? call.productStepId);
+      this.closeRetryReadbacks(companions);
     }
     const riskKey = this.riskSubmittedByStep.get(stepKey);
     if (riskKey) { this.riskCompletedKeys.add(riskKey); this.riskSubmittedByStep.delete(stepKey); }
+  }
+
+  private closeRetryReadbacks(members: ReturnType<ProductionGptSourceReuse["recordCurrentCheckpointGroup"]>): void {
+    if (this.pendingReadbacks.size === 0) return;
+    const keys: string[] = [];
+    for (const { effect } of members) {
+      const key = productionCallKey(effect), pending = this.pendingReadbacks.get(key);
+      if (!pending || (pending.source && (pending.source.effectIdentityHash !== effect.effectIdentityHash
+        || pending.source.sourceAttemptId !== effect.attemptId || pending.source.sourceResultRevision !== effect.resultRevision
+        || pending.source.walAuthorityHash !== effect.walAuthorityHash))) {
+        throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_IDENTITY_MISMATCH");
+      }
+      keys.push(key);
+    }
+    for (const key of keys) this.pendingReadbacks.delete(key);
   }
 
   private captureCheckpointHash<K extends ProductGptChildCapabilityId>(
@@ -324,7 +349,7 @@ export class ProductionGptExecutionSession {
 
   private captureSubmit(sessionKey: string, productStepId: string,
     result: ProductGptChildResult<"submit_exact_gpt_turn_once">,
-    submitIdentity: BrowserAtomicStepIdentity | null): void {
+    submitIdentity: BrowserAtomicStepIdentity | null, currentInput = false): void {
     const receipt = result.effectReceipt, value = result.value;
     if (!receipt || receipt.outcome !== "CONFIRMED" || receipt.mutationOutcome !== "confirmed"
       || !receipt.providerEffectIdentityHash || !receipt.evidenceRef || !receipt.evidenceHash
@@ -332,9 +357,11 @@ export class ProductionGptExecutionSession {
       throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_READBACK_INVALID");
     }
     const source = [...this.source.calls.values()].find((row) =>
-      row.productStepId === productStepId && row.sourceAttemptId === result.sourceAttemptId);
+      row.productStepId === productStepId && row.sourceAttemptId === result.sourceAttemptId
+        && row.effectIdentityHash === receipt.providerEffectIdentityHash && row.childCapabilityId === "submit_exact_gpt_turn_once");
     const sourceReadback = [...this.pendingReadbacks.values()].find((entry) => entry.productStepId === productStepId
       && entry.source?.effectIdentityHash === receipt.providerEffectIdentityHash)?.source;
+    const approvedProfile = this.approvedProfiles.get(`${sessionKey}\u0000${productStepId}`);
     this.submittedByStep.set(`${sessionKey}\u0000${productStepId}`, Object.freeze({
       providerEffectIdentityHash: receipt.providerEffectIdentityHash,
       browserAuthorityHash: receipt.evidenceHash, browserAuthorityRef: receipt.evidenceRef,
@@ -345,6 +372,9 @@ export class ProductionGptExecutionSession {
       ...(sourceReadback ? { sourceReadback } : source ? { sourceReadback: {
         sourceAttemptId: source.sourceAttemptId, sourceResultRevision: source.sourceResultRevision,
         effectIdentityHash: source.effectIdentityHash, walAuthorityHash: source.walAuthorityHash } } : {}),
+      ...(approvedProfile && currentInput && !this.proofByEffect.has(receipt.providerEffectIdentityHash)
+        && result.sourceAttemptId === this.input.attemptId
+        ? { approvedProfile } : {}),
       submitIdentity, submitExactCallIdentityHash: result.exactCallIdentityHash,
       terminalAt: receipt.terminalAt, settledResultPayloadHash: null,
     }));

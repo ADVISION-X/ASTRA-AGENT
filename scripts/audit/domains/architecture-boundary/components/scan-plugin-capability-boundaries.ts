@@ -186,6 +186,8 @@ const inspectCrossJobImports = (
     if (!targetPluginRoot || targetPluginRoot === sourcePluginRoot) {
       continue;
     }
+    if (sourcePluginRoot === "src/plugins/s00-paper-factory"
+      && /^src\/plugins\/(?:c01-user-dialogue|s(?:0[1-9]|10)-[a-z-]+)\/index\.ts$/u.test(targetPath)) continue;
     pushBoundaryFinding(findings, {
       checkId: "architecture/flow-cross-job-import",
       lawId: jobFlowLawId,

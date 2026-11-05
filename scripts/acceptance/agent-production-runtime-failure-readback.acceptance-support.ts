@@ -405,11 +405,15 @@ export const verifyAttemptFailureClassificationMatrix = (): void => {
     settled_result_payload_hash: HASH_A }), "new_attempt_allowed");
   assert.equal(classify({ ...confirmedEffect, code: "RESULT_SETTLED_UNUSABLE" }), "fail_closed");
   assert.equal(classify({ ...confirmedEffect, code: "GPT_RESPONSE_STOPPED_EMPTY",
-    child_capability_id: "submit_exact_gpt_turn_once", child_proof_ref: "child-proof:1",
+    child_capability_id: "retry_exact_gpt_response_once", child_proof_ref: "child-proof:1",
     child_proof_hash: HASH_A, stopped_empty_proof: {
-      first_observed_at: "2026-09-23T00:00:00.000Z",
-      terminal_observed_at: "2026-09-23T00:20:00.000Z", continuous_monotonic_ms: 1_200_000,
-      observation_count: 2, identity_hash: HASH_A, terminal_observation_revision_hash: HASH_A,
+      schema_version: "gpt-stopped-empty-after-five-retries.v1", original_effect_identity_hash: HASH_A,
+      original_wal_authority_ref: "browser-mutation:root", original_wal_authority_hash: HASH_A,
+      retries: Array.from({ length: 5 }, (_, index) => ({ ordinal: index + 1,
+        effect_identity_hash: `sha256:${String(index + 1).repeat(64)}` as `sha256:${string}`,
+        wal_authority_ref: `browser-mutation:retry:${index + 1}`, wal_authority_hash: HASH_A,
+        pre_empty_observation_revision_hash: HASH_A })),
+      terminal_observed_at: "2026-11-05T08:00:00.000Z", terminal_observation_revision_hash: HASH_A,
     },
   }), "new_attempt_allowed");
   assert.equal(classify({ ...confirmedEffect, code: "GPT_RESPONSE_STOPPED_EMPTY" }), "fail_closed");

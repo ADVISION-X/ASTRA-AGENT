@@ -3,7 +3,7 @@
   "capabilityDomain": "capability-governance",
   "status": "active",
   "lawIds": [
-    "LAW-CAPABILITY-GOVERNANCE-001-V20",
+    "LAW-CAPABILITY-GOVERNANCE-001-V21",
     "LAW-CAPABILITY-GOVERNANCE-002-V5"
   ],
   "ownedPaths": [

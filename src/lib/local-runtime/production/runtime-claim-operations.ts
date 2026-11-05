@@ -6,7 +6,7 @@ import { requireRuntimeLogWrite, type RuntimeSpanHandle } from "../../runtime-lo
 import {
   buildProductionLeaseRelease,
   downloadProductionMaterials,
-  uploadProductionGeneratedImage, uploadProductionResult,
+  uploadProductionResult,
 } from "./cloud-client.js";
 import { buildTerminalProductionIntent, deliverTerminalProductionIntent } from "./cloud-terminal-intent.js";
 import { productionCatalogHash } from "./catalog.js";
@@ -18,6 +18,7 @@ import { reconcileBusinessAdmission, websiteJobAbsent } from "./runtime-business
 import { terminalFailureHttpStatus, type AttemptFailureFirstFact } from "./terminal-failure.js";
 import { websiteAgentTaskFromClaim, type ClaimedProductionTask } from "./transport-protocol.js";
 import type { CompleteProductionOutput } from "./store-complete-output.js";
+import { createWorkAccessPort } from "./work-access.js";
 
 const isResultTransportBoundary = (error: unknown): boolean => {
   const typed = typedExecutionFailure(error);
@@ -130,7 +131,7 @@ export const acceptClaim = (
   jobSpan: RuntimeSpanHandle,
   reconciledFailure: AttemptFailureFirstFact | null,
   readbackOnlyCalls: readonly Readonly<{ productStepId: string; callId: string;
-    childCapabilityId: "submit_exact_gpt_turn_once"; source?: Readonly<{ sourceAttemptId: string; sourceResultRevision: number; effectIdentityHash: `sha256:${string}`; walAuthorityHash: `sha256:${string}` }> }>[] | null,
+    childCapabilityId: "submit_exact_gpt_turn_once" | "retry_exact_gpt_response_once"; source?: Readonly<{ sourceAttemptId: string; sourceResultRevision: number; effectIdentityHash: `sha256:${string}`; walAuthorityHash: `sha256:${string}` }> }>[] | null,
 ) => {
   const task = websiteAgentTaskFromClaim(job);
   assertClaimIdentity(job);
@@ -283,7 +284,6 @@ const uploadAndStageResult = async (input: ExecuteAndUploadInput,
 export const executeAndUpload = async (input: ExecuteAndUploadInput): Promise<WebsiteAgentResult> => {
   let staged: Awaited<ReturnType<typeof uploadAndStageResult>> | undefined;
   let uploadBoundaryFailure: unknown;
-  const imageReceipts: Awaited<ReturnType<typeof uploadProductionGeneratedImage>>["transportReceipt"][] = [];
   try {
     await heartbeatWhileRunning({ state: input.state, job: input.job, budget: input.budget,
       abort: input.abort, parentSpanId: input.jobSpan.spanId,
@@ -295,7 +295,7 @@ export const executeAndUpload = async (input: ExecuteAndUploadInput): Promise<We
         return input.state.executor.execute(input.task, materials, input.budget, input.jobSpan.spanId,
           async output => {
             const complete = input.state.store.preserveCompleteOutput(
-              input.job.job_id, input.job.grant.attempt_id, output, imageReceipts);
+              input.job.job_id, input.job.grant.attempt_id, output, []);
             if (input.abort.signal.aborted) throw new ProductionRuntimeBoundaryError(input.abort.signal.reason);
             try { staged = await uploadAndStageResult(input, complete); }
             catch (error) { if (isResultTransportBoundary(error)) uploadBoundaryFailure = error; throw error; }
@@ -303,11 +303,7 @@ export const executeAndUpload = async (input: ExecuteAndUploadInput): Promise<We
             await sendStagedTerminal({ state: input.state, job: input.job, jobSpan: input.jobSpan,
               terminalIntent: staged.terminalIntent });
             return staged.uploaded.envelope;
-          }, async artifact => {
-            const uploaded = await uploadProductionGeneratedImage(input.state.session, input.state.store, input.job, artifact);
-            imageReceipts.push(uploaded.transportReceipt);
-            return uploaded.receipt;
-          });
+          }, createWorkAccessPort(input.state.session, input.job, input.abort.signal));
       },
     });
   } catch (error) {

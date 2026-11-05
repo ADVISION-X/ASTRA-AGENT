@@ -300,11 +300,8 @@ const verifyFirstSettledFailureDuringAcceptedReadback = async (): Promise<void> 
   const store = new RuntimeStore(directory);
   try {
     const websiteTask = task({ jobId: "job:first-settled-readback-failure",
-      productId: "localization_static_catalog", actionId: "produce_locale_catalog",
-      extra: { parameters: { target_locale: "zh-HK", source_resource_id: "website-fixed-copy-catalog",
-        source_version: "message-catalog.v2", source_sha256: HASH_A, policy_version: "policy:test",
-        cohort_id: "batch:test", ordered_pending_ids_hash: HASH_B,
-        result_schema_version: "localization-static-catalog-result.v3" } } });
+      productId: "payment_screenshot_observation", actionId: "observe",
+      extra: { parameters: { observation_schema_version: "payment-screenshot-observation-v1" } } });
     const first = claimTask(websiteTask);
     const job = { ...first, grant: { ...first.grant, same_accepted_attempt: true } };
     store.acceptTask(websiteTask, job.grant.attempt_id);

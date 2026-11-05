@@ -8,7 +8,7 @@ import { inspectSkillRegistry } from "./inspector-skill-registry.js";
 import { producerModePassed, recordStaticCheck, staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
 
 const inspectDomainEvaluation = async (context: InspectorContext): Promise<InspectorEvaluation> => {
-  const lawId = selectLawId(context.planEntry.lawIds, "LAW-APP-SHELL-UI-001-V3");
+  const lawId = selectLawId(context.planEntry.lawIds, "LAW-APP-SHELL-UI-001-V4");
   const localizationLawId = selectLawId(context.planEntry.lawIds, "LAW-APP-SHELL-UI-002-V1");
   const legacyLawId = selectLawId(context.planEntry.lawIds, "LAW-APP-SHELL-UI-003-V3");
   const findings: InspectorFinding[] = [];
@@ -39,14 +39,14 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
   const evaluation = await inspectDomainEvaluation(context);
-  const semanticChecks = (lawId: string): string[] => lawId === "LAW-APP-SHELL-UI-001-V3"
+  const semanticChecks = (lawId: string): string[] => lawId === "LAW-APP-SHELL-UI-001-V4"
     ? ["inspectAppShellLayout", "inspectForbiddenAppShellActions", "inspectSkillRegistry"]
     : lawId === "LAW-APP-SHELL-UI-002-V1"
       ? ["inspectAppShellLocalization"]
       : ["inspectLegacyAppUserDemandPhysicalAbsence"];
   const lawResult = (lawId: string) => {
     const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
-    const clauses = lawId === "LAW-APP-SHELL-UI-001-V3"
+    const clauses = lawId === "LAW-APP-SHELL-UI-001-V4"
       ? staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
       : staticClauses(0);
       const checks = semanticChecks(lawId);
@@ -55,7 +55,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
   };
   return validateStaticInspection(context, {
     capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,
-    lawResults: [lawResult("LAW-APP-SHELL-UI-001-V3"), lawResult("LAW-APP-SHELL-UI-002-V1"),
+    lawResults: [lawResult("LAW-APP-SHELL-UI-001-V4"), lawResult("LAW-APP-SHELL-UI-002-V1"),
       lawResult("LAW-APP-SHELL-UI-003-V3")], inspectedFiles: evaluation.inspectedFiles,
   });
 };

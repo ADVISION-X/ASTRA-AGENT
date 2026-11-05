@@ -5,9 +5,9 @@ import { resolve } from "node:path";
 import { hashExtensionDirectoryV1 } from "../../src/lib/browser/release/extension-directory-hash-v1.js";
 import { GRASSEYE_UNPACKED_EXTENSION_ID, readUnpackedExtensionReleaseIdentity } from "../../src/lib/browser/release/unpacked-extension-release-identity.js";
 
-const GRASSEYE_UNPACKED_EXTENSION_DIRECTORY = ".grasseye-local/browser-build/extension";
+const GRASSEYE_UNPACKED_EXTENSION_DIRECTORY = ".astra-local/browser-build/extension";
 
-const record = await readUnpackedExtensionReleaseIdentity(resolve(process.cwd(), ".grasseye-local/browser-release/release-record.json"));
+const record = await readUnpackedExtensionReleaseIdentity(resolve(process.cwd(), ".astra-local/browser-release/release-record.json"));
 assert.equal(record.extensionId, GRASSEYE_UNPACKED_EXTENSION_ID);
 assert.equal(record.extensionDirectoryHashV1, await hashExtensionDirectoryV1(resolve(process.cwd(), GRASSEYE_UNPACKED_EXTENSION_DIRECTORY)));
 assert.ok(record.releaseBuildId.startsWith("build-"));

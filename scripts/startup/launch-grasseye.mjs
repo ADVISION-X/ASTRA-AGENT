@@ -1,5 +1,6 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { ASTRA_LOCAL_HOST, ASTRA_LOCAL_PORT, ASTRA_DATA_DIRECTORY } from "../../src/lib/browser/profile/browser-application-identity.ts";
 
 import {
   assessDependencyState,
@@ -22,12 +23,14 @@ import {
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 
-const host = process.env.GRASSEYE_HOST ?? "127.0.0.1";
-const port = Number(process.env.GRASSEYE_PORT ?? 4173);
+const host = process.env.GRASSEYE_HOST ?? ASTRA_LOCAL_HOST;
+const port = Number(process.env.GRASSEYE_PORT ?? ASTRA_LOCAL_PORT);
+if (host !== ASTRA_LOCAL_HOST || port !== ASTRA_LOCAL_PORT) throw new Error("ASTRA_LOCAL_IDENTITY_MISMATCH: use 127.0.0.1:4174 in this repository's .env.local");
 const baseUrl = `http://${host}:${port}`;
 const expectedSourceFingerprint = buildStartupSourceFingerprint(rootDir);
 const startupRunId = new Date().toISOString();
-const startupDataDir = process.env.GRASSEYE_DATA_DIR ?? path.join(rootDir, ".grasseye-local");
+const startupDataDir = path.join(rootDir, ASTRA_DATA_DIRECTORY);
+if (process.env.GRASSEYE_DATA_DIR && path.resolve(process.env.GRASSEYE_DATA_DIR) !== startupDataDir) throw new Error("ASTRA_DATA_DIRECTORY_MISMATCH: use this repository's .astra-local directory");
 const {
   toFailureReason,
   startStartupStep,
@@ -140,7 +143,7 @@ function startService(root) {
   startStartupStep("app_server");
   return startLocalService({
     rootDir: root,
-    env: { GRASSEYE_LOG_MODE: "TRACE", GRASSEYE_HOST: host, GRASSEYE_PORT: String(port),
+    env: { GRASSEYE_LOG_MODE: "TRACE", GRASSEYE_HOST: host, GRASSEYE_PORT: String(port), GRASSEYE_DATA_DIR: startupDataDir,
       GRASSEYE_SOURCE_FINGERPRINT: expectedSourceFingerprint },
     onStdoutLine: relayServiceStdoutLine, onStderrLine: relayServiceStderrLine,
   });

@@ -15,7 +15,7 @@ export type SourceReadbackObservation = ObservationIdentity & Readonly<
   | { kind: "negative_exact"; path: "exact_conversation";
     observation_revision_hash: ProductionHash;
     observed_at: string; first_observed_at: string; observation_count: number;
-    pending_cause: "exact-user-turn-unavailable" | "adjacent-assistant-missing";
+    pending_cause: "exact-user-turn-unavailable" | "adjacent-assistant-missing" | "response-stopped-empty";
     canonical_conversation_hash: ProductionHash; user_turn_hash: ProductionHash }
 >;
 
@@ -44,7 +44,7 @@ export type SourceReadbackEffectProof = EffectIdentity & Readonly<
     exact_negative?: never; unaddressable?: never; unresolved?: never }
   | { exact_negative: Readonly<{ proof_hash: ProductionHash;
       first_observed_at: string; observed_at: string; observation_count: number;
-      pending_cause: "exact-user-turn-unavailable" | "adjacent-assistant-missing";
+      pending_cause: "exact-user-turn-unavailable" | "adjacent-assistant-missing" | "response-stopped-empty";
       canonical_conversation_hash: ProductionHash; user_turn_hash: ProductionHash;
       provider_input_delta: 0 }>;
     settled_checkpoint?: never; rejection_settled?: never;
@@ -71,6 +71,19 @@ export type InputQuiescenceProof = Readonly<{
   source_effect_set_hash: ProductionHash; unresolved_command_set_hash: ProductionHash;
   proof_hash: ProductionHash;
 }>;
+export type RejectedSourceCallIdentity = Readonly<{ product_step_id: string; call_id: string;
+  child_capability_id: string; source_effect_set_hash: ProductionHash; effect_identity_hash: ProductionHash }>;
+export type RejectedSourceCall = RejectedSourceCallIdentity & Readonly<{
+  original_submit?: RejectedSourceCallIdentity;
+  prior_retries?: readonly (RejectedSourceCallIdentity & Readonly<{ ordinal: number }>)[];
+}>;
+export const rejectedSourceCallMembers = (call: RejectedSourceCall | null): readonly RejectedSourceCallIdentity[] => {
+  if (call === null) return [];
+  const { original_submit: root, prior_retries: priors, ...primary } = call;
+  if (root === undefined && priors === undefined) return [primary];
+  if (root === undefined || priors === undefined) throw new Error("PRODUCTION_SOURCE_REJECTION_INVALID");
+  return [primary, root, ...priors.map(({ ordinal: _ordinal, ...identity }) => identity)];
+};
 export type SourceAttemptHandoff = Readonly<{
   kind: "attempt_handoff" | "delivery_priority_replay";
   job_id: string; source_attempt_id: string;
@@ -84,9 +97,7 @@ export type SourceAttemptHandoff = Readonly<{
   browser_input_state: "zero" | "possible" | "unknown";
   replay_calls: readonly Readonly<{ product_step_id: string; call_id: string;
     child_capability_id: string; source_effect_set_hash: ProductionHash }>[];
-  rejected_call: Readonly<{ product_step_id: string; call_id: string;
-    child_capability_id: string; source_effect_set_hash: ProductionHash;
-    effect_identity_hash: ProductionHash }> | null;
+  rejected_call: RejectedSourceCall | null;
   readback_proofs: readonly SourceReadbackCallProof[];
   input_quiescence_proof: InputQuiescenceProof | null;
   readback_exhaustion_hash: ProductionHash | null; seal_hash: ProductionHash;

@@ -91,31 +91,11 @@ export interface ProductionRoutePolicy {
     storage_class: ProductMaterial["storage_class"];
     owner_scope_policy: "required" | "forbidden";
     repeatable?: boolean;
+    min_count?: number;
   }>[];
   readonly result_schema_version: string;
   readonly result_contract?: Readonly<Record<string, unknown>> | undefined;
   readonly relation_kind: "primary" | "followup" | "provider_continuation" | "review";
-}
-
-export interface GeneratedImageArtifact {
-  readonly artifact_id: string;
-  readonly webp_bytes: Uint8Array;
-  readonly sha256: ProductionHash;
-  readonly bytes: number;
-  readonly media_type: "image/webp";
-  readonly width: number;
-  readonly height: number;
-}
-
-export interface GeneratedImageResultReceipt {
-  readonly artifact_id: string;
-  readonly object_ref: string;
-  readonly sha256: ProductionHash;
-  readonly receipt_hash: ProductionHash;
-  readonly bytes: number;
-  readonly mime_type: "image/webp";
-  readonly width: number;
-  readonly height: number;
 }
 
 export interface ProductPluginOutput {
@@ -129,6 +109,8 @@ export interface ProductSkill {
 }
 
 export interface SharedExecutionContext {
+  readonly producingExecution?: Readonly<{ attempt_id: string; execution_fence_hash: ProductionHash }>;
+  readonly workAccess?: (materialId: string, assetId?: string) => Promise<Readonly<Record<string, unknown>>>;
   readonly materials: readonly LocalProductionMaterial[];
   readonly routePolicy: ProductionRoutePolicy;
   readonly productSkill: ProductSkill;
@@ -151,7 +133,6 @@ export interface SharedExecutionContext {
       reason_codes: readonly string[];
     }> | null;
   }>;
-  readonly uploadGeneratedImage: (artifact: GeneratedImageArtifact) => Promise<GeneratedImageResultReceipt>;
   readonly complete: (output: ProductPluginOutput) => Promise<ProductCompletionReceipt>;
 }
 

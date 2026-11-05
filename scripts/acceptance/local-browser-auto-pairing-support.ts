@@ -347,8 +347,8 @@ const pairingWakeSources = async (fixture: ReturnType<typeof chromeFixture>, bui
     async () => { wakeReads += 1; return { authority: "present", pairingSecret: null, releaseBuildId: build }; });
   wakes.start(); await wakes.attempt(); assert.equal(wakeReads, 1); assert.deepEqual(fixture.configuration(), { name: GRASSEYE_AUTO_PAIRING_ALARM, periodInMinutes: 1 });
   fixture.startup(); await wakes.attempt(); assert.equal(wakeReads, 2);
-  fixture.updated(1, { status: "complete" }, { id: 1, url: "http://127.0.0.1:4174/" }); await Promise.resolve(); assert.equal(wakeReads, 2);
-  fixture.updated(2, { status: "complete" }, { id: 2, url: "http://127.0.0.1:4173/" }); await wakes.attempt(); assert.equal(wakeReads, 3);
+  fixture.updated(1, { status: "complete" }, { id: 1, url: "http://127.0.0.1:4173/" }); await Promise.resolve(); assert.equal(wakeReads, 2);
+  fixture.updated(2, { status: "complete" }, { id: 2, url: "http://127.0.0.1:4174/" }); await wakes.attempt(); assert.equal(wakeReads, 3);
   fixture.alarm({ name: "unrelated" }); await Promise.resolve(); assert.equal(wakeReads, 3); fixture.alarm({ name: GRASSEYE_AUTO_PAIRING_ALARM }); await wakes.attempt(); assert.equal(wakeReads, 4);
 };
 

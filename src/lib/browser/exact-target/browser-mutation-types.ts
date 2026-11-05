@@ -93,6 +93,7 @@ export type BrowserAtomicStepOutcome = Readonly<{
 }>;
 
 export type AtomicStepRow = Readonly<{
+  call_id: string; child_capability_id: string;
   command_id: string;
   logical_mutation_id: `sha256:${string}` | null;
   target_ref: string;

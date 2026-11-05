@@ -1,3 +1,4 @@
+import { productionControlContractVersion } from "../../src/lib/local-runtime/production/control-contract-dependency.js";
 import {
   RESULT_CONTRACT_ID,
   RESULT_CONTRACT_VERSION,
@@ -132,7 +133,7 @@ export const validDeviceCredential = {
   protocol_version: "xuanxue-ai-production-v6",
   server_base_url: "http://127.0.0.1:4322",
   environment_id: "production",
-  origin: "http://127.0.0.1:4173",
+  origin: "http://127.0.0.1:4174",
   device_id: "device:projection-owner-test",
   device_epoch: 7,
   credential: `aidc_v6_${"a".repeat(32)}`,
@@ -284,12 +285,12 @@ const executionGrant = (base: WebsiteAgentTask) => {
     worker_session_id: "worker:1", worker_session_epoch: 1, lease_token: `lease:${base.job_id}`,
     lease_version: 1, server_now: "2030-01-01T00:00:00.000Z",
     lease_expires_at: "2030-01-01T00:05:00.000Z", renew_after_ms: 20_000,
-    control_contract_version: 49,
+    control_contract_version: productionControlContractVersion,
     execution_fence: {
       schema_version: "xuanxue-ai-execution-fence.v6", environment_id: "production", device_id: "device:1",
       device_epoch: 1, worker_session_id: "worker:1", worker_session_epoch: 1, job_id: base.job_id,
       attempt_id: `attempt:${base.job_id}`, lease_version: 1, lease_token_hash: HASH_A,
-      control_contract_version: 49, fence_hash: HASH_B,
+      control_contract_version: productionControlContractVersion, fence_hash: HASH_B,
     },
   } as const;
 };

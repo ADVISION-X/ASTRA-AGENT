@@ -1,16 +1,17 @@
 import { createHash } from "node:crypto";
 import { access, readFile, readdir } from "node:fs/promises";
 import { join, relative, resolve } from "node:path";
+import { ASTRA_DATA_DIRECTORY, ASTRA_BROWSER_EXTENSION_ID } from "../../../src/lib/browser/profile/browser-application-identity.ts";
 
-const extensionDirectory = resolve(process.cwd(), ".grasseye-local", "browser-build", "extension");
-const releaseRecordPath = resolve(process.cwd(), ".grasseye-local", "browser-release", "release-record.json");
+const extensionDirectory = resolve(process.cwd(), ASTRA_DATA_DIRECTORY, "browser-build", "extension");
+const releaseRecordPath = resolve(process.cwd(), ASTRA_DATA_DIRECTORY, "browser-release", "release-record.json");
 const manifestPath = resolve(extensionDirectory, "manifest.json");
 const buildManifestPath = resolve(extensionDirectory, "extension-build-manifest.json");
 const sourceManifestPath = resolve(process.cwd(), "src/lib/browser/chrome-extension/manifest.json");
 const sourcePairingPagePath = resolve(process.cwd(), "src/lib/browser/chrome-extension/pairing.html");
 const protocolPath = resolve(process.cwd(), "src/lib/browser/protocol/browser-protocol.schema.json");
 const sitePolicyPath = resolve(process.cwd(), "src/lib/browser/exact-target/browser-site-policy-registry.ts");
-const extensionId = "emkmbecadncngofidjgocmifhbonifgm";
+const extensionId = ASTRA_BROWSER_EXTENSION_ID;
 const hashPattern = /^sha256:[a-f0-9]{64}$/u;
 const requiredIdentityFields = Object.freeze([
   "extensionDirectoryHashV1",
@@ -22,6 +23,8 @@ const requiredPermissions = Object.freeze(["alarms", "debugger"]);
 const requiredHostPermissions = Object.freeze(["http://127.0.0.1/*"]);
 
 const sha256 = (value) => `sha256:${createHash("sha256").update(value).digest("hex")}`;
+const extensionIdFromKey = (key) => [...createHash("sha256").update(Buffer.from(key, "base64")).digest("hex").slice(0, 32)]
+  .map(value => String.fromCharCode(97 + Number.parseInt(value, 16))).join("");
 const isRecord = (value) => typeof value === "object" && value !== null && !Array.isArray(value);
 
 const isReleaseRecord = (value) => isRecord(value)
@@ -51,6 +54,7 @@ const isExactManifest = (manifest, record, manifestSource) =>
   && manifest.manifest_version === 3
   && manifest.version === record.version
   && typeof manifest.key === "string"
+  && extensionIdFromKey(manifest.key) === extensionId
   && Array.isArray(manifest.permissions)
   && manifest.permissions.length === requiredPermissions.length
   && requiredPermissions.every((permission) => manifest.permissions.includes(permission))

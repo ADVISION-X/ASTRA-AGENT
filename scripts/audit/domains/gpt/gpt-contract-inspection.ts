@@ -10,16 +10,19 @@ const CONTRACT = `${ROOT}/contract.ts`;
 const REGISTRY = `${ROOT}/handler-registry.ts`;
 // The law freezes each Child, rather than merely the total number of profiles.
 const CHILDREN_CONTRACT = {
+  open_exact_gpt_retry_menu: [1, 1, "TARGET_LOCAL_MUTATION"],
+  retry_exact_gpt_response_once: [1, 1, "PROVIDER_EFFECT_ONCE"],
   acknowledge_known_gpt_rate_limit: [2, 1, "TARGET_LOCAL_MUTATION"],
   attach_approved_gpt_files_once: [3, 1, "TARGET_LOCAL_MUTATION"],
   checkpoint_gpt_generated_image: [6, 3, "DOM_OBSERVATION"],
-  checkpoint_gpt_text_response: [6, 3, "DOM_OBSERVATION"],
+  checkpoint_gpt_text_response: [7, 3, "DOM_OBSERVATION"],
   get_submitted_gpt_conversation_url: [1, 1, "DOM_OBSERVATION"],
   close_gpt_execution_profile: [4, 2, "TARGET_LOCAL_MUTATION"],
   open_gpt_attachment_control: [3, 1, "TARGET_LOCAL_MUTATION"],
   open_gpt_execution_profile: [3, 2, "TARGET_LOCAL_MUTATION"],
   open_gpt_model_selector_v3: [4, 2, "TARGET_LOCAL_MUTATION"],
   prepare_clean_gpt_chat: [5, 1, "TARGET_LOCAL_MUTATION"],
+  prepare_clean_gpt_work: [1, 1, "TARGET_LOCAL_MUTATION"],
   reconcile_gpt_attachment_set: [3, 1, "DOM_OBSERVATION"],
   select_gpt_model_from_start_v3: [5, 2, "TARGET_LOCAL_MUTATION"],
   select_gpt_reasoning_from_start_v3: [5, 3, "TARGET_LOCAL_MUTATION"],

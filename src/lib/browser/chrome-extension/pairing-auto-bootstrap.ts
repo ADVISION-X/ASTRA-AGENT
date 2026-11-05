@@ -1,8 +1,9 @@
 import type { ExtensionChromeApi } from "./extension-runtime-types.js";
+import { ASTRA_PAIRING_URL, ASTRA_LOCAL_ORIGIN, ASTRA_BROWSER_EXTENSION_ID } from "../profile/browser-application-identity.js";
 
-export const GRASSEYE_PAIRING_URL = "http://127.0.0.1:4173/api/browser-authority/pairing";
+export const GRASSEYE_PAIRING_URL = ASTRA_PAIRING_URL;
 export const GRASSEYE_AUTO_PAIRING_ALARM = "grasseye-browser-authority-auto-pairing";
-export const GRASSEYE_TOOL_EXTENSION_ID = "emkmbecadncngofidjgocmifhbonifgm";
+export const GRASSEYE_TOOL_EXTENSION_ID = ASTRA_BROWSER_EXTENSION_ID;
 export const GRASSEYE_TOOL_EXTENSION_ID_HEADER = "X-GrassEye-Tool-Extension-Id";
 
 export type WorkbenchPairingState = Readonly<{
@@ -71,7 +72,7 @@ export class PairingAutoBootstrap {
     this.chromeApi.tabs.onUpdated.addListener((_tabId, changeInfo, tab) => {
       const url = changeInfo.url ?? tab.url;
       const terminalPageState = changeInfo.status === "loading" || changeInfo.status === "complete";
-      if (terminalPageState && url?.startsWith("http://127.0.0.1:4173/")) void this.attempt();
+      if (terminalPageState && url?.startsWith(`${ASTRA_LOCAL_ORIGIN}/`)) void this.attempt();
     });
     this.chromeApi.alarms.onAlarm.addListener((alarm) => {
       if (alarm.name === GRASSEYE_AUTO_PAIRING_ALARM) void this.attempt();

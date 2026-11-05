@@ -62,7 +62,8 @@ try {
     targetRefHash: HASH_A, documentRefHash: HASH_B, rawCount: 1, eligibleCount: 1 });
   const outcome = (jobId: string) => ({ ...originalMutation, state: "confirmed" as const, terminalPayload: payload(jobId),
     conversationLocator: readSubmittedConversationLocator({ terminalPayload: payload(jobId) },
-      { exactCallIdentityHash: originalHash(jobId), providerEffectIdentityHash: effectHash }) });
+      { exactCallIdentityHash: originalHash(jobId), providerEffectIdentityHash: effectHash,
+        childCapabilityId: originalIdentity.childCapabilityId, callId: originalIdentity.callId }) });
   const original = (jobId: string) => ({ exactCallIdentityHash: originalHash(jobId), inputHash, mutation: originalMutation, confirmedOutcome: outcome(jobId) });
   const checkpoint = { ...historicalCall, child: "checkpoint_gpt_text_response" as const, callId: "readback", actionOrdinal: 2,
     input: { canonicalConversationUrl: payload("unused").canonicalConversationUrl, userTurnId: payload("unused").userTurnId,

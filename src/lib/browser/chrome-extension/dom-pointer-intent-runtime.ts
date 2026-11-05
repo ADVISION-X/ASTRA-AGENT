@@ -1,3 +1,4 @@
+import { executeGptStoppedEmptyClick } from "./dom-gpt-retry-action.js";
 import type { BrowserDomIntent } from "../exact-target/browser-dom-intent.js";
 import type { ExtensionDebuggerRuntime } from "./debugger-runtime.js";
 import {
@@ -364,6 +365,8 @@ export const executeClickIntent = async (
   onPhysicalInput?: () => void,
   allowTransientDomConfirmation = true,
 ): Promise<unknown> => {
+  if (intent.gptStoppedEmpty) return executeGptStoppedEmptyClick({ runtime, target, request: intent.gptStoppedEmpty,
+    assertCurrent, dispatch: point => dispatchPointerClickSequence(runtime, target, point, [1], assertCurrent, onPhysicalInput) });
   const prepared = await prepareClick(
     runtime, target, intent, assertCurrent, allowTransientDomConfirmation,
   );

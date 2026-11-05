@@ -62,7 +62,7 @@ const assertFixedExtensionPairingBoundary = async (): Promise<void> => {
     assert.equal(response.headers.get("x-content-type-options"), "nosniff");
   });
 
-  for (const origin of [localBaseUrl, "chrome-extension://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "https://example.com", "null", "file://"]) {
+  for (const origin of [localBaseUrl, "chrome-extension://emkmbecadncngofidjgocmifhbonifgm", "chrome-extension://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "https://example.com", "null", "file://"]) {
     await withServer(async ({ rootUrl }) => {
       const response = await fetch(`${rootUrl}/api/browser-authority/pairing`, {
         headers: { Origin: origin, [GRASSEYE_TOOL_EXTENSION_ID_HEADER]: GRASSEYE_UNPACKED_EXTENSION_ID },
@@ -73,6 +73,7 @@ const assertFixedExtensionPairingBoundary = async (): Promise<void> => {
   }
   for (const headers of [
     {},
+    { [GRASSEYE_TOOL_EXTENSION_ID_HEADER]: "emkmbecadncngofidjgocmifhbonifgm" },
     { [GRASSEYE_TOOL_EXTENSION_ID_HEADER]: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
     { Origin: GRASSEYE_BROWSER_EXTENSION_ORIGIN },
   ]) {

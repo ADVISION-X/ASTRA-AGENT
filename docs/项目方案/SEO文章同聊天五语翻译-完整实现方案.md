@@ -117,6 +117,70 @@ Q2施工事实：主Codex删除原错误`clauses`属性后，423639即时读取�
 
 Q3施工事实：56a757即时核原support的003 emission与全acceptance同locator缺席，002/005仍在；随后原recovery末尾重建唯一003，最终492行。主Codex两遍实际核六路径差异、原检查/断言/await、clauses顺序及生产/规范零变更；原J1实际复核五个源码及原件无可操作finding，没有把其未亲验的即时删除当独立过程证据。实际receipt/traces及分母错误消除仍交当前候选的原生READY，不以源码审查冒充通过。
 
+#### Q4 单族施工设计：删除重复决定并恢复结构预算（可施工）
+
+授权及候选：2026-11-04，用户在上一轮精确列明Q4九个原Runtime/验收文件及Q5两个原checker/原验收范围后，明确续行“那就激活C-FULL技能，完成READY”；本节据此只施工Q4，Q5另族处理。AGENT主仓main@b0227bd0df7a9ccf5dfa317e57e3096a1869d463、origin/main同值、工作树clean；唯一报告同候选READY FAIL，Q2/Q3已清，37/39法PASS。旧J1/J2/J3三份Q4票均恢复，绑定9ed47e370的十处具体对象，裁职责与预算检查留、具体预算违规修；当前九文件与原审对象字节相同，不重票、不拿旧判充新质量。主Codex定中度，复用原J2独立逐对象/消费者分析和本次first-terminal技术补证；闭环Skill现役全文双遍已取得并持续适用，设计采用受影响结构的深度核验，不扩成业务或外部穿透。
+
+现役约束为母本§21/35—38/48—54、Code-Purity001-V6 forbidden[0/1/4]、Runtime001-V83及004-V49、原Runtime V70/质量证据蓝图、原Manifest及registry。预算仍文件500行，函数75行/7参/8返回/10await/5嵌套/16复杂度。四栏目源头、Website业务授权/完成主权、原完整结果接收即工厂完成、control49/task-result24及43route全不改变；无须改法、施工图、Manifest、spec或registry。两遍规范主审先核预算/Runtime原义务向下，再由接收、封口、grant/发送向上反查，没有未结规范冲突；进入本节实际代码前须再核规范差异为零，子审不替主审。
+
+发现分母：原报告十项→原结构计算器当前复算，另由符号反向引用/package原注册及状态/Store读写交叉核对。入口仍原Runtime验收与worker/claim；终点仍同job/attempt完整result及原接收、原seal/claim运输，不增加业务结果。相关W5既定封口、unknown保全、完整输出和排空保护继续承接；历史预算违规不当成最新URL回归。源头/上位没有规范冲突，运行与Provider无本单新动作。下面九路径以AGENT根为准，原Owner均agent-production-runtime，结构扫描Owner仍code-purity。
+
+| 单元/精确施工片区 | 合同推导的唯一承接与保留决定 |
+| --- | --- |
+| `scripts/acceptance/agent-production-runtime-failure-transport.acceptance-support.ts`：原exerciseFirstTerminalBeforeProducerCleanup和verifyFirstTerminalReadback | 退休两函数旧职责分布后重建同入口：七模式/VM源码只编译一次、原stage与发送前断言、timer作用域及finally还原留在原harness；原readback helper统一负责先结算controlled renew、再核execution成功/拒绝及结算后最新result/terminalId，避免两处解读mode。实际输出由只读getter在await后取得，不提前捕获旧result。删除每模式重复的fixture:envelope hash计算，复用现有fixtures.HASH_A；三处只需不透明有效hash，foreign-result仍须与真实complete-output execution hash不同。原settleControlReceipt直接复用，七模式及所有独立断言不删；不加wrapper/文件/通用时钟。当前79行，消除重复协调与hash计算后按正常排版须≤75。 |
+| `scripts/acceptance/agent-production-runtime-store-schema.acceptance-support.ts`：sourceTransportFetch唯一返回callback | 退休旧else-if/data聚合片区，沿原七个有序匹配分支提前return原生Response.json({ok:true,data})；未知路径仍抛原错误，generation/sequence、故障注入与真实session往返不变。原公共Response尾部及data变量退出，无新格式helper。Node24原生JSON响应须与旧status/headers/UTF-8 JSON相等；七返回≤8，平级分支消除嵌套7。当前495物理行，正常新写须≤500，不压行。其余完整输出/65状态/7来源及错误排空场景直接保留。 |
+| `scripts/audit/domains/agent-production-runtime/authority-inspection.ts`：inspectFactoryRetirement及其唯一注册调用 | 退休聚合壳，按“完整输出/封口互斥”和“有界发现/排空运输”两项真实证明责任重建原文件局部检查，原inspectAgentAuthorityAst直接调用。后两项共用loops/iteration事实，不拆三套重复读取。原三个checkId、law、完整真假条件、immediate/pending完整输出/物理claim检查保持；其它检查函数保留。492行落点须≤500，不新增checker/入口或固定成功。 |
+| `src/lib/local-runtime/production/runtime-claim.ts`：executeClaim内两处受control接纳的重复决定 | 退休executeClaim原片区后按原授权链重建；用同文件局部acceptControlledClaim统一“current attempt尚未接纳才调用原acceptClaim(null,null)”这一重复责任。两个真实消费者为已知control及renew后abort；budget getter仅在原if成立时求值，保持各自预算/epoch取得时点、durability赋值、结果优先、异常与当前取消行为。原acceptClaim及其源seal/防重逻辑直接复用，不能合并不同时点的生产接纳。 |
+| `src/lib/local-runtime/production/runtime-loops.ts`：nextStatusJobIds与workerIteration两处环形page计算 | 只删除这两处重复page表达式后，用同文件唯一无状态circularJobPage承接已排序集合、原cursor与caller限额。status仍32/空页置null，运输仍6/空页保持原cursor；两种游标更新保持各自原位。首次原结构复算发现过滤callback不计入主函数own复杂度，分页去重本身不降低workerIteration的17，故在下一编辑前重核首断：本文件recordJobReadbackFailure及provider-loop catch还重复同一401/403运输分类。删除两处重复分类片段，合并为一个本地纯isSharedTransportAuthorizationFailure，两个真实消费者保持各自typed/BROWSER gate、throw及诊断写入；不用迁移pending循环或增加消费者/VM闭包。原workerIteration其它职责直接保留，finally唯一一次reconcileCompletedBrowserTargets不动。原admission VM只验证日志不可写而提前返回，实际路径在新page helper之前，故无须扩大VM闭包或改该文件；其它真实worker验收覆盖分页helper。 |
+| `src/lib/local-runtime/production/runtime-source-handoff.ts`：preflightSourceHandoff与prepareSourceHandoffs | 退休两函数后重建：共同Outbox/完整输出/输入与WAL读回之后，retirement直接返回其原事实分支，普通来源再核继承冲突、精确拒收及历史资格，删掉retirement假继承对象和重复目的判断；首次复算预检仍17，下一编辑前核实拒收分类和exact reader只有这一消费者：局部合并其判定，原readExactRejectedProviderCall先用原isRejectedProviderResult，返回false=非拒收、null=拒收身份不合法、原call=合法拒收。预检从这一原三值产生rejectedResult，不再独立布尔授权后又判call。原classification/identity条件保留，null仍拒绝，无新type/状态/对象。最终异步artifact后历史/输入复核保留。原批处理只负责有限job集合、逐项typed隔离及诊断；局部sourceHandoffForJob承担原seal优先、active排除、精确control/待交结果优先和单job封存。raw/shared错误仍外抛，旧seal不重新观察，不改SourceEvidence字段或业务资格。其它validators/prepareOneSourceHandoff/seal函数直接复用。 |
+| `src/lib/local-runtime/production/runtime-source-readback-proofs.ts`：sourceReadbackProofs | 退休旧混合遍历/逐effect决定后重建：原公开入口保留完整calls/effects分母和disposition汇总，原文件局部effectReadbackProof承接一个effect的既有accepted→checkpoint→exhausted→仅精确retirement unresolved顺序。accepted/checkpoint的null是拒绝，undefined才继续；整批observedAt仍只取一次。identity和原三种validator不改，调用方handoff/claim-recovery及原混合来源/祖先反例全保留，无新增proof或恢复来源。 |
+| `src/lib/local-runtime/production/store-source-readback.ts`：sealSourceHandoff | 退休原method后在同一同步immediate事务重建；全部可变current/firstRaw/Outbox/receiving/complete-output/CAS读取留锁内。按当前task写者资格、manifest稳定身份/hash两职责做同class私有验证，原outbox非零/当前staged/pending完整输出/普通unresolved gate归同一私有写者资格方法，仍同步在事务内调用；原inspector沿seal中的唯一资格调用核该方法的hasPendingCompleteOutput，同时保留immediate核验。重建前按原复杂度计算口径推演：把这组gate全留在事务回调会仍超16，因此采用既定两职责拆分并同步同一原inspector的直接接缝，不增加新检查。复用一次existing行判断seal_hash/sealed_at的非null，删除第二次同键sourceAttemptClosed查询；json(manifest)仅生成一次供幂等及原insert/update。半seal仍拒绝，原精确更新/完成退役结果及receiving不变，无await、第二事务、UPSERT或SQL结构变化；class当前21成员可承载两私有职责且≤30。其它写者与sourceAttemptClosed原方法保留，仍供原消费者使用。 |
+| `src/lib/local-runtime/production/worker-session.ts`：assertDrainingSourceClaim | 退休旧method后重建：同文件有限同步parser只核原JSON、exact keys、POST、schema/protocol、非空request_id及原limit形状；原method仍在真正fetch前核当前session/epoch、attestation、draining/ledger、delivery空、source非空且≤6、原validSourceHandoff/hash、零候选及job去重。parser不导出、不新增schema/公共合同，原请求构造与非DRAINING/非零grant拒绝保留。原AST guard中的source/validSourceHandoff/hash与物理注册保持，无须放宽审计。 |
+
+保留反事实：删除上述原保护会分别允许cleanup撤销原结果、跨attempt/result混用、未决输入被丢弃、坏首job阻断兄弟、封口竞态、错误draining grant或未接收就完成。因此不删场景、不动判题阈值；只退休本表定位的重复/混合责任。无新文件、公共端口、库依赖、持久化、队列、Owner、恢复链或兼容桥。其它Product/GPT/Browser/Website/Outbox生产不触碰，Runtime原Store/公开typed输入及Website授权语义不变；在这些边界停止修改有合同及实际相同输入输出依据，不以Owner不同排除验收。
+
+施工顺序及纪律：主Codex在每路径先核Git状态；按本表精确符号/片段物理删除→立即独立AST/引用缺席回读→从本表责任及原输入输出在原位置重建。共文件其它职责提前裁直接保留，不能缓存旧骨架加工回填、从Git/临时副本恢复、改名搬家或保留转发壳。两处page只属片段重建；其它未列变更无。重要节点和全代码完工由原J2只读审实际差额；主Codex先完成≥2轮实际自检，子审不写文件，不用本节设计审查抵建设审查。
+
+有限验收：①原七种首次terminal模式、controlled renewal先结算且零物理send、异身份及unknown保全、全出口timer还原；②原65混合状态/重启、坏首行/单项503公平继续，401/403/raw共享退出、日志坏仍已发结果readback及finally；③原七sources跨包、≤6/结果优先/游标公平/Browser absent/N满/cooldown/draining零grant；④普通/退役unknown隔离、accepted/checkpoint null拒绝、错artifact/hash/WAL、重复与冲突祖先、混合reusable/exhausted完整；⑤stage/完整输出先成立阻seal、seal先成立挡迟写/regrant/first-failure/release、半seal拒绝、completed退役保留result/receiving，artifact异步前后历史漂移拒绝；⑥原排队后draining、session/attestation/limit/字段/来源/哈希/去重门及假DRAINING带jobs拒绝；⑦原Runtime AST/checkId/证据分母、六项结构预算与≤500/30成员。复用package原Runtime两组及原结构计算器、原inspector/反例，必要用例沿原入口，不建第二验收/报告、不跑Provider。不以实现镜像新增测试；真实新增行为无，既有反例与原谓词完整性核对承接。
+
+先确认局部预算/类型及原Runtime/其反例，代码两轮主审和只读建设审查无未解finding即回原生CHANGE→提交首推→完整READY；Q4十finding必须消失，Q5未修如实保留，然后再独立处理Q5。当前报告已存在，不无变化重跑同一失败READY。阶段耗时复用125.856s治理/46.531sCode-Purity/352.837sBrowser基线，原7200s dynamic、600s Browser Exam、300s其它Exam期限及1.5/2.5秒等保护不改；工具等待≤60秒、原生进展与真实子进程观察，耗时变化仅有可比原件才归因，不额外benchmark。失败停依赖修改回本节重核根因/方法，不减分母；新实质事实影响原判才回原庭，无回退/清账/服务或Provider操作。
+
+主Codex三轮设计反查：源头/预算与原Runtime义务、十处现役metrics/真实consumer及原封口/接收终点、删除反事实/独立保护/不新增公共结构与证据时点均已核。规范无需修改的两轮主审结论为无未结authority冲突；此为施工前设计，尚非代码、原生质量或运行成果。原J2已只读实际复核本节及十处原对象/直接消费者，findings为空；其未运行测试或证明未来预算，设计已可施工，接下来独立审实际代码。
+
+Q4施工及建设审查事实：原九路径按表逐项真实删除并即时回读缺席，工具8b39e1/d24568/1b04cc/f4dd0e/7c5977/75d4ea/3b25ad/fb6caf/feea28及两项后续dc0a19/ebf4e7保留在当前任务，不造台账。首次原指标复算余worker/preflight两项后先回本节重核方法，再按新增实际删除单元合并；当前全部六项函数预算、文件/类预算实算0超限。原Runtime验收64766退出0（route24、Runtime35482ms、recovery908ms）；随后只为私有reader明确false/call/null类型修正boolean推断，typecheck37128退出0，运行JS未变。主Codex两遍建设主审核实际10路径、全部public export集、原断言方法多重集、三个finding、所有SQL规范化语句集合及事务/最终清理/未知保全；未改法案或其它生产片区。原J2实际审完整diff/上下文/直接消费者并核阅上述原件，finding为空；其核阅删除工具记录不冒充亲自现场执行，未运行测试。当前代码可接原生CHANGE，未来原生报告不提前宣称。
+
+
+
+#### Q5 检查器的保守计数语义（设计中，Q4原生链之后顺序施工）
+
+原J1/J2/J3三份旧票已各自恢复，绑定9ed47e370同两处Outbox catch及两checker；9ed→b022这些对象原字节不变，三票均认定生产未知增加candidateCount的“假成功/失败开放”指控不成立，保留Outbox，裁修两checker的无条件true判据。本单已获用户结合明确Q4/Q5范围的CI-FULL续行授权；不借此放开其它基础设施。主Codex定中度，J3已独立核现役TypeChecker的具体引用事实并回传有限AST方向；未批准或实施未来算法。第一直接断裂是检查器把filter谓词的true当成工厂成功；两个真实消费者分别为CodePurity001 static.ast与Security001 static.ast，仍由原quality统一逐法裁决。
+
+精确片区：`scripts/audit/domains/code-purity/components/scan-structural-runtime-escapes.ts#scanCatchClause`的fakeSuccess选择及`scripts/audit/domains/system-security/inspector.ts#inspectUnsafeFallbacks`的unsafe选择，连同原两个acceptance文件。两checker其余规则、CodePurity Promise.catch、直接catch true/成功对象/成功字符串、空catch和原反例均直接保留；删除会放过真实伪成功或鉴权失败开放。生产`store-outbox.ts#readResultOutboxHistoryEvidence`两catch、原raw历史/hash/三字段冻结返回值及所有消费者保持原样：preflight零门→facts→同源Preflight封口元数据，claim零门才release，Store事务内assertSourceSealTask重读后非零抛错；preproduct只读rowCount。原TypeChecker已验证implementation与abstract两侧返回属性引用并集准确指向这四处count读取，ReturnType、浅spread与解构保留原属性声明身份，不建立第二数据流图。
+
+目标只补一个可同时被两checker消费的共享纯AST事实函数，落`scripts/audit/shared/conservative-filter-count.ts`；这是当前两真实消费者必须使用同一资格证明、既有ast-node-identity只处理身份且无现成语义证明时的最短独立职责，不放进身份工具污染职责，不新增模块注册、Owner、机器合同或质量入口。只有最近callable为同步内联predicate、TypeChecker证明原生Array.filter（自定义同名方法不算）、filter.length直接形成原生Object.freeze返回属性时才进入该证明。沿原method引用连接implementation/abstract返回属性声明，核当前生产引用及直接方法调用；不是按文件/函数名登记四个消费者，不凭Readonly/number/ReturnType就放行。没有完整上下文时返回未证，不扩大quality按§52算出的输入分母或复用旧候选；原检查在对象进入当前分母但证明未闭合时失败关闭，诊断明确“未能证明失败关闭”，不谎称生产违规已证。
+
+有限形态：`count!==0`必须沿顶层OR构成拒绝的充分条件（return null或throw），`count===0`只能沿顶层AND成为受控分支的必要条件；反向运算、未知算术或调用不推断。真实原绑定及facts常量的全部引用必须无替换/写入/delete/未知逃逸，facts只经现有两个浅spread到同一返回形态且没有后置覆盖；所有非null结果受原零门支配。元数据读取仅在TypeChecker定位的NonNullable原返回来源和实际直接consumer均成立时承接，不把原零快照当封口事务重读。Store私有guard只沿真实调用声明和参数位置核本次实参、非零必抛与正常返回后的writer顺序，不能在吞异常后继续；不推广任意函数摘要、容器传播、循环调用图或通用解释器。陌生形态停止证明并保留原生失败，必须回本节重新核当前必要性，禁止逐报错堆特例。
+
+施工前主Codex两遍规范核：CodePurity001-V6及Security001-V15义务、现役QUALITY-EVIDENCE Blueprint/两个Manifest/registry/分母保持，§48/51—54/59—62/78的证据边界与唯一verdict不变，不改母本/法案或规范阈值。本次只增加原checker的有限正确性，没有治理主链/registry/runner/mode更改，不因普通checker改动自动触发§79；若实际范围改变须按母本重新匹配。原文件103/185行、原测试190/38行，新共享文件按≤350行、函数≤75及原全预算设计，两个测试各自复用原入口，无新测试框架/夹具目录或生产validator。
+
+先在两checker物理删除上述错误判定片区→即时核原判据缺席、保留规则/原Promise分支仍在→从当前AST合同重建唯一判据并调用共享事实；不保存旧骨架加工回填、不Git恢复、白名单或全filter豁免。其余独立函数事前裁保留；共享模块新增有本节必要性及两个实际import，不建兼容路。原acceptance局部增加有明确区分能力的成对输入：真实两处计数不再报Q5；直接true/原Promise/正数grant仍报；反转或移走零门、carrier覆盖/替换/未知escape不能豁免；同名filter/async predicate/只有类型别名不能豁免；改文件/函数/变量名仍同判。使用原in-memory Project及既有scanner/collector，生产Outbox真正原文件另经当前原生Static验证，不以离线fixture当真实支持。保留原完整正反矩阵，不为增加题数重复等价用例。
+
+代码完成后主Codex≥2轮审真实差额、无生产Outbox变动、四真实count reader/其它rowCount消费者及原反例，再由原J3只读核实际建设；已知finding及必要回归闭合即原生CHANGE→clean main提交首推→完整READY→实际第二推。Q5对应四finding须在本候选原报告消失，其余39法/全部required模式及原Runtime/Browser等保护不能减分母。未证上下文/新失败保留原件，只停依赖片区；没有清账/改历史/重发Provider/服务或安装授权，不为旧故障建设兼容桥。实际按新增共享事实、两判据片区重建、原测试局部增强、其余保留分别汇报，过程工具记录与功能验收分开。
+
+#### Q6 材料验收等待与收尾接缝（设计阻断：新增单文件施工范围待确认）
+
+Q4的首次原生CHANGE会话93642退出1：材料租约验收在`exercisePreparationAbort`等待真实download入口时，`until`第100次调度后断言失败；没有mode、work结算状态或原错误，不能宣称本次一定卡在mkdir、Q4生产回归或环境故障。原普通Runtime64766曾通过，仅为相反观察。原J1/J2/J3绑定`b0227bd0…+Q4工作树`独立核同题，三份有效意见均保留真实等待/原租约反例，裁修100轮终结性失败判据及直接工作清理接缝；不处分生产下载或clock。该文件不在此前明确的Q4九文件/Q5两checker范围内，已向用户请求只扩入本单文件；确认前只设计、不改其源码，不用一般CI-FULL授权代替冻结范围批准。
+
+Owner仍AGENT.agent-production-runtime；精确修改落点仅`scripts/acceptance/agent-production-runtime-material-lease.acceptance-support.ts`的until、withFixture、三个异步边界场景及对应原入口反例。注册/package反查与符号反向引用一致：until四个callsite分布long-download两处、preparation-abort一处、headers一处，唯一公共consumer为原lease-renew-retry-support的exerciseRenewalCompletionJoin→原Runtime验收→原quality。真实下载的mkdir/headers/fetch/body/WAL与Store路径已核；当前100轮只排微任务/事件循环、不推进受控时间且不观察work，不能证明合法预算耗尽。其余fixture、材料身份/日志读回、失败归属/幂等/已有stage恢复函数、原宿主clock、生产cloud-client/runtime-state和父runner均直接保留；删除会失去A2—A7独立反例或改变生产合同，没有本单必要性。
+
+新链由原Runtime001-V83/003-V53、Runtime/质量证据施工图及既有《长材料下载租约边界》§4.1、A2—A7推导：原callback真正到达→局部Promise完成信号；每次等待同时观察原work，拒绝传播同一错误，提前fulfilled但未到边界明确失败。long-download/headers信号运输原release，preparation信号运输实际AbortSignal；续租信号按原真实renew序号对应，首次5xx及后继成功不混淆。删除计数predicate与忙轮询，不新增事件框架、状态机、文件、持久化、Provider请求或第二入口。work由fixture记录其原Promise和结算事实，cleanup先abort、再释放夹具自己持有的两个gate、再join，禁止未join关库删目录；成功路径仍由原断言之后主动release，cleanup释放不得成为成功资格。
+
+有限退出由同一fixture起点的原grant和leaseBudget导出：动作预算=leaseBudget当前可用时长，最终join/资源退出预算=grant的lease_expires_at-server_now，当前80/90秒；使用node原生timer和真实单调时钟，不受宿主Date/performance/global timer替换影响，不逐boundary重置或随elapsed延长。这是本单夹具监管预算，不冒称生产wall deadline，不改原10秒余量、20秒renew/5秒retry、120秒材料timeout或300秒原Exam上限；虚拟跨100/105秒正例保留。动作失败保留原异常，cleanup另失败保留两者。join期限届满保留Store/目录及未完成状态，退出当前验收、不继续下个fixture；join后才能close/rm，rm也受最终剩余期限约束，超时如实报清理未完、不重复删除、不强退。日志仅在原stderr输出case/等待boundary、work结算与cleanup事实，不建报告。
+
+真实施工先核当前Git状态和主Codex两遍规范审计；法案/Blueprint/Manifest/registry、生产输入输出及Owner均无须修改，无未结规范冲突后才施工。先物理删除until及四次调用、withFixture旧无join清理片区，立即核缺席且保留函数/原clock/原反例仍原位，再按本节重建唯一等待/收尾链；不缓存旧骨架加工回填、不Git恢复，不用整文件删除冒充重构。对三个场景只局部接入完成信号与原work登记，原独立断言直接保留。339行原文件有充分落点，预计≤460行、函数≤75/7参数/8返回/10await/5嵌套/16复杂度，施工后用原结构计算器验证，不压行绕预算。
+
+有限验收只增强原入口：超过旧100轮调度、边界前拒绝保留错误身份、边界前提前完成明确失败；原长下载正常/首次5xx、七种abort与headers/最后body竞态、失败归属/身份/幂等/原stage全保持；动作超时能abort并释放原fixture gate且join后清理，未join时不close/rm且报清理未完；边界已到但work不结算不能无限等待，watchdog取消及原timer/listener零残留。超时反例通过注入已过/当前单调deadline触发，不真实等待80/90秒或降低生产保护。原assert/租约/错误/counterexample分母不减，无需真实Provider或运行数据库；隔离SQLite仍原临时fixture。主Codex三轮设计反查已覆盖要求/真实消费者、原错误和虚拟/真实时间分离、失败join与保留资源，原J2独立技术分析已核80/90秒来源及两个不听abort的gate，源码未写。代码完成后≥2轮主审和原J2只读实际建设审查，再从原生CHANGE接续Q4候选→提交首推→完整READY；Q5仍单独处理，不能将本单局部通过冒充READY。新增原生失败先保全并查根因，无授权回退、清账或服务操作。
+
 ## 2. 受影响图、交叉查漏及保留裁决
 
 发现来源A：`src/mediator/product-plugin-catalog.ts`的13个Plugin/43条route与Website canonical route policy穷举注册。来源B：反向追踪`prepare_clean_gpt_chat`、`context.gpt.execute/readConfirmedSubmit`、`browserFor`、Target acquisition、精确选择、WAL/来源读写及结果consumer。来源C：当前状态类型、SQLite读者、现有验收与inspector调用。A/B一致：跨任务续聊仅文章翻译和固定catalog；内部限流ack独立保留。B/C暴露下列接缝，不由拟改文件倒推分母。

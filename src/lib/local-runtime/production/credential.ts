@@ -3,6 +3,7 @@ import { constants, type Stats } from "node:fs";
 import { lstat, mkdir, open, rename, unlink } from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
+import { ASTRA_DATA_DIRECTORY, ASTRA_LOCAL_ORIGIN } from "../../browser/profile/browser-application-identity.js";
 
 import {
   AiProductionErrorEnvelopeSchema,
@@ -96,7 +97,11 @@ const assertCredentialOrigins = (credential: DeviceCredential): void => {
     || (server.protocol === "http:" && server.hostname === "127.0.0.1");
   const originValid = origin.protocol === "https:"
     || (origin.protocol === "http:" && origin.hostname === "127.0.0.1");
-  if (!serverValid || !originValid) credentialFailure("PRODUCTION_CREDENTIAL_ORIGIN_INVALID");
+  if (!serverValid || !originValid || credential.origin !== ASTRA_LOCAL_ORIGIN) credentialFailure("PRODUCTION_CREDENTIAL_ORIGIN_INVALID");
+  const configuredServer = process.env.AGENT_PRODUCTION_CLOUD_BASE_URL?.trim();
+  if (configuredServer && server.href.replace(/\/+$/u, "") !== parseCredentialUrl(configuredServer).href.replace(/\/+$/u, "")) {
+    credentialFailure("PRODUCTION_CREDENTIAL_ORIGIN_INVALID");
+  }
 };
 
 const readProductionCredentialValue = async (dataDir: string): Promise<unknown> => {
@@ -209,12 +214,13 @@ async function writeProductionCredential(dataDir: string, credential: DeviceCred
 export async function enrollProductionDevice(input?: Readonly<{
   dataDir?: string;
 }>): Promise<Readonly<{ deviceId: string; credentialPath: string }>> {
-  const dataDir = path.resolve(input?.dataDir ?? process.env.GRASSEYE_DATA_DIR ?? path.join(process.cwd(), ".grasseye-local"));
+  const dataDir = path.resolve(input?.dataDir ?? process.env.GRASSEYE_DATA_DIR ?? path.join(process.cwd(), ASTRA_DATA_DIRECTORY));
   await assertEnrollmentDoesNotReplaceCredential(dataDir);
   const serverBaseUrl = assertProductionUrl(requiredEnvironment("AGENT_PRODUCTION_CLOUD_BASE_URL"));
   const origin = assertProductionUrl(
-    process.env.AGENT_PRODUCTION_AGENT_ORIGIN?.trim() || "http://127.0.0.1:4173",
+    process.env.AGENT_PRODUCTION_AGENT_ORIGIN?.trim() || ASTRA_LOCAL_ORIGIN,
   );
+  if (origin !== ASTRA_LOCAL_ORIGIN) throw new Error("PRODUCTION_ORIGIN_INVALID");
   const response = await fetch(`${serverBaseUrl}/internal/ai-production/v6/devices/enroll`, {
     method: "POST",
     headers: { "content-type": "application/json", origin },

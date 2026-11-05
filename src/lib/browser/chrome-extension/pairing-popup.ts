@@ -25,7 +25,7 @@ const describeError = (code: string | undefined): string => ({
   BROWSER_AUTH_TRANSCRIPT_INVALID: "当前一次性密钥已经失效，请重新自动连接。",
   BROWSER_PAIRING_ORIGIN_REJECTED: "AGENT 拒绝了扩展来源，请检查固定扩展身份或本地网络权限。",
   BROWSER_PAIRING_RESPONSE_INVALID: "AGENT 返回了无效的配对或插件版本状态。",
-  BROWSER_EXTENSION_CHANNEL_UNAVAILABLE: "无法连接本机 AGENT。请先运行 npm run grasseye:start。",
+  BROWSER_EXTENSION_CHANNEL_UNAVAILABLE: "无法连接本机 ASTRA-AGENT。请先运行 npm run astra:start。",
   BROWSER_LIVENESS_EXPIRED: "浏览器授权已失效，请重新连接。",
   BROWSER_PAIRING_IN_PROGRESS: "连接正在进行，请稍候。",
   BROWSER_PAIRING_ALREADY_AUTHENTICATED: "扩展已经完成认证。",
@@ -45,7 +45,7 @@ const reconnectAutomatically = async (): Promise<void> => {
   let pairingSecret: string | null = null;
   try {
     if (reconnect) reconnect.disabled = true;
-    show("正在从本机 AGENT 获取一次性密钥…");
+    show("正在从本机 ASTRA-AGENT 获取一次性密钥…");
     const pairing = await readWorkbenchPairingState();
     if (pairing.authority === "present") {
       show("扩展已认证；ChatGPT Target 由固定扩展自动认领。");
@@ -74,5 +74,5 @@ void send({ kind: "GRASSEYE_BROWSER_STATUS" }).then((result) => {
     show(describeError(result.automaticPairingErrorCode));
     return;
   }
-  show("扩展会自动连接 AGENT；首次被 Chrome 阻止时，请点击“自动连接”并允许本地网络访问。");
+  show("扩展会自动连接 ASTRA-AGENT；首次被 Chrome 阻止时，请点击“自动连接”并允许本地网络访问。");
 });

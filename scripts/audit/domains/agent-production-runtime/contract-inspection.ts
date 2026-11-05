@@ -6,14 +6,14 @@ import type { InspectorContext, InspectorFinding } from "../../shared/inspector-
 import { producerClaimRoutesFor } from "../../shared/proof-observation.js";
 
 export const LAWS = {
-  core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V83",
+  core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V85",
   credential: "LAW-AGENT-PRODUCTION-RUNTIME-002-V12",
-  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V53",
-  admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V49",
-  database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V45",
-  storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V50",
-  staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V50",
-  dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V51",
+  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V55",
+  admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V50",
+  database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V46",
+  storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V51",
+  staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V51",
+  dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V52",
 } as const;
 export const ALL_LAWS = Object.values(LAWS);
 export const RUNTIME_ROOT = "src/lib/local-runtime/production";
@@ -80,84 +80,28 @@ const exactProperties = (node: Node | undefined, expected: readonly string[]): b
       && call.getExpression().getText().endsWith(".strict"));
 };
 
-const generatedImageReceiptIsExact = (context: InspectorContext, cloud: SourceFile): boolean => {
-  const receipt = bodyFor(cloud, "exactGeneratedImageReceipt");
-  const guard = receipt?.getDescendantsOfKind(SyntaxKind.IfStatement).find((statement) =>
-    hasError(statement.getThenStatement(), "GENERATED_IMAGE_WEBSITE_RECEIPT_MISMATCH"));
-  const schema = bodyFor(sourceFor(context, runtimePath("transport-protocol")), "UploadedResultReceiptSchema");
-  return exactProperties(schema, ["schema_version", "artifact_id", "role", "object_ref", "sha256",
-    "byte_length", "media_type", "state", "receipt_hash"])
-    && calls(receipt, "UploadedResultReceiptSchema.parse").length === 1
-    && [["receipt.artifact_id", "uploadArtifactId"], ["receipt.sha256", "image.sha256"],
-      ["receipt.byte_length", "image.bytes"], ["receipt.media_type", "image.media_type"],
-      ["receipt.role", '"generated_image"']].every(([left, right]) =>
-      rejectingComparison(guard?.getExpression(), left!, right!));
-};
-
-const imageBytesAreValidated = (upload: Node | undefined, guard: Node | undefined): boolean => {
-  const byteDeclaration = upload?.getDescendantsOfKind(SyntaxKind.VariableDeclaration)
-    .find((declaration) => declaration.getName() === "bytes");
-  const byteSource = byteDeclaration?.getInitializer();
-  const expression = Node.isIfStatement(guard) ? guard.getExpression() : undefined;
-  return Node.isCallExpression(byteSource) && byteSource.getExpression().getText() === "Buffer.from"
-    && byteSource.getArguments()[0]?.getText() === "image.webp_bytes"
-    && rejectingComparison(expression, "bytes.byteLength", "image.bytes")
-    && rejectingComparison(expression, "sha256(bytes)", "image.sha256")
-    && rejectingComparison(expression, "image.media_type", '"image/webp"');
-};
-const imageDimensionsAreIdentityOnly = (upload: Node | undefined, guard: Node | undefined): boolean => {
-  const imageUses = upload?.getDescendantsOfKind(SyntaxKind.Identifier).filter((node) => node.getText() === "image") ?? [];
-  return imageUses.length > 0 && imageUses.every((identifier) => {
-    const parent = identifier.getParent();
-    if (Node.isParameterDeclaration(parent)) return parent.getNameNode() === identifier;
-    if (Node.isPropertyAccessExpression(parent) && parent.getExpression() === identifier) {
-      if (!["width", "height"].includes(parent.getName())) return true;
-      const use = parent.getParent();
-      return Node.isCallExpression(use) && use.getExpression().getText() === "Number.isSafeInteger"
-        && use.getArguments().length === 1 && guard !== undefined
-        && use.getStart() > guard.getStart() && use.getEnd() < guard.getEnd();
-    }
-    return Node.isCallExpression(parent) && parent.getExpression().getText() === "exactGeneratedImageReceipt"
-      && parent.getArguments()[1] === identifier;
-  });
-};
-export const inspectGeneratedImageTransport = (context: InspectorContext, findings: InspectorFinding[]): void => {
-  const path = runtimePath("cloud-client");
-  const cloud = sourceFor(context, path);
-  const upload = bodyFor(cloud, "uploadGeneratedImage");
-  const guard = upload?.getDescendantsOfKind(SyntaxKind.IfStatement).find((statement) =>
-    hasError(statement.getThenStatement(), "GENERATED_IMAGE_LOCAL_IDENTITY_MISMATCH"));
-  const forbiddenTransport = new Set(["originalSha256", "originalBytes", "originalWidth", "originalHeight",
-    "original_sha256", "original_bytes", "provider_original", "targetWidth", "targetHeight"]);
-  const accessNames = upload?.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression).map((node) => node.getName()) ?? [];
-  const delivered = calls(upload, "store.readOutboxAuthority")[0];
-  const enqueue = calls(upload, "store.enqueue")[0];
-  const integerGuards = ["width", "height"].every((field) => calls(guard?.getExpression(), "Number.isSafeInteger")
-    .some((call) => call.getArguments()[0]?.getText() === `image.${field}`));
-  const transportValid = upload !== undefined && guard !== undefined && delivered !== undefined && enqueue !== undefined
-    && guard.getEnd() < delivered.getStart() && guard.getEnd() < enqueue.getStart()
-    && imageBytesAreValidated(upload, guard) && integerGuards && imageDimensionsAreIdentityOnly(upload, guard)
-    && !accessNames.some((name) => forbiddenTransport.has(name))
-    && ["resize", "crop"].every((name) => !calls(upload).some((call) =>
-      Node.isPropertyAccessExpression(call.getExpression()) && call.getExpression().getText().endsWith(`.${name}`)))
-    && generatedImageReceiptIsExact(context, cloud);
-  reject(findings, LAWS.route, "static.contract", path, "generated-image-transport-boundary", transportValid,
-    "WebP identity must reject before delivered replay or upload; V6 receipt must be strict and bind the same artifact bytes.");
-  inspectGeneratedImageProjection(context, findings);
-};
-const inspectGeneratedImageProjection = (context: InspectorContext, findings: InspectorFinding[]): void => {
-  const projectionPath = `${RUNTIME_ROOT}/website-agent-route-policies.v1.json`;
-  const projection = JSON.parse(read(context, projectionPath)) as { routes: { product_id: string; action_id: string;
-    result_contract?: { image?: Record<string, unknown> } }[] };
-  const image = projection.routes.find((route) => route.product_id === "public_knowledge_article_pipeline"
-    && route.action_id === "produce_article")?.result_contract?.image;
-  reject(findings, LAWS.route, "static.contract", projectionPath, "generated-image-projection",
-    image !== undefined && same(image.exact_fields, ["schema_version", "artifact_id", "object_ref", "sha256",
-      "receipt_hash", "bytes", "mime_type", "width", "height"])
-    && same((image.field_types as Record<string, unknown>)?.integer, ["bytes", "width", "height"])
-    && same(image.integer_minimums, { bytes: 1 }) && image.mime_type === "image/webp"
-    && !["width", "height", "aspect_ratio", "max_pixels"].some((key) => Object.hasOwn(image, key)),
-    "Provider projection must transport decoded dimensions without geometry restrictions.");
+const inspectWorkAccessTransport = (context: InspectorContext, findings: InspectorFinding[]): void => {
+  const path = runtimePath("work-access"), source = sourceFor(context, path);
+  const port = bodyFor(source, "createWorkAccessPort");
+  const names = callNames(port);
+  const objectGuard = bodyFor(source, "assertWorkAccessObject"), responseGuard = bodyFor(source, "parseWorkAccessResponse");
+  const objectMismatch = objectGuard?.getDescendantsOfKind(SyntaxKind.IfStatement).find(statement =>
+    hasError(statement.getThenStatement(), "WORK_ACCESS_OBJECT_MISMATCH"));
+  const valid = names.has("signal.throwIfAborted") && names.has("session.authorizationHeaders")
+    && names.has("productionCloudFetch") && names.has("parseJsonEnvelope")
+    && port?.getDescendantsOfKind(SyntaxKind.StringLiteral).some(node => node.getLiteralValue() === "x-ai-execution-fence-hash") === true
+    && [["value.asset_id", "assetId"], ["value.material_id", "materialId"],
+      ["value.sha256", "material.sha256"], ["value.bytes", "material.bytes"]].every(([left, right]) =>
+      compare(objectMismatch?.getExpression(), left!, SyntaxKind.ExclamationEqualsEqualsToken, right!))
+    && names.has("parseWorkAccessResponse") && names.has("assertWorkAccessObject")
+    && hasError(port, "WORK_ACCESS_MATERIAL_UNAUTHORIZED") && hasError(responseGuard, "WORK_ACCESS_RESPONSE_INVALID")
+    && compare(responseGuard, "Date.parse(value.expires_at)", SyntaxKind.LessThanEqualsToken, "Date.now()");
+  reject(findings, LAWS.route, "static.contract", path, "work-access-transport-boundary", valid,
+    "Work access must bind the current task material/asset, execution fence, exact original bytes, expiry and cancellation.");
+  const cloud = sourceFor(context, runtimePath("cloud-client"));
+  reject(findings, LAWS.route, "static.contract", runtimePath("cloud-client"), "no-product-image-relay",
+    bodyFor(cloud, "uploadGeneratedImage") === undefined && bodyFor(cloud, "uploadProductionGeneratedImage") === undefined,
+    "Retired Product image relay must not replace Work direct storage or the retained GPT original-image evidence capability.");
 };
 
 const inspectAdmission = (context: InspectorContext, findings: InspectorFinding[]): void => {
@@ -178,54 +122,43 @@ const inspectAdmission = (context: InspectorContext, findings: InspectorFinding[
 };
 
 const inspectDependencies = (context: InspectorContext, findings: InspectorFinding[]): void => {
-  for (const [name, id, version] of [
-    ["website-agent-task-result", "ai-acceptance.website-agent-task-result", 24],
-    ["xuanxue-ai-production-v6", "ai-acceptance.xuanxue-ai-production-v6", 49],
+  for (const [name, id, version, provider] of [
+    ["website-agent-task-result", "astra.website-agent-task-result", 2, "ADVISION-X/AI-Paper-Factory"],
+    ["xuanxue-ai-production-v6", "astra.production-control-v6", 1, "ADVISION-X/AI-Paper-Factory"],
   ] as const) {
     const path = `docs/specs/agent-production-runtime/${name}.dependency.spec.json`;
     const dependency = JSON.parse(read(context, path)) as { contract: Record<string, unknown>; lawIds: string[] };
     reject(findings, LAWS.route, "static.contract", path, "minimal-current-dependency",
       same(Object.keys(dependency.contract).sort(), ["contractId", "providerRepo", "version"])
       && dependency.contract.contractId === id && dependency.contract.version === version
-      && dependency.contract.providerRepo === "ADVISION-X/xuanxue-web"
+      && dependency.contract.providerRepo === provider
       && dependency.lawIds.every((lawId) => ALL_LAWS.includes(lawId as typeof ALL_LAWS[number])),
       "Consumer dependency must bind the current provider version using only its three-field identity.");
   }
   const projectionPath = `${RUNTIME_ROOT}/website-agent-route-policies.v1.json`;
-  const projection = JSON.parse(read(context, projectionPath)) as { contract_version: number;
+  const projection = JSON.parse(read(context, projectionPath)) as { contract_id: string; contract_version: number;
     parameter_types: Record<string, unknown>; routes: { product_id: string; action_id: string; relation_kind: string;
-      result_contract?: unknown; material_roles: { role: string; media_types: string[]; trust_class: string;
-        may_issue_instruction: boolean; storage_class: string; owner_scope_policy: string }[]; required_parameter_keys: string[] }[] };
-  const identities = projection.routes.map((route) => `${route.product_id}\0${route.action_id}`);
-  const currentRoutes = projection.contract_version === 24 && projection.routes.length === 43
-    && Object.keys(projection.parameter_types).length === 43
-    && projection.routes.filter((route) => route.result_contract !== undefined).length === 43
-    && new Set(identities).size === 43
-    && projection.routes.every((route) => route.relation_kind !== "reservation"
-      && !route.material_roles.some((role) => role.role === "bazi_private_base_input"))
-    && projection.routes.every((route) => new Set(route.required_parameter_keys).size === route.required_parameter_keys.length);
-  const localization = projection.routes.filter(route => route.product_id.startsWith("localization_") && route.relation_kind !== "review");
-  const twoArchives = localization.length === 3 && localization.every(route => {
-    const storage = route.product_id === "localization_static_catalog" ? "shared_static" : "private_owner_scoped";
-    const owner = storage === "shared_static" ? "forbidden" : "required";
-    return same(route.material_roles.map(role => [role.role, role.media_types, role.trust_class,
-      role.may_issue_instruction, role.storage_class, role.owner_scope_policy]),
-    ["localization_reference_archive", "localization_work_archive"].map(role => [role, ["application/zip"], "locked_fact", false, storage, owner]));
-  });
-  reject(findings, LAWS.route, "static.contract", projectionPath, "current-route-projection", currentRoutes && twoArchives,
-    "Projection must carry task-result v24 and the exact 43/43/43/0 provider denominators without a private base.");
+      result_contract?: unknown; required_parameter_keys: string[] }[] };
+  const identities = projection.routes.map(route => `${route.product_id}\0${route.action_id}`);
+  const used = new Set(projection.routes.flatMap(route => route.required_parameter_keys));
+  const currentRoutes = projection.contract_id === "astra.website-agent-task-result" && projection.contract_version === 2
+    && projection.routes.length > 0 && new Set(identities).size === projection.routes.length
+    && used.size === Object.keys(projection.parameter_types).length
+    && [...used].every(key => Object.hasOwn(projection.parameter_types, key))
+    && projection.routes.every(route => route.relation_kind === "primary" && route.result_contract !== undefined
+      && new Set(route.required_parameter_keys).size === route.required_parameter_keys.length);
+  reject(findings, LAWS.route, "static.contract", projectionPath, "current-route-projection", currentRoutes,
+    "Projection must consume the current ASTRA provider with unique routes, complete parameter bindings and result contracts.");
   inspectProviderGenerator(context, findings);
 };
-const providerProjectionDecodesOriginalBytes = (generator: SourceFile): boolean => {
-  const source = bodyFor(generator, "source");
-  const decodeExpression = Node.isCallExpression(source) ? source.getExpression() : undefined;
-  const decoder = Node.isPropertyAccessExpression(decodeExpression) ? decodeExpression.getExpression() : undefined;
+const providerDecodesUtf8Bytes = (generator: SourceFile): boolean => {
+  const decode = calls(bodyFor(generator, "raw"), "JSON.parse")[0]?.getArguments()[0];
+  const expression = Node.isCallExpression(decode) ? decode.getExpression() : undefined;
+  const decoder = Node.isPropertyAccessExpression(expression) ? expression.getExpression() : undefined;
   const options = Node.isNewExpression(decoder) ? decoder.getArguments()?.[1] : undefined;
-  return Node.isCallExpression(source) && source.getArguments()[0]?.getText() === "bytes"
+  return Node.isCallExpression(decode) && decode.getArguments()[0]?.getText() === "bytes"
     && Node.isNewExpression(decoder) && decoder.getExpression().getText() === "TextDecoder"
-    && Node.isObjectLiteralExpression(options) && options.getProperty("fatal")?.getText() === "fatal: true"
-    && calls(bodyFor(generator, "projection"), "JSON.parse")[0]?.getArguments()[0]?.getText() === "source"
-    && calls(bodyFor(generator, "artifact"), "object")[0]?.getArguments()[0]?.getText() === "projection";
+    && Node.isObjectLiteralExpression(options) && options.getProperty("fatal")?.getText() === "fatal: true";
 };
 const providerBytesComeFromWebsite = (generator: SourceFile): boolean => {
   const bytes = bodyFor(generator, "bytes");
@@ -233,25 +166,28 @@ const providerBytesComeFromWebsite = (generator: SourceFile): boolean => {
   const path = Node.isCallExpression(readCall) ? readCall.getArguments()[0] : undefined;
   return Node.isCallExpression(readCall) && readCall.getExpression().getText() === "readFile"
     && Node.isCallExpression(path) && path.getExpression().getText() === "resolve"
-    && path.getArguments()[0]?.getText() === "provider"
+    && path.getArguments()[0]?.getText() === "configured"
     && literal(path.getArguments()[1]) === "packages/ai-contracts/src/agent-task/website-agent-route-policies.v1.json"
-    && providerProjectionDecodesOriginalBytes(generator);
+    && providerDecodesUtf8Bytes(generator);
 };
 const inspectProviderGenerator = (context: InspectorContext, findings: InspectorFinding[]): void => {
-  const generatorPath = "scripts/generate/sync-website-agent-route-policy-projection.ts";
-  const generator = sourceFor(context, generatorPath);
-  reject(findings, LAWS.route, "static.contract", generatorPath, "provider-generator",
-    providerBytesComeFromWebsite(generator) && generator.getVariableDeclaration("resultContractRoutes") === undefined
-    && compare(generator, "contracts", SyntaxKind.ExclamationEqualsEqualsToken, "43")
-    && compare(generator, "identities.size", SyntaxKind.ExclamationEqualsEqualsToken, "43")
-    && compare(generator, "used.size", SyntaxKind.ExclamationEqualsEqualsToken, "43")
-    && calls(generator, "writeFile").some((call) => call.getArguments()[0]?.getText() === "pending"
-      && call.getArguments()[1]?.getText() === "bytes")
-    && calls(generator, "rename").some((call) => call.getArguments()[0]?.getText() === "pending"
-      && call.getArguments()[1]?.getText() === "destination")
-    && calls(generator, "readFile").length === 1,
-    "The original generator must derive current routes from the provider rather than a handwritten support table.");
+  const path = "scripts/generate/sync-website-agent-route-policy-projection.ts";
+  const generator = sourceFor(context, path);
+  const validate = bodyFor(generator, "validateRoutes");
+  reject(findings, LAWS.route, "static.contract", path, "provider-generator",
+    providerBytesComeFromWebsite(generator)
+    && calls(bodyFor(generator, "configured"), "Reflect.get")[0]?.getArguments()[1]?.getText() === "dependency.contract.providerRepo"
+    && calls(bodyFor(generator, "keys"), "validateRoutes")[0]?.getArguments()[0]?.getText() === "source.routes"
+    && callNames(validate).has("keys.has") && callNames(validate).has("Object.hasOwn")
+    && compare(validate, "used.size", SyntaxKind.ExclamationEqualsEqualsToken, "Object.keys(parameters).length")
+    && projectionWritesOriginalBytes(generator),
+    "The unique generator must read the bound provider, validate its published route bindings and preserve original bytes.");
 };
+const projectionWritesOriginalBytes = (generator: SourceFile): boolean =>
+  calls(generator, "writeFile").some(call => call.getArguments()[0]?.getText() === "pending"
+    && call.getArguments()[1]?.getText() === "bytes")
+  && calls(generator, "rename").some(call => call.getArguments()[0]?.getText() === "pending"
+    && call.getArguments()[1]?.getText() === "target");
 
 export const runtimeManifestOwnershipDrift = (paths: readonly string[]): string[] => paths.filter((path) =>
   !(path === "docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md"
@@ -294,7 +230,7 @@ const inspectProofAndManifest = (context: InspectorContext, findings: InspectorF
 
 export const inspectAgentContracts = (context: InspectorContext, findings: InspectorFinding[]): void => {
   inspectDependencies(context, findings);
-  inspectGeneratedImageTransport(context, findings);
+  inspectWorkAccessTransport(context, findings);
   inspectAdmission(context, findings);
   inspectProofAndManifest(context, findings);
   const transport = sourceFor(context, runtimePath("transport-protocol"));

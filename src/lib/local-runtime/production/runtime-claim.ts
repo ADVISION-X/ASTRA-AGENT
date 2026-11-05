@@ -227,6 +227,13 @@ const handleProductExecutionFailure = async (
   }
 };
 
+const acceptControlledClaim = (state: RuntimeState, job: ClaimedProductionTask,
+  jobSpan: RuntimeSpanHandle, budget: () => Parameters<typeof acceptClaim>[2]): void => {
+  if (state.store.readTask(job.job_id)?.current_attempt_id !== job.grant.attempt_id) {
+    acceptClaim(state, job, budget(), jobSpan, null, null);
+  }
+};
+
 export const executeClaim = async (state: RuntimeState, job: ClaimedProductionTask): Promise<void> => {
   const abort = state.activeAbort.get(job.job_id)!;
   const acceptance: { durable: "unknown" | "unaccepted" | "accepted" } = { durable: "unknown" };
@@ -241,9 +248,7 @@ export const executeClaim = async (state: RuntimeState, job: ClaimedProductionTa
     const controlRequested = authority.control_intent.intent !== "none";
     if (controlRequested) {
       abort.abort(`CONTROL_INTENT:${authority.control_intent.intent}:${authority.control_intent.reason_code ?? "none"}`);
-      if (state.store.readTask(job.job_id)?.current_attempt_id !== job.grant.attempt_id) {
-        acceptClaim(state, job, leaseBudget(job, abort), jobSpan, null, null);
-      }
+      acceptControlledClaim(state, job, jobSpan, () => leaseBudget(job, abort));
       acceptance.durable = "accepted";
     }
     if (recoverMissingLocalTask(state, job, authority, acceptance, jobSpan)) return;
@@ -263,9 +268,7 @@ export const executeClaim = async (state: RuntimeState, job: ClaimedProductionTa
     budget.control_epoch = authority.control_intent.control_epoch;
     await renewExecutionLease({ state, job, budget, abort, parentSpanId: jobSpan.spanId });
     if (abort.signal.aborted) {
-      if (state.store.readTask(job.job_id)?.current_attempt_id !== job.grant.attempt_id) {
-        acceptClaim(state, job, budget, jobSpan, null, null);
-      }
+      acceptControlledClaim(state, job, jobSpan, () => budget);
       requireRuntimeLogWrite(jobSpan.terminal({ outcome: "succeeded" }));
       return;
     }

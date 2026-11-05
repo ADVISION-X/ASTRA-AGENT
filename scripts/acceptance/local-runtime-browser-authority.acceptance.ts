@@ -62,8 +62,8 @@ const createTransportTerminalFixture = (root: string, runtimeLogger: ReturnType<
     dataDir: root,
     sourceFingerprint: "browser-host-restore-acceptance",
     profileConfig: {
-      profileRef: "acceptance-profile", profileDir: join(root, "profile"),
-      extensionId: "emkmbecadncngofidjgocmifhbonifgm",
+      profileRef: "acceptance-profile",
+      extensionId: "dmkfldicnhofmlgkoajpjbmeicgijgnl",
       unpackedExtensionDirectory: join(root, "extension"),
     },
     enrolledProfile: {
@@ -73,7 +73,7 @@ const createTransportTerminalFixture = (root: string, runtimeLogger: ReturnType<
     releaseIdentity: {
       schemaVersion: "grasseye.browser.unpacked-release.v1",
       releaseBuildId: "build-browser-host-restore-acceptance",
-      extensionId: "emkmbecadncngofidjgocmifhbonifgm", version: "1.0.0",
+      extensionId: "dmkfldicnhofmlgkoajpjbmeicgijgnl", version: "1.0.0",
       extensionDirectoryHashV1: hash, manifestHash: hash, protocolHash: hash, sitePolicyHash: hash,
       createdAt: new Date().toISOString(),
     },
@@ -214,8 +214,8 @@ const exercisePairingStateLiveness = async (
     dataDir: root,
     sourceFingerprint: "browser-pairing-liveness-acceptance",
     profileConfig: {
-      profileRef: "acceptance-profile", profileDir: join(root, "profile"),
-      extensionId: "emkmbecadncngofidjgocmifhbonifgm",
+      profileRef: "acceptance-profile",
+      extensionId: "dmkfldicnhofmlgkoajpjbmeicgijgnl",
       unpackedExtensionDirectory: join(root, "extension"),
     },
     enrolledProfile: {
@@ -225,7 +225,7 @@ const exercisePairingStateLiveness = async (
     releaseIdentity: {
       schemaVersion: "grasseye.browser.unpacked-release.v1",
       releaseBuildId: "build-browser-pairing-liveness-acceptance",
-      extensionId: "emkmbecadncngofidjgocmifhbonifgm", version: "1.0.0",
+      extensionId: "dmkfldicnhofmlgkoajpjbmeicgijgnl", version: "1.0.0",
       extensionDirectoryHashV1: hash, manifestHash: hash, protocolHash: hash, sitePolicyHash: hash,
       createdAt: new Date().toISOString(),
     },

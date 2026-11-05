@@ -156,6 +156,22 @@ const exhaustedProof = (effect: BrowserEffect, observations: Observations):
     user_turn_hash: exact.user_turn_hash, provider_input_delta: 0 as const,
   }) });
 };
+const effectReadbackProof = (effect: BrowserEffect, call: BrowserCall, observations: Observations,
+  settledHistory: SettledHistory, unresolvedObservedAt: string | null): SourceReadbackEffectProof | null => {
+  const accepted = acceptedProof(effect, call, settledHistory);
+  if (accepted === null) return null;
+  const matched = observations.filter(item => item.effect_identity_hash === effect.effectIdentityHash
+    && item.source_effect_set_hash === effect.sourceEffectSetHash
+    && item.wal_authority_hash === effect.walAuthorityHash && item.provider_input_delta === 0);
+  const checkpoint = accepted === undefined ? observedCheckpoint(effect, matched) : undefined;
+  if (checkpoint === null) return null;
+  return accepted ?? checkpoint ?? exhaustedProof(effect, matched)
+    ?? (unresolvedObservedAt ? Object.freeze({ ...identity(effect), unresolved: Object.freeze({
+      source_attempt_id: effect.attemptId, source_result_revision: effect.resultRevision,
+      wal_state: effect.state, mutation_outcome: effect.mutationOutcome,
+      physical_input_count: effect.physicalInputCount, observed_at: unresolvedObservedAt, provider_input_delta: 0 as const,
+    }) }) : null);
+};
 
 export const sourceReadbackProofs = (browser: BrowserHistory,
   observations: Observations, settledHistory: SettledHistory, retirementControl?: ControlIntent):
@@ -166,39 +182,21 @@ export const sourceReadbackProofs = (browser: BrowserHistory,
   const observedAt = new Date().toISOString();
   const calls: SourceReadbackCallProof[] = [];
   for (const call of browser.replayCalls) {
-    const effects = browser.replayEffects.filter((effect) =>
-      effect.productStepId === call.productStepId && effect.callId === call.callId
-      && effect.childCapabilityId === call.childCapabilityId);
+    const effects = browser.replayEffects.filter(effect => effect.productStepId === call.productStepId
+      && effect.callId === call.callId && effect.childCapabilityId === call.childCapabilityId);
     if (effects.length === 0) return null;
     const proofs: SourceReadbackEffectProof[] = [];
     for (const effect of effects) {
-      const accepted = acceptedProof(effect, call, settledHistory);
-      if (accepted === null) return null;
-      const matched = observations.filter((item) =>
-        item.effect_identity_hash === effect.effectIdentityHash
-        && item.source_effect_set_hash === effect.sourceEffectSetHash
-        && item.wal_authority_hash === effect.walAuthorityHash
-        && item.provider_input_delta === 0);
-      const checkpoint = accepted === undefined ? observedCheckpoint(effect, matched) : undefined;
-      if (checkpoint === null) return null;
-      const proof = accepted ?? checkpoint ?? exhaustedProof(effect, matched)
-        ?? (retirement ? Object.freeze({ ...identity(effect), unresolved: Object.freeze({
-          source_attempt_id: effect.attemptId, source_result_revision: effect.resultRevision,
-          wal_state: effect.state, mutation_outcome: effect.mutationOutcome,
-          physical_input_count: effect.physicalInputCount, observed_at: observedAt, provider_input_delta: 0 as const,
-        }) }) : null);
+      const proof = effectReadbackProof(effect, call, observations, settledHistory, retirement ? observedAt : null);
       if (!proof) return null;
       proofs.push(proof);
     }
     calls.push(Object.freeze({
       product_step_id: call.productStepId, call_id: call.callId,
-      child_capability_id: call.childCapabilityId,
-      source_effect_set_hash: call.sourceEffectSetHash,
+      child_capability_id: call.childCapabilityId, source_effect_set_hash: call.sourceEffectSetHash,
       disposition: proofs.some(effect => effect.unresolved !== undefined) ? "unresolved" as const
-        : proofs.some((effect) => effect.settled_checkpoint !== undefined)
-        ? "settled_reusable" as const
-        : proofs.some((effect) => effect.exact_negative !== undefined
-          || effect.unaddressable !== undefined)
+        : proofs.some(effect => effect.settled_checkpoint !== undefined) ? "settled_reusable" as const
+        : proofs.some(effect => effect.exact_negative !== undefined || effect.unaddressable !== undefined)
           ? "replay_exhausted" as const : "historical_settled" as const,
       effects: Object.freeze(proofs),
     }));

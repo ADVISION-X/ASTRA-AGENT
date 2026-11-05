@@ -32,3 +32,7 @@ export type {
   BrowserEffectFailureFacts,
   MutationOutcome,
 } from "./browser-failure.js";
+
+export { GPT_RETRY_CHILD, GPT_RETRY_LIMIT, gptRetryCallId, assertGptRetryTerminalPayload } from "./exact-target/browser-gpt-retry-contract.js";
+export type { GptStoppedEmptyRetryInput, GptRetryTerminalPayload } from "./exact-target/browser-gpt-retry-contract.js";
+export type BrowserJobHistoryEvidence = ReturnType<import("./exact-target/browser-mutation-evidence.js").BrowserMutationEvidence["jobHistoryEvidence"]>;

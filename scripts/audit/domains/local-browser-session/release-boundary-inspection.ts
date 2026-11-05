@@ -56,9 +56,7 @@ export const inspectAutomaticPairingAndReload = (
     "The sole extension socket actor must own automatic bootstrap admission.");
   const bootstrapLiterals = stringLiterals(bootstrap);
   for (const literal of [
-    "http://127.0.0.1:4173/api/browser-authority/pairing",
     "X-GrassEye-Tool-Extension-Id",
-    "emkmbecadncngofidjgocmifhbonifgm",
     "BROWSER_PAIRING_ORIGIN_REJECTED",
     "BROWSER_PAIRING_RESPONSE_INVALID",
   ]) {
@@ -69,6 +67,15 @@ export const inspectAutomaticPairingAndReload = (
       filePath: bootstrapPath,
       message: `Automatic pairing must retain exact bootstrap contract literal ${literal}.`,
     }));
+  }
+  const identityImport = bootstrap.getImportDeclarations().find(declaration =>
+    declaration.getModuleSpecifierValue() === "../profile/browser-application-identity.js");
+  const identityNames = identityImport?.getNamedImports().map(name => name.getName()) ?? [];
+  if (!["ASTRA_PAIRING_URL", "ASTRA_LOCAL_ORIGIN", "ASTRA_BROWSER_EXTENSION_ID"].every(name => identityNames.includes(name))
+    || bootstrap.getVariableDeclaration("GRASSEYE_PAIRING_URL")?.getInitializer()?.getText() !== "ASTRA_PAIRING_URL"
+    || bootstrap.getVariableDeclaration("GRASSEYE_TOOL_EXTENSION_ID")?.getInitializer()?.getText() !== "ASTRA_BROWSER_EXTENSION_ID") {
+    findings.push(createLocalFinding({ checkId: "browser-authority/automatic-pairing", lawId: channelLawId,
+      filePath: bootstrapPath, message: "Automatic pairing must bind the canonical ASTRA endpoint and fixed extension identity." }));
   }
   const popupText = popup.getFullText();
   if (/pairing-secret|type=["']password["']|clipboard/iu.test(popupText)) findings.push(createLocalFinding({

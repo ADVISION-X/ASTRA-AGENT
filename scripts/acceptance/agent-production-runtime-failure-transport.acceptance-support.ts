@@ -10,7 +10,7 @@ import { heartbeatWhileRunning, ProductionRuntimeBoundaryError } from "../../src
 import { buildTerminalProductionIntent, deliverTerminalProductionIntent } from "../../src/lib/local-runtime/production/cloud-terminal-intent.js";
 import { hashCanonical, sha256 } from "../../src/lib/local-runtime/production/contracts.js";
 import type { CompleteProductionOutput } from "../../src/lib/local-runtime/production/store-complete-output.js";
-import { task, claimTask, resultFor, shutdownRuntimeFixture, deviceStatusWithoutAdmission,
+import { HASH_A, task, claimTask, resultFor, shutdownRuntimeFixture, deviceStatusWithoutAdmission,
   deviceStatusWithAdmission, admissionReceiptFor } from "./agent-production-runtime-fixtures.js";
 import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 import { reconcileBusinessAdmission } from "../../src/lib/local-runtime/production/runtime-business-admission.js";
@@ -36,13 +36,18 @@ const settleControlReceipt = async (input: Readonly<{
     control_intent: { schema_version: "xuanxue-ai-control-intent.v6", job_id: input.jobId,
       intent: input.intent, control_epoch: 1, reason_code: "user_control" } });
 };
-
-const verifyFirstTerminalReadback = (input: Readonly<{
-  mode: string; controlled: boolean; order: string[]; timers: Readonly<{ size: number }>;
+const verifyFirstTerminalReadback = async (input: Readonly<{
+  mode: string; controlled: boolean; order: string[]; timers: Map<number, () => void>;
   controller: AbortController; store: ProductionRuntimeStore; jobId: string;
-  result: ReturnType<typeof resultFor>; terminalId: string | undefined;
-}>): void => {
-  const { mode, store, jobId, result } = input;
+  execution: Promise<unknown>; start: () => void; reply: (value: unknown) => void;
+  readOutput: () => Readonly<{ result: ReturnType<typeof resultFor>; terminalId: string | undefined }>;
+}>): Promise<void> => {
+  if (input.controlled) await settleControlReceipt({ timers: input.timers, order: input.order,
+    jobId: input.jobId, start: input.start, reply: input.reply,
+    intent: input.mode === "cancel" ? "cancel_requested" : "pause_requested" });
+  if (input.mode === "stage-failure" || input.mode.startsWith("foreign-")) await assert.rejects(input.execution);
+  else assert.deepEqual(await input.execution, input.readOutput().result);
+  const { mode, store, jobId } = input, { result, terminalId } = input.readOutput();
   assert.deepEqual(input.order, mode === "stage-failure" ? [] : input.controlled ? ["stage"] : ["stage", "send", "cleanup"]);
   assert.equal(input.timers.size, 0);
   if (input.controlled) {
@@ -53,15 +58,15 @@ const verifyFirstTerminalReadback = (input: Readonly<{
   if (mode === "stage-failure") assert.equal(store.readTask(jobId)?.staged_result, null);
   if (mode === "send-unknown") {
     assert.deepEqual(store.readTask(jobId)?.staged_result, result);
-    assert.equal(store.readOutboxAuthority(input.terminalId!)?.lastError, "CLOUD_TRANSPORT_UNAVAILABLE");
+    assert.equal(store.readOutboxAuthority(terminalId!)?.lastError, "CLOUD_TRANSPORT_UNAVAILABLE");
   }
   if (mode === "completed-race") {
     assert.equal(store.readTask(jobId)?.current_reason, null);
-    assert.equal(store.readOutboxAuthority(input.terminalId!)?.lastError, "BROWSER_CLEANUP_PENDING");
+    assert.equal(store.readOutboxAuthority(terminalId!)?.lastError, "BROWSER_CLEANUP_PENDING");
   }
 };
 
-/** Execute the original claim-operation source against native SQLite/Outbox with controlled transport. */
+/** Seven first-send cases share one compilation and the original scoped renewal clock. */
 export const exerciseFirstTerminalBeforeProducerCleanup = async (store: ProductionRuntimeStore): Promise<void> => {
   const source = readFileSync(new URL("../../src/lib/local-runtime/production/runtime-claim-operations.ts", import.meta.url), "utf8");
   const code = transpileModule(source.slice(source.indexOf("const sendStagedTerminal =")), {
@@ -71,9 +76,8 @@ export const exerciseFirstTerminalBeforeProducerCleanup = async (store: Producti
     const job = task({ jobId: `job:first-send-${mode}`, productId: "payment_screenshot_observation", actionId: "observe" });
     const claim = claimTask(job), order: string[] = [];
     let result = resultFor(job);
-    const envelopeHash = hashCanonical("fixture:envelope");
     const receipts = [{ role: "result_payload", receipt_hash: result.result_object_receipt.receipt_hash },
-      { role: "result_envelope", receipt_hash: envelopeHash }];
+      { role: "result_envelope", receipt_hash: HASH_A }];
     store.acceptTask(job, claim.grant.attempt_id);
     const controller = new AbortController(), timers = new Map<number, () => void>();
     const priorTimer = globalThis.setTimeout, priorClear = globalThis.clearTimeout;
@@ -101,7 +105,7 @@ export const exerciseFirstTerminalBeforeProducerCleanup = async (store: Producti
           store.completeTask(job.job_id, result);
           return { schema_version: "xuanxue-ai-terminal-receipt.v6", job_id: job.job_id, terminal_status: "completed",
             payload_hash: hashCanonical(result), failure: null, first_terminal: true, device_id: "device:1", device_epoch: 1,
-            worker_session_id: "session:fixture", worker_session_epoch: 1, runtime_attestation_receipt_hash: envelopeHash };
+            worker_session_id: "session:fixture", worker_session_epoch: 1, runtime_attestation_receipt_hash: HASH_A };
         } },
         executor: { execute: async (_task: unknown, _materials: unknown, _budget: unknown, _parent: unknown,
           complete: (output: unknown) => Promise<unknown>) => {
@@ -110,7 +114,7 @@ export const exerciseFirstTerminalBeforeProducerCleanup = async (store: Producti
           const db = Reflect.get(store, "database") as Database.Database;
           if (mode === "foreign-attempt") db.prepare("update production_tasks set current_attempt_id='attempt:foreign' where job_id=?").run(job.job_id);
           if (mode === "foreign-result") db.prepare("update production_tasks set result_json=? where job_id=?").run(
-            JSON.stringify({ ...result, execution_receipt_hash: envelopeHash }), job.job_id);
+            JSON.stringify({ ...result, execution_receipt_hash: HASH_A }), job.job_id);
           if (mode !== "send-unknown") throw executionFailure("failed", "LATE_PRODUCER_CLEANUP_FAILED");
           return { record: store.readTask(job.job_id), result, providerEffectReadbackProof: null };
         } },
@@ -131,13 +135,9 @@ export const exerciseFirstTerminalBeforeProducerCleanup = async (store: Producti
         safeReason: (error: Error) => error.message, isResultTransportBoundary: () => false,
       });
       const execution = api.executeAndUpload!({ state, job: claim, task: job, budget: {}, materialDir: "fixture:materials", abort: controller, jobSpan: { spanId: "span:fixture" } });
-      if (controlled) await settleControlReceipt({ timers, order, jobId: job.job_id,
-        start: () => { assert.ok(start); start(); }, reply: value => { assert.ok(renewReply); renewReply(value); },
-        intent: mode === "cancel" ? "cancel_requested" : "pause_requested" });
-      if (mode === "stage-failure" || mode.startsWith("foreign-")) await assert.rejects(execution);
-      else assert.deepEqual(await execution, result);
-      verifyFirstTerminalReadback({ mode, controlled, order, timers, controller, store,
-        jobId: job.job_id, result, terminalId });
+      await verifyFirstTerminalReadback({ mode, controlled, order, timers, controller, store, jobId: job.job_id, execution,
+        readOutput: () => ({ result, terminalId }), start: () => { assert.ok(start); start(); },
+        reply: value => { assert.ok(renewReply); renewReply(value); } });
     } finally { globalThis.setTimeout = priorTimer; globalThis.clearTimeout = priorClear; }
   }
 };

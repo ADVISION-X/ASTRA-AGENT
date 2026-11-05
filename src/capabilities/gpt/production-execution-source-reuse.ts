@@ -1,3 +1,4 @@
+import { readConfirmedRetryCompanions } from "./production-stopped-empty-retry.js";
 import { createHash } from "node:crypto";
 import type { ProductGptCallInput, ProductGptChildResult } from "./product-api.js";
 import type { GptHash, ProductGptChildCapabilityId } from "./contract.js";
@@ -38,7 +39,8 @@ export class ProductionGptSourceReuse {
   public get size(): number { return this.calls.size; }
   public pendingForStep(productStepId: string): SourceCall | undefined {
     return [...this.calls.entries()].find(([key, source]) =>
-      source.productStepId === productStepId && !this.completedKeys.has(key))?.[1];
+      source.productStepId === productStepId && source.childCapabilityId === "submit_exact_gpt_turn_once"
+        && !this.completedKeys.has(key))?.[1];
   }
   public hasPendingStep(productStepId: string): boolean {
     return [...this.calls.entries()].some(([key, source]) =>
@@ -102,6 +104,50 @@ export class ProductionGptSourceReuse {
     return result;
   }
 
+  public recordCurrentCheckpointGroup(checkpoint: Parameters<NonNullable<ExecutionInput["recordSettledCheckpoint"]>>[0],
+    productStepId: string) {
+    const companions = readConfirmedRetryCompanions(this.browserAuthority, { jobId: this.input.jobId, productStepId,
+      effectIdentityHash: checkpoint.providerEffectIdentityHash, sourceAttemptId: checkpoint.sourceAttemptId,
+      sourceResultRevision: checkpoint.sourceResultRevision, promptHash: checkpoint.submitPromptHash,
+      userTurnId: checkpoint.userTurnId, canonicalConversationUrl: checkpoint.canonicalConversationUrl });
+    this.input.recordSettledCheckpoint?.(checkpoint);
+    for (const member of companions) this.input.recordSettledCheckpoint?.(Object.freeze({ ...checkpoint,
+      providerEffectIdentityHash: member.effect.effectIdentityHash,
+      browserAuthorityRef: member.original.authorityRef, browserAuthorityHash: member.original.authorityHash,
+      sourceAttemptId: member.effect.attemptId, sourceResultRevision: member.effect.resultRevision }));
+    return companions;
+  }
+
+  private sourceRetryCompanions(source: SourceCall, pending: PendingSource): readonly SourceCall[] {
+    const members = readConfirmedRetryCompanions(this.browserAuthority, { jobId: this.input.jobId,
+      productStepId: source.productStepId, effectIdentityHash: source.effectIdentityHash,
+      sourceAttemptId: source.sourceAttemptId, sourceResultRevision: source.sourceResultRevision,
+      promptHash: source.submitPromptHash, userTurnId: pending.userTurnId,
+      canonicalConversationUrl: pending.canonicalConversationUrl });
+    return members.map(({ effect }) => {
+      const signed = this.calls.get(productionCallKey(effect));
+      if (!signed || signed.effectIdentityHash !== effect.effectIdentityHash
+        || signed.sourceAttemptId !== effect.attemptId || signed.sourceResultRevision !== effect.resultRevision
+        || signed.walAuthorityHash !== effect.walAuthorityHash || signed.sourceEffectSetHash !== effect.sourceEffectSetHash
+        || signed.checkpointExactCallIdentityHash !== source.checkpointExactCallIdentityHash
+        || signed.artifactRef !== source.artifactRef || signed.artifactContentHash !== source.artifactContentHash) {
+        throw executionFailure("failed", "PRODUCTION_SOURCE_REUSE_IDENTITY_MISMATCH");
+      }
+      return signed;
+    });
+  }
+
+  private recordSourceCheckpoint(source: SourceCall, pending: PendingSource): void {
+    this.input.recordSettledCheckpoint?.(Object.freeze({ providerEffectIdentityHash: source.effectIdentityHash,
+      browserAuthorityRef: `browser-source:${source.effectIdentityHash}`, browserAuthorityHash: source.walAuthorityHash,
+      sourceAttemptId: source.sourceAttemptId, sourceResultRevision: source.sourceResultRevision,
+      checkpointExactCallIdentityHash: source.checkpointExactCallIdentityHash,
+      artifactRef: source.artifactRef, artifactContentHash: source.artifactContentHash,
+      submitPromptHash: source.submitPromptHash, userTurnId: pending.userTurnId,
+      canonicalConversationUrl: pending.canonicalConversationUrl }));
+    this.completedKeys.add(productionCallKey(source));
+  }
+
   public async recoverCheckpoint<K extends ProductGptChildCapabilityId>(
     call: ProductGptCallInput<K> & Readonly<{ sessionKey: string }>,
     source: SourceCall,
@@ -145,20 +191,9 @@ export class ProductionGptSourceReuse {
       artifactRefs: Object.freeze([image?.originalArtifactRef ?? recovered.artifactRef]),
       effectReceipt: null,
     }) as ProductGptChildResult<K>;
-    this.input.recordSettledCheckpoint?.(Object.freeze({
-      providerEffectIdentityHash: source.effectIdentityHash,
-      browserAuthorityHash: source.walAuthorityHash,
-      browserAuthorityRef: `browser-source:${source.effectIdentityHash}`,
-      sourceAttemptId: source.sourceAttemptId,
-      sourceResultRevision: source.sourceResultRevision,
-      checkpointExactCallIdentityHash: source.checkpointExactCallIdentityHash,
-      artifactRef: source.artifactRef, artifactContentHash: source.artifactContentHash,
-      submitPromptHash: source.submitPromptHash,
-      canonicalConversationUrl: pending.canonicalConversationUrl,
-      userTurnId: pending.userTurnId,
-    }));
+    const companions = this.sourceRetryCompanions(source, pending);
+    for (const member of [source, ...companions]) this.recordSourceCheckpoint(member, pending);
     this.pendingByStep.delete(stepKey);
-    this.completedKeys.add(pending.key);
     return reused;
   }
 }

@@ -4,15 +4,18 @@ import type { KnownGptRateLimitPreflightFact } from
 export type ExecutionFailureStatus = "failed";
 export type ExecutionMutationOutcome = "no" | "dispatched" | "confirmed";
 export type ProviderStoppedEmptyProof = Readonly<{
-  firstObservedAt: string;
-  terminalObservedAt: string;
-  continuousMonotonicMs: number;
-  observationCount: number;
-  identityHash: `sha256:${string}`;
+  schemaVersion: "gpt-stopped-empty-after-five-retries.v1";
+  originalEffectIdentityHash: `sha256:${string}`;
+  originalWalAuthorityRef: string;
+  originalWalAuthorityHash: `sha256:${string}`;
+  retries: readonly Readonly<{ ordinal: number; effectIdentityHash: `sha256:${string}`;
+    walAuthorityRef: string; walAuthorityHash: `sha256:${string}`;
+    preEmptyObservationRevisionHash: `sha256:${string}` }>[];
   terminalObservationRevisionHash: `sha256:${string}`;
+  terminalObservedAt: string;
 }>;
 export type ExactReadbackNegativeObservation = Readonly<{
-  pendingCause: "exact-user-turn-unavailable" | "adjacent-assistant-missing";
+  pendingCause: "exact-user-turn-unavailable" | "adjacent-assistant-missing" | "response-stopped-empty";
   canonicalConversationUrl: string;
   userTurnId: string;
   targetRefHash: `sha256:${string}`;

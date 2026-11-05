@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 
 import { buildChromeExtension } from "../../src/lib/browser/chrome-extension/build.mjs";
 
-const outputDirectory = resolve(process.cwd(), ".grasseye-local/browser-build/extension");
+const outputDirectory = resolve(process.cwd(), ".astra-local/browser-build/extension");
 const result = await buildChromeExtension();
 const manifest = JSON.parse(await readFile(resolve(outputDirectory, "manifest.json"), "utf8")) as Record<string, unknown>;
 const worker = await readFile(resolve(outputDirectory, "service-worker.js"), "utf8");
@@ -15,6 +15,10 @@ const popupSource = await readFile(
 );
 const pairingPage = await readFile(resolve(outputDirectory, "pairing.html"), "utf8");
 const receipt = JSON.parse(await readFile(resolve(outputDirectory, "extension-build-manifest.json"), "utf8")) as Record<string, unknown>;
+assert.equal(manifest.name, "ASTRA Browser Authority");
+assert.equal(worker.includes("127.0.0.1:4173"), false, "ASTRA must not pair or open its socket against the Zhou Tian Agent.");
+assert.equal(worker.includes("emkmbecadncngofidjgocmifhbonifgm"), false, "ASTRA must not carry the other application's fixed extension identity.");
+assert.match(worker, /dmkfldicnhofmlgkoajpjbmeicgijgnl/u);
 
 assert.equal(manifest.manifest_version, 3);
 assert.equal(manifest.minimum_chrome_version, "120", "The fixed extension must run on a Chrome release with WebSocket service-worker lifetime support.");

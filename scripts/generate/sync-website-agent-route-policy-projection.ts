@@ -1,80 +1,74 @@
 import { readFile, writeFile, rename } from "node:fs/promises";
-import { resolve, dirname } from "node:path";
+import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-const configured = process.env.GRASSEYE_PROVIDER_REPOSITORIES?.trim();
-const providers: Record<string, unknown> = configured ? JSON.parse(configured) : {};
-const repository = providers["ADVISION-X/xuanxue-web"];
-const provider = typeof repository === "string" && repository.trim() ? resolve(repository) : resolve(root, "../xuanxue-web");
-const destination = resolve(root, "src/lib/local-runtime/production/website-agent-route-policies.v1.json");
-const bytes = await readFile(resolve(provider, "packages/ai-contracts/src/agent-task/website-agent-route-policies.v1.json"));
-const source = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
-const projection: unknown = JSON.parse(source);
-function object(input: unknown): Record<string, unknown> {
-  if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("WEBSITE_AGENT_ROUTE_POLICY_PROVIDER_INVALID");
-  return input as Record<string, unknown>;
+const dependency = JSON.parse(await readFile(resolve(root,
+  "docs/specs/agent-production-runtime/website-agent-task-result.dependency.spec.json"), "utf8")) as {
+  contract: { contractId: string; version: number; providerRepo: string };
+};
+const mapping: unknown = JSON.parse(process.env.GRASSEYE_PROVIDER_REPOSITORIES ?? "{}");
+if (!mapping || typeof mapping !== "object" || Array.isArray(mapping)) throw new Error("PROVIDER_REPOSITORY_MAPPING_INVALID");
+const configured = Reflect.get(mapping, dependency.contract.providerRepo);
+if (typeof configured !== "string" || !configured.trim()) throw new Error("PROVIDER_REPOSITORY_UNBOUND");
+const bytes = await readFile(resolve(configured,
+  "packages/ai-contracts/src/agent-task/website-agent-route-policies.v1.json"));
+const raw: unknown = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
+if (!raw || typeof raw !== "object" || Array.isArray(raw)) throw new Error("ROUTE_PROVIDER_INVALID");
+const source = raw as Record<string, unknown>;
+if (source.schema_version !== "website-agent-route-policies.v1"
+  || source.contract_id !== dependency.contract.contractId || source.contract_version !== dependency.contract.version
+  || !source.parameter_types || typeof source.parameter_types !== "object" || Array.isArray(source.parameter_types)
+  || !Array.isArray(source.routes) || source.routes.length === 0) throw new Error("ROUTE_PROVIDER_IDENTITY_INVALID");
+function object(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("ROUTE_PROVIDER_INVALID");
+  return value as Record<string, unknown>;
 }
-function exact(input: Record<string, unknown>, keys: readonly string[]): void {
-  const expected = new Set(keys);
-  if (Object.keys(input).length !== expected.size || Object.keys(input).some((key) => !expected.has(key))) {
-    throw new Error("WEBSITE_AGENT_ROUTE_POLICY_PROVIDER_INVALID");
-  }
+function strings(value: unknown): string[] {
+  if (!Array.isArray(value) || !value.every(item => typeof item === "string" && item.length > 0)
+    || new Set(value).size !== value.length) throw new Error("ROUTE_PROVIDER_INVALID");
+  return value as string[];
 }
-const artifact = object(projection);
-exact(artifact, ["schema_version", "contract_id", "contract_version", "parameter_types", "routes"]);
-if (artifact.schema_version !== "website-agent-route-policies.v1" || artifact.contract_id !== "ai-acceptance.website-agent-task-result"
-  || artifact.contract_version !== 24 || !Array.isArray(artifact.routes) || artifact.routes.length !== 43) {
-  throw new Error("WEBSITE_AGENT_ROUTE_POLICY_PROVIDER_INVALID");
+function validateMaterial(value: unknown): string {
+  const material = object(value);
+  if (typeof material.role !== "string" || !material.role || typeof material.trust_class !== "string"
+    || typeof material.may_issue_instruction !== "boolean" || typeof material.storage_class !== "string"
+    || typeof material.owner_scope_policy !== "string" || strings(material.media_types).length === 0) {
+    throw new Error("ROUTE_PROVIDER_MATERIAL_INVALID");
+  }
+  if (material.min_count !== undefined && (!Number.isSafeInteger(material.min_count) || Number(material.min_count) < 0)) {
+    throw new Error("ROUTE_PROVIDER_MATERIAL_INVALID");
+  }
+  return material.role;
 }
-const parameters = object(artifact.parameter_types);
-const identities = new Set<string>();
-const used = new Set<string>();
-let contracts = 0;
-for (const raw of artifact.routes) {
-  const route = object(raw);
-  exact(route, ["product_id", "action_id", "required_parameter_keys", "material_roles", "result_schema_version", "relation_kind",
-    ...(Object.hasOwn(route, "result_contract") ? ["result_contract"] : [])]);
-  for (const key of ["product_id", "action_id", "result_schema_version"]) {
-    if (typeof route[key] !== "string" || !(route[key] as string).trim()) throw new Error("WEBSITE_AGENT_ROUTE_POLICY_PROVIDER_INVALID");
-  }
-  if (!Array.isArray(route.required_parameter_keys) || !Array.isArray(route.material_roles) || !route.material_roles.length
-    || !["primary", "followup", "provider_continuation", "review"].includes(String(route.relation_kind))) {
-    throw new Error("WEBSITE_AGENT_ROUTE_POLICY_PROVIDER_INVALID");
-  }
-  const identity = `${String(route.product_id)}\0${String(route.action_id)}`;
-  if (identities.has(identity)) throw new Error("WEBSITE_AGENT_ROUTE_POLICY_PROVIDER_DUPLICATE");
-  identities.add(identity);
-  if (Object.hasOwn(route, "result_contract")) { object(route.result_contract); contracts += 1; }
-  const keys = route.required_parameter_keys;
-  if (new Set(keys).size !== keys.length) throw new Error("WEBSITE_AGENT_ROUTE_POLICY_PARAMETER_SCHEMA_MISSING");
-  for (const key of keys) {
-    if (typeof key !== "string" || !Object.hasOwn(parameters, key)) throw new Error("WEBSITE_AGENT_ROUTE_POLICY_PARAMETER_SCHEMA_MISSING");
-    if (key === "reusable_base_reservation_ref" || key === "reusable_base_reservation_hash") {
-      throw new Error("WEBSITE_AGENT_ROUTE_POLICY_PROVIDER_DENOMINATOR_INVALID");
+function validateRoutes(routes: unknown[], parameters: Record<string, unknown>): Set<string> {
+  const keys = new Set<string>(), used = new Set<string>();
+  for (const value of routes) {
+    const route = object(value);
+    if (typeof route.product_id !== "string" || !route.product_id || typeof route.action_id !== "string"
+      || !route.action_id || typeof route.result_schema_version !== "string" || route.relation_kind !== "primary") {
+      throw new Error("ROUTE_PROVIDER_INVALID");
     }
-    used.add(key);
-  }
-  for (const rawMaterial of route.material_roles) {
-    const material = object(rawMaterial);
-    exact(material, ["role", "trust_class", "may_issue_instruction", "media_types", "storage_class", "owner_scope_policy",
-      ...(Object.hasOwn(material, "repeatable") ? ["repeatable"] : [])]);
-    if ((Object.hasOwn(material, "repeatable") && material.repeatable !== true)
-      || typeof material.role !== "string" || !material.role.trim() || typeof material.may_issue_instruction !== "boolean"
-      || !Array.isArray(material.media_types) || !material.media_types.length
-      || !material.media_types.every((type) => typeof type === "string" && type.trim())
-      || !["instruction", "locked_fact", "nonbinding_prior_interpretation", "user_provided_data", "classical_source_data", "transport_evidence"].includes(String(material.trust_class))
-      || material.may_issue_instruction !== (material.trust_class === "instruction")
-      || !["shared_static", "private_owner_scoped"].includes(String(material.storage_class))
-      || material.owner_scope_policy !== (material.storage_class === "private_owner_scoped" ? "required" : "forbidden")) {
-      throw new Error("WEBSITE_AGENT_ROUTE_POLICY_MATERIAL_SCHEMA_INVALID");
+    const key = `${route.product_id}\0${route.action_id}`;
+    if (keys.has(key) || !Array.isArray(route.material_roles)) throw new Error("ROUTE_PROVIDER_INVALID");
+    const roles = route.material_roles.map(validateMaterial);
+    if (new Set(roles).size !== roles.length) throw new Error("ROUTE_PROVIDER_MATERIAL_INVALID");
+    for (const parameter of strings(route.required_parameter_keys)) {
+      if (!Object.hasOwn(parameters, parameter)) throw new Error("ROUTE_PROVIDER_PARAMETER_UNBOUND");
+      used.add(parameter);
     }
+    const result = object(route.result_contract);
+    const fields = object(result.field_types);
+    const outputVersion = result.output_schema_version ?? object(fields.schema_version).const;
+    if (outputVersion !== route.result_schema_version) throw new Error("ROUTE_PROVIDER_RESULT_INVALID");
+    keys.add(key);
   }
+  if (used.size !== Object.keys(parameters).length) throw new Error("ROUTE_PROVIDER_PARAMETER_UNUSED");
+  return keys;
 }
-if (identities.size !== 43 || Object.keys(parameters).length !== 43 || contracts !== 43 || used.size !== 43
-  || Object.keys(parameters).some((key) => !used.has(key))) throw new Error("WEBSITE_AGENT_ROUTE_POLICY_PROVIDER_DENOMINATOR_INVALID");
-// The consumer receives the provider's exact bytes, including order and result contracts.
-const pending = `${destination}.tmp-${process.pid}`;
+const keys = validateRoutes(source.routes, object(source.parameter_types));
+const target = resolve(root, "src/lib/local-runtime/production/website-agent-route-policies.v1.json");
+const pending = `${target}.tmp-${process.pid}`;
 await writeFile(pending, bytes, { mode: 0o644 });
-await rename(pending, destination);
-process.stdout.write("WEBSITE_AGENT_ROUTE_POLICY_PROJECTION_SYNCED 43/43/43\n");
+await rename(pending, target);
+process.stdout.write(`WEBSITE_AGENT_ROUTE_POLICY_PROJECTION_SYNCED ${keys.size}\n`);

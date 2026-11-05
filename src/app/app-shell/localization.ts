@@ -4,12 +4,12 @@ export const supportedAppShellLocales = ["zh", "en"] as const;
 export type AppShellLocale = (typeof supportedAppShellLocales)[number];
 
 export const defaultAppShellLocale: AppShellLocale = "zh";
-export const appShellLocaleCookieName = "grasseye-app-locale";
+export const appShellLocaleCookieName = "astra-app-locale";
 export const appShellLocaleSearchParamName = "locale";
 
 const appShellZhCopyEntries = [
   ["GrassEye", "GrassEye"],
-  ["GrassEye AGENT Workbench", "GrassEye AGENT 工作台"],
+  ["ASTRA-AGENT Workbench", "ASTRA-AGENT 工作台"],
   ["AGENT Workbench", "AGENT 工作台"],
   ["Skill Registry", "技能注册表"],
   ["Skip to workspace", "跳到工作区"],

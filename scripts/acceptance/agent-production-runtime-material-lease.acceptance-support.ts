@@ -3,7 +3,6 @@ import { mkdtemp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promis
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { getEventListeners } from "node:events";
-import { zipSync } from "fflate";
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
 import { executeClaim } from "../../src/lib/local-runtime/production/runtime-claim.js";
 import { downloadProductionMaterials } from "../../src/lib/local-runtime/production/cloud-client.js";
@@ -18,22 +17,21 @@ type Clock = Readonly<{ tick: () => Promise<void>; advance: (ms: number) => Prom
 const json = (data: unknown): Response => new Response(JSON.stringify({ ok: true, data }), {
   headers: { "content-type": "application/json" },
 });
-const materialBytes = (ordinal: number) => Buffer.from(zipSync({
-  "material.json": [Buffer.from(JSON.stringify({ ordinal, content: "material" })), { mtime: new Date("2020-01-01T00:00:00Z") }],
-}));
+const materialBytes = (ordinal: number) => ordinal === 0
+  ? Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLbtAAAAABJRU5ErkJggg==", "base64")
+  : Buffer.from(JSON.stringify({ schema_version: "transport-fixture.v1", ordinal }));
 
 const materialJob = (name: string) => {
-  const materials = ["localization_reference_archive", "localization_work_archive"].map((role, ordinal) => {
+  const materials = ["payment_screenshot", "result_contract"].map((role, ordinal) => {
     const bytes = materialBytes(ordinal);
-    return { material_id: `material:${ordinal}`, ordinal, role, display_name: `${ordinal}.zip`,
+    return { material_id: `material:${ordinal}`, ordinal, role, display_name: ordinal === 0 ? "0.png" : "1.json",
       object_ref: `object:${ordinal}`, sha256: sha256(bytes), bytes: bytes.byteLength,
-      media_type: "application/zip", storage_class: "private_owner_scoped", owner_scope_hash: HASH_A,
-      trust_class: "locked_fact", may_issue_instruction: false };
+      media_type: ordinal === 0 ? "image/png" : "application/json", storage_class: "private_owner_scoped", owner_scope_hash: HASH_A,
+      trust_class: ordinal === 0 ? "transport_evidence" : "instruction", may_issue_instruction: ordinal === 1 };
   });
-  const claimed = claimTask(task({ jobId: `job:material-${name}`, productId: "localization_report_translation",
-    actionId: "report_translation", materialRefs: materials,
-    extra: { parameters: { target_locale: "en-US", source_resource_id: "source:fixture", source_version: "v1",
-      source_sha256: HASH_A, policy_version: "v1" } } }));
+  const claimed = claimTask(task({ jobId: `job:material-${name}`, productId: "payment_screenshot_observation",
+    actionId: "observe", materialRefs: materials,
+    extra: { parameters: { observation_schema_version: "payment-screenshot-observation-v1" } } }));
   const now = Date.now();
   return { ...claimed, grant: { ...claimed.grant, server_now: new Date(now).toISOString(),
     lease_expires_at: new Date(now + 90_000).toISOString() } };
@@ -262,7 +260,7 @@ const exercisePreparationFailures = async (clock: Clock): Promise<void> => {
   for (const mode of ["http409", "http500", "network", "body", "bytes", "hash", "write"] as const) {
     await withFixture(mode, async run => {
       if (mode === "write") {
-        await mkdir(run.directoryPath, { recursive: true }); await writeFile(join(run.directoryPath, "0.zip"), "conflict");
+        await mkdir(run.directoryPath, { recursive: true }); await writeFile(join(run.directoryPath, "0.png"), "conflict");
       }
       run.controls.download = async ordinal => {
         if (mode === "network") throw new Error("FETCH_NETWORK_FAILURE");
@@ -306,7 +304,7 @@ const exerciseIdempotentAndRecovery = async (clock: Clock): Promise<void> => {
     run.store.markExecuting(run.job.job_id);
     const first = await downloadProductionMaterials(run.state.session, run.job, run.directoryPath, run.abort.signal);
     const second = await downloadProductionMaterials(run.state.session, run.job, run.directoryPath, run.abort.signal);
-    assert.deepEqual(second, first); assert.deepEqual(await readdir(run.directoryPath), ["0.zip", "1.zip"]);
+    assert.deepEqual(second, first); assert.deepEqual(await readdir(run.directoryPath), ["0.png", "1.json"]);
   });
   for (const deliveryOnly of [false, true]) {
     await withFixture(`staged-${deliveryOnly}`, async run => {
