@@ -86,6 +86,8 @@ const exerciseCurrentAnswerStopScope = async (page: Page): Promise<void> => {
       <form data-chatgpt-composer data-composer-placement="thread">${stop}</form>`, 1],
     [home + `<form data-chatgpt-composer data-composer-placement="thread">${stop}</form>`, 1],
     [home + `<form data-chatgpt-composer>${stop}</form>`, 1],
+    [home + '<form><button data-testid="stop-button" aria-label="停止"></button></form>', 1],
+    ['<form data-composer-placement="home"><button data-testid="stop-button"></button></form><form></form>', 0],
     [`<form data-chatgpt-composer data-composer-placement="other">${stop}${stop}</form>`, 2],
   ] as const) {
     await page.setContent(turn() + composers);

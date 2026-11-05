@@ -6,9 +6,8 @@ export interface EvidenceProcessingInput {
   readonly profile: GptExecutionProfile;
 }
 export const parseEvidenceProcessingResult = (raw: string, evidence: readonly string[]): ProductPluginOutput => {
-  const payload = v.parseJsonObject(raw, "S04_RESULT");
-  v.exact(payload, ["schema_version", "workspace", "decision", "issues", "unresolved", "outputs", "coverage", "resources", "body"], "S04_RESULT_FIELDS_INVALID");
-  if (payload.schema_version !== "astra-s04-output.v1") v.fail("S04_RESULT_SCHEMA_INVALID");
+  const payload = v.parseJsonObject(raw, "S04_RESULT", "astra-s04-output.v1");
+  if (Object.hasOwn(payload, "resolved_issues")) v.fail("S04_RESULT_FIELDS_INVALID");
   if (!["continue", "supplement", "rework", "blocked"].includes(String(payload.decision))) v.fail("S04_DECISION_INVALID");
   for (const key of ["issues", "unresolved", "outputs", "coverage"]) v.array(payload[key], `S04_${key}_INVALID`);
   v.object(payload.resources, "S04_RESOURCES_INVALID");

@@ -80,6 +80,8 @@ export interface ProductCompletionReceipt {
 }
 
 export interface ProductionRoutePolicy {
+  readonly normal_provider_turns?: number;
+  readonly stopped_empty_retry_allowed?: boolean;
   readonly product_id: ProductionProductId;
   readonly action_id: ProductionActionId;
   readonly required_parameter_keys: readonly string[];
@@ -165,7 +167,16 @@ export const hashCanonical = (value: unknown): ProductionHash => {
 
 type ParsedPluginObject = Readonly<{ start: number; end: number; value: Record<string, unknown> }>;
 const RESULT_HASH = /^sha256:[a-f0-9]{64}$/u;
-const resultFailure = (code: string): never => { throw new Error(code); };
+class ProductResultBindingError extends Error {}
+const resultFailure = (code: string): never => { throw new ProductResultBindingError(code); };
+
+function settleMechanicalOutput(evidence: readonly string[], read: () => unknown): ProductPluginOutput {
+  try { return { payload: read(), evidence_refs: evidence }; }
+  catch (error) {
+    if (!(error instanceof ProductResultBindingError) || evidence.length === 0) throw error;
+    return { payload: null, evidence_refs: evidence };
+  }
+}
 
 const pluginObjectAt = (raw: string, start: number): ParsedPluginObject | null => {
   let depth = 0;
@@ -194,7 +205,7 @@ const pluginObjectAt = (raw: string, start: number): ParsedPluginObject | null =
   return null;
 };
 
-function parsePluginJsonObject(raw: string, code: string): Readonly<Record<string, unknown>> {
+function parsePluginJsonObject(raw: string, code: string, identity?: string | readonly string[]): Readonly<Record<string, unknown>> {
   const completeObjects: ParsedPluginObject[] = [];
   for (let start = 0; start < raw.length; start += 1) {
     if (raw[start] !== "{") continue;
@@ -204,10 +215,12 @@ function parsePluginJsonObject(raw: string, code: string): Readonly<Record<strin
   const outermost = completeObjects.filter((candidate) => !completeObjects.some((other) =>
     other !== candidate && other.start <= candidate.start && other.end >= candidate.end
       && (other.start < candidate.start || other.end > candidate.end)));
-  if (outermost.length !== 1) {
-    return resultFailure(outermost.length === 0 ? `${code}_JSON_INVALID` : `${code}_JSON_AMBIGUOUS`);
+  const candidates = identity === undefined ? outermost : outermost.filter(({value}) =>
+    typeof identity === "string" ? value.schema_version === identity : identity.every(key => Object.hasOwn(value, key)));
+  if (candidates.length !== 1) {
+    return resultFailure(candidates.length === 0 ? `${code}_JSON_INVALID` : `${code}_JSON_AMBIGUOUS`);
   }
-  return Object.freeze(outermost[0]!.value);
+  return Object.freeze(candidates[0]!.value);
 }
 
 const resultObject = (value: unknown, code: string): Record<string, unknown> => {
@@ -260,6 +273,7 @@ export const productResultValidation = Object.freeze({
   locked: assertLocked,
   object: resultObject,
   parseJsonObject: parsePluginJsonObject,
+  settleMechanicalOutput,
   stringArray: resultStringArray,
   text: resultText,
 });

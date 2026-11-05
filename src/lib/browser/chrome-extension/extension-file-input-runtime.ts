@@ -1,3 +1,4 @@
+import { MAX_BROWSER_APPROVED_FILE_BATCH } from "../exact-target/browser-dom-intent.js";
 import type { ExtensionDebuggerRuntime } from "./debugger-runtime.js";
 import { resolveCoherentPointerAction } from "./dom-coherent-candidate.js";
 import { executeCoherentObservation } from "./dom-coherent-observation.js";
@@ -131,7 +132,7 @@ const assertFileInputRequest = (input: ExtensionFileInput): void => {
     || input.activation?.selector !== "[data-mention-list-scroll-area] > div:first-child > button[data-list-navigation-item='true']:first-child, [data-mention-list-scroll-area] > div[data-mention-section-id='chatgpt-actions'] > div[data-mention-section-items='true'] > button[data-list-navigation-item='true']:first-child, [data-mention-list-scroll-area] > div[data-mention-section-id='chatgpt-context'] > div[data-mention-section-items='true'] > button[data-list-navigation-item='true']:first-child, [data-mention-list-scroll-area] > div[data-mention-section-id='chatgpt-primary'] > div[data-mention-section-items='true'] > button[data-list-navigation-item='true']:first-child"
     || input.activation?.scope?.selector !== "[data-composer-overlay-floating-ui='true']"
     || input.activation?.expectedText !== "上传"
-    || input.approvedFiles.length < 1 || input.approvedFiles.length > 20
+    || input.approvedFiles.length < 1 || input.approvedFiles.length > MAX_BROWSER_APPROVED_FILE_BATCH
     || input.resolvedFilePaths.length !== input.approvedFiles.length
     || new Set(input.approvedFiles.map((file) => file.grantRef)).size !== input.approvedFiles.length
     || input.approvedFiles.some((file) => !file.grantRef || !/^sha256:[a-f0-9]{64}$/u.test(file.contentHash)
@@ -281,10 +282,10 @@ const readComposerAttachmentPhase = async (input: ExtensionFileInput): Promise<R
   const observed = await executeCoherentObservation(input.runtime, input.target, [
     { queryId: "attachment-composer", selector: "form[data-chatgpt-composer]", maxMatches: 2, fields: [] },
     { queryId: "attachment-cards", selector: ":is(button, div[role='button']).composer-attachment-surface[aria-label]",
-      scope: { selector: "form[data-chatgpt-composer]" }, maxMatches: 20, fields: ["ariaLabel"] },
+      scope: { selector: "form[data-chatgpt-composer]" }, maxMatches: MAX_BROWSER_APPROVED_FILE_BATCH, fields: ["ariaLabel"] },
     { queryId: "attachment-uploading",
       selector: "[role='progressbar']",
-      scope: { selector: "form[data-chatgpt-composer]" }, maxMatches: 20, fields: [] },
+      scope: { selector: "form[data-chatgpt-composer]" }, maxMatches: MAX_BROWSER_APPROVED_FILE_BATCH, fields: [] },
   ]);
   input.assertCurrent(input.target.targetRef, input.target.documentRef);
   const [composer, cards, uploading] = observed.queries;

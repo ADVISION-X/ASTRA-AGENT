@@ -6,7 +6,7 @@ import type { InspectorContext, InspectorFinding } from "../../shared/inspector-
 import { gptMutationChildIds } from "./gpt-contract-inspection.js";
 import { sourceFor } from "./gpt-inspection-support.js";
 
-const LAW_ID = "LAW-GPT-002-V1", ROOT = "src/capabilities/gpt";
+const LAW_ID = "LAW-GPT-002-V2", ROOT = "src/capabilities/gpt";
 const compact = (source: string): string => source.replace(/\s+/gu, "");
 const responseSyntax = (node: Node): string => {
   const visit = (current: Node): unknown => {
@@ -112,7 +112,7 @@ const responseDecisionsAreBound = (body: readonly Node[]): boolean => {
     && doneBlock.length === 1 && statementMatches(doneBlock[0], "return settledTextResponse(assistant);") && done.getElseStatement() === undefined
     && statementMatches(body[6], "if (!assistant) continue;")
     && statementMatches(body[7], 'if (assistant.generatingRaw > 0) { negativeWindow.current = null; nextWaitReason = "stop-present"; continue; }')
-    && statementMatches(body[8], "if (context.stoppedEmptyRetryAuthorized === true) emptyEndedObservation(assistant);")
+    && statementMatches(body[8], "if (context.settleLiveStoppedEmpty === true) emptyEndedObservation(assistant);")
     && statementMatches(body[9], "exactResponseObserved = false;")
     && statementMatches(body[10], "negativeWindow.current = recordNegativeObservation(negativeWindow.current, emptyReadbackFailure(assistant, userTurnId));")
     && statementMatches(body[11], 'nextWaitReason = "response-stopped-empty";');

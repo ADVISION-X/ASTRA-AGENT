@@ -159,10 +159,11 @@ const parseDeviceControlAuthority = (
 export async function readProductionDeviceJobStatus(
   session: Pick<ProductionWorkerSession, "request">,
   jobId: string,
+  signal?: AbortSignal,
 ): Promise<RemoteProductionDeviceJobStatus> {
   const value = await session.request(
     `/internal/ai-production/v6/jobs/${encodeURIComponent(jobId)}/device-status`,
-    { method: "GET" },
+    { method: "GET", ...(signal && { signal }) },
   );
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw executionFailure("failed", "V6_DEVICE_JOB_STATUS_INVALID");

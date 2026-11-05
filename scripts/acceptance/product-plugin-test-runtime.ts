@@ -35,9 +35,10 @@ export type ProductTaskFixture = Readonly<{
 
 export type ProductFlowFixture = Readonly<{
   task: WebsiteAgentTask;
-  output: Readonly<Record<string, unknown>>;
+  output: string | Readonly<Record<string, unknown>>;
+  rawHtml?: string;
   materialContents?: Readonly<Record<string, unknown>>;
-  checkpointOutput?: (call: ProductCall) => Readonly<Record<string, unknown>>;
+  checkpointOutput?: (call: ProductCall) => string | Readonly<Record<string, unknown>>;
   confirmedSubmit?: boolean;
   confirmedPromptHash?: ProductionHash;
   expectedSessionCount?: number;
@@ -80,7 +81,7 @@ export const buildProductTask = (
       role: material.role,
       display_name: `material-${ordinal}.${material.media_types[0] === "application/zip" ? "zip" : "json"}`,
       object_ref: material.role === "result_contract"
-        ? `contract:astra.website-agent-task-result:4:owner:fixture:${route.product_id}:${route.action_id}`
+        ? `contract:astra.website-agent-task-result:5:owner:fixture:${route.product_id}:${route.action_id}`
         : material.role === "subject_result" ? "result:subject" : `object:${ordinal}`,
       sha256: FIXTURE_HASH,
       bytes: 10,
@@ -93,7 +94,7 @@ export const buildProductTask = (
     result_contract_id: "website-agent-result",
     result_contract_version: 1,
     ...(fixture.privacySubjectRef ? { privacy_subject_ref: fixture.privacySubjectRef } : {}),
-    ...(route.relation_kind === "followup" || route.relation_kind === "provider_continuation" ? {
+    ...(route.relation_kind === "followup" || (route.relation_kind === "provider_continuation" && fixture.parameters.revision_feedback !== null) ? {
       parent_task_ref: "task:parent",
       parent_result_ref: "result:parent",
       parent_result_hash: FIXTURE_HASH,
@@ -111,7 +112,7 @@ export const buildProductTask = (
 const checkpointValue = (
   fixture: ProductFlowFixture,
   call: ProductCall,
-): Readonly<Record<string, unknown>> => fixture.checkpointOutput?.(call) ?? fixture.output;
+): string | Readonly<Record<string, unknown>> => fixture.checkpointOutput?.(call) ?? fixture.output;
 
 type ExecutionValueInput = {
   call: ProductCall;
@@ -166,10 +167,10 @@ const observationExecutionValue = (input: ExecutionValueInput): ExecutionValue |
   }
   if (call.child === "checkpoint_gpt_text_response") {
     const output = checkpointValue(fixture, call);
-    const semanticText = JSON.stringify(output);
+    const semanticText = typeof output === "string" ? output : JSON.stringify(output);
     return { value: {
       assistantTurnId: "00000000-0000-4000-8000-000000000002",
-      rawDomHtml: `<article>${semanticText}</article>`, rawDomHash: FIXTURE_HASH,
+      rawDomHtml: fixture.rawHtml ?? `<article>${semanticText}</article>`, rawDomHash: FIXTURE_HASH,
       semanticText, semanticTextHash: FIXTURE_HASH,
     } };
   }

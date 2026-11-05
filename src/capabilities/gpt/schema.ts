@@ -10,8 +10,9 @@ export const GptExecutionProfileSchema = z.object({
     .transform((value): `sha256:${string}` => `sha256:${value.slice(7)}`),
   provider: z.literal("openai-chatgpt"),
   transport: z.literal("gpt-web"),
-  startModelDisplayName: z.enum(["最新", "GPT-5.6 Sol"]),
+  startModelDisplayName: z.enum(["最新", "GPT-5.6 Sol", "GPT-6.1 Sol"]),
   requestedReasoningValue: z.number().int().min(0).max(5),
+  requireExactReasoning: z.literal(true).optional(),
   executorIdentityRef: z.string().min(1).max(512),
   acceptanceRef: z.string().min(1).max(512),
   acceptanceVersion: z.string().min(1).max(120),
@@ -56,6 +57,7 @@ export const buildGptExecutionProfile = (input: Readonly<{
   profileRef: string;
   startModelDisplayName: GptExecutionProfile["startModelDisplayName"];
   requestedReasoningValue: number;
+  requireExactReasoning?: true | undefined;
   executorIdentityRef: string;
   acceptanceRef: string;
   acceptanceVersion: string;
@@ -67,6 +69,7 @@ export const buildGptExecutionProfile = (input: Readonly<{
     transport: "gpt-web" as const,
     startModelDisplayName: input.startModelDisplayName,
     requestedReasoningValue: input.requestedReasoningValue,
+    ...(input.requireExactReasoning && { requireExactReasoning: true as const }),
     executorIdentityRef: input.executorIdentityRef,
     acceptanceRef: input.acceptanceRef,
     acceptanceVersion: input.acceptanceVersion,

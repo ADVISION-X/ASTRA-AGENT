@@ -91,7 +91,7 @@ const assertFrozenResponseCounterexamples = (source: string): void => {
     ["return settledTextResponse(assistant);", "return\n settledTextResponse(assistant);"],
     ['gptExecutionFailure("GPT_TEXT_RESPONSE_EMPTY_ENDED",', 'gptExecutionFailure("GPT_RESPONSE_STOPPED_EMPTY",'],
     ['gptExecutionFailure("GPT_TEXT_RESPONSE_EMPTY_ENDED",', 'gptExecutionFailure("GPT_TEXT_RESPONSE_EMPTY_ENDED ",'],
-    ["context.stoppedEmptyRetryAuthorized === true", "context.stoppedEmptyRetryAuthorized !== true"],
+    ["context.settleLiveStoppedEmpty === true", "context.settleLiveStoppedEmpty !== true"],
     ["documentRefHash: assistant.documentRefHash,", "documentRefHash: assistant.documentRefHash, rawDomHash: assistant.rawDomHash,"],
     ["const gate = context.waitForProviderObservation;", "const gate = context.otherGate;"],
     ["if (exactResponseObserved) continue;", "if (exactResponseObserved) break;"],
@@ -122,7 +122,7 @@ const assertAttachmentInspectorCounterexamples = (baseUrl: string): void => {
   files.push("src/lib/browser/chrome-extension/extension-file-input-runtime.ts",
     "src/lib/browser/exact-target/browser-target-lease.ts");
   for (const path of files) project.createSourceFile(resolve(root, path), readFileSync(resolve(root, path), "utf8"));
-  const lawId = "LAW-GPT-002-V1", context: InspectorContext = { project, sealedRoot: root, selectedLawId: lawId,
+  const lawId = "LAW-GPT-002-V2", context: InspectorContext = { project, sealedRoot: root, selectedLawId: lawId,
     targetPaths: files, targetSet: { queryRef: "gpt-attachment-helper-counterexamples", count: files.length },
     lawRequirements: [], generatedPlan: [], planEntry: { capabilityDomain: "gpt", executionGroup: "domain", lawIds: [lawId],
       manifestPath: "scripts/audit/domains/gpt/manifest.json", ownerInspectorPath: "scripts/audit/domains/gpt/inspector.ts" } };

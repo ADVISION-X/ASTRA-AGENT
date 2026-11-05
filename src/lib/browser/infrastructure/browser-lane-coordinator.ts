@@ -32,7 +32,7 @@ const parentSourceIsExact = (
   "callId|childCapabilityId|effectIdentityHash|jobId|productStepId|sourceAttemptId|sourceResultRevision|walAuthorityHash"
   && source.jobId === parentJobId
   && [source.jobId, source.sourceAttemptId, source.productStepId, source.callId].every(value => typeof value === "string" && value.length > 0 && !value.includes("\0"))
-  && source.childCapabilityId === "submit_exact_gpt_turn_once"
+  && ["submit_exact_gpt_turn_once", "retry_exact_gpt_response_once"].includes(source.childCapabilityId)
   && Number.isSafeInteger(source.sourceResultRevision) && source.sourceResultRevision >= 0
   && [source.effectIdentityHash, source.walAuthorityHash].every(value => /^sha256:[a-f0-9]{64}$/u.test(value));
 

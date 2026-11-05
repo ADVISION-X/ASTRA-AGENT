@@ -22,7 +22,7 @@ blocked实例在真实停机时由原Store关闭入口只读核未完成任务/O
   "lawIds": [
     "LAW-AGENT-PRODUCTION-RUNTIME-001-V1",
     "LAW-AGENT-PRODUCTION-RUNTIME-002-V1",
-    "LAW-AGENT-PRODUCTION-RUNTIME-003-V1",
+    "LAW-AGENT-PRODUCTION-RUNTIME-003-V2",
     "LAW-AGENT-PRODUCTION-RUNTIME-004-V1",
     "LAW-AGENT-PRODUCTION-RUNTIME-005-V1",
     "LAW-AGENT-PRODUCTION-RUNTIME-006-V1",
@@ -265,7 +265,7 @@ Website 已持久裁决 `WAIT_NEW_ATTEMPT` 且原 job 事件/claim receipt 已�
 
 原 accepted attempt 的 Provider 输入可能已发生而结果未就绪时，Runtime 先保留旧 effect/WAL 与机械有效结果，Website 原 claim 重授同 attempt 的零输入读回 lease。Browser 对每个旧 effect 只从唯一 WAL 取得 canonical conversation URL + 提交时 exact userTurnId；文本回答由原 Product turnMarker 在当前 Document 定位，图片仍以原 exact userTurnId 定位；live Target 可复用则同 URL 零导航，Target 已丢失则当前 lease 直接创建当前 system Target 并最多一次精确导航，不先报 old-target failure。可信 locator 的真实有界 exact negative observation 才证明原答案不可机械取得；WAL 无可信 locator 时出具 typed unaddressable，明确保留旧答案可能存在，不扫描旧 Tab/标题/侧栏。读回成功优先沿原身份 stage/Outbox/Website admission；时间等待、空证据和旧 Target 缺席均不构成负读回。原 `production_attempt_handoffs` 仅按 source effect/call、原 WAL authority、checkpoint/Forensics artifact、exact readback 或 unaddressable 的 typed proof 保存来源 seal，不持久 Target 身份；完整 replay_calls 与逐 effect readback_proofs 一一对应，settled_reusable 调用仅归还原答案，replay_exhausted 子集才进入 Website 风险 grant，rejection_settled/risk_authorized/historical_settled 保留原事件血缘。`readback_exhaustion_hash` 只覆盖真实耗尽子集。历史DISPATCHED只保留未知事实，input_quiescence_proof在原真实terminal_wal完整时可附带，否则为null，不作当前资格门，也不证明答案不存在或授Provider输入。Website 仍在原 job 行锁核旧结果/Outbox/admission 缺席、完整 source seal、风险授权调用集合与旧 fence 后持久签发新 revision；Browser 在真实输入前再核 current Target/Document/permit/原 WAL。本次已撤销未完成 V43 job 的来源不得进入 V44；已完成 job 的旧签事件仅作原值历史取证，不进入活动 claim。
 
-`TOMBSTONE-RECOVERY-AUTHORITY-001` 继续固定 Website 是未删除需求的唯一业务恢复决策 Owner；八字新业务任务只消费 Website 已入库并精确绑定的父报告材料，且每次从 clean GPT chat 执行。同一SEO文章的五个翻译task由Website按严格locale顺序签发provider_continuation direct parent，zh-HK直连已接纳zh-CN生成task，后四个直连已接纳前序翻译task。固定catalog保持各locale/cohort独立task/result/admission，同cohort仅派当前最早未闭合locale；部分合格后仅失败ID进入下一张后继任务。首任务fresh且parent triple全空，后继只携Website已接纳的直接前驱三元组，Browser只从父WAL唯一URL续聊。Runtime只在Website已签provider_continuation且父结果ref/hash与本地completed父结果精确相等后，读取该结果实际采纳的全部原checkpoint来源证据，并按原父job、来源attempt、result revision、product step、实际call、submit或已验真附属retry Child及原WAL authority/hash整体验真；完成attempt和child当前step不得代替原来源。跨attempt复用须核既有accepted source settlement及reused_checkpoint，同attempt正常live/cache不新增grant门。Browser逐项沿原exact source reader只读CONFIRMED且可信的原effect locator，全部采纳来源的canonical URL非空且全等后才为当前job独占Target精确导航；缺失、未决、篡改、矛盾或URL冲突均零Provider输入失败关闭，不得任选来源或fallback。来源只作locator选择，不跨仓、不新持久化且永不进入child provider effect identity或业务恢复裁决。仅为核图片采用关系，GPT原Owner可按精确parent job/source attempt/checkpoint identity读取既有gpt-image-source-binding.v1身份描述，核原ref/integrity hash及conversation/user hash后只向Runtime回传originalArtifactRef；这是封闭身份元数据，不得读取父文本、父原图bytes、Prompt或旧页面，描述不进入Product，也不新增Forensics端口、schema或存储。异步来源验证在原dispatchPlugin进入Mediator同步context工厂前完成；原readSourceReadbackObservations、readAcceptedSourceSettlements和Browser公开全历史typed reader是唯一来源。固定catalog首任务fresh，后继顺序续聊。Runtime不读取Provider URL、不选择父任务、不判断业务父资格，也不新增父关系或continuation持久化。已确认Provider effect跨进程只能读取同一结果且物理submit增量恒为零；continuation store/frontier/CAS、private base、fork、兼容桥及第二恢复链恒为零。
+`TOMBSTONE-RECOVERY-AUTHORITY-001` 继续固定 Website 是未删除需求的唯一业务恢复决策 Owner；八字新业务任务只消费 Website 已入库并精确绑定的父报告材料，且每次从 clean GPT chat 执行。ASTRA现役跨任务同聊只开放同一用户、项目、输入版本与产生设备的当前已接纳售前S01直接前序；以下继承条文不恢复退休路由。同一SEO文章的五个翻译task由Website按严格locale顺序签发provider_continuation direct parent，zh-HK直连已接纳zh-CN生成task，后四个直连已接纳前序翻译task。固定catalog保持各locale/cohort独立task/result/admission，同cohort仅派当前最早未闭合locale；部分合格后仅失败ID进入下一张后继任务。首任务fresh且parent triple全空，后继只携Website已接纳的直接前驱三元组，Browser只从父WAL唯一URL续聊。Runtime只在Website已签provider_continuation且父结果ref/hash与本地completed父结果精确相等后，读取该结果实际采纳的全部原checkpoint来源证据，并按原父job、来源attempt、result revision、product step、实际call、submit或已验真附属retry Child及原WAL authority/hash整体验真；完成attempt和child当前step不得代替原来源。跨attempt复用须核既有accepted source settlement及reused_checkpoint，同attempt正常live/cache不新增grant门。Browser逐项沿原exact source reader只读CONFIRMED且可信的原effect locator，全部采纳来源的canonical URL非空且全等后才为当前job独占Target精确导航；缺失、未决、篡改、矛盾或URL冲突均零Provider输入失败关闭，不得任选来源或fallback。来源只作locator选择，不跨仓、不新持久化且永不进入child provider effect identity或业务恢复裁决。仅为核图片采用关系，GPT原Owner可按精确parent job/source attempt/checkpoint identity读取既有gpt-image-source-binding.v1身份描述，核原ref/integrity hash及conversation/user hash后只向Runtime回传originalArtifactRef；这是封闭身份元数据，不得读取父文本、父原图bytes、Prompt或旧页面，描述不进入Product，也不新增Forensics端口、schema或存储。异步来源验证在原dispatchPlugin进入Mediator同步context工厂前完成；原readSourceReadbackObservations、readAcceptedSourceSettlements和Browser公开全历史typed reader是唯一来源。固定catalog首任务fresh，后继顺序续聊。Runtime不读取Provider URL、不选择父任务、不判断业务父资格，也不新增父关系或continuation持久化。已确认Provider effect跨进程只能读取同一结果且物理submit增量恒为零；continuation store/frontier/CAS、private base、fork、兼容桥及第二恢复链恒为零。
 
 Runtime 对外只发布 Agent Route Capability Manifest。它从 Mediator 取得冻结、不可变、纯数据的 `product_id + action_id + task_contract_version + result_contract_version` 路由集合，随后在本域校验 Manifest schema/hash并用于当前 session attestation 与 claim 资格。Product Plugin 名称、版本、Skill hash 与 Catalog 实现身份不得进入 Website job、request、accepted attempt、grant、result、artifact、terminal 或 Browser effect；Runtime 源码不得直接或间接取得 `ProductPlugin` 实例、Product Skill 正文、`parseResult`、`assemblePayload` 或其它 Product 可执行回调；Product Plugin 也不得 import、re-export、dynamic import 或 side-effect import Runtime 私有模块。
 
@@ -358,13 +358,15 @@ Runtime 自身代码保持 production 目录内的直接模块关系。不得新
 
 论文生产工厂是唯一研究产品。S00 在产品内持有固定跨技能 Flow；C01、S01—S10 各持独立 Skill、提示词、内部 Flow 和结果合同。Catalog 只接入 S00 与沿用付款观察插件；叶工序由 S00 单向静态调用，不能互调、调 Runtime 私有实现或各自完成外部任务。付款观察保留原 Chat、材料和原结果链，核准及到账主权不进入插件。
 
-独立 `user_dialogue` 由 S00 调用原 C01 Chat。只传网站冻结的安全上下文及原问题，核对材料字节和问答、项目、输入、订单、上下文身份后沿原完成入口回传。S01 缺项仍走 C01 内部交接；独立问答不读 Work，不改变网站业务授权。
+独立 `user_dialogue` 由 S00 调用原 C01 Chat。只传网站冻结的安全上下文及原问题，核对材料字节和问答、项目、输入、订单、上下文身份后沿原完成入口回传。C01独立问答不读 Work，不改变网站业务授权。S01由GPT Chat读取本版原V6租约下的实际临时附件，使用明确批准的模型与档位，回传完整获准提纲及可空结构适配；缺项随提纲返回，用户自行决定原Chat修订。
 
-Website v4 通过原任务和材料交付论文写作与本单沟通约定。C01、S01 按本单沟通语言输出，S07 用所选语种原创，S08 在原独立上下文对照实际稿件核验。Runtime 只验证投影形状和原身份。旧合同在途在切换前收束，旧双空语种仅容许 Website 已裁定的原非内容维护与同稿恢复。原 session 携现有部署指纹接受 Website 核准。
+Website v5 通过原任务和材料交付论文写作与本单沟通约定。C01、S01 按本单沟通语言输出，S07 用所选语种原创，S08 在原独立上下文对照实际稿件核验。Runtime 只验证投影形状和原身份。旧合同在途在切换前收束，旧双空语种仅容许 Website 已裁定的原非内容维护与同稿恢复。原 session 携现有部署指纹接受 Website 核准。
 
-当前研究业务动作分别承接售前提纲、工作区准备、证据研究、全文写作复核、文件准备、归档及原资产维护；S00 在每次授权内执行固定技能段，不按 Skill 编号新建持久任务。各段只回必要决定、问题、版本、实际读取覆盖及产物引用；完整正文、原件和过程文件留本单 Work。原件使用本单限定读取权；付款附件及控制 JSON 仍沿原材料链。
+当前研究业务动作分别承接售前提纲、工作区准备、证据研究、全文写作复核、文件准备、归档及原资产维护；S00 在每次授权内执行固定技能段，不按 Skill 编号新建持久任务。正式段只回必要决定、问题、版本、实际读取覆盖及产物引用；正式完整正文、原件和过程文件留本单 Work 与原证据位置。自然语言排版由系统适配，不作为接收或重跑依据。完整回答已取得但缺少机械决定或凭据时，保全原 checkpoint 并在同一正式结果的 blocked 分支回传缺证事实，不生成新 attempt 或重跑。正常提交额度为取证五次、成稿与复核三次、其余动作一次；前二者禁用附属停空重试。原件使用本单限定读取权；付款附件及控制 JSON 仍沿原材料链。
 
 六条正式结果在原 S00 组装 `next_business_action` 与 `public_updates`。内容方向来自当前投影允许值和原未决问题。`prepare_delivery` 的未决纯装配故障保留原问题并返回 `blocked/null`，交网站现有机械修复入口。无已核可公开的 Work 观察时动态为空，网站接纳与签发权保持在网站。
+
+售前S01首轮反馈及父三元组全空；网站接受本版提纲后才可按本人主动意见签同一用户、项目、输入版本和原设备的直接前序。Runtime 先沿原结果回执对账待完成父任务，再精确核原采用checkpoint及WAL；Browser经现有authorized-continuation为新job独占Target定位原Chat，当前回合仍由原授权与WAL防重。父回执暂不可读且本修订已durable accept、当前有效且全部Browser输入为零及无staged输出时，原PROVIDER_READBACK_UNAVAILABLE释放、原来源封口及网站重授接回同一job。网站已接纳不等本地清理；无第二状态或定位存储。
 
 Runtime 只注入当前产生执行身份和限定对象 Work-access 端口，不暴露 lease/session、签业务授权或保存 Product 步骤。S00 在一个业务任务结束时沿原 complete/Outbox 返回一次同身份结果；同结果重投保留原 producing attempt/fence。AGENT 完成仅依 LAW-AGENT-PRODUCTION-RUNTIME-004-V1 的同完整结果回执；网站领域接纳、发布及客户可领取分别认定。
 
@@ -473,7 +475,7 @@ V6.46仅将同一协议容量支持上限扩到6；当前N仍由Website设备行
 
 ## W5：取消退役的唯一机械交接（2026-11-02授权施工）
 
-V6 control provider/consumer固定为ASTRA独立初版1，当前 task/result v4、Capability provider v2 与 9 条现役路由保持。Website原T1 Owner决定退役、保护集合、T2与新G；AGENT仅消费当前exact签控制并保全/运输真实机械事实，不追读GPT答案，不裁业务风险。普通未取消需求的完整来源验证、Provider防重和风险授权不变。
+V6 control provider/consumer固定为ASTRA独立初版1，当前 task/result v5、Capability provider v2 与 9 条现役路由保持。Website原T1 Owner决定退役、保护集合、T2与新G；AGENT仅消费当前exact签控制并保全/运输真实机械事实，不追读GPT答案，不裁业务风险。普通未取消需求的完整来源验证、Provider防重和风险授权不变。
 
 完整Product输出先于首个结果JSON网络请求，由原Store在task-owned results/<既有attempt hash>/complete-output.json同步保全原JSON.stringify(payload) UTF-8文本、evidence_refs、generated-image typed receipts、原身份及execution_receipt_hash；SQLite immediate写锁内验当前attempt/未seal、fsync/rename/目录fsync/readback，seal同锁核原件。损坏或异身份保持局部unknown，不能误封口、覆盖或重做Provider。同attempt delivery_only只用该原件走原Outbox，不进入Product。candidate_hash沿既有execution_receipt_hash，不用envelope hash。
 

@@ -1,16 +1,33 @@
 import type { GptExecutionProfile } from "../../capabilities/gpt/index.js";
-import { productResultValidation as v, type ProductPluginOutput } from "../../mediator/product-plugin-contract.js";
+import type { ProductPluginOutput, WebsiteAgentTask } from "../../mediator/product-plugin-contract.js";
 
 export interface UserDialogueInput {
   readonly facts: Readonly<Record<string, unknown>>;
   readonly profile: GptExecutionProfile;
 }
-export const parseUserDialogueResult = (raw: string, evidence: readonly string[], publicDialogue: boolean): ProductPluginOutput => {
-  const payload = v.parseJsonObject(raw, "C01_RESULT");
-  if (!publicDialogue) {
-    v.exact(payload, ["schema_version", "missing_items"], "C01_RESULT_FIELDS_INVALID");
-    if (payload.schema_version !== "astra-c01-output.v1") v.fail("C01_RESULT_SCHEMA_INVALID");
-    v.stringArray(payload.missing_items, "C01_MISSING_ITEMS_INVALID");
-  }
-  return { payload, evidence_refs: evidence };
-};
+
+function optionalRequirements(answer: string): readonly string[] {
+  try {
+    const result: unknown = JSON.parse(answer);
+    const requirements: unknown = result && typeof result === "object" ? Reflect.get(result, "requirements") : null;
+    return Array.isArray(requirements) && requirements.every(item => typeof item === "string" && item.trim())
+      ? requirements : [];
+  } catch { return []; }
+}
+
+export function buildUserDialogueResult(task: WebsiteAgentTask, answer: string, evidence: readonly string[]): ProductPluginOutput {
+  return {
+    payload: {
+      schema_version: "astra-user-dialogue.v1",
+      turn_id: task.parameters.turn_id,
+      project_id: task.parameters.project_id,
+      dialogue_input_version: task.parameters.dialogue_input_version,
+      dialogue_order_revision: task.parameters.dialogue_order_revision,
+      dialogue_context_hash: task.parameters.dialogue_context_hash,
+      disposition: "answer",
+      answer,
+      requirements: optionalRequirements(answer),
+    },
+    evidence_refs: evidence,
+  };
+}

@@ -10,7 +10,7 @@ import {
   type BrowserTargetLease,
 } from "./browser-target-lease.js";
 import type { BrowserControlledTarget, BrowserDocumentRef } from "./browser-target-ref.js";
-import type { BrowserDomIntent } from "./browser-dom-intent.js";
+import { MAX_BROWSER_APPROVED_FILE_BATCH, type BrowserDomIntent } from "./browser-dom-intent.js";
 import type { BrowserFileArtifactGrantV1 } from "./browser-file-artifact-grant.js";
 import type { BrowserExecutionBinding } from "../infrastructure/browser-authority-broker.js";
 import type { BrowserSessionWorkspace } from "./browser-session-workspace.js";
@@ -301,7 +301,7 @@ export class BrowserTargetLeaseManager {
     activation: Parameters<BrowserTargetLease["attachFile"]>[0]["activation"],
     grants: readonly BrowserFileArtifactGrantV1[],
   ): Promise<void> {
-    if (grants.length === 0 || grants.length > 20 || new Set(grants.map((grant) => grant.grantRef)).size !== grants.length) {
+    if (grants.length === 0 || grants.length > MAX_BROWSER_APPROVED_FILE_BATCH || new Set(grants.map((grant) => grant.grantRef)).size !== grants.length) {
       throw new Error("BROWSER_FILE_GRANT_INVALID");
     }
     if (grants.some((grant) => grant.authorityEpoch !== this.certificate.authorityEpoch

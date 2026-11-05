@@ -80,6 +80,8 @@
 
 原方案内 GPT 五次机械重试、检查器旧窗口、图片来源恢复等前轮事项不属于本专项；保留原合同与当前文件，不沿本方案重新施工或把旧裁决计作本轮验收。不得退回已退休的 astra-research-project 文本根。
 
+原生 READY 核实 S00 的 11 条内部工序导入按目录 Owner 被误认作跨独立产品。原 Architecture 和 Code Purity 依基础法案 CodePurity002 与功能法案 Architecture001 共用同一项精确判定，仅接纳固定 S00 Flow 对 C01、S01—S10 当前公开执行入口的单向具名静态导入；私有路径、兄弟互调、反向调用、动态导入、重导出及独立产品均继续拒绝。S00 验收退役无消费者的付款插件目录断言，独立付款身份仍由其原验收与 Catalog 分母证明。本专项补原正反治理验证及 S00 执行回归，逐法 READY 仍以整仓唯一裁决为准。
+
 ## 4. 每个 S 的目标专业职责与完整源头映射
 
 以下研究产物继续留本单获准 Work 目录，用现有 plan_ref、materials_ref、evidence_ref、verification_ref、manuscript_ref、review_ref、originality_ref 及包内真实资产定位；不是新增统一文件模板、外部结果字段或必须填满的表格。实际研究需要什么才保存什么。

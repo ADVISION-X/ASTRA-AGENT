@@ -23,7 +23,7 @@ async function fixture(completeAfter: number, unconfirmed = false, budget = 5) {
       return exactAssistantTurnReply(command, replies >= completeAfter ? "complete response" : "");
     }).browser;
     return browser.runAtomicStep(atomic, () => harness.gpt.execute(intent, { dataDir: "/tmp/gpt-five-retry-contract",
-      browser, browserAtomicIdentity: atomic, stoppedEmptyRetryAuthorized: true,
+      browser, browserAtomicIdentity: atomic, settleLiveStoppedEmpty: true,
       waitForProviderObservation: async () => "reobserve" }));
   };
   const initial = await observe();

@@ -1,7 +1,7 @@
 {
   "schema_version": "website-agent-route-policies.v1",
   "contract_id": "astra.website-agent-task-result",
-  "contract_version": 4,
+  "contract_version": 5,
   "parameter_types": {
     "observation_schema_version": "payment_observation_version",
     "submission_id": "non_empty_string",
@@ -24,7 +24,9 @@
     "dialogue_context_hash": "sha256",
     "question": "string",
     "communication_locale": "nullable_non_empty_string",
-    "manuscript_locale": "nullable_non_empty_string"
+    "manuscript_locale": "nullable_non_empty_string",
+    "revision_feedback": "nullable_non_empty_string",
+    "research_input_names": "string_array"
   },
   "routes": [
     {
@@ -115,7 +117,9 @@
         "input_version",
         "research_tier",
         "communication_locale",
-        "manuscript_locale"
+        "manuscript_locale",
+        "revision_feedback",
+        "research_input_names"
       ],
       "material_roles": [
         {
@@ -141,31 +145,23 @@
           "owner_scope_policy": "required"
         }
       ],
-      "result_schema_version": "astra-research-brief.v1",
-      "relation_kind": "primary",
+      "result_schema_version": "astra-research-brief.v2",
+      "relation_kind": "provider_continuation",
       "result_contract": {
-        "schema_version": "astra-brief-result-contract.v1",
-        "output_schema_version": "astra-research-brief.v1",
+        "schema_version": "astra-brief-result-contract.v2",
+        "output_schema_version": "astra-research-brief.v2",
         "requested_fields": [
           "schema_version",
           "submission_id",
           "project_id",
           "input_version",
           "tier",
-          "disposition",
-          "outline",
-          "scope",
-          "method",
-          "materials",
-          "premises",
-          "preserve_boundaries",
-          "limitations",
-          "missing_items",
-          "executable_scope"
+          "outline_text",
+          "outline_structure"
         ],
         "field_types": {
           "schema_version": {
-            "const": "astra-research-brief.v1"
+            "const": "astra-research-brief.v2"
           },
           "submission_id": {
             "type": "non_empty_string"
@@ -183,75 +179,15 @@
               "max"
             ]
           },
-          "disposition": {
-            "enum": [
-              "feasible",
-              "needs_input"
-            ]
+          "outline_text": {
+            "type": "non_empty_string"
           },
-          "outline": {
-            "type": "string_array"
-          },
-          "scope": {
-            "type": "string"
-          },
-          "method": {
-            "type": "string"
-          },
-          "materials": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "field_types": {
-                "asset_id": {
-                  "type": "non_empty_string"
-                },
-                "status": {
-                  "enum": [
-                    "read",
-                    "partial",
-                    "unreadable",
-                    "unread"
-                  ]
-                },
-                "coverage": {
-                  "type": "string"
-                },
-                "limitations": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "premises": {
-            "type": "string_array"
-          },
-          "preserve_boundaries": {
-            "type": "string"
-          },
-          "limitations": {
-            "type": "string_array"
-          },
-          "missing_items": {
-            "type": "string_array"
-          },
-          "executable_scope": {
-            "type": "string"
+          "outline_structure": {
+            "type": "string",
+            "nullable": true
           }
         },
-        "unknown_field_policy": "reject",
-        "disposition_requirements": {
-          "feasible": [
-            "outline",
-            "scope",
-            "method",
-            "executable_scope"
-          ],
-          "needs_input": [
-            "missing_items",
-            "executable_scope"
-          ]
-        }
+        "unknown_field_policy": "reject"
       }
     },
     {
@@ -413,7 +349,7 @@
                   ]
                 },
                 "reason": {
-                  "type": "non_empty_string"
+                  "type": "string"
                 },
                 "target": {
                   "enum": [
@@ -486,7 +422,7 @@
                   }
                 },
                 "read_scope": {
-                  "type": "non_empty_string"
+                  "type": "string"
                 },
                 "limitations": {
                   "type": "string"
@@ -629,7 +565,7 @@
                       "nullable": true
                     },
                     "read_scope": {
-                      "type": "non_empty_string"
+                      "type": "string"
                     },
                     "verified": {
                       "type": "boolean"
@@ -694,7 +630,8 @@
           "Return necessary decisions, problem locations, versioned refs and actual tool facts; never research body, prompts, credentials or invented hashes.",
           "S00 owns the internal professional flow and proposes next_business_action; Website checks the declared business boundary, never infers a skill target. public_updates are confidentially cleaned summaries of actual Work observations; each source_ref must match existing envelope evidence_refs. No safe update means an empty array."
         ],
-        "public_reference_requirement": "outputs须逐项包含本次实际使用的公共R2原件的稳定object_key、sha256及bytes；私有材料不得跨单共享。"
+        "public_reference_requirement": "outputs须逐项包含本次实际使用的公共R2原件的稳定object_key、sha256及bytes；私有材料不得跨单共享。",
+        "blocked_mechanical_facts": true
       },
       "relation_kind": "primary",
       "next_business_actions": {
@@ -883,7 +820,7 @@
                   ]
                 },
                 "reason": {
-                  "type": "non_empty_string"
+                  "type": "string"
                 },
                 "target": {
                   "enum": [
@@ -956,7 +893,7 @@
                   }
                 },
                 "read_scope": {
-                  "type": "non_empty_string"
+                  "type": "string"
                 },
                 "limitations": {
                   "type": "string"
@@ -1161,7 +1098,8 @@
           "Return necessary decisions, problem locations, versioned refs and actual tool facts; never research body, prompts, credentials or invented hashes.",
           "S00 owns the internal professional flow and proposes next_business_action; Website checks the declared business boundary, never infers a skill target. public_updates are confidentially cleaned summaries of actual Work observations; each source_ref must match existing envelope evidence_refs. No safe update means an empty array."
         ],
-        "public_reference_requirement": "outputs须逐项包含本次实际使用的公共R2原件的稳定object_key、sha256及bytes；私有材料不得跨单共享。"
+        "public_reference_requirement": "outputs须逐项包含本次实际使用的公共R2原件的稳定object_key、sha256及bytes；私有材料不得跨单共享。",
+        "blocked_mechanical_facts": true
       },
       "relation_kind": "primary",
       "next_business_actions": {
@@ -1179,7 +1117,9 @@
         "blocked": [
           null
         ]
-      }
+      },
+      "normal_provider_turns": 5,
+      "stopped_empty_retry_allowed": false
     },
     {
       "product_id": "astra_paper_research",
@@ -1350,7 +1290,7 @@
                   ]
                 },
                 "reason": {
-                  "type": "non_empty_string"
+                  "type": "string"
                 },
                 "target": {
                   "enum": [
@@ -1423,7 +1363,7 @@
                   }
                 },
                 "read_scope": {
-                  "type": "non_empty_string"
+                  "type": "string"
                 },
                 "limitations": {
                   "type": "string"
@@ -1627,7 +1567,8 @@
           "Return necessary decisions, problem locations, versioned refs and actual tool facts; never research body, prompts, credentials or invented hashes.",
           "S00 owns the internal professional flow and proposes next_business_action; Website checks the declared business boundary, never infers a skill target. public_updates are confidentially cleaned summaries of actual Work observations; each source_ref must match existing envelope evidence_refs. No safe update means an empty array."
         ],
-        "public_reference_requirement": "outputs须逐项包含本次实际使用的公共R2原件的稳定object_key、sha256及bytes；私有材料不得跨单共享。"
+        "public_reference_requirement": "outputs须逐项包含本次实际使用的公共R2原件的稳定object_key、sha256及bytes；私有材料不得跨单共享。",
+        "blocked_mechanical_facts": true
       },
       "relation_kind": "primary",
       "next_business_actions": {
@@ -1645,7 +1586,9 @@
         "blocked": [
           null
         ]
-      }
+      },
+      "normal_provider_turns": 3,
+      "stopped_empty_retry_allowed": false
     },
     {
       "product_id": "astra_paper_research",
@@ -1826,7 +1769,7 @@
                   ]
                 },
                 "reason": {
-                  "type": "non_empty_string"
+                  "type": "string"
                 },
                 "target": {
                   "enum": [
@@ -1899,7 +1842,7 @@
                   }
                 },
                 "read_scope": {
-                  "type": "non_empty_string"
+                  "type": "string"
                 },
                 "limitations": {
                   "type": "string"
@@ -2175,7 +2118,8 @@
           "Return necessary decisions, problem locations, versioned refs and actual tool facts; never research body, prompts, credentials or invented hashes.",
           "S00 owns the internal professional flow and proposes next_business_action; Website checks the declared business boundary, never infers a skill target. public_updates are confidentially cleaned summaries of actual Work observations; each source_ref must match existing envelope evidence_refs. No safe update means an empty array."
         ],
-        "public_reference_requirement": "outputs须逐项包含本次实际使用的公共R2原件的稳定object_key、sha256及bytes；私有材料不得跨单共享。"
+        "public_reference_requirement": "outputs须逐项包含本次实际使用的公共R2原件的稳定object_key、sha256及bytes；私有材料不得跨单共享。",
+        "blocked_mechanical_facts": true
       },
       "relation_kind": "primary",
       "next_business_actions": {
@@ -2374,7 +2318,7 @@
                   ]
                 },
                 "reason": {
-                  "type": "non_empty_string"
+                  "type": "string"
                 },
                 "target": {
                   "enum": [
@@ -2447,7 +2391,7 @@
                   }
                 },
                 "read_scope": {
-                  "type": "non_empty_string"
+                  "type": "string"
                 },
                 "limitations": {
                   "type": "string"
@@ -2706,7 +2650,8 @@
           "Return necessary decisions, problem locations, versioned refs and actual tool facts; never research body, prompts, credentials or invented hashes.",
           "S00 owns the internal professional flow and proposes next_business_action; Website checks the declared business boundary, never infers a skill target. public_updates are confidentially cleaned summaries of actual Work observations; each source_ref must match existing envelope evidence_refs. No safe update means an empty array."
         ],
-        "public_reference_requirement": "outputs须逐项包含本次实际使用的公共R2原件的稳定object_key、sha256及bytes；私有材料不得跨单共享。"
+        "public_reference_requirement": "outputs须逐项包含本次实际使用的公共R2原件的稳定object_key、sha256及bytes；私有材料不得跨单共享。",
+        "blocked_mechanical_facts": true
       },
       "relation_kind": "primary",
       "next_business_actions": {
@@ -2894,7 +2839,7 @@
                   ]
                 },
                 "reason": {
-                  "type": "non_empty_string"
+                  "type": "string"
                 },
                 "target": {
                   "enum": [
@@ -2967,7 +2912,7 @@
                   }
                 },
                 "read_scope": {
-                  "type": "non_empty_string"
+                  "type": "string"
                 },
                 "limitations": {
                   "type": "string"
@@ -3194,7 +3139,8 @@
           "S00 owns the internal professional flow and proposes next_business_action; Website checks the declared business boundary, never infers a skill target. public_updates are confidentially cleaned summaries of actual Work observations; each source_ref must match existing envelope evidence_refs. No safe update means an empty array."
         ],
         "public_reference_requirement": "outputs须逐项包含本次实际使用的公共R2原件的稳定object_key、sha256及bytes；私有材料不得跨单共享。",
-        "original_delivery_requirement": "inspect及repair_files的original_delivery_ref必须绑定research_context.original_delivery.manuscript_ref；该上下文同时给原归档/脚本及文件身份，不得猜测或改研究内容。"
+        "original_delivery_requirement": "inspect及repair_files的original_delivery_ref必须绑定research_context.original_delivery.manuscript_ref；该上下文同时给原归档/脚本及文件身份，不得猜测或改研究内容。",
+        "blocked_mechanical_facts": true
       },
       "relation_kind": "primary",
       "next_business_actions": {
@@ -3283,7 +3229,7 @@
           }
         },
         "unknown_field_policy": "reject",
-        "semantics": "S00 calls C01 Chat only. Explain the frozen authorized customer facts; do not change order/input/payment or inspect Work final answers. Requirements are pre-sale candidates requiring explicit intake and S01. Return only customer-safe plain text. Echo the original turn and context hash."
+        "semantics": "S00 binds the immutable turn and context identity. C01 provides complete customer-safe natural language from the frozen authorized facts. Requirements, when independently present, are optional presale candidates requiring explicit intake and S01. No authority to change order, input or payment or inspect Work final answers."
       }
     }
   ]

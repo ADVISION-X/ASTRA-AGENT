@@ -217,6 +217,10 @@ Architecture001 的原生失败由 architecture-boundary Owner 在原 `architect
 
 母本 §63.1 与 §63.2 分别约束 CHANGE 和 READY。原 schema 5 普通用例保留字段、现役 lawId 和域分母断言，移除末尾对真实候选重复执行的全量投影及 Owner 检查。保留陈旧投影、路径角色、删除授权和多 Owner 反例。全量投影、Owner 及角色升级继续由原 READY 入口对同一 clean commit 执行。
 
+首推候选的原生 READY 发现 Startup001 的结果组装仍按旧版本后缀分流，导致原生回执绑定错误。Startup Owner 令现役法号、执行回执与结果路由共用明确绑定，保留独立 AST 和合同模式。启动器的静态证明核实际 canonical host/port 导入和失败关闭；固定 127.0.0.1:4174 由原启动及 Shell 用例实证，检查器只读本法封存路径。原 Startup002 Exam 在两组原用例均完成后只发一份同模式回执；Startup001 仍独立出证。PID 身份重查、重新捕获后的精确对照和退役 CWS/relay/native host 由原 Startup001 AST 核实，普通 owned/foreign listener Exam 不声明这两项。启动器直调 reload 由本域 AST 拒绝，扩展自身按 releaseBuildId 自重载仍取 Browser 原证据，不更改原执行器、共享回执 writer 或法条范围。对既有启动验收保留实际长停止、快速退场、诊断 Shell 和产物读回反例。
+
+本地补修复核另外发现原启动 Exam 对 secret logging、pairing/socket、质检禁止项以及独立部署和 production 身份过报。保留全部现役条款及应有模式，撤掉与实际断言不相符的 claim。原条款分母仍失败关闭，逐项待实际证据；不得把作用域、同次 trace 或隔离夹具当成这些条款已经核销。
+
 固定顺序：
 
 1. **本地隔离施工。** 在A的main与既有停机条件下，先对齐N1与其施工图、引用及生成registry。主Codex两遍自查对齐无遗漏后，实施D1及各consumer→D3静态路径和地址校验→D4/D5。启动器的`verifyProductionDependency`只读取本仓control v1 dependency。数据根校验、固定扩展身份、Chrome开页逻辑与凭据拒绝检查可以直接建设，无需C01或网站设备。只取原本地验收与隔离夹具证据。旧 v2 生成物在 D2 被物理替换，A 不启动或提交规范与实现分离的候选。

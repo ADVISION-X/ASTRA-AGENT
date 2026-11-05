@@ -26,7 +26,7 @@ import {
   registerCapabilityRoot,
 } from "./capability-import-inspection.js";
 
-const MECHANICAL_CONTENT_LAW_ID = "LAW-CAPABILITY-GOVERNANCE-002-V1";
+const MECHANICAL_CONTENT_LAW_ID = "LAW-CAPABILITY-GOVERNANCE-002-V2";
 
 const resolveCapabilityRoot = (repoPath: string): string | undefined => {
   const pathInfo = classifyRepoPath(repoPath);

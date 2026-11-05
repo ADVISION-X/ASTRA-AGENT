@@ -1,10 +1,13 @@
-import { executionFailure } from "../../execution-failure.js";
+import { executionFailure, failureCode } from "../../execution-failure.js";
 import { requireRuntimeLogWrite, type RuntimeSpanHandle } from "../../runtime-logs/index.js";
 import { readProductionDeviceJobStatus, type RemoteProductionDeviceJobStatus } from "./cloud-reconciliation-client.js";
 import { buildTerminalProductionIntent, deliverTerminalProductionIntent } from "./cloud-terminal-intent.js";
-import { uploadProductionResult } from "./cloud-client.js";
+import { buildProductionLeaseRelease, uploadProductionResult } from "./cloud-client.js";
 import { hashCanonical, type WebsiteAgentResult } from "./contracts.js";
 import { reconcileBusinessAdmission, websiteJobAbsent } from "./runtime-business-admission.js";
+import { typedRuntimeTransportFailure } from "./transport-failure.js";
+import { releaseLeaseWithLog, terminalSpanFailure } from "./runtime-logging.js";
+import type { ProductionExecutionLease, WebsiteAgentTask } from "./contracts.js";
 import type { RuntimeState } from "./runtime-state.js";
 import { websiteAgentTaskFromClaim, type ClaimedProductionTask } from "./transport-protocol.js";
 
@@ -32,6 +35,57 @@ export const readClaimAuthority = async (
   }
   return remote;
 };
+
+/** This is the original parent's receipt, never a new Website or Provider action. */
+export async function reconcileContinuationParent(state: RuntimeState, task: WebsiteAgentTask, signal: AbortSignal): Promise<boolean> {
+  if (!task.parent_task_ref) return true;
+  const parent = state.store.readTask(task.parent_task_ref);
+  const result = parent?.result ?? parent?.staged_result;
+  if (!parent || !result || parent.task.product_id !== task.product_id || parent.task.action_id !== task.action_id
+    || parent.task.business_identity.owner_ref !== task.business_identity.owner_ref
+    || parent.task.business_identity.subject_ref !== task.business_identity.subject_ref
+    || parent.task.parameters.input_version !== task.parameters.input_version
+    || result.job_id !== task.parent_task_ref || result.result_payload_ref !== task.parent_result_ref
+    || result.result_payload_hash !== task.parent_result_hash) {
+    throw executionFailure("failed", "PRODUCTION_PARENT_RESULT_BINDING_INVALID");
+  }
+  if (parent.status === "completed") return true;
+  try {
+    const status = await reconcileBusinessAdmission(state, parent, undefined, signal);
+    if (status === "deleted") throw executionFailure("failed", "PRODUCTION_PARENT_RESULT_BINDING_INVALID");
+    return status === "completed";
+  } catch (error) {
+    const status = typedRuntimeTransportFailure(error)?.httpStatus;
+    if ((status !== undefined && status >= 500) || failureCode(error) === "CLOUD_TRANSPORT_UNAVAILABLE") return false;
+    throw error;
+  }
+}
+
+/** An unavailable parent receipt may yield only this revision's zero-input lease. */
+export async function prepareContinuationParent(state: RuntimeState, job: ClaimedProductionTask,
+  task: WebsiteAgentTask, budget: ProductionExecutionLease, jobSpan: RuntimeSpanHandle): Promise<boolean> {
+  if (!task.parent_task_ref) return true;
+  const remaining = () => budget.expires_at_monotonic - performance.now();
+  const signal = AbortSignal.any([budget.abort_signal, AbortSignal.timeout(Math.max(1, Math.floor(remaining())))]);
+  if (await reconcileContinuationParent(state, task, signal)) return true;
+  const error = executionFailure("failed", "PRODUCTION_CONTINUATION_RECEIPT_PENDING");
+  const current = state.store.readTask(job.job_id);
+  const history = state.browserAuthority.readJobBrowserHistoryEvidence(job.job_id);
+  if (signal.aborted || remaining() <= 0 || !current || current.staged_result
+    || state.store.readCompleteOutput(job.job_id, job.grant.attempt_id)
+    || !history.walHistoryVerified || history.unresolvedCommandCount !== 0
+    || state.browserAuthority.readJobPhysicalInputState(job.job_id) !== "zero"
+    || state.browserAuthority.readAttemptPhysicalInputState(job.job_id, job.grant.attempt_id) !== "zero") throw error;
+  const failure = terminalSpanFailure(jobSpan, error, null, "PRODUCTION_CONTINUATION_RECEIPT_PENDING");
+  const release = buildProductionLeaseRelease(state.session, job, {
+    reasonCode: "PROVIDER_READBACK_UNAVAILABLE", attemptFailure: null,
+  });
+  try { await releaseLeaseWithLog(state, job, jobSpan.spanId, release, failure.eventId); }
+  catch (releaseError) {
+    state.store.setCurrentReason(job.job_id, failureCode(releaseError, "PRODUCTION_CONTINUATION_RECEIPT_PENDING"));
+  }
+  return false;
+}
 
 /** Preserve local WAL/Outbox authority when the Runtime task row is missing. */
 export const recoverMissingLocalTask = (

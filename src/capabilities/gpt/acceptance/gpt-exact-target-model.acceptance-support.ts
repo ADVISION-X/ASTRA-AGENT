@@ -87,10 +87,10 @@ const verifySelectorTransitionFailsClosed = async (): Promise<void> => {
 };
 
 const verifyModelSelection = async (): Promise<void> => {
-  for (const startModelDisplayName of ["最新", "GPT-5.6 Sol"] as const) {
+  for (const startModelDisplayName of ["最新", "GPT-5.6 Sol", "GPT-6.1 Sol"] as const) {
     const configured = buildGptExecutionProfile({ ...profile, startModelDisplayName });
-    const expected = startModelDisplayName === "最新" ? ["最新", "Latest", "GPT-6"] : "GPT-5.6 Sol";
-    const queryId = startModelDisplayName === "最新" ? "latest-model" : "sol-model";
+    const expected = startModelDisplayName === "最新" ? ["最新", "Latest", "GPT-6"] : startModelDisplayName;
+    const queryId = startModelDisplayName === "最新" ? "latest-model" : startModelDisplayName === "GPT-6.1 Sol" ? "sol-6-1-model" : "sol-model";
     for (const checked of ["true", "false"] as const) {
       for (const scenario of ["valid", "wrong-attribute", "menu-open", "pending"] as const) {
         const fixture = fakeBrowser((intent) => {
@@ -133,9 +133,9 @@ const verifyModelSelection = async (): Promise<void> => {
 };
 
 const verifyLatestUnavailableFailsClosed = async (): Promise<void> => {
-  for (const startModelDisplayName of ["最新", "GPT-5.6 Sol"] as const) {
+  for (const startModelDisplayName of ["最新", "GPT-5.6 Sol", "GPT-6.1 Sol"] as const) {
     const configured = buildGptExecutionProfile({ ...profile, startModelDisplayName });
-    const queryId = startModelDisplayName === "最新" ? "latest-model" : "sol-model";
+    const queryId = startModelDisplayName === "最新" ? "latest-model" : startModelDisplayName === "GPT-6.1 Sol" ? "sol-6-1-model" : "sol-model";
     for (const reason of ["disabled", "ariaDisabled", "inert", "hidden"] as const) {
       const fixture = fakeBrowser((intent) => {
         if (intent.kind === "observe") return coherentObservationPacket(intent, {

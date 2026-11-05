@@ -1,6 +1,6 @@
 import { createFinding } from "../../../shared/finding-utils.js";
 import type { InspectorFinding } from "../../../shared/inspector-contracts.js";
-import { isTopLevelPluginFile } from "../../../shared/no-regex.js";
+import { isPaperFactoryStepImport, isTopLevelPluginFile } from "../../../shared/no-regex.js";
 import { getRepoSourcePath } from "../../../shared/source-files.js";
 import {
   collectResolvedModuleTargets,
@@ -186,8 +186,7 @@ const inspectCrossJobImports = (
     if (!targetPluginRoot || targetPluginRoot === sourcePluginRoot) {
       continue;
     }
-    if (sourcePluginRoot === "src/plugins/s00-paper-factory"
-      && /^src\/plugins\/(?:c01-user-dialogue|s(?:0[1-9]|10)-[a-z-]+)\/index\.ts$/u.test(targetPath)) continue;
+    if (isPaperFactoryStepImport(repoPath, target)) continue;
     pushBoundaryFinding(findings, {
       checkId: "architecture/flow-cross-job-import",
       lawId: jobFlowLawId,

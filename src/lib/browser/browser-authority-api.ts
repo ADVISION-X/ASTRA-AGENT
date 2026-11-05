@@ -12,6 +12,7 @@ export type {
 } from "./exact-target/browser-mutation-types.js";
 export { browserExactCallIdentityHash } from "./exact-target/browser-command-postcondition.js";
 export { knownGptRateLimitPreflightFactValid } from "./exact-target/browser-special-mutation-receipt.js";
+export { MAX_BROWSER_APPROVED_FILE_BATCH } from "./exact-target/browser-dom-intent.js";
 export type {
   BrowserDomIntent,
   BrowserDomObservationQuery,

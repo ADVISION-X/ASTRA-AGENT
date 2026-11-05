@@ -62,6 +62,7 @@ export const reconcileBusinessAdmission = async (
   state: RuntimeState,
   record: StoredProductionTask,
   knownStatus?: RemoteProductionDeviceJobStatus,
+  signal?: AbortSignal,
 ): Promise<"completed" | "pending" | "deleted"> => {
   const staged = record.staged_result;
   if (!staged) return record.status === "completed" ? "completed" : "pending";
@@ -71,7 +72,7 @@ export const reconcileBusinessAdmission = async (
   if (!state.store.readResultReceivingReceipt(record.task.job_id, record.current_attempt_id, staged)) {
     let remote: Awaited<ReturnType<typeof readProductionDeviceJobStatus>>;
     try {
-      remote = knownStatus ?? await readProductionDeviceJobStatus(state.session, record.task.job_id);
+      remote = knownStatus ?? await readProductionDeviceJobStatus(state.session, record.task.job_id, signal);
     } catch (error) {
       if (!websiteJobAbsent(error)) throw error;
       state.activeAbort.get(record.task.job_id)?.abort("WEBSITE_JOB_ABSENT");

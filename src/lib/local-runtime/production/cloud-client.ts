@@ -138,7 +138,6 @@ export async function downloadProductionMaterials(
   const verified: LocalProductionMaterial[] = [];
   const ordered = [...job.material_refs].sort((a, b) => a.ordinal - b.ordinal);
   for (const reference of ordered) {
-    if (reference.role === "research_input") continue;
     signal.throwIfAborted();
     const headers = await session.authorizationHeaders(fenceHeaders(job));
     signal.throwIfAborted();

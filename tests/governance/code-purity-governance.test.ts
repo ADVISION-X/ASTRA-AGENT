@@ -6,6 +6,7 @@ import { ModuleKind, ModuleResolutionKind, Project, ScriptTarget } from "ts-morp
 import { resolveFromRepo } from "../../scripts/audit/shared/paths.js";
 import { inspectProductAcceptanceBoundaries } from "../../scripts/audit/domains/architecture-boundary/components/scan-product-acceptance-boundaries.js";
 import { collectCodePurityGovernedFiles } from "../../scripts/audit/domains/code-purity/components/code-purity-governed-files.js";
+import { scanOwnerBoundaries } from "../../scripts/audit/domains/code-purity/components/scan-owner-boundaries.js";
 import { scanZombieSurfaces } from "../../scripts/audit/domains/code-purity/components/scan-zombie-surfaces.js";
 import { requiresProductionConsumer } from "../../scripts/audit/domains/code-purity/components/scan-zombie-reference-surfaces.js";
 import { createInspectorContextFixture } from "../../scripts/audit/shared/inspector-context-acceptance-support.js";
@@ -43,6 +44,25 @@ test("a Product acceptance needs no standalone self-name literal and retains for
     .includes("architecture/product-acceptance-cross-plugin-import"));
   assert.ok(inspect("const selected = 'beta'; console.log(selected);")
     .includes("architecture/product-acceptance-identity-drift"));
+});
+
+test("only the fixed paper factory Flow may statically import a step's public execution binding", () => {
+  const laws = ["LAW-CODE-PURITY-001-V1", "LAW-CODE-PURITY-002-V1", "LAW-CODE-PURITY-003-V1"];
+  const factory = "src/plugins/s00-paper-factory/flow.ts";
+  const inspect = (source: string, body: string) => {
+    const project = sourceProject({
+      [source]: body,
+      "src/plugins/s01-research-brief/index.ts": "export function executeResearchBrief() {}",
+      "src/plugins/s01-research-brief/flow.ts": "export function executeResearchBrief() {}",
+    });
+    return scanOwnerBoundaries(collectCodePurityGovernedFiles(project), laws).findings
+      .some(finding => finding.checkId === "code-purity/plugin-cross-owner-import");
+  };
+  const exact = "import { executeResearchBrief } from '../s01-research-brief/index.js'; executeResearchBrief();";
+  assert.equal(inspect(factory, exact), false);
+  assert.equal(inspect(factory, exact.replace("/index.js", "/flow.js")), true);
+  assert.equal(inspect(factory, "void import('../s01-research-brief/index.js');"), true);
+  assert.equal(inspect("src/plugins/s02-research-plan/flow.ts", exact), true);
 });
 
 const inspectBagScope = (input: {

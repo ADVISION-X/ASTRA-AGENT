@@ -8,7 +8,7 @@ import { WorkerObservationV6Schema } from "../../src/lib/local-runtime/productio
 import { buildProductTask, FIXTURE_HASH } from "./product-plugin-test-runtime.js";
 
 assert.equal(projection.contract_id, "astra.website-agent-task-result");
-assert.equal(projection.contract_version, 4);
+assert.equal(projection.contract_version, 5);
 const identities = (routes: readonly { product_id: string; action_id: string }[]) =>
   routes.map(route => `${route.product_id}\0${route.action_id}`).sort();
 assert.deepEqual(identities(productionRoutePolicies), identities(productPluginCatalogSnapshot));
@@ -19,6 +19,7 @@ assert.throws(() => productionRoutePolicy("astra_paper_research", "unknown_actio
 const parameterExamples: Readonly<Record<string, unknown>> = {
   communication_locale: "zh-TW", manuscript_locale: "en-US",
   observation_schema_version: "payment-screenshot-observation-v1", submission_id: "submission:fixture",
+  revision_feedback: null, research_input_names: ["材料.pdf"],
   original_text: "授权原文", input_version: 1, research_tier: "high", tier: "high", purpose: "standard",
   handoff_id: "00000000-0000-4000-8000-000000000001", order_id: "00000000-0000-4000-8000-000000000002",
   project_id: "00000000-0000-4000-8000-000000000003", authorization_id: "00000000-0000-4000-8000-000000000004",
@@ -60,9 +61,15 @@ const briefRoute = productionRoutePolicy("astra_paper_research", "prepare_brief"
 const brief = buildProductTask(briefRoute, {
   parameters: Object.fromEntries(briefRoute.required_parameter_keys.map(key => [key, parameterExamples[key]])),
 });
+const revision = { ...brief, parent_task_ref: "job:parent", parent_result_ref: "result:parent", parent_result_hash: FIXTURE_HASH,
+  parameters: { ...brief.parameters, revision_feedback: "精确反馈" } };
+assert.doesNotThrow(() => assertProductionTaskRoutePolicy(revision));
+assert.throws(() => assertProductionTaskRoutePolicy({ ...revision, parent_result_hash: undefined }), /RELATION_KIND/u);
+assert.throws(() => assertProductionTaskRoutePolicy({ ...revision, parent_task_ref: revision.job_id }), /RELATION_KIND/u);
 const original = brief.material_refs.find(item => item.role === "research_input")!;
 const rest = brief.material_refs.filter(item => item.role !== "research_input");
 const withOriginals = (count: number) => ({ ...brief,
+  parameters: { ...brief.parameters, research_input_names: Array.from({length: count}, () => "材料.pdf") },
   material_refs: [...Array.from({ length: count }, (_, part) => ({ ...original,
     material_id: `${brief.source_task_id}:research_input:${part}` })), ...rest].map((item, ordinal) => ({ ...item, ordinal })) });
 for (const count of [0, 1, 63]) assert.doesNotThrow(() => assertProductionTaskRoutePolicy(withOriginals(count)));
@@ -84,8 +91,8 @@ const waiting = { job_id: "job:waiting", product_id: "astra_paper_research", act
 assert.doesNotThrow(() => WorkerObservationV6Schema.parse({ ...observed, scope_total: 1, jobs: [waiting] }));
 assert.throws(() => WorkerObservationV6Schema.parse({ ...observed, scope_total: 1, jobs: [{ ...waiting, next_action_at: null }] }));
 for (const evidenceMode of ["exam.golden", "exam.property"] as const) emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-003-V1", evidenceMode,
-  clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "forbidden:3", "forbidden:4", "summary"],
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-003-V2", evidenceMode,
+  clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "forbidden:3", "forbidden:4", "forbidden:6", "summary"],
   locator: `acceptance:agent-production-runtime:route-contract:${evidenceMode}`,
   observedValue: "ASTRA provider and Catalog route sets agree; exact keys, ordered roles, zero-input brief, private scope, repeatable identities and bounded material count are exercised. File delivery remains a separate Work proof.",
 });

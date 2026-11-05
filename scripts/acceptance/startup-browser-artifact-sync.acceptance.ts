@@ -4,7 +4,6 @@ import { cp, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/pr
 import { tmpdir } from "node:os";
 import path from "node:path";
 import type { BrowserRuntimePreflightResult } from "../startup/lib/browser-runtime-preflight.mjs";
-import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 
 import { ensureCurrentBrowserRuntimeArtifact } from "../startup/lib/browser-runtime-artifact.mjs";
 import {
@@ -146,8 +145,5 @@ async function verifyLinkedBrowserBuildRejected(fixture: string, build: () => vo
 }
 
 await verifyUnpackedWebSocketPreflight();
-emitQualityProofObservation({ lawId: "LAW-STARTUP-ENTRYPOINT-002-V1", evidenceMode: "exam.golden",
-  clauses: ["forbidden:3"], locator: "acceptance:startup:fixed-artifact-sync",
-  observedValue: "current and stale extension artifacts were checked and rebuilt on disk with Browser Authority absent" });
 
 process.stdout.write("STARTUP_BROWSER_ARTIFACT_SYNC_ACCEPTANCE_PASS\n");

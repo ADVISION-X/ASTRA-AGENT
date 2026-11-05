@@ -1752,7 +1752,7 @@ test("GPT001 native AST and contract routes reject text settlement and attachmen
     ['nextWaitReason = "exact-user-turn-unavailable"', 'nextWaitReason = "adjacent-assistant-missing"'],
     ["exactResponseObserved ? null : deadline, nextWaitReason", 'exactResponseObserved ? null : deadline, "initial-observation"'],
     ["assistant && assistant.generatingRaw === 0 && assistant.semanticText.trim().length > 0", "assistant && assistant.hidden === false && assistant.generatingRaw === 0 && assistant.semanticText.trim().length > 0"],
-    ["if (context.stoppedEmptyRetryAuthorized === true) emptyEndedObservation(assistant);", "emptyEndedObservation(assistant);"],
+    ["if (context.settleLiveStoppedEmpty === true) emptyEndedObservation(assistant);", "emptyEndedObservation(assistant);"],
     ["readExactAssistantTurn(browser, userTurnId, turnMarker, conversationUrl)", 'readExactAssistantTurn(browser, userTurnId, "constant-marker", conversationUrl)'],
     ["const waitForProviderObservation = requireObservationGate(context);", "await readExactAssistantTurn(browser, userTurnId, turnMarker, conversationUrl); const waitForProviderObservation = requireObservationGate(context);"],
   ]) {

@@ -23,30 +23,49 @@ const resources = { observed_profile: profile, usage_ref: null, remaining_constr
 const languages={communication_locale:"zh-TW",manuscript_locale:"en-US"};
 const briefPolicy = productionRoutePolicy("astra_paper_research", "prepare_brief");
 const briefBase = buildProductTask(briefPolicy, { parameters: {
-  ...languages, submission_id: "submission:paper-test", original_text: "研究指定行业问题，交付论文和完整资料包", input_version: 1, research_tier: "high",
+  ...languages, submission_id: "submission:paper-test", original_text: "研究指定行业问题，交付论文和完整资料包",
+  input_version: 1, research_tier: "high", revision_feedback: null, research_input_names: ["访谈记录.pdf"],
 } });
-const brief = { ...briefBase, material_refs: briefBase.material_refs.filter(m => m.role !== "research_input")
-  .map((m, ordinal) => ({ ...m, ordinal })) };
-const briefOutput = { schema_version: "astra-research-brief.v1", submission_id: "submission:paper-test", project_id: "project:paper-test",
-  input_version: 1, tier: "high", disposition: "feasible", outline: ["问题、方法、证据及论证"], scope: "冻结研究范围", method: "适合问题的方法",
-  materials: [], premises: [], preserve_boundaries: "", limitations: [], missing_items: [], executable_scope: "现有要求可规划" };
-const first = await exerciseProductFlow(plugin, { task: brief, output: briefOutput, productSkillText: commonSkill });
-assert.deepEqual(first.completed.payload, briefOutput);
-assert.equal(first.calls[0]?.child, "prepare_clean_gpt_work");
+const brief = { ...briefBase, parameters: { ...briefBase.parameters, research_input_names: [] },
+  material_refs: briefBase.material_refs.filter(m => m.role !== "research_input").map((m, ordinal) => ({ ...m, ordinal })) };
+const outline = "研究问题、方法及证据。\n需要补充材料时，可先从公开范围入手。\nR>0";
+const rawHtml = "<article><p>研究问题、方法及证据。</p><table><tr><th>来源</th></tr><tr><td><a href='https://example.org/data'>材料</a></td></tr></table><math><mrow><mi>R</mi><mo>&gt;</mo><mn>0</mn></mrow></math><script>secret</script></article>";
+const first = await exerciseProductFlow(plugin, { task: brief, output: outline, rawHtml, productSkillText: commonSkill });
+const firstBody = first.completed.payload as Record<string, unknown>;
+assert.equal(firstBody.schema_version, "astra-research-brief.v2");
+assert.equal(firstBody.project_id, brief.business_identity.subject_ref);
+assert.equal(firstBody.outline_text, outline);
+assert(String(firstBody.outline_structure).includes("<table>"));
+assert(String(firstBody.outline_structure).includes("R&gt;0"));
+assert(String(firstBody.outline_structure).includes('href="https://example.org/data"'));
+assert(!String(firstBody.outline_structure).includes("secret"));
+assert.deepEqual(first.completed.evidence_refs, ["artifact:checkpoint"]);
+assert.equal(first.calls[0]?.child, "prepare_clean_gpt_chat");
 assert.equal(first.calls.filter(c => c.child === "submit_exact_gpt_turn_once").length, 1);
 const firstPrompt = first.calls.find(c => c.child === "write_exact_gpt_prompt")!;
 assertSkillConsumed(firstPrompt.input.prompt, "s01");
 assert(String(firstPrompt.input.prompt).includes('"communication_locale":"zh-TW"'));
+const modelCall = first.calls.find(c => c.child === "select_gpt_model_from_start_v3");
+assert.equal(modelCall?.input.profile.startModelDisplayName, "GPT-6.1 Sol");
+assert.equal(modelCall?.input.profile.requireExactReasoning, true);
 await assert.rejects(exerciseProductFlow(plugin, {task:{...brief,parameters:{...brief.parameters,manuscript_locale:null}},
-  output:briefOutput}),/FACTORY_INPUT_LANGUAGE_INVALID/u);
-await assert.rejects(exerciseProductFlow(plugin, { task: brief, output: { ...briefOutput, submission_id: "foreign" } }));
-await assert.rejects(exerciseProductFlow(plugin, { task: brief, output: { ...briefOutput, tier: "max" } }));
-const needs = { ...briefOutput, disposition: "needs_input", missing_items: ["明确研究对象和期间"] };
-const dialogue = await exerciseProductFlow(plugin, { task: brief, output: needs, expectedSessionCount: 2,
-  checkpointOutput: call => call.sessionKey === "c01"
-    ? { schema_version: "astra-c01-output.v1", missing_items: ["请说明研究对象及覆盖期间"] } : needs });
-assert.deepEqual(dialogue.calls.filter(c => c.child === "prepare_clean_gpt_chat").map(c => c.sessionKey), ["c01"]);
-assert.deepEqual((dialogue.completed.payload as Record<string, unknown>).missing_items, ["请说明研究对象及覆盖期间"]);
+  output:outline}),/FACTORY_INPUT_LANGUAGE_INVALID/u);
+const revisionTask = { ...briefBase, parameters: { ...briefBase.parameters, revision_feedback: "缩短观察期" },
+  parent_task_ref: "job:accepted-brief", parent_result_ref: "result:accepted-brief", parent_result_hash: FIXTURE_HASH };
+const revision = await exerciseProductFlow(plugin, { task: revisionTask, output: outline, productSkillText: commonSkill });
+assert(!revision.calls.some(c => c.child.startsWith("prepare_clean_gpt")));
+assert.equal(revision.calls.filter(c => c.child === "submit_exact_gpt_turn_once").length, 1);
+assert(revision.calls.some(c => c.child === "attach_approved_gpt_files_once"));
+assert(revision.calls.some(c => c.child === "write_exact_gpt_prompt" && String(c.input.prompt).includes("缩短观察期")));
+const originalMaterial = briefBase.material_refs.find(m => m.role === "research_input")!;
+const attachments = Array.from({length:63}, (_,ordinal) => ({ ...originalMaterial, ordinal,
+  display_name:`附件-${ordinal}.txt`,material_id:`${briefBase.source_task_id}:research_input:${ordinal}` }));
+const fullBatch = await exerciseProductFlow(plugin, { output: outline, task: { ...briefBase,
+  parameters:{...briefBase.parameters,research_input_names:attachments.map(a=>a.display_name)},
+  material_refs:[...attachments,...brief.material_refs.map(m=>({...m,ordinal:63}))],
+} });
+assert.equal(fullBatch.calls.find(c=>c.child==="attach_approved_gpt_files_once")?.input.files.length,63);
+assert.equal(fullBatch.calls.find(c=>c.child==="reconcile_gpt_attachment_set")?.input.files.length,63);
 
 const dialogueRoute = productionRoutePolicy("astra_paper_research", "user_dialogue");
 const turnId = "00000000-0000-4000-8000-000000000001";
@@ -61,7 +80,7 @@ const dialogueTask = { ...dialogueBase, material_refs: dialogueBase.material_ref
 }) : material) };
 const dialogueAnswer = { schema_version: "astra-user-dialogue.v1", ...dialogueIdentity,
   disposition: "answer", answer: "目前没有已确认的交付期限。", requirements: [] };
-const dialogueFixture = { task: dialogueTask, output: dialogueAnswer, materialContents: { dialogue_context: dialogueContext },
+const dialogueFixture = { task: dialogueTask, output: dialogueAnswer.answer, materialContents: { dialogue_context: dialogueContext },
   productSkillText: commonSkill, workAccess: async () => { throw new Error("C01_MUST_NOT_READ_WORK"); } };
 const customerDialogue = await exerciseProductFlow(plugin, dialogueFixture);
 assert.deepEqual(customerDialogue.completed.payload, dialogueAnswer);
@@ -71,11 +90,9 @@ const customerPrompt = customerDialogue.calls.find(c => c.child === "write_exact
 assertSkillConsumed(customerPrompt, "c01");
 assert(String(customerPrompt).includes(question) && !String(customerPrompt).includes(dialogueTask.business_identity.authorization_ref));
 await assert.rejects(exerciseProductFlow(plugin, { ...dialogueFixture,
-  output: { ...dialogueAnswer, dialogue_context_hash: FIXTURE_HASH_B } }), /AGENT_RESULT_LOCKED_IDENTITY_INVALID:dialogue_context_hash/u);
-await assert.rejects(exerciseProductFlow(plugin, { ...dialogueFixture,
   task: { ...dialogueTask, parameters: { ...dialogueTask.parameters, dialogue_context_hash: FIXTURE_HASH_B } } }),
   /C01_CONTEXT_IDENTITY_INVALID/u);
-const recovered = await exerciseProductFlow(plugin, { task: briefBase, output: briefOutput, confirmedSubmit: true,
+const recovered = await exerciseProductFlow(plugin, { task: briefBase, output: outline, confirmedSubmit: true,
   confirmedPromptHash: FIXTURE_HASH_B, workAccess: async () => { throw new Error("RECOVERY_MUST_NOT_REQUEST_NEW_MATERIAL_ACCESS"); } });
 assert.equal(recovered.physicalSubmitDispatches, 0);
 assert.deepEqual(recovered.calls.map(call => call.child), ["get_submitted_gpt_conversation_url", "checkpoint_gpt_text_response"]);
@@ -259,8 +276,27 @@ for (const omission of ["transfer", "closure"] as const) {
   /FACTORY_CONTINUE_CONTRADICTS_DECLARED_ISSUES/u);
   assert.deepEqual(checked, omission === "transfer" ? ["s07", "s08"] : ["s07", "s08", "s09"]);
 }
-await assert.rejects(exerciseProductFlow(plugin, { task: taskFor("build_evidence"), output: {}, materialContents: materials,
-  checkpointOutput: call => ({ ...stageOutput(call.sessionKey), resolved_issues: [] }) }), /S02_RESULT_FIELDS_INVALID/u);
+const invalidClosure = await exerciseProductFlow(plugin, { task: taskFor("build_evidence"), output: {}, materialContents: materials,
+  checkpointOutput: call => ({ ...stageOutput(call.sessionKey), resolved_issues: [] }) });
+assert.equal((invalidClosure.completed.payload as Record<string, unknown>).decision, "blocked");
+assert.deepEqual(invalidClosure.completed.evidence_refs, ["artifact:checkpoint"]);
+const withoutMechanicalFacts = await exerciseProductFlow(plugin, { task: taskFor("prepare_workspace"),
+  output: "工作区尝试已结束，现有说明不提供实际目录凭据。", materialContents: {
+    ...materials, project_context: { ...materials.project_context, workspace: { ...workspace, directory_ref: null } },
+  } });
+assert.equal((withoutMechanicalFacts.completed.payload as Record<string, unknown>).decision, "blocked");
+assert.equal((withoutMechanicalFacts.completed.payload as Record<string, unknown>).workspace, null);
+assert.equal(withoutMechanicalFacts.physicalSubmitDispatches, 1);
+assert.deepEqual(withoutMechanicalFacts.completed.evidence_refs, ["artifact:checkpoint"]);
+const missingManuscript = await exerciseProductFlow(plugin, { task: taskFor("compose_manuscript"), materialContents: materials,
+  output: { ...stageOutput("s07"), body: {} } });
+assert.equal((missingManuscript.completed.payload as Record<string, unknown>).decision, "blocked");
+assert.equal(missingManuscript.physicalSubmitDispatches, 1);
+const missingResearch = await exerciseProductFlow(plugin, { task: taskFor("build_evidence"), materialContents: materials,
+  output: {}, expectedSessionCount: 4, checkpointOutput: call => call.sessionKey === "s05"
+    ? { ...stageOutput("s05"), body: {} } : stageOutput(call.sessionKey) });
+assert.equal((missingResearch.completed.payload as Record<string, unknown>).decision, "blocked");
+assert.deepEqual(missingResearch.calls.filter(c=>c.child==="submit_exact_gpt_turn_once").map(c=>c.sessionKey),["s02","s03","s04","s05"]);
 
 const imageBlocked = await exerciseProductFlow(plugin, { task: taskFor("build_evidence"), output: {}, materialContents: materials,
   expectedSessionCount: 3, checkpointOutput: call => stageOutput(call.sessionKey, call.sessionKey === "s04" ? "blocked" : "continue") });
@@ -277,7 +313,8 @@ for (const [action, purpose, next] of [["prepare_workspace", "standard", "build_
   const output = { ...stageOutput(stage), body, coverage: (contract.required_responsibilities as string[]).map(responsibility => ({
     responsibility, input_refs: [ref("authorized-input")], read_scope: "fixture only", limitations: "No real file action claimed",
     check_ref: ref("check"), context_ref: ref(stage) })) };
-  const run = await exerciseProductFlow(plugin, { task, output, productSkillText: commonSkill,
+  const run = await exerciseProductFlow(plugin, { task, productSkillText: commonSkill,
+    output: action === "prepare_workspace" ? `设定示例 {"example":true}\n实际机械凭据 ${JSON.stringify(output)}` : output,
     materialContents: { ...authorized, delivery_plan: { files: [] } } });
   assert.equal((run.completed.payload as Record<string, unknown>).action, action);
   assert.equal(run.calls.filter(c => c.child === "submit_exact_gpt_turn_once").length, 1);
@@ -300,7 +337,6 @@ for (const [action, purpose, next] of [["prepare_workspace", "standard", "build_
 }
 assert.deepEqual(productionPluginCatalog.flatMap(p => p.accepts).filter(r => r.productId === "astra_paper_research")
   .map(r => r.actionId).sort(), plugin.accepts.map(r => r.actionId).sort());
-assert(roots.includes("payment-screenshot-observation"));
 assert(!roots.some(name => name.startsWith("bazi-") || name.startsWith("qimen-") || name === "astra-research-project"));
 execFileSync("python3", ["-B", "-c", String.raw`
 import datetime, hashlib, io, pathlib, runpy, sys, tempfile, urllib.error, urllib.request, zipfile

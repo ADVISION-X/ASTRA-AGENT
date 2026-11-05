@@ -8,7 +8,7 @@ import { producerClaimRoutesFor } from "../../shared/proof-observation.js";
 export const LAWS = {
   core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V1",
   credential: "LAW-AGENT-PRODUCTION-RUNTIME-002-V1",
-  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V1",
+  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V2",
   admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V1",
   database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V1",
   storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V1",
@@ -84,16 +84,15 @@ const inspectWorkAccessTransport = (context: InspectorContext, findings: Inspect
   const path = runtimePath("work-access"), source = sourceFor(context, path);
   const port = bodyFor(source, "createWorkAccessPort");
   const names = callNames(port);
-  const objectGuard = bodyFor(source, "assertWorkAccessObject"), responseGuard = bodyFor(source, "parseWorkAccessResponse");
-  const objectMismatch = objectGuard?.getDescendantsOfKind(SyntaxKind.IfStatement).find(statement =>
+  const responseGuard = bodyFor(source, "parseWorkAccessResponse");
+  const objectMismatch = port?.getDescendantsOfKind(SyntaxKind.IfStatement).find(statement =>
     hasError(statement.getThenStatement(), "WORK_ACCESS_OBJECT_MISMATCH"));
   const valid = names.has("signal.throwIfAborted") && names.has("session.authorizationHeaders")
     && names.has("productionCloudFetch") && names.has("parseJsonEnvelope")
     && port?.getDescendantsOfKind(SyntaxKind.StringLiteral).some(node => node.getLiteralValue() === "x-ai-execution-fence-hash") === true
-    && [["value.asset_id", "assetId"], ["value.material_id", "materialId"],
-      ["value.sha256", "material.sha256"], ["value.bytes", "material.bytes"]].every(([left, right]) =>
-      compare(objectMismatch?.getExpression(), left!, SyntaxKind.ExclamationEqualsEqualsToken, right!))
-    && names.has("parseWorkAccessResponse") && names.has("assertWorkAccessObject")
+    && compare(objectMismatch?.getExpression(), "value.asset_id", SyntaxKind.ExclamationEqualsEqualsToken, "assetId")
+    && compare(objectMismatch?.getExpression(), "new URL(value.get_url).protocol", SyntaxKind.ExclamationEqualsEqualsToken, '"https:"')
+    && names.has("parseWorkAccessResponse") && names.has('url.searchParams.set')
     && hasError(port, "WORK_ACCESS_MATERIAL_UNAUTHORIZED") && hasError(responseGuard, "WORK_ACCESS_RESPONSE_INVALID")
     && compare(responseGuard, "Date.parse(value.expires_at)", SyntaxKind.LessThanEqualsToken, "Date.now()");
   reject(findings, LAWS.route, "static.contract", path, "work-access-transport-boundary", valid,
@@ -123,7 +122,7 @@ const inspectAdmission = (context: InspectorContext, findings: InspectorFinding[
 
 const inspectDependencies = (context: InspectorContext, findings: InspectorFinding[]): void => {
   for (const [name, id, version, provider] of [
-    ["website-agent-task-result", "astra.website-agent-task-result", 4, "ADVISION-X/AI-Paper-Factory"],
+    ["website-agent-task-result", "astra.website-agent-task-result", 5, "ADVISION-X/AI-Paper-Factory"],
     ["xuanxue-ai-production-v6", "astra.production-control-v6", 1, "ADVISION-X/AI-Paper-Factory"],
   ] as const) {
     const path = `docs/specs/agent-production-runtime/${name}.dependency.spec.json`;
@@ -141,11 +140,12 @@ const inspectDependencies = (context: InspectorContext, findings: InspectorFindi
       result_contract?: unknown; required_parameter_keys: string[] }[] };
   const identities = projection.routes.map(route => `${route.product_id}\0${route.action_id}`);
   const used = new Set(projection.routes.flatMap(route => route.required_parameter_keys));
-  const currentRoutes = projection.contract_id === "astra.website-agent-task-result" && projection.contract_version === 4
+  const currentRoutes = projection.contract_id === "astra.website-agent-task-result" && projection.contract_version === 5
     && projection.routes.length > 0 && new Set(identities).size === projection.routes.length
     && used.size === Object.keys(projection.parameter_types).length
     && [...used].every(key => Object.hasOwn(projection.parameter_types, key))
-    && projection.routes.every(route => route.relation_kind === "primary" && route.result_contract !== undefined
+    && projection.routes.every(route => route.relation_kind === (route.action_id === "prepare_brief" ? "provider_continuation" : "primary")
+      && route.result_contract !== undefined
       && new Set(route.required_parameter_keys).size === route.required_parameter_keys.length);
   reject(findings, LAWS.route, "static.contract", projectionPath, "current-route-projection", currentRoutes,
     "Projection must consume the current ASTRA provider with unique routes, complete parameter bindings and result contracts.");

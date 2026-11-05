@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 
 import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 
-import { createFinding, selectLawId } from "../../shared/finding-utils.js";
+import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { producerModePassed, recordStaticCheck, staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
@@ -18,6 +18,8 @@ const inspectorPath = "scripts/audit/domains/startup-entrypoint/inspector.ts";
 const checkId = "startup-entrypoint/unpacked-readback";
 const clauseId = "apex-startup-001-v3-clean-restart";
 const startupCommand = "node --import tsx --env-file-if-exists=.env.local scripts/startup/launch-grasseye.mjs";
+const startupLawId = "LAW-STARTUP-ENTRYPOINT-001-V1";
+const boundaryLawId = "LAW-STARTUP-ENTRYPOINT-002-V1";
 
 type Finding = ReturnType<typeof createFinding>;
 
@@ -43,7 +45,10 @@ const hasCall = (source: SourceFile, name: string): boolean =>
 const hasPropertyCall = (source: SourceFile, name: string): boolean =>
   source.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) => {
     const expression = call.getExpression();
-    return Node.isPropertyAccessExpression(expression) && expression.getName() === name;
+    if (Node.isPropertyAccessExpression(expression)) return expression.getName() === name;
+    if (!Node.isElementAccessExpression(expression)) return false;
+    const key = expression.getArgumentExpression();
+    return Node.isStringLiteral(key) && key.getLiteralValue() === name;
   });
 
 const stringLiterals = (source: SourceFile): Set<string> => new Set([
@@ -53,6 +58,27 @@ const stringLiterals = (source: SourceFile): Set<string> => new Set([
 
 const hasLiteralSequence = (literals: ReadonlySet<string>, required: readonly string[]): boolean =>
   required.every((value) => literals.has(value));
+
+const verifiesListenerBeforeSignal = (processControl: SourceFile): boolean => {
+  const identity = processControl.getFunction("identityKey")?.getDescendantsOfKind(SyntaxKind.ArrayLiteralExpression)[0];
+  const identityFields = identity?.getElements().map(element => element.getText());
+  const signal = processControl.getFunction("signalOwnedListeners");
+  const guard = signal?.getDescendantsOfKind(SyntaxKind.IfStatement).find(statement =>
+    statement.getExpression().getText() === "identityKey(current) !== identityKey(expected)");
+  const calls = signal?.getDescendantsOfKind(SyntaxKind.CallExpression) ?? [];
+  const read = calls.find(call => call.getText() === "getProcessIdentity(expected.processId)");
+  const send = calls.find(call => call.getText() === "terminateProcess(identity.processId, signal)");
+  const attempt = processControl.getFunction("clearAttempt");
+  const retryGuard = attempt?.getDescendantsOfKind(SyntaxKind.IfStatement).find(statement =>
+    statement.getExpression().getText() === "originalKey && originalKey !== identityKey(identity)");
+  const retry = attempt?.getDescendantsOfKind(SyntaxKind.CallExpression).find(call =>
+    call.getText() === 'signalOwnedListeners(remaining, "SIGKILL", ownership, logger)');
+  return identityFields?.join(",") === "identity.processId,identity.uid,identity.startTime,identity.cwd,identity.command"
+    && !!read && !!guard && !!send && read.getStart() < guard.getStart() && guard.getStart() < send.getStart()
+    && guard.getThenStatement().getDescendantsOfKind(SyntaxKind.ThrowStatement).length === 1
+    && !!retryGuard && !!retry && retryGuard.getStart() < retry.getStart()
+    && retryGuard.getThenStatement().getDescendantsOfKind(SyntaxKind.ThrowStatement).length === 1;
+};
 
 const inspectCleanRestart = (
   launch: SourceFile,
@@ -91,6 +117,9 @@ const inspectCleanRestart = (
   }
   if (!hasPropertyCall(processControl, "getuid")) {
     addFinding(findings, lawId, processControlPath, "Port cleanup must bind listener identity to the current UID.");
+  }
+  if (!verifiesListenerBeforeSignal(processControl)) {
+    addFinding(findings, lawId, processControlPath, "Port cleanup must re-read exact PID identity before either signal.");
   }
 };
 
@@ -141,6 +170,11 @@ const inspectStartupBoundary = (context: InspectorContext, findings: Finding[], 
   }
   inspectCleanRestart(launch, processControl, findings, lawId);
   inspectUnpackedReadback(preflight, findings, lawId);
+  const readiness = sourceFile(context, serviceReadinessPath)?.getFunction("isWorkbenchHealthReport");
+  const readinessTerms = readiness?.getDescendantsOfKind(SyntaxKind.BinaryExpression).map(node => node.getText()) ?? [];
+  if (!readinessTerms.includes('value.status === "healthy" || value.status === "degraded"')) {
+    addFinding(findings, lawId, serviceReadinessPath, "The diagnostic Shell must remain usable with degraded execution dependencies.");
+  }
 };
 
 const inspectStartupCommandContract = (
@@ -182,12 +216,16 @@ const inspectLocalLaunchAuthority = (
   for (const required of ["src/app/server.ts", "degraded"]) {
     if (!boundaryLiterals.has(required)) addFinding(findings, lawId, launchPath, `Local startup must retain the ${required} fail-closed Shell boundary.`);
   }
-  const identity = launch.getProject().getSourceFile(resolveFromRepo("src/lib/browser/profile/browser-application-identity.ts"));
-  if (identity?.getVariableDeclaration("ASTRA_LOCAL_PORT")?.getInitializer()?.getText() !== "4174"
-    || identity?.getVariableDeclaration("ASTRA_LOCAL_HOST")?.getInitializer()?.getText() !== '"127.0.0.1"'
-    || !hasNamedImport(launch, "browser-application-identity", "ASTRA_LOCAL_PORT")
-    || !launch.getVariableDeclaration("port")?.getInitializer()?.getText().includes("ASTRA_LOCAL_PORT")) {
-    addFinding(findings, lawId, launchPath, "The sole ASTRA Shell must bind its canonical loopback identity and port 4174.");
+  const identity = launch.getImportDeclaration("../../src/lib/browser/profile/browser-application-identity.ts");
+  const identityBindings = identity?.getNamedImports().filter(entry => !entry.getAliasNode()).map(entry => entry.getName()) ?? [];
+  const rejectsIdentityDrift = launch.getStatements().some(statement => Node.isIfStatement(statement)
+    && statement.getExpression().getText() === "host !== ASTRA_LOCAL_HOST || port !== ASTRA_LOCAL_PORT"
+    && Node.isThrowStatement(statement.getThenStatement()));
+  if (!["ASTRA_LOCAL_HOST", "ASTRA_LOCAL_PORT"].every(name => identityBindings.includes(name))
+    || launch.getVariableDeclaration("host")?.getInitializer()?.getText() !== "process.env.GRASSEYE_HOST ?? ASTRA_LOCAL_HOST"
+    || launch.getVariableDeclaration("port")?.getInitializer()?.getText() !== "Number(process.env.GRASSEYE_PORT ?? ASTRA_LOCAL_PORT)"
+    || !rejectsIdentityDrift) {
+    addFinding(findings, lawId, launchPath, "The sole ASTRA Shell must consume its canonical loopback identity and reject overrides.");
   }
   const dataRoot = launch.getVariableDeclaration("startupDataDir")?.getInitializerIfKind(SyntaxKind.CallExpression);
   if (!hasNamedImport(launch, "default-data-dir", "resolveProductionLocalDataDir")
@@ -201,6 +239,9 @@ const inspectLocalLaunchAuthority = (
   ]);
   const leaked = [...launchIdentifiers].find((name) => forbiddenStartupCalls.has(name));
   if (leaked) addFinding(findings, lawId, launchPath, `Ordinary startup must not execute ${leaked}.`);
+  if (hasPropertyCall(launch, "reload")) {
+    addFinding(findings, lawId, launchPath, "Ordinary startup must not call Extension reload.");
+  }
   for (const forbidden of ["TARGET_CLAIM", "https://chatgpt.com/"]) {
     if (launchLiterals.has(forbidden)) addFinding(findings, lawId, launchPath, `Ordinary startup must not contain ${forbidden}.`);
   }
@@ -279,16 +320,14 @@ const inspectArtifactResultContract = (
 };
 
 const inspectDomainEvaluation = (context: InspectorContext) => {
-  const lawId = selectLawId(context.planEntry.lawIds, "LAW-STARTUP-ENTRYPOINT-001-V1");
-  const boundaryLawId = selectLawId(context.planEntry.lawIds, "LAW-STARTUP-ENTRYPOINT-002-V1");
   const findings: Finding[] = [];
   const staticCheckReceipts: import("../../shared/inspector-contracts.js").StaticCheckReceipt[] = [];
   recordStaticCheck({ check: "inspectStartupBoundary", findings, implementation: inspectStartupBoundary,
-    lawIds: [lawId], receipts: staticCheckReceipts,
-    run: () => inspectStartupBoundary(context, findings, lawId) });
+    lawIds: [startupLawId], receipts: staticCheckReceipts,
+    run: () => inspectStartupBoundary(context, findings, startupLawId) });
   recordStaticCheck({ check: "inspectStartupCommandContract", findings, implementation: inspectStartupCommandContract,
-    lawIds: [lawId], receipts: staticCheckReceipts,
-    run: () => inspectStartupCommandContract(context, findings, lawId) });
+    lawIds: [startupLawId], receipts: staticCheckReceipts,
+    run: () => inspectStartupCommandContract(context, findings, startupLawId) });
   recordStaticCheck({ check: "inspectLocalStartupAuthorityBoundary", findings,
     implementation: inspectLocalStartupAuthorityBoundary, lawIds: [boundaryLawId], receipts: staticCheckReceipts,
     run: () => inspectLocalStartupAuthorityBoundary(context, findings, boundaryLawId) });
@@ -306,14 +345,10 @@ const inspectDomainEvaluation = (context: InspectorContext) => {
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
   const evaluation = inspectDomainEvaluation(context);
-  const semanticChecks = (lawId: string, evidenceMode: string): string[] => lawId.endsWith("001-V4")
-    ? evidenceMode === "static.ast" ? ["inspectStartupBoundary"] : ["inspectStartupCommandContract"]
-    : evidenceMode === "static.ast" ? ["inspectLocalStartupAuthorityBoundary"] : ["inspectArtifactResultContract"];
-  const lawResult = (lawId: string, astClauses: string[]) => {
+  const lawResult = (lawId: string, astCheck: string, astClauses: string[], contractCheck: string, contractClauses: string[]) => {
     const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
-    const astChecks = semanticChecks(lawId, "static.ast");
-    const contractChecks = semanticChecks(lawId, "static.contract");
-    const contractClauses = lawId.endsWith("001-V4") ? staticClauses(7) : staticClauses(2);
+    const astChecks = [astCheck];
+    const contractChecks = [contractCheck];
     return { lawId, assertions: [
       { clauses: astClauses, evidenceMode: "static.ast", passed: producerModePassed(evaluation.staticCheckReceipts, lawId, astChecks), refs: staticEvidenceRefs(context, lawId, "static.ast", astClauses, evaluation.staticCheckReceipts, astChecks) },
       { clauses: contractClauses, evidenceMode: "static.contract", passed: producerModePassed(evaluation.staticCheckReceipts, lawId, contractChecks), refs: staticEvidenceRefs(context, lawId, "static.contract", contractClauses, evaluation.staticCheckReceipts, contractChecks) },
@@ -321,7 +356,10 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
   };
   return validateStaticInspection(context, {
     capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,
-    lawResults: [lawResult("LAW-STARTUP-ENTRYPOINT-001-V1", staticClauses(11)),
-      lawResult("LAW-STARTUP-ENTRYPOINT-002-V1", staticClauses(0, 1, 2))], inspectedFiles: evaluation.inspectedFiles,
+    lawResults: [
+      lawResult(startupLawId, "inspectStartupBoundary", staticClauses(4, 8, 11), "inspectStartupCommandContract", staticClauses(7)),
+      lawResult(boundaryLawId, "inspectLocalStartupAuthorityBoundary", staticClauses(0, 1, 2, 3), "inspectArtifactResultContract", staticClauses(2)),
+    ],
+    inspectedFiles: evaluation.inspectedFiles,
   });
 };

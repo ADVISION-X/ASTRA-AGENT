@@ -1,5 +1,6 @@
 import { selectLawId } from "../../../shared/finding-utils.js";
 import type { InspectorFinding } from "../../../shared/inspector-contracts.js";
+import { isPaperFactoryStepImport } from "../../../shared/no-regex.js";
 import {
   collectResolvedModuleTargets,
   type SourceModuleTarget,
@@ -170,7 +171,8 @@ const scanPluginBoundary = (
   if (
     sourcePath.startsWith("src/plugins/") &&
     isPluginOwner(directTargetOwner) &&
-    directTargetOwner !== governedFile.owner
+    directTargetOwner !== governedFile.owner &&
+    !isPaperFactoryStepImport(sourcePath, directTarget)
   ) {
     pushBoundaryFinding(collector, {
       checkId: "code-purity/plugin-cross-owner-import",

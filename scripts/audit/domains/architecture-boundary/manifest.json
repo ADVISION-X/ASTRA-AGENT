@@ -3,7 +3,7 @@
   "capabilityDomain": "architecture-boundary",
   "status": "active",
   "lawIds": [
-    "LAW-ARCHITECTURE-BOUNDARY-001-V1",
+    "LAW-ARCHITECTURE-BOUNDARY-001-V2",
     "LAW-ARCHITECTURE-BOUNDARY-002-V1"
   ],
   "ownedPaths": [

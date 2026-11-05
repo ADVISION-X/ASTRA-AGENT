@@ -86,7 +86,7 @@ const checkpointEffect = (observation: SettledObservation, history: BrowserHisto
   const effect = effects[0]!;
   if (effect.state !== "CONFIRMED" || effect.mutationOutcome !== "confirmed"
     || effect.physicalInputCount !== 1 || effect.anchorState !== "trusted"
-    || effect.childCapabilityId !== "submit_exact_gpt_turn_once"
+    || !["submit_exact_gpt_turn_once", "retry_exact_gpt_response_once"].includes(effect.childCapabilityId)
     || effect.sourceEffectSetHash !== observation.source_effect_set_hash
     || effect.walAuthorityHash !== observation.wal_authority_hash
     || effect.canonicalConversationHash !== observation.canonical_conversation_hash

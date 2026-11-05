@@ -30,6 +30,7 @@ type SubmitCall = ProductGptCallInput<"submit_exact_gpt_turn_once"> & Readonly<{
 type ExecuteOptions = Readonly<{
   priorEffectKnown?: boolean; rateLimitAckDispatchNotAfter?: number;
   stoppedEmptyRepair?: Readonly<{ profile: GptExecutionProfile; promptHash: GptHash }>;
+  settleLiveStoppedEmpty?: boolean;
   stoppedEmptyRetryAuthorized?: boolean; stoppedEmptyConversationUrl?: string;
   confirmedSubmission?: ProductionGptBrowserCall["confirmedProviderEffect"];
   browserAtomicIdentity?: BrowserAtomicStepIdentity;
@@ -164,7 +165,7 @@ export class ProductionGptChildTools {
         ...options, ...(submittedConversationLocator ? { submittedConversationLocator } : {}),
         dataDir: this.dataDir, gpt: this.gpt, browsers,
         intent: intent as GptAnyChildCapabilityIntent, browserCall,
-        stoppedEmptyRetryAuthorized: options.stoppedEmptyRetryAuthorized ?? this.stoppedEmptyRepairAllowed(execution, call, options),
+        settleLiveStoppedEmpty: options.settleLiveStoppedEmpty ?? false,
         signal: execution.abortSignal, resultRevision: execution.resultRevision, childCapabilityId: call.child,
         assertProviderInputAllowed: () => this.providerRateLimitControl.assertProviderSubmitAllowed(),
       });
@@ -186,10 +187,9 @@ export class ProductionGptChildTools {
 
   private stoppedEmptyRepairAllowed(execution: ExecutionInput,
     call: ProductGptCallInput<GptChildCapabilityId>, options: ExecuteOptions): boolean {
-    return call.child === "checkpoint_gpt_text_response" && options.stoppedEmptyRepair !== undefined
-      && options.confirmedSubmission?.providerEffectIdentityHash != null
-      && execution.sourceReuseZeroSubmitGrant !== true && !execution.sourceReusableCalls?.length
-      && !execution.readbackOnlyCalls?.length && !execution.deliveryPriorityReplayCalls?.length;
+    return call.child === "checkpoint_gpt_text_response" && options.settleLiveStoppedEmpty === true
+      && options.confirmedSubmission?.providerEffectIdentityHash != null && options.stoppedEmptyRepair !== undefined
+      && execution.stoppedEmptyRepairAllowed !== false && execution.maxProviderTurns > 1;
   }
 
   private async repairTextResponse(input: Readonly<{
@@ -215,7 +215,7 @@ export class ProductionGptChildTools {
       observe: readbackOnly => runProductionAtomicPhase({ ...childOptions,
         dataDir: this.dataDir, gpt: this.gpt, browsers, intent: input.intent, browserCall: input.browserCall,
         signal: execution.abortSignal, resultRevision: execution.resultRevision, childCapabilityId: input.call.child,
-        stoppedEmptyRetryAuthorized: !readbackOnly,
+        settleLiveStoppedEmpty: !readbackOnly,
         assertProviderInputAllowed: () => this.providerRateLimitControl.assertProviderSubmitAllowed() }),
     });
   }

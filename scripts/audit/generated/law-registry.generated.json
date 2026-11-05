@@ -5,7 +5,7 @@
       "lawIds": [
         "LAW-AGENT-PRODUCTION-RUNTIME-001-V1",
         "LAW-AGENT-PRODUCTION-RUNTIME-002-V1",
-        "LAW-AGENT-PRODUCTION-RUNTIME-003-V1",
+        "LAW-AGENT-PRODUCTION-RUNTIME-003-V2",
         "LAW-AGENT-PRODUCTION-RUNTIME-004-V1",
         "LAW-AGENT-PRODUCTION-RUNTIME-005-V1",
         "LAW-AGENT-PRODUCTION-RUNTIME-006-V1",
@@ -90,7 +90,7 @@
     {
       "capabilityDomain": "architecture-boundary",
       "lawIds": [
-        "LAW-ARCHITECTURE-BOUNDARY-001-V1",
+        "LAW-ARCHITECTURE-BOUNDARY-001-V2",
         "LAW-ARCHITECTURE-BOUNDARY-002-V1"
       ],
       "manifestPath": "scripts/audit/domains/architecture-boundary/manifest.json",
@@ -149,7 +149,7 @@
       "capabilityDomain": "capability-governance",
       "lawIds": [
         "LAW-CAPABILITY-GOVERNANCE-001-V1",
-        "LAW-CAPABILITY-GOVERNANCE-002-V1"
+        "LAW-CAPABILITY-GOVERNANCE-002-V2"
       ],
       "manifestPath": "scripts/audit/domains/capability-governance/manifest.json",
       "observedPaths": [
@@ -225,8 +225,8 @@
     {
       "capabilityDomain": "gpt",
       "lawIds": [
-        "LAW-GPT-001-V1",
-        "LAW-GPT-002-V1"
+        "LAW-GPT-001-V2",
+        "LAW-GPT-002-V2"
       ],
       "manifestPath": "scripts/audit/domains/gpt/manifest.json",
       "observedPaths": [
@@ -294,10 +294,10 @@
       "lawIds": [
         "LAW-LOCAL-BROWSER-SESSION-001-V1",
         "LAW-LOCAL-BROWSER-SESSION-002-V1",
-        "LAW-LOCAL-BROWSER-SESSION-003-V1",
+        "LAW-LOCAL-BROWSER-SESSION-003-V2",
         "LAW-LOCAL-BROWSER-SESSION-004-V1",
         "LAW-LOCAL-BROWSER-SESSION-005-V1",
-        "LAW-LOCAL-BROWSER-SESSION-006-V1"
+        "LAW-LOCAL-BROWSER-SESSION-006-V2"
       ],
       "manifestPath": "scripts/audit/domains/local-browser-session/manifest.json",
       "observedPaths": [
@@ -405,6 +405,7 @@
         "docs/项目方案/ASTRA-AGENT同机隔离-完整实现方案.md",
         "scripts/acceptance/startup-browser-artifact-sync.acceptance.ts",
         "scripts/acceptance/startup-initialization-health.acceptance.ts",
+        "scripts/acceptance/startup-shutdown.acceptance-support.ts",
         "scripts/audit/domains/startup-entrypoint/**",
         "scripts/startup/**"
       ]
@@ -466,7 +467,7 @@
       ],
       "dependsOnLawIds": [
         "LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V1",
-        "LAW-GPT-001-V1",
+        "LAW-GPT-001-V2",
         "LAW-RUNTIME-LOG-SPINE-001-V1"
       ],
       "enforcementMode": "composite",
@@ -589,23 +590,24 @@
       ],
       "excludes": [],
       "forbidden": [
-        "不得发生：Website 唯一提供方之外出现第二 task/result、V6 transport、route policy 或 Route Capability Manifest provider。task/result 唯一消费 ADVISION-X/AI-Paper-Factory 的 astra.website-agent-task-result v4；V6 唯一消费同仓 astra.production-control-v6 初版1；AGENT Route Capability Manifest 唯一提供方为 ADVISION-X/ASTRA-AGENT。consumer dependency 只发布 contractId、version、providerRepo，不复制提供方字段定义、authorityArtifact、commit、hash 或 generator；普通 Runtime 启动不得读取未绑定 Website 工作树。V6 容量支持上限为6，领取、批次校验和 executor 一致支持1..6，超过6失败关闭；支持上限不是当前设备 N 的第二来源。",
+        "不得发生：Website 唯一提供方之外出现第二 task/result、V6 transport、route policy 或 Route Capability Manifest provider。task/result 唯一消费 ADVISION-X/AI-Paper-Factory 的 astra.website-agent-task-result v5；V6 唯一消费同仓 astra.production-control-v6 初版1；AGENT Route Capability Manifest 唯一提供方为 ADVISION-X/ASTRA-AGENT。consumer dependency 只发布 contractId、version、providerRepo，不复制提供方字段定义、authorityArtifact、commit、hash 或 generator；普通 Runtime 启动不得读取未绑定 Website 工作树。V6 容量支持上限为6，领取、批次校验和 executor 一致支持1..6，超过6失败关闭；支持上限不是当前设备 N 的第二来源。",
         "不得发生：唯一 projection generator 未精确消费当前 task/result 提供方公布的全部 routes、parameter_types 和 result_contracts，或容忍未知、缺失、额外、重复、顺序、材料、关系及结果合同漂移。路由支持集合只取唯一提供方与唯一 Catalog 的双向相等，不手写第二支持表；材料 repeatable、min_count、ordinal、source_task_id:role:part 身份、媒体、信任、owner scope 及原总64上限逐项按合同验证，超限整体失败关闭不裁剪。不得保留旧命理、SEO、本地化产品路由、旧 v24 投影、alias、reservation、fallback、bridge、shadow 或兼容投影。",
         "不得发生：Runtime 对 Website 签发前已裁定的业务参数值另立枚举、白名单、Product package/version、Bazi reusable candidate、localization resource kind 或 action-name 语义，或用 routeProducesGeneratedImage、手写 Product/Action 表、硬编码 primary 数量再次裁决业务。Runtime 只校验 authenticated transport、wire/schema/hash、当前 contract/projection/control version 与 route/key/material/relation/result-contract 机械一致性；task、grant、result、artifact、terminal、attempt、session、credential、Manifest 与 Browser effect 的 plugin_id、plugin_version、expected_plugin_id、expected_plugin_version 字段数恒为零，内部实现身份不得成为跨仓身份、领取门或持久任务绑定。",
         "不得发生：Runtime 把 Work 生成的论文、原件、过程文件、DOCX 或 ZIP 取回再上传 Website/R2，或以模型声明、文件名、目录或清单文本代替实物字节核验。正式文件由获准 Work 固定脚本直接上传精确 R2 对象并完整读回；AGENT 只沿原结果链运输必要业务结果、版本引用及原清单。保留现役 V6 公共媒体运输的机械合同，不向产品暴露无人消费的图片上传回调，不设置额外图像几何语义门或上传 Provider 原图。",
-        "不得发生：Runtime 根据 Skill 编号、行业、论文身份、模型内容或研究建议签发任务、恢复或决定业务接纳。它只核 authenticated transport、wire/schema/hash、当前版本、材料角色与关系、原授权及回执；Work 读取/写入授权只经现役服务端端点取得本单指定对象的短期权限。控制 JSON 与付款附件沿原材料链，研究原件通过限定 Work 读取权，不将完整生产资料搬入 AGENT 作为前置。",
-        "不得把本单语言语义改由 Runtime 决定。现有 session 的部署 build 仅由 Website 核准，不使用独立产品或 Skill 身份作为跨仓运行资格。"
+        "不得发生：Runtime 根据 Skill 编号、行业、论文身份、模型内容或研究建议签发任务、恢复或决定业务接纳。它只核 authenticated transport、wire/schema/hash、当前版本、材料角色与关系、原授权及回执；Work 读取/写入授权只经现役服务端端点取得本单指定对象的短期权限。控制 JSON 与付款附件沿原材料链，仅售前S01通过原V6租约核取本版research_input字节供获准GPT Chat；正式研究原件通过限定 Work 读取权，不将完整生产资料搬入 AGENT 作为前置。",
+        "不得把本单语言语义改由 Runtime 决定。现有 session 的部署 build 仅由 Website 核准，不使用独立产品或 Skill 身份作为跨仓运行资格。",
+        "不得对售前S01扩大续接资格。网站签发同用户、同项目、同输入版本、同产生设备且已接纳的直接前序三元组，反馈非空；首轮反馈及三元组均为空。前序本地仍staged时先沿原完整结果接收回执核原身份并完成同一任务。只有当前修订已durable accept、父回执暂不可读、当前授权有效、本job全历史及本attempt零Browser输入且无staged输出时，才在Product前以现役PROVIDER_READBACK_UNAVAILABLE释放原租约，按原零输入来源封口等待网站重授同一job；错父、鉴权冲突或未知effect零新输入。"
       ],
-      "lawId": "LAW-AGENT-PRODUCTION-RUNTIME-003-V1",
+      "lawId": "LAW-AGENT-PRODUCTION-RUNTIME-003-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 155,
+        "lineEnd": 156,
         "lineStart": 110,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
-      "summary": "必须消费 ASTRA 唯一 task/result v4 与 V6 初版1，精确投影全部公开合同并与唯一 Catalog 双向一致；运输身份、容量、原 complete/Outbox 与回执不变。论文业务内部执行归研究产品，Work 生产文件直接归档，不中转完整资料。论文研究的业务参数随 Website v4 提供方精确投影。旧活动合同须沿原身份收束，禁止并行活动版本。",
-      "supersedesLawId": null,
+      "summary": "必须消费 ASTRA 唯一 task/result v5 与 V6 初版1，精确投影全部公开合同并与唯一 Catalog 双向一致；运输身份、容量、原 complete/Outbox 与回执不变。论文业务内部执行归研究产品，Work 生产文件直接归档，不中转完整资料。论文研究的业务参数随 Website v5 提供方精确投影。旧活动合同须沿原身份收束，禁止并行活动版本。",
+      "supersedesLawId": "LAW-AGENT-PRODUCTION-RUNTIME-003-V1",
       "tier": "P0"
     },
     {
@@ -625,7 +627,7 @@
       ],
       "dependsOnLawIds": [
         "LAW-AGENT-PRODUCTION-RUNTIME-001-V1",
-        "LAW-AGENT-PRODUCTION-RUNTIME-003-V1"
+        "LAW-AGENT-PRODUCTION-RUNTIME-003-V2"
       ],
       "enforcementMode": "composite",
       "evidenceModes": [
@@ -646,8 +648,8 @@
       "lawId": "LAW-AGENT-PRODUCTION-RUNTIME-004-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 198,
-        "lineStart": 157,
+        "lineEnd": 199,
+        "lineStart": 158,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -694,8 +696,8 @@
       "lawId": "LAW-AGENT-PRODUCTION-RUNTIME-005-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 243,
-        "lineStart": 200,
+        "lineEnd": 244,
+        "lineStart": 201,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -742,8 +744,8 @@
       "lawId": "LAW-AGENT-PRODUCTION-RUNTIME-006-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 288,
-        "lineStart": 245,
+        "lineEnd": 289,
+        "lineStart": 246,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -762,7 +764,7 @@
       "dependsOnLawIds": [
         "LAW-AGENT-PRODUCTION-RUNTIME-001-V1",
         "LAW-AGENT-PRODUCTION-RUNTIME-002-V1",
-        "LAW-AGENT-PRODUCTION-RUNTIME-003-V1",
+        "LAW-AGENT-PRODUCTION-RUNTIME-003-V2",
         "LAW-AGENT-PRODUCTION-RUNTIME-004-V1",
         "LAW-AGENT-PRODUCTION-RUNTIME-005-V1",
         "LAW-AGENT-PRODUCTION-RUNTIME-006-V1"
@@ -784,8 +786,8 @@
       "lawId": "LAW-AGENT-PRODUCTION-RUNTIME-007-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 327,
-        "lineStart": 290,
+        "lineEnd": 328,
+        "lineStart": 291,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -806,7 +808,7 @@
       "dependsOnLawIds": [
         "LAW-AGENT-PRODUCTION-RUNTIME-001-V1",
         "LAW-AGENT-PRODUCTION-RUNTIME-002-V1",
-        "LAW-AGENT-PRODUCTION-RUNTIME-003-V1",
+        "LAW-AGENT-PRODUCTION-RUNTIME-003-V2",
         "LAW-AGENT-PRODUCTION-RUNTIME-004-V1",
         "LAW-AGENT-PRODUCTION-RUNTIME-005-V1",
         "LAW-AGENT-PRODUCTION-RUNTIME-006-V1",
@@ -832,8 +834,8 @@
       "lawId": "LAW-AGENT-PRODUCTION-RUNTIME-008-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 372,
-        "lineStart": 329,
+        "lineEnd": 373,
+        "lineStart": 330,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -871,8 +873,8 @@
       "lawId": "LAW-APP-SHELL-UI-001-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 411,
-        "lineStart": 375,
+        "lineEnd": 412,
+        "lineStart": 376,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -903,8 +905,8 @@
       "lawId": "LAW-APP-SHELL-UI-002-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 442,
-        "lineStart": 413,
+        "lineEnd": 443,
+        "lineStart": 414,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -937,8 +939,8 @@
       "lawId": "LAW-APP-SHELL-UI-003-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 475,
-        "lineStart": 444,
+        "lineEnd": 476,
+        "lineStart": 445,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -972,7 +974,7 @@
       "forbidden": [
         "不得发生：一个成熟业务需求由多个 Product Plugin 共同拥有，或一个 Product Plugin 同时承担多个独立业务需求。",
         "不得发生：Manifest primary Owner 被解释为 Product 运行决策权；architecture-boundary 只 primary-own Product 源码、与生产 import surface 分离的 Product 验收、薄 Mediator 和精确关联项目文档的文件治理、结构检查与变更准入，不得决定 Prompt、模型、Child 顺序、分支或结果组装。每个 Product Plugin 只拥有当前 Website 精确授权下的静态 Flow，不拥有任何业务恢复、result revision 或 attempt 签发权；confirmed-effect 只读收敛只能走 Website 已签的精确来源授权。",
-        "不得发生：Product Plugin、Runtime、GPT、Browser 或 architecture-boundary 自行决定业务恢复、result revision、旧 attempt 复活或永久停止；这些决定只属于 Website.ai-acceptance。除 Website 对同一 effect 重新授权零输入读回、为原答案不可得的指定调用持久签发一次风险重放授权且只对同一来源中 settled_reusable 的调用按原 Forensics checkpoint 零提交归还答案、在旧 payload 对象槽精确 409 且完整结果缺席并核原 staged 对象/回执与全部 settled checkpoint 后签 calls=[] 零提交来源 grant，以及为同一SEO文章或固定catalog同cohort顺序direct-parent链签发provider_continuation外，旧attempt或另一任务的checkpoint、GPT内容、conversation、DOM、evidence、staged result、Outbox或执行位置均不得成为新输入。Runtime只在Website已签provider_continuation且父结果ref/hash与本地completed父结果精确相等后，读取该结果实际采纳的全部原checkpoint来源证据，并按原父job、来源attempt、result revision、product step、实际call、submit或已验真附属retry Child及原WAL authority/hash整体验真；完成attempt和child当前step不得代替原来源。跨attempt复用须核既有accepted source settlement及reused_checkpoint，同attempt正常live/cache不新增grant门。Browser逐项沿原exact source reader只读CONFIRMED且可信的原effect locator，全部采纳来源的canonical URL非空且全等后才为当前job独占Target精确导航；缺失、未决、篡改、矛盾或URL冲突均零Provider输入失败关闭，不得任选来源或fallback。来源只作locator选择，不跨仓、不新持久化且永不进入child provider effect identity或业务恢复裁决。仅为核图片采用关系，GPT原Owner可按精确parent job/source attempt/checkpoint identity读取既有gpt-image-source-binding.v1身份描述，核原ref/integrity hash及conversation/user hash后只向Runtime回传originalArtifactRef；这是封闭身份元数据，不得读取父文本、父原图bytes、Prompt或旧页面，描述不进入Product，也不新增Forensics端口、schema或存储。不得复用父Tab或建立continuation状态；八字父任务内容只能来自Website已入库并在本轮下发的locked-fact material。",
+        "不得发生：Product Plugin、Runtime、GPT、Browser 或 architecture-boundary 自行决定业务恢复、result revision、旧 attempt 复活或永久停止；这些决定只属于 Website.ai-acceptance。除 Website 对同一 effect 重新授权零输入读回、为原答案不可得的指定调用持久签发一次风险重放授权且只对同一来源中 settled_reusable 的调用按原 Forensics checkpoint 零提交归还答案、在旧 payload 对象槽精确 409 且完整结果缺席并核原 staged 对象/回执与全部 settled checkpoint 后签 calls=[] 零提交来源 grant，以及为同一SEO文章、固定catalog同cohort顺序或同一用户和项目及同一输入版本与设备的当前已接纳售前S01直接前序签发provider_continuation外，旧attempt或另一任务的checkpoint、GPT内容、conversation、DOM、evidence、staged result、Outbox或执行位置均不得成为新输入。Runtime只在Website已签provider_continuation且父结果ref/hash与本地completed父结果精确相等后，读取该结果实际采纳的全部原checkpoint来源证据，并按原父job、来源attempt、result revision、product step、实际call、submit或已验真附属retry Child及原WAL authority/hash整体验真；完成attempt和child当前step不得代替原来源。跨attempt复用须核既有accepted source settlement及reused_checkpoint，同attempt正常live/cache不新增grant门。Browser逐项沿原exact source reader只读CONFIRMED且可信的原effect locator，全部采纳来源的canonical URL非空且全等后才为当前job独占Target精确导航；缺失、未决、篡改、矛盾或URL冲突均零Provider输入失败关闭，不得任选来源或fallback。来源只作locator选择，不跨仓、不新持久化且永不进入child provider effect identity或业务恢复裁决。仅为核图片采用关系，GPT原Owner可按精确parent job/source attempt/checkpoint identity读取既有gpt-image-source-binding.v1身份描述，核原ref/integrity hash及conversation/user hash后只向Runtime回传originalArtifactRef；这是封闭身份元数据，不得读取父文本、父原图bytes、Prompt或旧页面，描述不进入Product，也不新增Forensics端口、schema或存储。不得复用父Tab或建立continuation状态；八字父任务内容只能来自Website已入库并在本轮下发的locked-fact material。",
         "不得发生：Mediator 执行业务步骤、浏览器动作或能力私有实现。",
         "不得发生：Plugin 绕过 public capability facade 导入 child runtime、私有协议或基础设施实现。",
         "不得发生：Capability 导入 Plugin、隐藏业务 workflow 或跨能力读取私有 runtime。",
@@ -980,20 +982,20 @@
         "不得发生：public facade 泄漏私有实现类型、浏览器内部协议、selector、coordinate 或 provider 私有对象。",
         "不得发生：独立 Product Plugin 互相导入，或把产品的 GPT Child 顺序提升为共享 workflow、executor、registry、bus、DSL 或 checkpoint。论文生产工厂只由 s00-paper-factory 对外接单，其内部 C01、S01—S10 各有独立入口、专业 Skill、执行 Flow 和结果合同；S00 只可单向静态调用这些入口，叶工序不互调、不反向调 S00，不取得业务恢复和对外 complete 主权。旧产品根、巨型通用业务 Plugin、第二 mediator、兼容桥、平行入口、fallback 或 adapter 不得保持可达。",
         "不得发生：Architecture Exam 手写 Product Plugin 或 primary product/action 列表、保存任一 Product 的 Prompt、Child 顺序、旧 attempt checkpoint、恢复规则或 expected result body；中央入口只能从现役 Catalog/Route Capability Manifest 与 Product 验收目录发现 product_id + action_id 路由、证明一一对应、执行并汇总各 Product 自有测试。Product Plugin 的本地名称、版本与 Skill hash 不得进入跨仓合同、Website grant、持久任务身份、结果身份或 Browser effect identity。",
-        "不得发生：TOMBSTONE-RECOVERY-AUTHORITY-001 被违反。Business Recovery Decision Owner Count 恒等于1，唯一Owner为Website.ai-acceptance；AGENT各层只执行当前精确授权。八字BZ03/BZ04只消费Website已入库的父报告且每个任务fresh。跨任务Provider conversation只允许同一已入库zh-CN SEO文章五语direct-parent provider_continuation及固定catalog同cohort顺序direct-parent provider_continuation；固定catalog首任务parent triple全空，后继携Website已接纳的直接前驱三元组。Runtime只在Website已签provider_continuation且父结果ref/hash与本地completed父结果精确相等后，读取该结果实际采纳的全部原checkpoint来源证据，并按原父job、来源attempt、result revision、product step、实际call、submit或已验真附属retry Child及原WAL authority/hash整体验真；完成attempt和child当前step不得代替原来源。跨attempt复用须核既有accepted source settlement及reused_checkpoint，同attempt正常live/cache不新增grant门。Browser逐项沿原exact source reader只读CONFIRMED且可信的原effect locator，全部采纳来源的canonical URL非空且全等后才为当前job独占Target精确导航；缺失、未决、篡改、矛盾或URL冲突均零Provider输入失败关闭，不得任选来源或fallback。来源只作locator选择，不跨仓、不新持久化且永不进入child provider effect identity或业务恢复裁决。仅为核图片采用关系，GPT原Owner可按精确parent job/source attempt/checkpoint identity读取既有gpt-image-source-binding.v1身份描述，核原ref/integrity hash及conversation/user hash后只向Runtime回传originalArtifactRef；这是封闭身份元数据，不得读取父文本、父原图bytes、Prompt或旧页面，描述不进入Product，也不新增Forensics端口、schema或存储。URL不进入Website、Runtime持久化或日志；父Tab复用、父回答读取、把父checkpoint当新业务输入，以及continuation frontier/store/CAS、latest/时间猜测与fallback均为零。同一已确认effect跨进程只允许零submit读回，effect identity不因进程、attempt、lease、fence、Target或Document改变；原答案经有界核验不可得且Browser 已核完整 WAL effect 历史及现役有界 exact readback 或 typed unaddressable后，只有Website持久授权的新result revision可对指定调用一次可能重复输入，旧effect事实保留。禁止private base、fork、reservation、recovery manager、planner、workflow、recovery queue、fallback、compatibility、legacy、bridge、shadow、第二scheduler、第二store、第二queue、第二状态机或第二恢复链。本Tombstone已按授权精确解冻替换并重新冻结；未来改变仍须授权人再次明确解冻并授权双仓同步替换。",
+        "不得发生：TOMBSTONE-RECOVERY-AUTHORITY-001 被违反。Business Recovery Decision Owner Count 恒等于1，唯一Owner为Website.ai-acceptance；AGENT各层只执行当前精确授权。八字BZ03/BZ04只消费Website已入库的父报告且每个任务fresh。跨任务Provider conversation只允许同一已入库zh-CN SEO文章五语direct-parent provider_continuation、固定catalog同cohort顺序direct-parent provider_continuation及同一用户、项目、输入版本和产生设备的当前已接纳售前S01直接前序provider_continuation；S01首轮parent triple及feedback为空，后继由本人主动提交意见并绑定已接纳的直接前序三元组，URL仅用于原Chat定位，新回合只依当前授权与WAL防重提交；固定catalog首任务parent triple全空，后继携Website已接纳的直接前驱三元组。Runtime只在Website已签provider_continuation且父结果ref/hash与本地completed父结果精确相等后，读取该结果实际采纳的全部原checkpoint来源证据，并按原父job、来源attempt、result revision、product step、实际call、submit或已验真附属retry Child及原WAL authority/hash整体验真；完成attempt和child当前step不得代替原来源。跨attempt复用须核既有accepted source settlement及reused_checkpoint，同attempt正常live/cache不新增grant门。Browser逐项沿原exact source reader只读CONFIRMED且可信的原effect locator，全部采纳来源的canonical URL非空且全等后才为当前job独占Target精确导航；缺失、未决、篡改、矛盾或URL冲突均零Provider输入失败关闭，不得任选来源或fallback。来源只作locator选择，不跨仓、不新持久化且永不进入child provider effect identity或业务恢复裁决。仅为核图片采用关系，GPT原Owner可按精确parent job/source attempt/checkpoint identity读取既有gpt-image-source-binding.v1身份描述，核原ref/integrity hash及conversation/user hash后只向Runtime回传originalArtifactRef；这是封闭身份元数据，不得读取父文本、父原图bytes、Prompt或旧页面，描述不进入Product，也不新增Forensics端口、schema或存储。URL不进入Website、Runtime持久化或日志；父Tab复用、父回答读取、把父checkpoint当新业务输入，以及continuation frontier/store/CAS、latest/时间猜测与fallback均为零。同一已确认effect跨进程只允许零submit读回，effect identity不因进程、attempt、lease、fence、Target或Document改变；原答案经有界核验不可得且Browser 已核完整 WAL effect 历史及现役有界 exact readback 或 typed unaddressable后，只有Website持久授权的新result revision可对指定调用一次可能重复输入，旧effect事实保留。禁止private base、fork、reservation、recovery manager、planner、workflow、recovery queue、fallback、compatibility、legacy、bridge、shadow、第二scheduler、第二store、第二queue、第二状态机或第二恢复链。本Tombstone已按授权精确解冻替换并重新冻结；未来改变仍须授权人再次明确解冻并授权双仓同步替换。",
         "不得发生：绕过本次已授权的原会话定位用途。同一SEO文章已由Website授权的新result revision当前turn，Browser可从当前job既有WAL的全部可信CONFIRMED locator候选核出非空且唯一的canonical URL，经原confirmed-readback在该U重建当前准备并执行；这只确定执行位置，不复用旧正文、旧准备、旧输入授权或执行进度。指定effect必须沿原exact reader核验，缺失不得改选历史；未指定effect时不得取latest或第一条，缺失、损坏或URL冲突零危险输入失败关闭。旧unknown及无锚点事实原样保留，不视为零输入或可复用来源，也不成为其它精确effect或兄弟job的全局门。新Provider输入仍只取Website当前精确grant与Browser完整WAL防重裁决；其它产品的fresh、业务恢复唯一Owner及URL不跨仓不新持久化边界保持。",
-        "不得发生：把FROZEN-JOB-ATTEMPT-PROVIDER-EFFECT-001普通授权内原回合至多5次机械retry解释为Product新Flow或AGENT业务恢复权。两个原子动作仅GPT私有Child，不进入Product公开Child union；Website唯一业务裁决、Product专业自主、原43routes和结果schema不变。"
+        "不得发生：把FROZEN-JOB-ATTEMPT-PROVIDER-EFFECT-001普通授权内原回合至多5次机械retry解释为Product新Flow或AGENT业务恢复权。两个原子动作仅GPT私有Child，不进入Product公开Child union；Website唯一业务裁决、Product专业自主、原现役九路由与其它结果形状不变。"
       ],
-      "lawId": "LAW-ARCHITECTURE-BOUNDARY-001-V1",
+      "lawId": "LAW-ARCHITECTURE-BOUNDARY-001-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 526,
-        "lineStart": 479,
+        "lineEnd": 527,
+        "lineStart": 480,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
-      "summary": "必须保持 Website.ai-acceptance 为唯一业务恢复与风险重放授权 Owner，AGENT 只执行精确授权；旧结果和effect证据只供同job恢复/交付，或Website已签provider_continuation且父结果精确绑定后的原采纳来源元数据定位；父正文及原图不读取；唯有 Website 已签精确零提交来源 grant 的全部 settled checkpoint 原答案可从 Product 第一入口按原调用身份零提交返回，旧 staged payload/执行位置仍不可成为 Product 输入。跨任务 Provider continuation 只允许 SEO 文章 direct-parent 链及固定 catalog 同cohort顺序direct-parent链，唯一 Browser WAL/Outbox 与无第二状态链不变。",
-      "supersedesLawId": null,
+      "summary": "必须保持 Website.ai-acceptance 为唯一业务恢复与风险重放授权 Owner，AGENT 只执行精确授权；旧结果和effect证据只供同job恢复/交付，或Website已签provider_continuation且父结果精确绑定后的原采纳来源元数据定位；父正文及原图不读取；唯有 Website 已签精确零提交来源 grant 的全部 settled checkpoint 原答案可从 Product 第一入口按原调用身份零提交返回，旧 staged payload/执行位置仍不可成为 Product 输入。跨任务 Provider continuation 只允许 SEO 文章 direct-parent 链及固定 catalog 同cohort顺序direct-parent链及售前S01同一用户和项目及同一输入版本与设备的当前已接纳直接前序，唯一 Browser WAL/Outbox 与无第二状态链不变。",
+      "supersedesLawId": "LAW-ARCHITECTURE-BOUNDARY-001-V1",
       "tier": "P0"
     },
     {
@@ -1015,8 +1017,8 @@
       "lawId": "LAW-ARCHITECTURE-BOUNDARY-002-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 553,
-        "lineStart": 528,
+        "lineEnd": 554,
+        "lineStart": 529,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1033,7 +1035,7 @@
       "capabilityDomain": "capability-governance",
       "contractRefs": [],
       "dependsOnLawIds": [
-        "LAW-ARCHITECTURE-BOUNDARY-001-V1"
+        "LAW-ARCHITECTURE-BOUNDARY-001-V2"
       ],
       "enforcementMode": "composite",
       "evidenceModes": [
@@ -1061,8 +1063,8 @@
       "lawId": "LAW-CAPABILITY-GOVERNANCE-001-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 600,
-        "lineStart": 557,
+        "lineEnd": 601,
+        "lineStart": 558,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1081,7 +1083,7 @@
       "capabilityDomain": "capability-governance",
       "contractRefs": [],
       "dependsOnLawIds": [
-        "LAW-ARCHITECTURE-BOUNDARY-001-V1",
+        "LAW-ARCHITECTURE-BOUNDARY-001-V2",
         "LAW-CAPABILITY-GOVERNANCE-001-V1"
       ],
       "enforcementMode": "composite",
@@ -1096,21 +1098,21 @@
         "不得发生：Product Plugin、Runtime、Capability、GPT Child、Browser、Mediator、Acceptance、Audit 或其它确定性代码使用关键词、正则、长度、长度比例、词表、固定措辞、启发式分数、相似度或其它非机械事实，对 Provider 返回的自然语言内容作正确性、质量、语义等价、表达强弱、风险强度、专业程度、事实忠实度、文风或其它内容质量裁决，并因此返回 failed、阻断 result upload、触发重试、要求重新生成或取得业务终态决定权。",
         "不得发生：AGENT 在 Product Skill 与 Provider-facing Prompt 已明确给出专业规则后，又建立第二套确定性内容考官去复判模型答案。Product Skill 可以规定内容要求，Prompt 可以要求模型自检，模型可以依完整上下文推理与修正；确定性代码不得把这些专业规则重新降维复制为 regex、keyword、length threshold、score threshold、boolean predicate 或其它启发式 hard gate。",
         "不得发生：AGENT 把自然语言语义判断伪装为 result contract、schema、safety check、quality check、preflight、postcondition、typed failure、Child eligibility 或其它机械合同。Result Contract 只能验证完成当前执行所必需且无需理解自然语言含义即可得到唯一真值的事实。",
-        "不得发生：Provider 输出已经满足 Product 公布的机械结果合同后，AGENT 因内容质量评价拒绝上传或拒绝交付 Website。AGENT 必须把满足格式、身份、完整性与执行合同的结果原样送入现役业务链；内容是否优秀、忠实、自然、专业或语义正确，不属于 Runtime、Capability 或 Browser 的确定性裁决主权。",
+        "不得发生：因AI自然语言的标题、段落、表格、篇幅、模板、语气、排版、字段包装或语义评分拒收、截断、改写、重跑或阻断获准全文。格式适配属于系统。S01及C01的获准答复按现役链交付；正式Work全文保存在获准工作区和原证据位置，只向网站运输必要业务决定、引用、清单及机械事实。身份、完整性、实际产物、授权及原安全边界继续核验；机械接续事实缺失不授权下游。",
         "不得发生：独立质量流程被隐藏在 Runtime、GPT Child、Browser 或 Product Result Parser 内部。需要额外内容质量复核时，只能作为显式、受治理、可观察的模型质量流程或独立业务任务存在；确定性代码只验证该流程的身份、输入输出合同和完成事实，不得自行替代模型完成语义评审。",
         "不得发生：以本法为由放宽 Provider effect once、exact Target、附件身份、schema、source identity、locale identity、result revision、hash、immutable fields、授权、WAL、Outbox、流程状态或其它防串任务、防错结果、防重复副作用的机械安全边界。上述边界具有可机械证明的唯一真值，仍必须失败关闭。",
         "不得发生：把“结果字段存在”升级为“结果内容正确”，把“结果长度达到阈值”升级为“结果完整”，把“出现某个词”升级为“语义保留”，或把“未出现某个词”升级为“语义缺失”。确定性代码只能证明前者，后者属于模型语义理解与独立质量流程。"
       ],
-      "lawId": "LAW-CAPABILITY-GOVERNANCE-002-V1",
+      "lawId": "LAW-CAPABILITY-GOVERNANCE-002-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 642,
-        "lineStart": 602,
+        "lineEnd": 643,
+        "lineStart": 603,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
-      "summary": "必须使 AGENT 的确定性代码只负责机械合同、身份、完整性、授权、状态与副作用安全证明；Product Skill 与清晰 Prompt 负责告诉顶级大模型应该完成什么，自然语言正确性与质量由模型及独立质量流程负责。结果满足机械合同后 AGENT 必须交付，不得建立第二套关键词、正则、长度、评分或其它启发式内容考官。",
-      "supersedesLawId": null,
+      "summary": "必须使 AGENT 的确定性代码只负责机械合同、身份、完整性、授权、状态与副作用安全证明；Product Skill 与清晰 Prompt 负责告诉顶级大模型应该完成什么，自然语言正确性与质量由模型及独立质量流程负责。结果满足机械合同后 AGENT 必须交付，不得建立第二套关键词、正则、长度、评分或其它启发式内容考官。 AI人读内容由系统完整接收及无损适配，模型不承担隐藏格式门。",
+      "supersedesLawId": "LAW-CAPABILITY-GOVERNANCE-002-V1",
       "tier": "P0"
     },
     {
@@ -1264,8 +1266,8 @@
       "lawId": "LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 674,
-        "lineStart": 646,
+        "lineEnd": 675,
+        "lineStart": 647,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1294,8 +1296,8 @@
       "lawId": "LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 703,
-        "lineStart": 676,
+        "lineEnd": 704,
+        "lineStart": 677,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1323,8 +1325,8 @@
       "lawId": "LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 731,
-        "lineStart": 705,
+        "lineEnd": 732,
+        "lineStart": 706,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1347,9 +1349,9 @@
       "dependsOnLawIds": [
         "LAW-CAPABILITY-GOVERNANCE-001-V1",
         "LAW-LOCAL-BROWSER-SESSION-001-V1",
-        "LAW-LOCAL-BROWSER-SESSION-003-V1",
+        "LAW-LOCAL-BROWSER-SESSION-003-V2",
         "LAW-LOCAL-BROWSER-SESSION-004-V1",
-        "LAW-LOCAL-BROWSER-SESSION-006-V1"
+        "LAW-LOCAL-BROWSER-SESSION-006-V2"
       ],
       "enforcementMode": "composite",
       "evidenceModes": [
@@ -1371,21 +1373,21 @@
         "不得发生：private base、reusable/derived reservation、semantic read grant、fork、child conversation、GPT Session Controller、continuation store/row、identity、source task、frontier、CAS、第二 lane 台账或其改名包装。唯一允许的跨任务 continuation 输入是 Website route policy 已签发的 provider_continuation 与 exact parent task ref；Runtime只在Website已签provider_continuation且父结果ref/hash与本地completed父结果精确相等后，读取该结果实际采纳的全部原checkpoint来源证据，并按原父job、来源attempt、result revision、product step、实际call、submit或已验真附属retry Child及原WAL authority/hash整体验真；完成attempt和child当前step不得代替原来源。跨attempt复用须核既有accepted source settlement及reused_checkpoint，同attempt正常live/cache不新增grant门。Browser逐项沿原exact source reader只读CONFIRMED且可信的原effect locator，全部采纳来源的canonical URL非空且全等后才为当前job独占Target精确导航；缺失、未决、篡改、矛盾或URL冲突均零Provider输入失败关闭，不得任选来源或fallback。来源只作locator选择，不跨仓、不新持久化且永不进入child provider effect identity或业务恢复裁决。仅为核图片采用关系，GPT原Owner可按精确parent job/source attempt/checkpoint identity读取既有gpt-image-source-binding.v1身份描述，核原ref/integrity hash及conversation/user hash后只向Runtime回传originalArtifactRef；这是封闭身份元数据，不得读取父文本、父原图bytes、Prompt或旧页面，描述不进入Product，也不新增Forensics端口、schema或存储。GPT不读取父URL，只机械运输已验证来源到现役Target acquisition；Browser mutation WAL不得保存或裁决业务continuation identity、source task、continuation checkpoint或frontier；Browser FIFO只排序已具备资格的页面请求。",
         "不得发生：submit_exact_gpt_turn_once 以正式会话 URL 是否生成作为发送完成判据，或缺少准确新用户消息、批准 promptHash、精确 userTurnId、Composer 清空及原 Browser effect receipt 就宣称 CONFIRMED。成功输出只含 status、promptHash、mutationSent、userTurnId；已有 CONFIRMED 只能零输入读回原发送证明，URL 缺失不撤销发送、不返回 fresh 资格。get_submitted_gpt_conversation_url 是独立只读要求，只消费原 submitCallId、providerEffectIdentityHash、当前 step/context 与有界 timeout；先读原 Browser WAL locator，缺席时仅在同 accepted attempt 当前授权及原 bound-observation 上，按同一次 coherent observation 的 currentUrl 与原 userTurnId 取正式地址并绑定同 effect。不得导航、换会话、重新准备或发送；其失败须携原 CONFIRMED effect，不覆盖成未发送。Product 在原发送→checkpoint 交接处显式取 URL，checkpoint 的原身份及完成两门不变。Provider effect identity 不因 attempt、进程、lease、fence、Target、Document 改变；新的Provider输入只接受原业务首次调用、Website原精确rejection新revision、Website指定调用的新revision风险grant，或FROZEN-JOB-ATTEMPT-PROVIDER-EFFECT-001当前普通grant内同根ordinal1..5附属retry；四者各守原WAL至多一次，不互相转移权限。",
         "不得发生：一次 submit 后由多个 Child、Product Facade 或 Runtime 重复读取回答；文本 checkpoint 每次只在 fresh current Document 上，按原 Product turnMarker 唯一定位 user 单元及其真实紧邻 assistant 的 DOM 关系裁决 pending 或 ready；图片 checkpoint 仍按 submit 返回的精确 userTurnId 定位，不得用固定 turn 编号、加一运算或奇偶猜测。文本 ready 时必须由同一 coherent observation 一次取得 DOM 与 semantic text 并写入/readback 一个 artifact；图片 ready 时必须由同一鉴权 observation 通过已登录页面取得唯一内容 hash 的原始媒体 bytes，不得点击图片、打开查看器、触发 Chrome 原生下载或建立图片 mutation/WAL。",
-        "不得发生：FROZEN-GPT-CONVERSATION-LOCATOR-EFFECT-SEPARATION-001 被违反。canonical conversation URL只负责定位页面 conversation，provider_effect_identity只负责证明本 job的 Provider submit现实副作用至多一次；二者不得互相替代、合并为一个身份或从页面定位推导提交资格。正常回答轮询必须保留 exact job 与其 system Target 的进程内双向唯一绑定，但 pending 等待期间必须释放 Browser lease 与唯一物理 lane；下一次请求立即进入现役唯一 FIFO，由 BrowserLaneCoordinator 作为唯一计时 Owner在本请求 eligibleAt 满足且原物理 lane 空闲后取得该 job 精确绑定 Target、激活并重验实时 current Document、fresh observe 一次，pending 则再次释放；正常轮询每轮由同一 confirmed effect 的 canonical URL 选择聊天；文本回答按原 Product turnMarker 唯一定位当前 user 单元及紧邻 assistant，图片仍按原 exact userTurnId 选择；当前 URL 相等时 Page.navigate=0，当前 Target 已丢失则直接创建当前 Target 并最多一次精确导航。Website 未授权就跨进程读取旧 effect，或 confirmed-effect recovery 修改 Prompt、附件、模型、turn marker、effect identity，或发送任何未由 Website 当前 grant 及 Browser 全历史 WAL 允许的 Provider 输入。以下三种 URL导航用途成立：一是同一 confirmed effect 的正常轮询或恢复，从当前 job同一 CONFIRMED effect读回 URL与userTurnId；二是 Website 为同一已入库zh-CN SEO文章严格前序 locale或固定catalog同cohort严格前序任务签发 provider_continuation 后，Runtime只在Website已签provider_continuation且父结果ref/hash与本地completed父结果精确相等后，读取该结果实际采纳的全部原checkpoint来源证据，并按原父job、来源attempt、result revision、product step、实际call、submit或已验真附属retry Child及原WAL authority/hash整体验真；完成attempt和child当前step不得代替原来源。跨attempt复用须核既有accepted source settlement及reused_checkpoint，同attempt正常live/cache不新增grant门。Browser逐项沿原exact source reader只读CONFIRMED且可信的原effect locator，全部采纳来源的canonical URL非空且全等后才为当前job独占Target精确导航；缺失、未决、篡改、矛盾或URL冲突均零Provider输入失败关闭，不得任选来源或fallback。来源只作locator选择，不跨仓、不新持久化且永不进入child provider effect identity或业务恢复裁决。三是同一SEO文章已由Website授权的新result revision当前turn，Browser可从当前job既有WAL的全部可信CONFIRMED locator候选核出非空且唯一的canonical URL，经原confirmed-readback在该U重建当前准备并执行；这只确定执行位置，不复用旧正文、旧准备、旧输入授权或执行进度。指定effect必须沿原exact reader核验，缺失不得改选历史；未指定effect时不得取latest或第一条，缺失、损坏或URL冲突零危险输入失败关闭。旧unknown及无锚点事实原样保留，不视为零输入或可复用来源，也不成为其它精确effect或兄弟job的全局门。新Provider输入仍只取Website当前精确grant与Browser完整WAL防重裁决；其它产品的fresh、业务恢复唯一Owner及URL不跨仓不新持久化边界保持。三种用途都必须为当前 job取得或新建其独占 system Target，当前 URL命中时零导航，否则只允许一次 Browser-owned `Page.navigate`，经过唯一2500ms总闸门后 fresh readback必须相等；来源attempt只属于locator选择且永不进入child provider effect identity；provider_continuation 不读取父 userTurnId/回答、不复用父 Target、不授予父 effect重放或当前 submit资格。不得按标题/顺序/时间猜测、点击侧栏、搜索、滚动、自动展开或 fallback；仅FROZEN-JOB-ATTEMPT-PROVIDER-EFFECT-001精确附属retry沿原授权生成，不得由URL授予重试；仍 pending时返回 typed pending，不创建第二恢复状态机。",
+        "不得发生：FROZEN-GPT-CONVERSATION-LOCATOR-EFFECT-SEPARATION-001 被违反。canonical conversation URL只负责定位页面 conversation，provider_effect_identity只负责证明本 job的 Provider submit现实副作用至多一次；二者不得互相替代、合并为一个身份或从页面定位推导提交资格。正常回答轮询必须保留 exact job 与其 system Target 的进程内双向唯一绑定，但 pending 等待期间必须释放 Browser lease 与唯一物理 lane；下一次请求立即进入现役唯一 FIFO，由 BrowserLaneCoordinator 作为唯一计时 Owner在本请求 eligibleAt 满足且原物理 lane 空闲后取得该 job 精确绑定 Target、激活并重验实时 current Document、fresh observe 一次，pending 则再次释放；正常轮询每轮由同一 confirmed effect 的 canonical URL 选择聊天；文本回答按原 Product turnMarker 唯一定位当前 user 单元及紧邻 assistant，图片仍按原 exact userTurnId 选择；当前 URL 相等时 Page.navigate=0，当前 Target 已丢失则直接创建当前 Target 并最多一次精确导航。Website 未授权就跨进程读取旧 effect，或 confirmed-effect recovery 修改 Prompt、附件、模型、turn marker、effect identity，或发送任何未由 Website 当前 grant 及 Browser 全历史 WAL 允许的 Provider 输入。以下三种 URL导航用途成立：一是同一 confirmed effect 的正常轮询或恢复，从当前 job同一 CONFIRMED effect读回 URL与userTurnId；二是 Website 为同一已入库zh-CN SEO文章严格前序 locale、固定catalog同cohort严格前序任务或同一用户、项目、输入版本及产生设备的当前已接纳售前S01直接前序签发 provider_continuation 后，Runtime只在Website已签provider_continuation且父结果ref/hash与本地completed父结果精确相等后，读取该结果实际采纳的全部原checkpoint来源证据，并按原父job、来源attempt、result revision、product step、实际call、submit或已验真附属retry Child及原WAL authority/hash整体验真；完成attempt和child当前step不得代替原来源。跨attempt复用须核既有accepted source settlement及reused_checkpoint，同attempt正常live/cache不新增grant门。Browser逐项沿原exact source reader只读CONFIRMED且可信的原effect locator，全部采纳来源的canonical URL非空且全等后才为当前job独占Target精确导航；缺失、未决、篡改、矛盾或URL冲突均零Provider输入失败关闭，不得任选来源或fallback。来源只作locator选择，不跨仓、不新持久化且永不进入child provider effect identity或业务恢复裁决。三是同一SEO文章已由Website授权的新result revision当前turn，Browser可从当前job既有WAL的全部可信CONFIRMED locator候选核出非空且唯一的canonical URL，经原confirmed-readback在该U重建当前准备并执行；这只确定执行位置，不复用旧正文、旧准备、旧输入授权或执行进度。指定effect必须沿原exact reader核验，缺失不得改选历史；未指定effect时不得取latest或第一条，缺失、损坏或URL冲突零危险输入失败关闭。旧unknown及无锚点事实原样保留，不视为零输入或可复用来源，也不成为其它精确effect或兄弟job的全局门。新Provider输入仍只取Website当前精确grant与Browser完整WAL防重裁决；其它产品的fresh、业务恢复唯一Owner及URL不跨仓不新持久化边界保持。三种用途都必须为当前 job取得或新建其独占 system Target，当前 URL命中时零导航，否则只允许一次 Browser-owned `Page.navigate`，经过唯一2500ms总闸门后 fresh readback必须相等；来源attempt只属于locator选择且永不进入child provider effect identity；provider_continuation 不读取父 userTurnId/回答、不复用父 Target、不授予父 effect重放或当前 submit资格。不得按标题/顺序/时间猜测、点击侧栏、搜索、滚动、自动展开或 fallback；仅FROZEN-JOB-ATTEMPT-PROVIDER-EFFECT-001精确附属retry沿原授权生成，不得由URL授予重试；仍 pending时返回 typed pending，不创建第二恢复状态机。",
         "不得发生：Browser lease 的实时 document 经 spread、缓存、复制或 wrapper 变成页面导航前快照；canonical URL 导航产生新 Document 后，consumer 必须读到新的 current Document。",
         "不得发生：绕过一条 Browser FIFO、同一 provider effect 的跨 attempt WAL、每个 effect 至多一次 physical dispatch；风险重放只能使用 Website 持久授权的新 revision 和指定调用、2500ms 后 fresh postcondition 或当前 fence；纯读结果不得创建第二 WAL、queue、timer、artifact、scheduler 或恢复 Owner。FROZEN-GPT-CONVERSATION-LOCATOR-EFFECT-SEPARATION-001 已按授权解冻替换并在本版本重新冻结；未来改变或删除仍必须由用户明确解冻，并在现役法案、施工图、实现与唯一质检中完成同候选替换验收。",
         "不得发生：任一 Production GPT Child 的 ChatGPT 页面逻辑访问绕过 Browser 中央 known-rate-limit preflight，或只在 checkpoint 阶段检测。精确唯一弹窗命中时，原 Child 本次物理输入必须为零，ProductionGptChildTools 必须先经 Runtime control port 持久关停无关 claim/submit，再调用唯一 Product 不可见的内部 acknowledge_known_gpt_rate_limit Child；该 Child 只能对同 Target/Document 的精确‘请求过于频繁’结构 revalidate 后点击唯一‘明白了’一次，随后仍经 2.5 秒 fresh readback。不得暴露为 Product action、复活旧 rate-limit helper、模糊匹配、重复点击、重发 effect、停止原在途任务的同 effect 回读/Outbox/admission 或形成第二恢复链。"
       ],
-      "lawId": "LAW-GPT-001-V1",
+      "lawId": "LAW-GPT-001-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 786,
-        "lineStart": 735,
+        "lineEnd": 787,
+        "lineStart": 736,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
-      "summary": "必须使发送证明与会话定位各自独立：submit 只按准确新用户消息与原 effect receipt 确认，独立只读 URL Child 从同一已确认 effect 取得并绑定 locator 后接原 checkpoint；旧结果优先零 submit 读回，原风险授权、唯一 lane/store 与专业边界保持。",
-      "supersedesLawId": null,
+      "summary": "必须使发送证明与会话定位各自独立：submit 只按准确新用户消息与原 effect receipt 确认，独立只读 URL Child 从同一已确认 effect 取得并绑定 locator 后接原 checkpoint；旧结果优先零 submit 读回，原风险授权、唯一 lane/store 与专业边界保持。 S01仅按Website持久签发的同用户、项目、输入版本及产生设备的当前已接纳直接前序，核可信WAL后定位原Chat并按当前授权新提交一次。",
+      "supersedesLawId": "LAW-GPT-001-V1",
       "tier": "P0"
     },
     {
@@ -1403,7 +1405,7 @@
         "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md"
       ],
       "dependsOnLawIds": [
-        "LAW-GPT-001-V1",
+        "LAW-GPT-001-V2",
         "LAW-LOCAL-BROWSER-SESSION-004-V1"
       ],
       "enforcementMode": "composite",
@@ -1417,27 +1419,28 @@
         "src/capabilities/gpt/acceptance/**"
       ],
       "forbidden": [
-        "不得发生：FROZEN-JOB-ATTEMPT-PROVIDER-EFFECT-001 被违反。Website唯一决定业务恢复、attempt/revision、退役与风险授权；普通旧可能输入始终先原effect零输入读回，全历史零输入才准首次输入；原答案有界不可得且完整WAL及exact readback或typed unaddressable闭合时，仅Website持久指定调用/新revision风险grant可一次可能重复输入。当前普通执行授权及原max_provider_turns预算内，原submit已CONFIRMED、无完成结果且精确原回答stop缺席/正文为空时，GPT仅可在原URL、原user回合以原批准模型执行序号1..5的附属retry；每序号独立effect各至多一次现实输入。稳定调用stopped-empty-retry:<根effect hash正文>:<ordinal>绑定根/前驱/原批准profile，完整WAL必须连续无分叉；attempt/进程/Target/Document/URL变化不刷新额度。仅原turn互相绑定菜单内唯一默认重试可生成，开菜单与生成分别经原子Child、原FIFO/permit/WAL及native前fresh原两门重核；不改Prompt/附件/模型或新增user消息。每次生成必须原后置证明启动；旧空DOM、unknown或DISPATCHED不得推进下一序号。stop出现继续原观察，正文非空完成；仅五次均确证启动并结束为空才可产生GPT_RESPONSE_STOPPED_EMPTY。预算、撤权、限流、身份失败按原typed出口，不伪五次耗尽。delivery-only、source/readback及风险输入不取得附属retry权限。已settled_reusable调用沿原Forensics checkpoint零输入返回；风险grant与领域rejection互斥，calls=[]来源也仅零输入，旧半成品不成为Product输入。本条已依用户本轮原文授权定点替换并重新冻结；未来改变仍须用户明确解冻并同步现役法案、施工图、合同、实现及唯一原生质检；普通修复或CI不隐含解冻。",
+        "不得发生：FROZEN-JOB-ATTEMPT-PROVIDER-EFFECT-001 被违反。Website唯一决定业务恢复、attempt/revision、退役与风险授权；普通旧可能输入始终先原effect零输入读回，全历史零输入才准首次输入；原答案有界不可得且完整WAL及exact readback或typed unaddressable闭合时，仅Website持久指定调用/新revision风险grant可一次可能重复输入。当前普通执行授权、当前合同允许附属停空重试及原max_provider_turns预算内，原submit已CONFIRMED、无完成结果且精确原回答stop缺席/正文为空时，GPT仅可在原URL、原user回合以原批准模型执行序号1..5的附属retry；每序号独立effect各至多一次现实输入。稳定调用stopped-empty-retry:<根effect hash正文>:<ordinal>绑定根/前驱/原批准profile，完整WAL必须连续无分叉；attempt/进程/Target/Document/URL变化不刷新额度。仅原turn互相绑定菜单内唯一默认重试可生成，开菜单与生成分别经原子Child、原FIFO/permit/WAL及native前fresh原两门重核；不改Prompt/附件/模型或新增user消息。每次生成必须原后置证明启动；旧空DOM、unknown或DISPATCHED不得推进下一序号。stop出现继续原观察，正文非空完成；仅五次均确证启动并结束为空才可产生GPT_RESPONSE_STOPPED_EMPTY。预算、撤权、限流、身份失败按原typed出口，不伪五次耗尽。delivery-only、source/readback及风险输入不取得附属retry权限。已settled_reusable调用沿原Forensics checkpoint零输入返回；风险grant与领域rejection互斥，calls=[]来源也仅零输入，旧半成品不成为Product输入。本条已依用户本轮原文授权定点替换并重新冻结；未来改变仍须用户明确解冻并同步现役法案、施工图、合同、实现及唯一原生质检；普通修复或CI不隐含解冻。",
         "不得发生：FROZEN-GPT-SUBMIT-TWO-PRECONDITIONS-001 被违反。真正 submit 前只能有两个不可扩张的确认：GPT/Browser 同一原子点击内确认当前 Composer 提示词 hash 与 Product 批准值相等且当前附件集合与批准集合相等；Browser 唯一 WAL 确认当前 Target/Document/fence 有效且同一 provider effect 尚未发生现实输入。附件集合比较必须服从 FROZEN-GPT-ATTACHMENT-PROVIDER-DUPLICATE-SUFFIX-001。历史聊天、既有 user turn、固定 turn 编号或奇偶、按钮标签及 Browser 内部可操作性检查不得成为新增业务前置关卡；历史 turn 只允许作为点击后的本次新增消息证明，不得在点击前拒绝提交。",
         "不得发生：除真正 submit_exact_gpt_turn_once 外的准备动作被标为 Provider effect。普通 effect identity 仍为 [job_id,result_revision,product_step_id,call_id,child_id,request_hash,payload_hash]，不含 Plugin、attempt、进程、lease、fence、Target、Document；代码或 Prompt 迭代的新 hash 不证明全历史零输入。同一 effect 最多物理 dispatch 一次；新的Provider输入只接受原业务首次调用、Website原精确rejection新revision、Website指定调用的新revision风险grant，或FROZEN-JOB-ATTEMPT-PROVIDER-EFFECT-001当前普通grant内同根ordinal1..5附属retry；四者各守原WAL至多一次，不互相转移权限。",
         "不得发生：Browser 全历史可能已输入时，Product 先执行 fresh、profile/model、附件、Composer 或第二 submit。旧 effect 的 DISPATCHED/CONFIRMED 先按原身份零输入读回；仅当 Browser 逐旧 effect 核原 WAL 确无可信 canonical URL/user turn、现役 exact 读回无法机械归属该 effect，并出具 typed unaddressable fact 时，可在原 WAL 全历史及该调用的现役有界 readback 证据闭合后把此事实交 Website 作一次可能重复的风险授权，绝不宣称旧答案不存在；全历史确证零输入时，普通新 attempt 可用当前 Prompt/hash 执行；Website 已以精确 rejection receipt 结算旧 revision 的输入并签新 revision 后，该旧输入只保留为历史，当前 revision 的普通换 attempt 须按当前来源 attempt 证明零输入、按原 source handoff/event 核旧 revision 已结算，不能把旧输入误算为当前输入或据此重发同一 effect；风险 grant 绑定当前 attempt 而其 Provider 输入仍为零时，Website 同 attempt 重授可在 Browser 核完整 WAL effect 历史及当前调用的可信零输入后用新 fence 重做 target-local 准备，原风险 grant 不转移、不重签且仅指定调用仍可一次输入；原答案不可取得时，只有 Website 经Browser 已核完整 WAL effect 历史及现役有界 exact readback 或 typed unaddressable后签发的精确风险授权，才可对指定调用新 effect 输入一次。已有机械有效结果须先交付，cleanup 失败不得重新运行 GPT。",
         "不得发生：为实现本冻结边界在 GPT、Browser 或 Runtime 新增 continuation checkpoint、stageIndex、resumePoint、continuation store、第二 WAL、第二 Browser lane、第二 Outbox、恢复表、恢复队列、恢复 Owner、兼容桥、feature flag、dual-read/write 或跨 attempt 半成品输入。Website provider_continuation 只是一份当前 task的route relation，Browser只从父任务既有唯一WAL读取一个canonical URL并瞬时导航，不得持久化为GPT/Runtime continuation状态。本轮已由用户明确解冻并在双仓同步替换后重新冻结；未来改变或删除 FROZEN-JOB-ATTEMPT-PROVIDER-EFFECT-001 仍须用户明确解冻，并以双仓同步法案、施工图、合同与质检替换验收。",
         "不得发生：FROZEN-EXACT-TARGET-POLL-RESULT-REVISION-001 被违反。普通回答观察为零输入：保留exact job—system Target唯一绑定，40秒静默、GPT只给至少70秒eligibleAt，BrowserLaneCoordinator为唯一计时Owner，在唯一FIFO依原到期/取消及原lane空闲放行；不足70秒不acquire，填写/上传/结算不被抢占，不新增timer或账号随机等待。每轮先核同effect WAL，以confirmed-readback取当前Target并核current Document；canonical URL相同零导航，否则最多一次Browser-owned Page.navigate并经2500ms fresh readback，不回首页。文本以原Product marker唯一user及真实紧邻唯一assistant，图片沿原exact userTurnId。文本未挂载时只在原observation预算内按实时容器几何/进展物化、无固定步数，图片最多48步，均命令截止前3秒结束；命中立即原子读取，零CDP输入/点击/搜索/展开/WAL。stop存在不得按时长、空文本或deadline判停；观察使用原execution单调预算/abort，不保留20分钟空等或替代计时窗。当前普通执行授权及原max_provider_turns预算内，原submit已CONFIRMED、无完成结果且精确原回答stop缺席/正文为空时，GPT仅可在原URL、原user回合以原批准模型执行序号1..5的附属retry；每序号独立effect各至多一次现实输入。稳定调用stopped-empty-retry:<根effect hash正文>:<ordinal>绑定根/前驱/原批准profile，完整WAL必须连续无分叉；attempt/进程/Target/Document/URL变化不刷新额度。仅原turn互相绑定菜单内唯一默认重试可生成，开菜单与生成分别经原子Child、原FIFO/permit/WAL及native前fresh原两门重核；不改Prompt/附件/模型或新增user消息。每次生成必须原后置证明启动；旧空DOM、unknown或DISPATCHED不得推进下一序号。stop出现继续原观察，正文非空完成；仅五次均确证启动并结束为空才可产生GPT_RESPONSE_STOPPED_EMPTY。预算、撤权、限流、身份失败按原typed出口，不伪五次耗尽。delivery-only、source/readback及风险输入不取得附属retry权限。五次耗尽proof唯一为gpt-stopped-empty-after-five-retries.v1，精确七顶层schema_version/original_effect_identity_hash/original_wal_authority_ref/original_wal_authority_hash/retries/terminal_observation_revision_hash/terminal_observed_at；retries恰好五项严格ordinal1..5，各含ordinal/effect_identity_hash/wal_authority_ref/wal_authority_hash/pre_empty_observation_revision_hash，effect互异、原Browser authority可验。retry i+1前置空观察结算i，最后空观察在原first fact；顶层failure为retry5真实CONFIRMED/confirmed/evidence。Website沿原job事务唯一rejection绑定terminal observation及整链，拒收集合仅为真实根submit+retry1..5六effect；rejected_call主项retry5，仅该情形附original_submit及prior_retries恰好ordinal1..4，各用原call/effect字段验同一receipt。其它历史逐项原证明，普通RESULT_SETTLED_UNUSABLE仍单effect。原Store/Outbox/source seal及accepted历史字节不迁移、不重签，不设第二reader/队列/表；历史已签原raw只经原seal及原first-fact绑定回读，不成为新current proof。本条已依用户本轮原文授权定点替换并重新冻结；未来改变仍须用户明确解冻并同步现役法案、施工图、合同、实现及唯一原生质检；普通修复或CI不隐含解冻。 首空及序号1..4确证空是当前工厂内部处理事实，不逐次写工单first failure/lease release，不申请Website新revision；成功直接延续原工单。仅五次全空或原预算/权限/身份/未知已不能安全继续时，才按相应原typed出口上报未解事实；内部修复不取得通用业务恢复权。",
-        "不得发生：FROZEN-GPT-TEXT-RESPONSE-TWO-GATES-001 被违反。checkpoint只保留两个判据：同原子observation的confirmed canonical URL、原Product marker唯一user、真实紧邻唯一assistant、Target/current Document/main-frame loader及revision构成一个回答身份门；stop/body构成一个结算门，stop存在pending，stop缺席正文非空立即DONE，stop缺席正文空立即交当前调用机械闭包，不再计20分钟。原userTurnId仅原提交receipt/artifact lineage事实，当前UUID不授输入。页面末位、Composer数量、layout/visible/viewport/hit-test、hidden/aria-hidden/inert、Prompt rehash、固定轮次/奇偶、标题、侧栏、动画、时间、展开及其boolean/helper/hash包装不得成为第三门；stop不得清空正文。当前普通执行授权及原max_provider_turns预算内，原submit已CONFIRMED、无完成结果且精确原回答stop缺席/正文为空时，GPT仅可在原URL、原user回合以原批准模型执行序号1..5的附属retry；每序号独立effect各至多一次现实输入。稳定调用stopped-empty-retry:<根effect hash正文>:<ordinal>绑定根/前驱/原批准profile，完整WAL必须连续无分叉；attempt/进程/Target/Document/URL变化不刷新额度。仅原turn互相绑定菜单内唯一默认重试可生成，开菜单与生成分别经原子Child、原FIFO/permit/WAL及native前fresh原两门重核；不改Prompt/附件/模型或新增user消息。每次生成必须原后置证明启动；旧空DOM、unknown或DISPATCHED不得推进下一序号。stop出现继续原观察，正文非空完成；仅五次均确证启动并结束为空才可产生GPT_RESPONSE_STOPPED_EMPTY。预算、撤权、限流、身份失败按原typed出口，不伪五次耗尽。delivery-only、source/readback及风险输入不取得附属retry权限。本条已依用户本轮原文授权定点替换并重新冻结；未来改变仍须用户明确解冻并同步现役法案、施工图、合同、实现及唯一原生质检；普通修复或CI不隐含解冻。",
+        "不得发生：FROZEN-GPT-TEXT-RESPONSE-TWO-GATES-001 被违反。checkpoint只保留两个判据：同原子observation的confirmed canonical URL、原Product marker唯一user、真实紧邻唯一assistant、Target/current Document/main-frame loader及revision构成一个回答身份门；stop/body构成一个结算门，stop存在pending，stop缺席正文非空立即DONE，stop缺席正文空立即交当前调用机械闭包，不再计20分钟。原userTurnId仅原提交receipt/artifact lineage事实，当前UUID不授输入。页面末位、Composer数量、layout/visible/viewport/hit-test、hidden/aria-hidden/inert、Prompt rehash、固定轮次/奇偶、标题、侧栏、动画、时间、展开及其boolean/helper/hash包装不得成为第三门；stop不得清空正文。当前普通执行授权、当前合同允许附属停空重试及原max_provider_turns预算内，原submit已CONFIRMED、无完成结果且精确原回答stop缺席/正文为空时，GPT仅可在原URL、原user回合以原批准模型执行序号1..5的附属retry；每序号独立effect各至多一次现实输入。稳定调用stopped-empty-retry:<根effect hash正文>:<ordinal>绑定根/前驱/原批准profile，完整WAL必须连续无分叉；attempt/进程/Target/Document/URL变化不刷新额度。仅原turn互相绑定菜单内唯一默认重试可生成，开菜单与生成分别经原子Child、原FIFO/permit/WAL及native前fresh原两门重核；不改Prompt/附件/模型或新增user消息。每次生成必须原后置证明启动；旧空DOM、unknown或DISPATCHED不得推进下一序号。stop出现继续原观察，正文非空完成；仅五次均确证启动并结束为空才可产生GPT_RESPONSE_STOPPED_EMPTY。预算、撤权、限流、身份失败按原typed出口，不伪五次耗尽。delivery-only、source/readback及风险输入不取得附属retry权限。本条已依用户本轮原文授权定点替换并重新冻结；未来改变仍须用户明确解冻并同步现役法案、施工图、合同、实现及唯一原生质检；普通修复或CI不隐含解冻。",
         "不得发生：FROZEN-GPT-ATTACHMENT-PROVIDER-DUPLICATE-SUFFIX-001 被违反。Product 批准附件集合允许为空；非空时，GPT 是附件显示名语义的唯一 Owner，Browser 只在同一提交原子动作内机械执行该语义。每个 Provider 可见名称先做 NFC 后以原名精确匹配批准集合；只有精确未命中时，才允许删除最后扩展名前、无扩展名则文件名末尾恰好一个无空格尾缀，尾缀形状只能是 `(<纯十进制数字>)` 或 `(<8位十进制日期>-<6位十进制时间>)`，且删除后必须精确命中批准名，才视为同一附件。精确批准名称必须优先；附件数量、基础名、扩展名、其它括号形状、空格括号、多重尾缀及其它改名仍失败关闭。禁止 substring、模糊匹配、宽正则、第二附件身份、兼容分支或因该 Provider 后缀误判而重传。上传后的 `reconcile_gpt_attachment_set` 与最终 submit guard 必须消费同一冻结语义，并由现役 GPT inspector、Browser inspector 和正反验收共同失败关闭。本次已按授权精准解冻、替换并重新冻结；未来改变、删除、改名、弱化、扩张或绕过本冻结条款，仍只有授权人明确原文“解冻 FROZEN-GPT-ATTACHMENT-PROVIDER-DUPLICATE-SUFFIX-001”并同步替换现役法案、GPT/Browser 施工图、实现与唯一质检后才允许；普通修复、代码迭代、CI 授权、Provider UI 变化或单仓变更均不构成解冻。",
         "不得发生：ChatGPT 页面普通逻辑访问在同一账号的跨 job、Tab 或 Product 范围内绕过 Browser 唯一全局 1.5 秒起始节拍，或用 50ms、25—250ms、1 秒 deadline 尾读、per-Child/per-Tab timer 形成亚 1.5 秒重观测。更长的 2.5 秒动作读回、40 秒提交静默与本请求至少70秒的 Provider observation 资格不得缩短；deadline 剩余不足 1.5 秒时以最后事实 typed timeout，DOM 读取增量为零。唯一例外是同一 coherent observation 精确分类已知限流弹窗后，对同 Target/Document revalidate 并在 1 秒内 dispatch 一次‘明白了’确认；确认后的首次读回仍至少 2.5 秒，例外不得扩张到其它页面动作。",
-        "不得发生：绕过本次已授权的原会话定位用途。同一SEO文章已由Website授权的新result revision当前turn，Browser可从当前job既有WAL的全部可信CONFIRMED locator候选核出非空且唯一的canonical URL，经原confirmed-readback在该U重建当前准备并执行；这只确定执行位置，不复用旧正文、旧准备、旧输入授权或执行进度。指定effect必须沿原exact reader核验，缺失不得改选历史；未指定effect时不得取latest或第一条，缺失、损坏或URL冲突零危险输入失败关闭。旧unknown及无锚点事实原样保留，不视为零输入或可复用来源，也不成为其它精确effect或兄弟job的全局门。新Provider输入仍只取Website当前精确grant与Browser完整WAL防重裁决；其它产品的fresh、业务恢复唯一Owner及URL不跨仓不新持久化边界保持。"
+        "不得发生：绕过本次已授权的原会话定位用途。同一SEO文章已由Website授权的新result revision当前turn，Browser可从当前job既有WAL的全部可信CONFIRMED locator候选核出非空且唯一的canonical URL，经原confirmed-readback在该U重建当前准备并执行；这只确定执行位置，不复用旧正文、旧准备、旧输入授权或执行进度。指定effect必须沿原exact reader核验，缺失不得改选历史；未指定effect时不得取latest或第一条，缺失、损坏或URL冲突零危险输入失败关闭。旧unknown及无锚点事实原样保留，不视为零输入或可复用来源，也不成为其它精确effect或兄弟job的全局门。新Provider输入仍只取Website当前精确grant与Browser完整WAL防重裁决；其它产品的fresh、业务恢复唯一Owner及URL不跨仓不新持久化边界保持。",
+        "不得把附属停空重试许可作为普通live回合结算条件。准确定位的当前Chat或Work composer仍有真实stop即pending，stop缺席且正文为空沿原停空类型结算。取证与成稿复核的正常额度分别为五次、三次，禁止附属重试占用。只读来源恢复继续用原负观察，禁止增加回答门或改观察节拍。"
       ],
-      "lawId": "LAW-GPT-002-V1",
+      "lawId": "LAW-GPT-002-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 835,
-        "lineStart": 788,
+        "lineEnd": 837,
+        "lineStart": 789,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
       "summary": "必须冻结 GPT submit 两项机械前置确认与同 effect 去重；Product 在任何页面准备前查询 Browser 全历史，机械有效结果优先交付，旧已输入 effect 默认只读回。原结果不可取得时仅 Website 持久风险授权的新 revision 指定调用可一次输入；文本回答两门禁、停思考空回答与唯一 Browser 节拍不变。",
-      "supersedesLawId": null,
+      "supersedesLawId": "LAW-GPT-002-V1",
       "tier": "P0"
     },
     {
@@ -1473,8 +1476,8 @@
       "lawId": "LAW-LOCAL-APP-SHELL-001-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 878,
-        "lineStart": 839,
+        "lineEnd": 880,
+        "lineStart": 841,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1504,8 +1507,8 @@
       "lawId": "LAW-LOCAL-APP-SHELL-002-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 908,
-        "lineStart": 880,
+        "lineEnd": 910,
+        "lineStart": 882,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1538,8 +1541,8 @@
       "lawId": "LAW-LOCAL-APP-SHELL-003-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 941,
-        "lineStart": 910,
+        "lineEnd": 943,
+        "lineStart": 912,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1578,8 +1581,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-001-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 980,
-        "lineStart": 945,
+        "lineEnd": 982,
+        "lineStart": 947,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1621,8 +1624,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-002-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1022,
-        "lineStart": 982,
+        "lineEnd": 1024,
+        "lineStart": 984,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1663,21 +1666,21 @@
         "不得发生：URL/selector/coordinate caller control",
         "不得发生：physical resource caller control",
         "不得发生：为生成媒体建立独立 wait Child、Chrome 下载阶段或图片 mutation/WAL。`checkpoint_gpt_generated_image` 正常轮询必须保留 exact job 与独占 system Target/Document 的绑定但在 pending 等待期间释放唯一 FIFO/lane；下一次 observation 只可由 BrowserLaneCoordinator 在本请求至少70秒资格满足且原物理 lane 空闲后取得并激活精确绑定 Target、fresh observe 一次，pending 再释放，ready 时由 Browser 在同一鉴权 observation 中通过已登录页面取得唯一内容 hash 的原始媒体 bytes。每轮先按同一已确认 effect 的 canonical URL 与 exact userTurnId 精确选择 conversation；当前 URL 相等时 Page.navigate 增量为零，当前 Tab 丢失时直接新建当前 Target 并最多一次精确导航；不得依赖固定 turn 编号或奇偶，不得点击图片、打开查看器或触发 Chrome 原生下载，调用方不得提供资源 URL、selector、坐标、tab 或下载策略。",
-        "不得发生：fresh Provider conversation 对该 job停放的 system Target因当前 URL已精确等于固定 start URL而跳过复位。每个八字业务任务与 Product明确请求的其它 fresh执行，首次 acquisition都无条件执行一次固定 start URL导航并读回新 Document。同一 confirmed-effect 正常轮询/恢复或下述同一SEO文章获准新revision定位使用 `confirmed-readback`模式，或 Website为同一已入库zh-CN SEO文章严格前序locale或固定catalog同cohort严格前序任务签发provider_continuation使用`authorized-continuation`模式，才为当前job精确取得新的独占system Target且不执行start URL/首页导航；随后当前URL已精确等于唯一WAL内获准canonical URL时零导航，否则只允许一次Browser-owned `Page.navigate`到该精确URL，2500ms后fresh readback不等即失败关闭；导航前采样只核当前物理身份，不作 Origin 拒绝，最终 claim/导航发布及实际交互仍核合法来源；绝不点击侧栏、猜标题/顺序/时间、自动搜索/滚动/展开、重试或回退fresh。",
+        "不得发生：fresh Provider conversation 对该 job停放的 system Target因当前 URL已精确等于固定 start URL而跳过复位。每个八字业务任务与 Product明确请求的其它 fresh执行，首次 acquisition都无条件执行一次固定 start URL导航并读回新 Document。同一 confirmed-effect 正常轮询/恢复或下述同一SEO文章获准新revision定位使用 `confirmed-readback`模式，或 Website为同一已入库zh-CN SEO文章严格前序locale、固定catalog同cohort严格前序任务或同一用户、项目、输入版本与产生设备的当前已接纳售前S01直接前序签发provider_continuation使用`authorized-continuation`模式，才为当前job精确取得新的独占system Target且不执行start URL/首页导航；随后当前URL已精确等于唯一WAL内获准canonical URL时零导航，否则只允许一次Browser-owned `Page.navigate`到该精确URL，2500ms后fresh readback不等即失败关闭；导航前采样只核当前物理身份，不作 Origin 拒绝，最终 claim/导航发布及实际交互仍核合法来源；绝不点击侧栏、猜标题/顺序/时间、自动搜索/滚动/展开、重试或回退fresh。",
         "不得发生：Browser自行决定恢复旧 attempt、选择业务父任务或按 latest/当前页面猜 conversation。confirmed-readback按Website当前授权查询当前job的同一CONFIRMED effect，或在本法同一SEO文章新revision定位用途内核原job可信唯一U；authorized-continuation只接受Runtime按精确completed父结果验证的全部实际采纳原effect来源，父job不能等于当前job；逐项按原父job、来源attempt/revision/step、实际call、submit或已验真附属retry Child及effect/WAL hash沿现役exact reader核CONFIRMED可信locator，全部非空且canonical URL全等才导航。完成attempt和child当前step不得替代来源，缺失、未决、篡改或冲突零输入失败关闭；来源attempt只收窄locator行集，不进入child provider effect identity。两种模式都经唯一lane为当前job新建或取得其独占system Target，以Browser-owned canonical URL导航收敛；父Target、父userTurnId与父回答不得成为acquisition输入。历史targetRef仅为原 WAL 动作取证，不得成为acquisition输入、conversation locator或恢复资格。该导航只是可逆页面生命周期收敛，不取得Provider effect identity或业务恢复权，不得fork、修复Prompt或维持第二recovery park。",
         "不得发生：同一 Provider effect 已输入或输入未知后再次发送该 effect，更换 attempt、Target、Document 或 Prompt 不给重发资格。旧结果先按原身份作现役有界 exact readback；无可信会话锚点只能出具 typed unaddressable，不能宣称零输入或答案不存在。历史 DISPATCHED 不得成为 acquisition、兄弟 job 或新 effect 的全局资格门；真正当前 native 调用仍由唯一 lane 串行，每次现实输入须核当前有效 guard。旧 Target 缺失只按原 canonical URL/文本 turnMarker 或图片 exact userTurnId 重定位，不产生恢复授权或伪终态。 旧业务调用恢复的风险重放仅由Website核完整effect历史、来源seal及有界读回并持久签发指定调用/新revision；旧revision精确拒收沿原rejection链。当前普通grant内原回合已确证空结束的附属retry独立服从FROZEN-JOB-ATTEMPT-PROVIDER-EFFECT-001的原预算/原WAL连续1..5，不从unknown、重启或URL授权，不重放旧effect。",
         "不得发生：绕过本次已授权的原会话定位用途。同一SEO文章已由Website授权的新result revision当前turn，Browser可从当前job既有WAL的全部可信CONFIRMED locator候选核出非空且唯一的canonical URL，经原confirmed-readback在该U重建当前准备并执行；这只确定执行位置，不复用旧正文、旧准备、旧输入授权或执行进度。指定effect必须沿原exact reader核验，缺失不得改选历史；未指定effect时不得取latest或第一条，缺失、损坏或URL冲突零危险输入失败关闭。旧unknown及无锚点事实原样保留，不视为零输入或可复用来源，也不成为其它精确effect或兄弟job的全局门。新Provider输入仍只取Website当前精确grant与Browser完整WAL防重裁决；其它产品的fresh、业务恢复唯一Owner及URL不跨仓不新持久化边界保持。"
       ],
-      "lawId": "LAW-LOCAL-BROWSER-SESSION-003-V1",
+      "lawId": "LAW-LOCAL-BROWSER-SESSION-003-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1069,
-        "lineStart": 1024,
+        "lineEnd": 1071,
+        "lineStart": 1026,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
       "summary": "必须由 Browser 为每个获授权且未闭环 job 独占最多一个当前 live system Target，全部页面动作经唯一 FIFO/lane 并逐次验证 current Target/Document/epoch/fence/permit；历史 DISPATCHED 只保留未知事实，不阻断其它合法 effect。旧 effect 不重发，结果优先读回，风险输入只服从 Website 当前精确新 revision 授权。",
-      "supersedesLawId": null,
+      "supersedesLawId": "LAW-LOCAL-BROWSER-SESSION-003-V1",
       "tier": "P0"
     },
     {
@@ -1689,7 +1692,7 @@
         "docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md"
       ],
       "dependsOnLawIds": [
-        "LAW-LOCAL-BROWSER-SESSION-006-V1"
+        "LAW-LOCAL-BROWSER-SESSION-006-V2"
       ],
       "enforcementMode": "composite",
       "evidenceModes": [
@@ -1730,8 +1733,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-004-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1125,
-        "lineStart": 1071,
+        "lineEnd": 1127,
+        "lineStart": 1073,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1766,8 +1769,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-005-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1160,
-        "lineStart": 1127,
+        "lineEnd": 1162,
+        "lineStart": 1129,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1794,22 +1797,22 @@
       "forbidden": [
         "不得发生：凭证、cookie/token 或原始浏览器身份进入 Browser wire、日志、WAL、proof、错误或 task-owned artifact。TARGET_CLAIM 不得携带完整 URL、pathname、query、fragment 或 conversation identity，只允许携带精确等于 https://chatgpt.com 的 claimOrigin，且该事实只供 Browser Target admission，禁止进入 GPT 页面语义、submission-locator、跨任务会话状态或 recovery authorization。",
         "不得发生：把下条封闭载荷中的第七项解释为 short Prompt 必须存在 collapsible 节点。第七项现役定义为 exact user turn 的 hash-only `exactGptUserPromptHash`：唯一 `data-turn-key` UUID、对应有效 `fallback-turn-N`、唯一 `:user` 单元及匹配 UUID 的 message ids 成立后，只在该单元唯一用户气泡内裁决正文；若恰好一个 `[data-testid='collapsible-user-message-content']` 则取长 Prompt，仅当其为零时才取恰好一个 `.whitespace-pre-wrap` 短 Prompt 正文节点。两种结构互斥、只返回 hash，零项/多项 typed fail-close，不增加原文载荷或第二观察链。",
-        "不得发生：除以下封闭载荷外，DOM/HTML、Prompt、用户输入、资源 URL 或可变文件系统路径进入 Browser wire、日志、WAL、proof 或错误。许可载荷精确为：文本回答读取的原 Product turnMarker 仅作为既有 exact-assistant-turn 的 request-only 加密定位值，不写 WAL、日志、proof、Website 或新持久化；一、源码冻结 typed fill 的 exact approved text 作为 request-only 加密 payload；二、文本按原 marker 唯一定位的当前 user turn 及其紧邻 assistant 回答的完整 observed DOM HTML 与 deterministic semantic text 作为专用 exact-assistant-turn reply-only typed 加密 payload直接交现役 task-owned observed-response artifact Owner，禁止进入通用 coherent observation；三、Browser Authority 从同 execution binding 的已校验 file grant 调用期解析的完整本地路径集合，作为一次 batch file-input request-only 加密 payload；四、固定 gpt-web start URL 仅供 fresh acquisition 内部导航，或 current Document 同包清洗且仅按 LAW-LOCAL-BROWSER-SESSION-004-V1 与本法封闭持久化的 canonical conversation URL，作为同一 confirmed effect 恢复、同一SEO文章已授权新revision的当前job可信唯一U定位，或Website签发的SEO文章严格前序或固定catalog同cohort严格前序provider_continuation时的Browser-owned request-only加密payload；该URL只允许一次精确`Page.navigate`，不得由调用方改写或授予Provider submit资格；五、由 current Document 的同一次 coherent Runtime.callFunctionOn 与 DOM mechanical facts 一并取得、清洗、绑定 observation revision 的 currentUrl，作为 BrowserDomObservationPacketV2 的 reply-only typed fact；六、GPT Composer 当前可编辑值按 fill 直接后置同一唯一机械提取规范生成的 hash-only `exactEditableTextHash`，作为同一 observation revision 内的 reply-only typed fact且绝不携带 Prompt 正文；七、exact GPT `data-turn-key` UUID 作为同包 reply-only 轮次身份，以及此外层内唯一 `:user` 单元、匹配的 message ids 与唯一用户气泡中，恰好一个 `[data-testid='collapsible-user-message-content']` 长 Prompt 正文，或仅当该节点为零时恰好一个 `.whitespace-pre-wrap` 短 Prompt 正文节点，按同一 deterministic semantic tree 规范生成的 hash-only `exactGptUserPromptHash`，作为同一 observation revision 内的 reply-only typed fact且绝不包含附件卡片、页面控制文字或 Prompt 正文；八、每个既有ChatGPT逻辑访问同一 coherent observation 取得的 `KnownGptRateLimitDialogFact`，只允许固定 `absent|exact_present|mismatch`、候选计数、冻结文案hash、Target/Document/exact-call/observation identity和时间，不含DOM正文；九、仅供Product不可见内部ack Child使用的 incident_request_id、前述dialog observation identity及同Target/Document revalidation request，作为一次 `acknowledgeKnownGptRateLimit` request-only加密payload，其reply只含WAL identity、physical_input_count、clearance枚举与前后observation hash；该ack同一WAL已为非确认终态时，只允许在同一当前authority epoch的现役Browser lane按当前Target/Document执行普通节流的`readKnownGptRateLimitClearance`只读请求；跨进程恢复不能凭新当前Target的fresh absence清算原事故；仅原ack可信CONFIRMED WAL terminal可零输入回读confirmed_absent，其余如实交付not_cleared，历史clearance不决定当前资格，当前危险输入仍取Website当前授权与中央fresh preflight，绝不得重放原点击；以及 LAW-LOCAL-BROWSER-SESSION-003-V1 许可的紧邻 assistant 回答唯一生成媒体原始 bytes reply。 十、原 Extension worker 仍存活且保留原命令可信终态时，允许经当前认证 WebSocket 的 MUTATION_RECEIPT 补交该原终态及其 ACK；fact 仅含 type、commandId、receiptBindingHash、terminalReceipt、receiptHash，ACK 仅含 type、commandId、receiptBindingHash、receiptHash。terminalReceipt 仅含 schemaVersion、terminal、mutationOutcome、physicalInputCount、failureCode、nativeCauseCode、completedAt、resultHash、submitRecoveryPayload；最后一项只在原 CONFIRMED submit 时携原 WAL 现役加密恢复载荷的最小子集，不得携 Prompt、selector、路径、HTML 或回答正文。COMMAND 的 receiptBindingHash 只投影原 WAL 不可变 mutation identity，非 mutation 为 null；正常 REPLY 的 mutationReceipt 携同一 fact，非 mutation 为 null。既有 TARGET_ACQUIRE 的 release 分支仅携 action、jobRefHash、releaseAuthority 三字段；releaseAuthority 闭集为 business-admitted、wait-new-attempt、website-admin-deletion，只用于同一 job 当前资源撤回，不授页面输入。 十一、原 MUTATION_RECEIPT 通道允许 type=dispose 请求，字段仅 type、commandId、receiptBindingHash、rejectedFact、rejectedFactHash；原槽的完整 JSON fact 候选或 null 及其 canonical hash 只在现役加密通道临时交付，不进入 WAL、Forensics 或日志。响应 type=disposed 仅含 type、commandId、receiptBindingHash、rejectedFactHash、reasonCode，原因只为 BROWSER_RECONCILIATION_RECEIPT_INVALID、BROWSER_COMMAND_RECEIPT_MISSING、BROWSER_MUTATION_STATE_CONFLICT。Node 必须读回原 durable command/binding 并严格验原候选；合法 fact 必须原 CAS/readback 后 ACK，不能 disposed。非法或 null 仅在原 handler/native 已退出且精确槽身份/hash 匹配后释放槽，不补 terminal，不证明零输入；跨绑定、未知字段、认证失败及迟到响应不得清新槽。",
+        "不得发生：除以下封闭载荷外，DOM/HTML、Prompt、用户输入、资源 URL 或可变文件系统路径进入 Browser wire、日志、WAL、proof 或错误。许可载荷精确为：文本回答读取的原 Product turnMarker 仅作为既有 exact-assistant-turn 的 request-only 加密定位值，不写 WAL、日志、proof、Website 或新持久化；一、源码冻结 typed fill 的 exact approved text 作为 request-only 加密 payload；二、文本按原 marker 唯一定位的当前 user turn 及其紧邻 assistant 回答的完整 observed DOM HTML 与 deterministic semantic text 作为专用 exact-assistant-turn reply-only typed 加密 payload直接交现役 task-owned observed-response artifact Owner，禁止进入通用 coherent observation；三、Browser Authority 从同 execution binding 的已校验 file grant 调用期解析的完整本地路径集合，作为一次 batch file-input request-only 加密 payload；四、固定 gpt-web start URL 仅供 fresh acquisition 内部导航，或 current Document 同包清洗且仅按 LAW-LOCAL-BROWSER-SESSION-004-V1 与本法封闭持久化的 canonical conversation URL，作为同一 confirmed effect 恢复、同一SEO文章已授权新revision的当前job可信唯一U定位，或Website签发的SEO文章严格前序、固定catalog同cohort严格前序或同一用户、项目、输入版本与产生设备的当前已接纳售前S01直接前序provider_continuation时的Browser-owned request-only加密payload；该URL只允许一次精确`Page.navigate`，不得由调用方改写或授予Provider submit资格；五、由 current Document 的同一次 coherent Runtime.callFunctionOn 与 DOM mechanical facts 一并取得、清洗、绑定 observation revision 的 currentUrl，作为 BrowserDomObservationPacketV2 的 reply-only typed fact；六、GPT Composer 当前可编辑值按 fill 直接后置同一唯一机械提取规范生成的 hash-only `exactEditableTextHash`，作为同一 observation revision 内的 reply-only typed fact且绝不携带 Prompt 正文；七、exact GPT `data-turn-key` UUID 作为同包 reply-only 轮次身份，以及此外层内唯一 `:user` 单元、匹配的 message ids 与唯一用户气泡中，恰好一个 `[data-testid='collapsible-user-message-content']` 长 Prompt 正文，或仅当该节点为零时恰好一个 `.whitespace-pre-wrap` 短 Prompt 正文节点，按同一 deterministic semantic tree 规范生成的 hash-only `exactGptUserPromptHash`，作为同一 observation revision 内的 reply-only typed fact且绝不包含附件卡片、页面控制文字或 Prompt 正文；八、每个既有ChatGPT逻辑访问同一 coherent observation 取得的 `KnownGptRateLimitDialogFact`，只允许固定 `absent|exact_present|mismatch`、候选计数、冻结文案hash、Target/Document/exact-call/observation identity和时间，不含DOM正文；九、仅供Product不可见内部ack Child使用的 incident_request_id、前述dialog observation identity及同Target/Document revalidation request，作为一次 `acknowledgeKnownGptRateLimit` request-only加密payload，其reply只含WAL identity、physical_input_count、clearance枚举与前后observation hash；该ack同一WAL已为非确认终态时，只允许在同一当前authority epoch的现役Browser lane按当前Target/Document执行普通节流的`readKnownGptRateLimitClearance`只读请求；跨进程恢复不能凭新当前Target的fresh absence清算原事故；仅原ack可信CONFIRMED WAL terminal可零输入回读confirmed_absent，其余如实交付not_cleared，历史clearance不决定当前资格，当前危险输入仍取Website当前授权与中央fresh preflight，绝不得重放原点击；以及 LAW-LOCAL-BROWSER-SESSION-003-V1 许可的紧邻 assistant 回答唯一生成媒体原始 bytes reply。 十、原 Extension worker 仍存活且保留原命令可信终态时，允许经当前认证 WebSocket 的 MUTATION_RECEIPT 补交该原终态及其 ACK；fact 仅含 type、commandId、receiptBindingHash、terminalReceipt、receiptHash，ACK 仅含 type、commandId、receiptBindingHash、receiptHash。terminalReceipt 仅含 schemaVersion、terminal、mutationOutcome、physicalInputCount、failureCode、nativeCauseCode、completedAt、resultHash、submitRecoveryPayload；最后一项只在原 CONFIRMED submit 时携原 WAL 现役加密恢复载荷的最小子集，不得携 Prompt、selector、路径、HTML 或回答正文。COMMAND 的 receiptBindingHash 只投影原 WAL 不可变 mutation identity，非 mutation 为 null；正常 REPLY 的 mutationReceipt 携同一 fact，非 mutation 为 null。既有 TARGET_ACQUIRE 的 release 分支仅携 action、jobRefHash、releaseAuthority 三字段；releaseAuthority 闭集为 business-admitted、wait-new-attempt、website-admin-deletion，只用于同一 job 当前资源撤回，不授页面输入。 十一、原 MUTATION_RECEIPT 通道允许 type=dispose 请求，字段仅 type、commandId、receiptBindingHash、rejectedFact、rejectedFactHash；原槽的完整 JSON fact 候选或 null 及其 canonical hash 只在现役加密通道临时交付，不进入 WAL、Forensics 或日志。响应 type=disposed 仅含 type、commandId、receiptBindingHash、rejectedFactHash、reasonCode，原因只为 BROWSER_RECONCILIATION_RECEIPT_INVALID、BROWSER_COMMAND_RECEIPT_MISSING、BROWSER_MUTATION_STATE_CONFLICT。Node 必须读回原 durable command/binding 并严格验原候选；合法 fact 必须原 CAS/readback 后 ACK，不能 disposed。非法或 null 仅在原 handler/native 已退出且精确槽身份/hash 匹配后释放槽，不补 terminal，不证明零输入；跨绑定、未知字段、认证失败及迟到响应不得清新槽。",
         "不得发生：currentUrl 来自 TARGET_CLAIM、Page.getFrameTree、另一次 Browser API/DOM 读取、caller、GPT 或持久 registry，或未在 Extension 离开前完成唯一清洗规则：protocol 必须是 https:，origin 必须精确等于 https://chatgpt.com，username 或 password 任一存在即 fail-close，pathname 只允许 / 或 /c/<单个、非空、由 typed contract 固定上限的 opaque segment>，query 必须物理丢弃，fragment 必须物理丢弃，并只重建 origin + pathname。不得解释 opaque segment 内部格式；清洗后的 currentUrl 必须与同包 DOM facts 一起进入 observationRevisionHash，缺失或非法即整包失败关闭。",
         "不得发生：上述许可载荷未绑定 authority epoch、exact call identity、Target/current Document、typed capability、方向与 payload hash，未在现役唯一加密 WebSocket 内完整传输，或发生静默裁切。Prompt、用户输入与本地路径不得进入 reply；DOM HTML/semantic text 只允许进入现役 task-owned observed-response artifact。canonical conversation URL 只允许来自同包 coherent observation 的现役清洗结果：调用期可瞬时使用；Provider submit CONFIRMED 后只可由唯一 Browser WAL 的同一 effect 行加密保存；同一进程内 settled-title cleanup 只可把 active call 已确认的同一canonical URL作为一次request-only输入，不持久化第二份。Browser按三种用途精确读回URL：当前job同一confirmed effect 的正常轮询/恢复 readback、本法下述同一SEO文章获准新revision的可信唯一U定位，或Website route policy签发provider_continuation且Runtime精确绑定completed父结果后，该结果实际采纳的全部原effect来源；后者逐项按原父job、来源attempt/revision/step、实际call、submit或已验真附属retry Child与effect/WAL hash从原exact reader取得CONFIRMED可信locator，全部非空且canonical URL全等才为当前job独占Target导航，不读取父userTurnId/回答。完成attempt和child当前step不得替代原来源，缺失、未决、篡改或冲突零输入失败关闭；来源只收窄WAL locator选择，不进入child provider effect identity、跨仓载荷或第二持久化。除此之外 URL 不得进入日志、proof、普通 artifact、Outbox、Website task 或跨任务 GPT 状态，且不得建立 URL table/registry、continuation store、第二 resolver/store、lane 台账或兼容链。job-bound Target 的活动执行关系只可作为当前 Browser Authority 会话 live registry 的进程内私有双向唯一字段；原 Browser SQLite 只保留 browser_mutations 中 target_ref/document_ref 的历史动作取证，不得建立持久 Target claim/registry、恢复 locator 或旧 Tab 身份，不得凭旧数字 tabId 猜删操作者 Tab。三种用途都经唯一lane为当前job精确取得system Target并按canonical URL收敛；当前命中时零导航，不命中时最多一次Browser-owned `Page.navigate`；该导航在实际 CDP 发送前必须重验 command deadline、session、permit、当前 Target/Document 与 Chrome Target identity，异步 frame 读取前的旧快照不算动作前安全门，Provider submit增量恒为零，URL缺失、非法、多义或fresh readback不等均失败关闭。 每次 Provider 回答或生成媒体轮询均先由原 WAL canonical URL 定位会话；文本按原 Product turnMarker 在当前 Document 唯一定位 user/assistant，生成媒体仍按原 exact userTurnId 定位；同 URL 不导航，当前 Target 缺失即创建当前 Target 并最多一次精确导航。URL 不授予 Provider submit，提交仍只由 provider_effect_identity、原 WAL 与 Website 当前 grant 守住。 前述原终态补交只绑定原 command 与 WAL immutable identity 的唯一 canonical projection，不要求旧 socket、Target 或 Document 仍有当前动作权，也不以 Target/Document hash 或旧 Tab 取得恢复资格；它只交付原执行端事实，零页面权限。normal REPLY 与补交必须经 Supervisor 现役装配汇入同一 verifier 和原 Store terminal CAS，原行 commit/readback 后才 ACK；日志故障仍 ACK 已提交事实并停止新动作，不得扣押已发送命令确认。原 worker 或槽丢失时保持未决，不以新页面、重启、超时或断线伪造终态，不建第二持久存储、恢复 Owner、队列或兼容链。仅 Website 已确认 exact job 缺席时，现役 Runtime 可沿 website-admin-deletion 释放链立即撤销新输入资格、排空原 handler、验证同一 job live Target 释放或缺席，并在释放回执前清除原 worker 同一 job 槽，再由原 Browser Store 物理删除该 job WAL，包括未决 DISPATCHED；这不是结算、ACK 或终态推断。槽只在原内存中保留 permit jobId 供原 jobRefHash 比对，普通释放、其它 job 或释放失败不得清槽或清 WAL；不得扫描历史 Tab 或新增删除存储、队列和 Owner。 同连接 ACK 丢失时原 heartbeat 每轮最多重交当前单槽的原 fact 或 dispose 请求一次，使用新的认证 frame sequence，原 fact/hash 不变；删除同连接交付抑制键，不新建 timer、队列或持久槽。disposed 只解除已退出 handler 的坏/缺事实流控，不是 commit ACK、终态或 Provider 输入授权。 独立 get_submitted_gpt_conversation_url 只消费原同 effect 的发送证明及定位事实；定位包只能由原 executeDomIntent/同一 coherent currentUrl+精确 userTurnId 产生，零页面 mutation，不读取 Prompt 或 assistant，不推进 Provider observation 保护钟。正式地址未就绪的独立窗口为首次实际获准定位观察后15000ms，全部既有 FIFO、1.5/2.5/40秒门及原命令/租约预算保持。locatorPayload 只在现役加密 envelope 原槽增加，URL不进入普通proof、日志、Runtime持久化或Website；终态载荷、发送authority与物理计数不可因此改写。新发送终态补交仅运输不含URL的发送证明，已保存的历史终态按原不可变字节验真，不新增wire命令、SQL结构、第二resolver或恢复路径。",
         "不得发生：绕过本次已授权的原会话定位用途。同一SEO文章已由Website授权的新result revision当前turn，Browser可从当前job既有WAL的全部可信CONFIRMED locator候选核出非空且唯一的canonical URL，经原confirmed-readback在该U重建当前准备并执行；这只确定执行位置，不复用旧正文、旧准备、旧输入授权或执行进度。指定effect必须沿原exact reader核验，缺失不得改选历史；未指定effect时不得取latest或第一条，缺失、损坏或URL冲突零危险输入失败关闭。旧unknown及无锚点事实原样保留，不视为零输入或可复用来源，也不成为其它精确effect或兄弟job的全局门。新Provider输入仍只取Website当前精确grant与Browser完整WAL防重裁决；其它产品的fresh、业务恢复唯一Owner及URL不跨仓不新持久化边界保持。",
         "不得发生：FROZEN-JOB-ATTEMPT-PROVIDER-EFFECT-001附属retry越过载荷方向与隐私边界。原click request-only加密载荷可含原marker、原WAL canonical URL及根/前驱/ordinal/profile hash，仅供native前原两门及owned菜单资格；marker/URL不入普通proof、日志或Website，稳定effect只用hash。reply-only及原MUTATION_RECEIPT允许专用retry terminal的hash/计数/原user/启动事实，locator仅原WAL加密envelope；不携正文、DOM、Prompt或路径，不加wire命令。沿明确Child解析submit/retry两种真实动作，不以payload自报改Child；父来源/continuation只增加已验真retry Child实际采纳来源，所有URL仍全等。"
       ],
-      "lawId": "LAW-LOCAL-BROWSER-SESSION-006-V1",
+      "lawId": "LAW-LOCAL-BROWSER-SESSION-006-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1194,
-        "lineStart": 1162,
+        "lineEnd": 1196,
+        "lineStart": 1164,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
-      "summary": "必须保持凭证与原始浏览器身份绝不过线；发送证明不含URL，独立定位的canonical URL仍只在唯一confirmed effect WAL行加密持久化，Website签发的SEO文章或固定catalog同cohort顺序continuation只可按精确绑定父结果实际采纳的全部原effect来源取得CONFIRMED可信locator并核URL全等，完成attempt和child step不替代原来源，来源只作locator且不进入child effect identity。限流当前 Browser observation/ack 仍以 current Target/Document 约束，持久 Outbox、跨仓 notice/receipt、incident 身份只许 targetless 弹窗事实与 ack WAL/clearance receipt；重启不得读旧 Target/Document hash 恢复动作，绝不传DOM正文、Provider URL或原始对话；第二store与兼容链为零。 原 worker 存活且原事实仍在时只经同一认证通道向原 WAL 补交可信终态并确认签收，不授新输入。",
-      "supersedesLawId": null,
+      "summary": "必须保持凭证与原始浏览器身份绝不过线；发送证明不含URL，独立定位的canonical URL仍只在唯一confirmed effect WAL行加密持久化，Website签发的SEO文章、固定catalog同cohort顺序或同一用户、项目、输入版本与产生设备的当前已接纳售前S01直接前序continuation只可按精确绑定父结果实际采纳的全部原effect来源取得CONFIRMED可信locator并核URL全等，完成attempt和child step不替代原来源，来源只作locator且不进入child effect identity。限流当前 Browser observation/ack 仍以 current Target/Document 约束，持久 Outbox、跨仓 notice/receipt、incident 身份只许 targetless 弹窗事实与 ack WAL/clearance receipt；重启不得读旧 Target/Document hash 恢复动作，绝不传DOM正文、Provider URL或原始对话；第二store与兼容链为零。 原 worker 存活且原事实仍在时只经同一认证通道向原 WAL 补交可信终态并确认签收，不授新输入。",
+      "supersedesLawId": "LAW-LOCAL-BROWSER-SESSION-006-V1",
       "tier": "P0"
     },
     {
@@ -1858,8 +1861,8 @@
       "lawId": "LAW-RUNTIME-LOG-SPINE-001-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1246,
-        "lineStart": 1198,
+        "lineEnd": 1248,
+        "lineStart": 1200,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1904,8 +1907,8 @@
       "lawId": "LAW-RUNTIME-LOG-SPINE-002-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1287,
-        "lineStart": 1248,
+        "lineEnd": 1289,
+        "lineStart": 1250,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1957,8 +1960,8 @@
       "lawId": "LAW-RUNTIME-LOG-SPINE-003-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1335,
-        "lineStart": 1289,
+        "lineEnd": 1337,
+        "lineStart": 1291,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1999,8 +2002,8 @@
       "lawId": "LAW-STARTUP-ENTRYPOINT-001-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1378,
-        "lineStart": 1339,
+        "lineEnd": 1380,
+        "lineStart": 1341,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -2040,8 +2043,8 @@
       "lawId": "LAW-STARTUP-ENTRYPOINT-002-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1416,
-        "lineStart": 1380,
+        "lineEnd": 1418,
+        "lineStart": 1382,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -2057,7 +2060,7 @@
       "capabilityDomain": "system-security",
       "contractRefs": [],
       "dependsOnLawIds": [
-        "LAW-ARCHITECTURE-BOUNDARY-001-V1",
+        "LAW-ARCHITECTURE-BOUNDARY-001-V2",
         "LAW-RUNTIME-LOG-SPINE-001-V1"
       ],
       "enforcementMode": "composite",
@@ -2077,8 +2080,8 @@
       "lawId": "LAW-SYSTEM-SECURITY-001-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1454,
-        "lineStart": 1420,
+        "lineEnd": 1456,
+        "lineStart": 1422,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -2119,8 +2122,8 @@
       "lawId": "LAW-WORKBENCH-API-BOUNDARY-001-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1495,
-        "lineStart": 1458,
+        "lineEnd": 1497,
+        "lineStart": 1460,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",

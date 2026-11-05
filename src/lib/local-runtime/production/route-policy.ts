@@ -53,6 +53,7 @@ function matchesParameterShape(type: string | undefined, value: unknown): boolea
     case "uuid": return typeof value === "string" && /^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/iu.test(value);
     case "sha256": return typeof value === "string" && /^sha256:[a-f0-9]{64}$/u.test(value);
     case "string": return typeof value === "string";
+    case "string_array": return Array.isArray(value) && value.every(name => typeof name === "string" && name.length > 0);
     // Website owns the allowed business values for these string-shaped parameters.
     case "nullable_non_empty_string": return value === null || typeof value === "string" && !!value.trim();
     case "non_empty_string":
@@ -74,9 +75,14 @@ export function assertProductionTaskRoutePolicy(task: WebsiteAgentTask): void {
     throw new Error("AGENT_ROUTE_PARAMETER_SHAPE_INVALID");
   }
   assertMaterialRoles(task, route);
+  const names = task.parameters.research_input_names;
+  if (Array.isArray(names) && names.length !== task.material_refs.filter(item => item.role === "research_input").length) {
+    throw new Error("AGENT_ROUTE_MATERIAL_NAMES_INVALID");
+  }
   const parent = [task.parent_task_ref, task.parent_result_ref, task.parent_result_hash].filter(x => x !== undefined);
   const review = [task.subject_task_ref, task.subject_result_ref, task.subject_result_hash, task.review_policy].filter(x => x !== undefined);
-  if (parent.length !== 0 || review.length !== 0 || route.relation_kind !== "primary") {
+  const revision = route.relation_kind === "provider_continuation" && task.parameters.revision_feedback !== null;
+  if (parent.length !== (revision ? 3 : 0) || review.length !== 0 || task.parent_task_ref === task.job_id) {
     throw new Error("AGENT_ROUTE_RELATION_KIND_INVALID");
   }
 }

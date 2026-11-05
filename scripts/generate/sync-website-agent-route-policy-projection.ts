@@ -46,7 +46,10 @@ function validateRoutes(routes: unknown[], parameters: Record<string, unknown>):
   for (const value of routes) {
     const route = object(value);
     if (typeof route.product_id !== "string" || !route.product_id || typeof route.action_id !== "string"
-      || !route.action_id || typeof route.result_schema_version !== "string" || route.relation_kind !== "primary") {
+      || !route.action_id || typeof route.result_schema_version !== "string"
+      || !["primary", "provider_continuation"].includes(String(route.relation_kind))
+      || (route.normal_provider_turns !== undefined && (!Number.isSafeInteger(route.normal_provider_turns) || Number(route.normal_provider_turns) < 1))
+      || (route.stopped_empty_retry_allowed !== undefined && typeof route.stopped_empty_retry_allowed !== "boolean")) {
       throw new Error("ROUTE_PROVIDER_INVALID");
     }
     const key = `${route.product_id}\0${route.action_id}`;

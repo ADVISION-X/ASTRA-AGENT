@@ -263,9 +263,11 @@ const invalidObservationQueryShape = (
   || !isBoundedText(query.queryId, 128) || queryIds.has(query.queryId)
   || !isBoundedText(query.selector, 2_048);
 
+export const MAX_BROWSER_APPROVED_FILE_BATCH = 63;
+
 const invalidObservationQueryBounds = (query: BrowserDomObservationQuery): boolean =>
   (query.latestGptUserTurn !== undefined && query.latestGptUserTurn !== true)
-  || !Number.isInteger(query.maxMatches) || query.maxMatches < 1 || query.maxMatches > 20;
+  || !Number.isInteger(query.maxMatches) || query.maxMatches < 1 || query.maxMatches > MAX_BROWSER_APPROVED_FILE_BATCH;
 
 const assertObservationQueries = (
   queries: readonly BrowserDomObservationQuery[],

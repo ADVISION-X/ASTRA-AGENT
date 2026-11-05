@@ -35,7 +35,13 @@ export const selectGptReasoningFromStartV3Handler: GptChildHandler<"select_gpt_r
   const observedScale = scale(observed);
   if (!reasoningControlReady(observed)) failRequirement({ code: "GPT_EXECUTION_PROFILE_REASONING_STATE_INVALID",
     profile, observed, observedScale, resolvedValue: null, currentValue: observedScale.currentBefore });
-  const resolvedValue = Math.min(profile.requestedReasoningValue, observedScale.max!), currentBefore = observedScale.currentBefore!;
+  if (profile.requireExactReasoning && profile.requestedReasoningValue > observedScale.max!) {
+    failRequirement({ code: "GPT_EXECUTION_PROFILE_REASONING_EXACT_UNAVAILABLE", profile, observed, observedScale,
+      resolvedValue: null, currentValue: observedScale.currentBefore });
+  }
+  const resolvedValue = profile.requireExactReasoning ? profile.requestedReasoningValue
+    : Math.min(profile.requestedReasoningValue, observedScale.max!);
+  const currentBefore = observedScale.currentBefore!;
   const delta = resolvedValue - currentBefore;
   try {
     await browser.executeDomIntent(delta === 0

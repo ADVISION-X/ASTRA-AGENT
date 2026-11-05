@@ -32,7 +32,7 @@ export async function executeWorkspaceFlow(task: WebsiteAgentTask, context: Shar
       workReads.push(await context.workAccess(materialId, assetId));
     }
     const prompt = [marker, context.productSkill.text, instruction,
-      "使用Work真实文件工具完成，返回当前公布result_contract要求的字段及实际coverage/body/resources；不编造目录、读取、哈希、文件、许可或删除事实。身份字段由程序锁定，凭证和读写URL不进入结果。",
+      "使用Work真实文件工具完成，保留完整工作说明，并用当前公布的机械字段记录实际目录、版本、读回、产物和权限事实；不编造目录、读取、哈希、文件、许可或删除事实。身份字段由程序锁定，凭证和读写URL不进入结果。",
       JSON.stringify({ task, facts: input.facts, work_reads: workReads, result_contract: context.routePolicy.result_contract })].join("\n\n");
     await context.gpt.execute({ ...frame, callId: "prepare", actionOrdinal: 1, child: "prepare_clean_gpt_work", input: { timeoutMs: 60_000 } });
     await selectWorkspaceProfile(context, input.profile, frame);
@@ -47,6 +47,6 @@ export async function executeWorkspaceFlow(task: WebsiteAgentTask, context: Shar
   const answer = await context.gpt.execute({ ...frame, callId: "answer.read", actionOrdinal: 11, child: "checkpoint_gpt_text_response",
     input: { canonicalConversationUrl: location.value.canonicalConversationUrl, userTurnId: submitted.value.userTurnId,
       turnMarker: marker, probeBudgetMs: 600_000 } });
-  const payload = v.parseJsonObject(answer.value.semanticText, "WORKSPACE_RESULT");
-  return { payload, evidence_refs: [...answer.artifactRefs, answer.evidenceRef] };
+  return v.settleMechanicalOutput(answer.artifactRefs,
+    () => v.parseJsonObject(answer.value.semanticText, "WORKSPACE_RESULT", ["workspace", "decision", "body"]));
 }

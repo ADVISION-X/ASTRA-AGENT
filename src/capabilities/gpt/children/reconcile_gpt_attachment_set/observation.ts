@@ -1,3 +1,4 @@
+import { MAX_BROWSER_APPROVED_FILE_BATCH } from "../../../../lib/browser/browser-authority-api.js";
 import { parse } from "node:path";
 
 import { executionFailure, failureCode } from "../../../../lib/execution-failure.js";
@@ -103,16 +104,16 @@ const attachmentSetState = async (
     { queryId: "attachment-composer", selector: GPT_COMPOSER_FORM_SELECTOR, maxMatches: 2, fields: [] },
     {
       queryId: "attachment-items", selector: GPT_ATTACHMENT_ITEM_SELECTOR,
-      scope: { selector: GPT_COMPOSER_FORM_SELECTOR }, maxMatches: 20, fields: ["ariaLabel" as const],
+      scope: { selector: GPT_COMPOSER_FORM_SELECTOR }, maxMatches: MAX_BROWSER_APPROVED_FILE_BATCH, fields: ["ariaLabel" as const],
     },
     ...(observationMode === "upload-settlement" ? [
       {
         queryId: "attachment-uploading", selector: GPT_ATTACHMENT_UPLOAD_SPINNER_SELECTOR,
-        scope: { selector: GPT_COMPOSER_FORM_SELECTOR }, maxMatches: 20, fields: [],
+        scope: { selector: GPT_COMPOSER_FORM_SELECTOR }, maxMatches: MAX_BROWSER_APPROVED_FILE_BATCH, fields: [],
       },
       {
         queryId: "attachment-pending", selector: GPT_ATTACHMENT_PENDING_ACTION_SELECTOR,
-        scope: { selector: GPT_COMPOSER_FORM_SELECTOR }, maxMatches: 20, fields: [],
+        scope: { selector: GPT_COMPOSER_FORM_SELECTOR }, maxMatches: MAX_BROWSER_APPROVED_FILE_BATCH, fields: [],
       },
     ] : []),
   ] as const;

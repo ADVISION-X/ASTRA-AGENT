@@ -116,7 +116,7 @@ export const checkpointGptTextResponseHandler: GptChildHandler<"checkpoint_gpt_t
         nextWaitReason = "stop-present";
         continue;
       }
-      if (context.stoppedEmptyRetryAuthorized === true) emptyEndedObservation(assistant);
+      if (context.settleLiveStoppedEmpty === true) emptyEndedObservation(assistant);
       exactResponseObserved = false;
       negativeWindow.current = recordNegativeObservation(negativeWindow.current, emptyReadbackFailure(assistant, userTurnId));
       nextWaitReason = "response-stopped-empty";

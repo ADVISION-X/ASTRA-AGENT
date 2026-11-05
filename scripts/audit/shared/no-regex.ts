@@ -1,3 +1,5 @@
+import type { SourceModuleTarget } from "./source-module-targets.js";
+
 const sourceExtensions = [".ts", ".tsx", ".js", ".jsx", ".mjs"] as const;
 
 export const hasSourceExtension = (repoPath: string): boolean =>
@@ -57,3 +59,23 @@ export const isTopLevelPluginFile = (repoPath: string): boolean => {
     && segments[1] === "plugins"
     && (fileName.endsWith(".ts") || fileName.endsWith(".tsx"));
 };
+
+const paperFactoryStepEntrypoints: Readonly<Record<string, string>> = {
+  "src/plugins/c01-user-dialogue/index.ts": "executeUserDialogue",
+  "src/plugins/s01-research-brief/index.ts": "executeResearchBrief",
+  "src/plugins/s02-research-plan/index.ts": "executeResearchPlan",
+  "src/plugins/s03-material-acquisition/index.ts": "executeMaterialAcquisition",
+  "src/plugins/s04-evidence-processing/index.ts": "executeEvidenceProcessing",
+  "src/plugins/s05-subtopic-research/index.ts": "executeSubtopicResearch",
+  "src/plugins/s06-evidence-verification/index.ts": "executeEvidenceVerification",
+  "src/plugins/s07-manuscript-authoring/index.ts": "executeManuscriptAuthoring",
+  "src/plugins/s08-manuscript-review/index.ts": "executeManuscriptReview",
+  "src/plugins/s09-originality-citation-check/index.ts": "executeOriginalityCitationCheck",
+  "src/plugins/s10-research-package/index.ts": "executeResearchPackage",
+};
+
+export const isPaperFactoryStepImport = (sourcePath: string, target: SourceModuleTarget): boolean =>
+  sourcePath === "src/plugins/s00-paper-factory/flow.ts"
+  && target.edgeKind === "import" && !target.namespaceImport
+  && target.namedBindings.length === 1
+  && target.namedBindings[0] === paperFactoryStepEntrypoints[target.targetPath];

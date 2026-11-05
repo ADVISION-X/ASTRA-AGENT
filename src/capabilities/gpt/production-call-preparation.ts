@@ -67,12 +67,14 @@ export const runProductionAtomicPhase = async (input: Readonly<{
   confirmedProviderEffectReadback?: import("./contract.js").GptExecutionContext["confirmedProviderEffectReadback"];
   submittedConversationLocator?: import("./contract.js").GptExecutionContext["submittedConversationLocator"];
   browserAtomicIdentity?: BrowserAtomicStepIdentity;
+  settleLiveStoppedEmpty?: boolean;
   stoppedEmptyRetryAuthorized?: boolean; stoppedEmptyConversationUrl?: string;
   assertProviderInputAllowed: () => void; rateLimitAckDispatchNotAfter?: number;
   recordConfirmedProviderEffectReadback?: NonNullable<
     import("./contract.js").GptExecutionContext["recordConfirmedProviderEffectReadback"]
   >;
 }>): Promise<ProductionGptAtomicCallResult> => executeProductionGptAtomicCall({
+  ...(input.settleLiveStoppedEmpty === undefined ? {} : { settleLiveStoppedEmpty: input.settleLiveStoppedEmpty }),
   ...(input.stoppedEmptyRetryAuthorized === undefined ? {} : { stoppedEmptyRetryAuthorized: input.stoppedEmptyRetryAuthorized }),
   ...(input.stoppedEmptyConversationUrl === undefined ? {} : { stoppedEmptyConversationUrl: input.stoppedEmptyConversationUrl }),
   dataDir: input.dataDir, gpt: input.gpt, browsers: input.browsers, intent: input.intent,

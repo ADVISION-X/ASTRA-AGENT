@@ -1,9 +1,10 @@
 import type { GptProductionExecutionInput } from "../../../capabilities/gpt/index.js";
+import { productionRoutePolicy } from "./route-policy.js";
 import type { ProductionExecutionLease, WebsiteAgentTask } from "./contracts.js";
 
 /** Maps the one Website lease to the GPT child contract without changing its authority. */
 export const gptLeaseInput = (
-  task: Readonly<Pick<WebsiteAgentTask, "job_id" | "product_id" | "business_identity">>,
+  task: Readonly<Pick<WebsiteAgentTask, "job_id" | "product_id" | "action_id" | "business_identity">>,
   lease: ProductionExecutionLease, parentSpanId: string,
 ): Omit<GptProductionExecutionInput, "expiresAtMonotonic" | "commandTtlMs"> => ({
   jobId: task.job_id,
@@ -48,6 +49,7 @@ export const gptLeaseInput = (
   executionFenceHash: lease.execution_fence_hash,
   capabilityManifestHash: lease.capability_manifest_hash,
   maxProviderTurns: lease.max_provider_turns,
+  stoppedEmptyRepairAllowed: productionRoutePolicy(task.product_id, task.action_id).stopped_empty_retry_allowed !== false,
   abortSignal: lease.abort_signal,
   parentSpanId,
 });

@@ -2,17 +2,17 @@
   "schemaVersion": 1,
   "specId": "agent-production-runtime.website-agent-task-result-dependency",
   "status": "active",
-  "version": 4,
+  "version": 5,
   "owner": "agent-production-runtime",
   "lawIds": [
     "LAW-AGENT-PRODUCTION-RUNTIME-001-V1",
-    "LAW-AGENT-PRODUCTION-RUNTIME-003-V1",
+    "LAW-AGENT-PRODUCTION-RUNTIME-003-V2",
     "LAW-AGENT-PRODUCTION-RUNTIME-004-V1"
   ],
   "specKind": "cross-repo-dependency",
   "contract": {
     "contractId": "astra.website-agent-task-result",
-    "version": 4,
+    "version": 5,
     "providerRepo": "ADVISION-X/AI-Paper-Factory"
   }
 }

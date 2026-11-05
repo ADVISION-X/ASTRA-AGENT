@@ -11,6 +11,7 @@
     "docs/项目方案/ASTRA-AGENT同机隔离-完整实现方案.md",
     "scripts/acceptance/startup-browser-artifact-sync.acceptance.ts",
     "scripts/acceptance/startup-initialization-health.acceptance.ts",
+    "scripts/acceptance/startup-shutdown.acceptance-support.ts",
     "scripts/audit/domains/startup-entrypoint/**",
     "scripts/startup/**"
   ],

@@ -26,7 +26,7 @@ const findingIds = (files: Record<string, string>): Set<string> => new Set(
 );
 
 const mechanicalContentFindingIds = (files: Record<string, string>): Set<string> => new Set(
-  inspectCapabilityGovernanceProject(projectWith(files), false, "LAW-CAPABILITY-GOVERNANCE-002-V1")
+  inspectCapabilityGovernanceProject(projectWith(files), false, "LAW-CAPABILITY-GOVERNANCE-002-V2")
     .findings.map((finding) => finding.checkId),
 );
 
@@ -122,7 +122,7 @@ emitQualityProofObservation({
   observedValue: "seven capability-governance clause mutants rejected by the capability-governance inspector",
 });
 emitQualityProofObservation({
-  lawId: "LAW-CAPABILITY-GOVERNANCE-002-V1", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","forbidden:4","forbidden:5","forbidden:6","summary"],
+  lawId: "LAW-CAPABILITY-GOVERNANCE-002-V2", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","forbidden:4","forbidden:5","forbidden:6","summary"],
   locator: "acceptance:capability-governance:mechanical-content-mutant",
   observedValue: "deterministic semantic-quality gate mutant rejected by the capability-governance inspector",
 });

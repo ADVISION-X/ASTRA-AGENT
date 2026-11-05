@@ -44,7 +44,7 @@ import {
 import { reconcileClaimAttemptFailure } from "./runtime-claim-recovery.js";
 import { reconcileSourceReadbackFailure } from "./runtime-claim-source-readback-failure.js";
 import { readClaimAuthority, recoverMissingLocalTask, restoreStagedResult,
-  deliverExistingResult } from "./runtime-claim-preproduct.js";
+  deliverExistingResult, prepareContinuationParent } from "./runtime-claim-preproduct.js";
 
 
 const authoritativeGptDialog = (
@@ -274,6 +274,7 @@ export const executeClaim = async (state: RuntimeState, job: ClaimedProductionTa
     }
     const accepted = acceptClaim(state, job, budget, jobSpan, recovery.reconciledFailure, recovery.readbackOnlyCalls);
     acceptance.durable = "accepted";
+    if (!await prepareContinuationParent(state, job, accepted.task, accepted.budget, jobSpan)) return;
     state.store.markExecuting(job.job_id);
     const materialDir = join(productionRuntimeTaskPath(state.dataDir, job.job_id), "materials");
     let result: Awaited<ReturnType<typeof executeAndUpload>>;

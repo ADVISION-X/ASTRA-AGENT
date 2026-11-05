@@ -11,6 +11,7 @@ type AtomicGptCallInput = Readonly<{ dataDir: string; gpt: GptAbilityGroup; brow
   confirmedProviderEffectReadback?: GptExecutionContext["confirmedProviderEffectReadback"];
   submittedConversationLocator?: GptExecutionContext["submittedConversationLocator"];
   resultRevision: number; browserAtomicIdentity?: BrowserAtomicStepIdentity; assertProviderInputAllowed?: () => void;
+  settleLiveStoppedEmpty?: boolean;
   stoppedEmptyRetryAuthorized?: boolean; stoppedEmptyConversationUrl?: string;
   rateLimitAckDispatchNotAfter?: number; recordConfirmedProviderEffectReadback?: NonNullable<GptExecutionContext["recordConfirmedProviderEffectReadback"]> }>;
 export type ProductionGptAtomicCallResult = GptChildCapabilityResult;
@@ -26,6 +27,7 @@ const executionContext = (input: AtomicGptCallInput, browser: ProductionGptBrows
   ...(input.submittedConversationLocator ? { submittedConversationLocator: input.submittedConversationLocator } : {}),
   ...(input.confirmedProviderEffectReadback ? { confirmedProviderEffectReadback: input.confirmedProviderEffectReadback } : {}),
   ...(browser ? { browser } : {}), ...(browserAtomicIdentity ? { browserAtomicIdentity } : {}),
+  settleLiveStoppedEmpty: input.settleLiveStoppedEmpty ?? false,
   stoppedEmptyRetryAuthorized: input.stoppedEmptyRetryAuthorized ?? false,
   ...(input.stoppedEmptyConversationUrl ? { stoppedEmptyConversationUrl: input.stoppedEmptyConversationUrl } : {}),
   ...(input.assertProviderInputAllowed ? { assertProviderInputAllowed: input.assertProviderInputAllowed } : {}),

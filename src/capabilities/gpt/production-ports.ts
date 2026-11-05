@@ -43,6 +43,7 @@ export type GptProductionExecutionInput = Readonly<{
   executionFenceHash: GptHash;
   capabilityManifestHash: GptHash;
   maxProviderTurns: number;
+  stoppedEmptyRepairAllowed?: boolean;
   expiresAtMonotonic: number;
   commandTtlMs: number;
   abortSignal: AbortSignal;

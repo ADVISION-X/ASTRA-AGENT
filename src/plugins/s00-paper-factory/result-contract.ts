@@ -2,7 +2,7 @@ import { productResultValidation as v, type ProductPluginOutput,
   type SharedExecutionContext, type WebsiteAgentTask } from "../../mediator/product-plugin-contract.js";
 
 type JsonObject = Readonly<Record<string, unknown>>;
-export const dialogueIdentityKeys = ["turn_id", "project_id", "dialogue_input_version", "dialogue_order_revision", "dialogue_context_hash"] as const;
+const dialogueIdentityKeys = ["turn_id", "project_id", "dialogue_input_version", "dialogue_order_revision", "dialogue_context_hash"] as const;
 export type ResearchIssues = Readonly<{
   history: Map<string, JsonObject>;
   pending: Set<string>;
@@ -86,18 +86,30 @@ function scalarMatches(value: unknown, type: unknown): boolean {
   if (type === "safe_integer_or_null") return value === null || Number.isSafeInteger(value);
   return typeof value === "string" && stringMatches(value, type);
 }
-function checkField(value: unknown, rule: JsonObject): void {
-  if (value === null && rule.nullable === true) return;
-  if (Object.hasOwn(rule, "const")) { if (value !== rule.const) invalid(); return; }
-  if (Array.isArray(rule.enum)) { if (!rule.enum.includes(value)) invalid(); return; }
-  if (rule.type === "object") { checkObject(v.object(value, "FACTORY_RESULT_OBJECT"), v.object(rule.field_types, "FACTORY_RESULT_FIELDS")); return; }
-  if (rule.type === "array") { for (const item of v.array(value, "FACTORY_RESULT_ARRAY")) checkField(item, v.object(rule.items, "FACTORY_RESULT_ITEMS")); return; }
-  if (rule.type === "string_array") { v.stringArray(value, "FACTORY_RESULT_STRINGS"); return; }
-  if (!scalarMatches(value, rule.type)) invalid();
+const explanations = new Set(["read_scope", "limitations", "reason", "remaining_constraint"]);
+
+function projectField(value: unknown, rule: JsonObject): unknown {
+  if (value === null && rule.nullable === true) return null;
+  if (Object.hasOwn(rule, "const")) return value === rule.const ? value : invalid();
+  if (Array.isArray(rule.enum)) return rule.enum.includes(value) ? value : invalid();
+  if (rule.type === "object") {
+    return projectResult(v.object(value, "FACTORY_RESULT_OBJECT"), v.object(rule.field_types, "FACTORY_RESULT_FIELDS"));
+  }
+  if (rule.type === "array") {
+    const itemRule = v.object(rule.items, "FACTORY_RESULT_ITEMS");
+    return v.array(value, "FACTORY_RESULT_ARRAY").map(item => projectField(item, itemRule));
+  }
+  if (rule.type === "string_array") return v.stringArray(value, "FACTORY_RESULT_STRINGS");
+  return scalarMatches(value, rule.type) ? value : invalid();
 }
-function checkObject(value: JsonObject, fields: JsonObject): void {
-  v.exact(value, Object.keys(fields), "FACTORY_RESULT_FIELDS_INVALID");
-  for (const [key, rule] of Object.entries(fields)) checkField(value[key], v.object(rule, "FACTORY_FIELD_RULE_INVALID"));
+
+function projectResult(value: JsonObject, fields: JsonObject): JsonObject {
+  return Object.fromEntries(Object.entries(fields).map(([key, descriptor]) => {
+    const rule = v.object(descriptor, "FACTORY_FIELD_RULE_INVALID");
+    const supplied = value[key];
+    return [key, rule.type === "string" && explanations.has(key) && typeof supplied !== "string"
+      ? "" : projectField(supplied, rule)];
+  }));
 }
 
 function researchBody(payload: JsonObject, body: JsonObject): JsonObject {
@@ -143,22 +155,47 @@ function nextBusinessAction(task: WebsiteAgentTask, context: SharedExecutionCont
   return next;
 }
 
+function blockedFactoryResult(task: WebsiteAgentTask, context: SharedExecutionContext, workspace: unknown,
+  evidence: readonly string[], fields: JsonObject): ProductPluginOutput {
+  if (!context.producingExecution) throw new Error("FACTORY_PRODUCING_EXECUTION_MISSING");
+  const {communication_locale:_communication,manuscript_locale:_manuscript,...resultIdentity}=task.parameters;
+  const bound = workspace && typeof workspace === "object" && typeof Reflect.get(workspace, "directory_ref") === "string"
+    ? workspace : null;
+  return { payload: {
+    ...resultIdentity, schema_version: "astra-production-result.v1", action: task.action_id, job_id: task.job_id,
+    execution: context.producingExecution, workspace: projectField(bound, v.object(fields.workspace, "FACTORY_WORKSPACE_RULE")),
+    decision: "blocked", next_business_action: null, public_updates: [], issues: [], unresolved: [], outputs: [], coverage: [],
+    resources: { observed_profile: null, usage_ref: null, remaining_constraint: "MECHANICAL_FACTS_UNAVAILABLE", progress_refs: [] },
+    body: {},
+  }, evidence_refs: evidence };
+}
+
 export function collectFactoryResult(task: WebsiteAgentTask, context: SharedExecutionContext,
-  stages: readonly ProductPluginOutput[], research?: ResearchIssues): ProductPluginOutput {
+  stages: readonly ProductPluginOutput[], research?: ResearchIssues, workspace?: unknown): ProductPluginOutput {
   const contract = v.object(context.routePolicy.result_contract, "FACTORY_RESULT_CONTRACT_MISSING");
   const fields = v.object(contract.field_types, "FACTORY_RESULT_FIELDS_MISSING");
+  const evidence = stages.flatMap(stage => [...stage.evidence_refs]);
+  if (contract.blocked_mechanical_facts === true) {
+    const result = v.settleMechanicalOutput(evidence, () => collectFactoryPayload(task, context, stages, contract, fields, research));
+    return result.payload === null ? blockedFactoryResult(task, context, workspace, evidence, fields) : result;
+  }
+  return { payload: collectFactoryPayload(task, context, stages, contract, fields, research), evidence_refs: evidence };
+}
+
+function collectFactoryPayload(task: WebsiteAgentTask, context: SharedExecutionContext,
+  stages: readonly ProductPluginOutput[], contract: JsonObject, fields: JsonObject, research?: ResearchIssues): unknown {
   const payloads = stages.map(stage => v.object(stage.payload, "FACTORY_STAGE_OUTPUT_INVALID"));
   const last = payloads.at(-1);
   if (!last) throw new Error("FACTORY_STAGE_RESULT_MISSING");
   if (task.action_id === "prepare_brief" || task.action_id === "user_dialogue") {
-    checkObject(last, fields);
+    const result = projectResult(last, fields);
     if (task.action_id === "user_dialogue") {
       v.locked(last, task, dialogueIdentityKeys);
     } else {
       v.locked(last, task, ["submission_id", "input_version"]);
       if (last.tier !== task.parameters.research_tier) throw new Error("FACTORY_BRIEF_TIER_MISMATCH");
     }
-    return { payload: last, evidence_refs: stages.flatMap(stage => [...stage.evidence_refs]) };
+    return result;
   }
   if (!context.producingExecution) throw new Error("FACTORY_PRODUCING_EXECUTION_MISSING");
   const declared = v.stringArray(contract.required_responsibilities, "FACTORY_RESPONSIBILITIES_MISSING");
@@ -181,6 +218,5 @@ export function collectFactoryResult(task: WebsiteAgentTask, context: SharedExec
     next_business_action: nextBusinessAction(task, context, decision, body, issueResult), public_updates: [],
     outputs: payloads.flatMap(p => v.array(p.outputs, "FACTORY_OUTPUTS_INVALID")), resources: last.resources, body,
     coverage: declared.map(responsibility => resultCoverage(payloads, responsibility, Boolean(research))) };
-  checkObject(record, fields);
-  return { payload: record, evidence_refs: stages.flatMap(stage => [...stage.evidence_refs]) };
+  return projectResult(record, fields);
 }

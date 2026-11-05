@@ -6,10 +6,8 @@ export interface ManuscriptReviewInput {
   readonly profile: GptExecutionProfile;
 }
 export const parseManuscriptReviewResult = (raw: string, evidence: readonly string[]): ProductPluginOutput => {
-  const payload = v.parseJsonObject(raw, "S08_RESULT");
-  const fields = ["schema_version", "workspace", "decision", "issues", "unresolved", "outputs", "coverage", "resources", "body"];
+  const payload = v.parseJsonObject(raw, "S08_RESULT", "astra-s08-output.v1");
   if (Object.hasOwn(payload, "resolved_issues")) {
-    fields.push("resolved_issues");
     for (const item of v.array(payload.resolved_issues, "S08_RESOLVED_ISSUES_INVALID")) {
       const closure = v.object(item, "S08_ISSUE_CLOSURE_INVALID");
       v.exact(closure, ["issue_id", "object_ref", "object_version", "repaired_ref", "check_ref"], "S08_ISSUE_CLOSURE_FIELDS_INVALID");
@@ -24,8 +22,6 @@ export const parseManuscriptReviewResult = (raw: string, evidence: readonly stri
       }
     }
   }
-  v.exact(payload, fields, "S08_RESULT_FIELDS_INVALID");
-  if (payload.schema_version !== "astra-s08-output.v1") v.fail("S08_RESULT_SCHEMA_INVALID");
   if (!["continue", "supplement", "rework", "blocked"].includes(String(payload.decision))) v.fail("S08_DECISION_INVALID");
   for (const key of ["issues", "unresolved", "outputs", "coverage"]) v.array(payload[key], `S08_${key}_INVALID`);
   v.object(payload.resources, "S08_RESOURCES_INVALID");

@@ -200,6 +200,7 @@ export type GptExecutionContext = Readonly<{
     observationDeadlineAt: number | null,
     reason: GptProviderObservationWaitReason,
   ) => Promise<"reobserve" | "deadline">;
+  settleLiveStoppedEmpty?: boolean;
   stoppedEmptyRetryAuthorized?: boolean;
   stoppedEmptyConversationUrl?: string;
   assertProviderInputAllowed?: () => void;

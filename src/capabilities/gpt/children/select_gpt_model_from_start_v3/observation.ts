@@ -27,7 +27,7 @@ type ModelChoiceState = Readonly<{
 }>;
 
 export const modelChoiceQuery = (name: ModelName): BrowserDomObservationQuery => Object.freeze({
-  queryId: name === "最新" ? "latest-model" : "sol-model",
+  queryId: name === "最新" ? "latest-model" : name === "GPT-6.1 Sol" ? "sol-6-1-model" : "sol-model",
   selector: GPT_MODEL_CHOICE_SELECTOR,
   textEquals: name === "最新" ? GPT_LATEST_MODEL_LABELS : name,
   maxMatches: 2,
@@ -39,7 +39,7 @@ const queries = (name: ModelName) => Object.freeze([
     maxMatches: 2, fields: [] },
 ] satisfies readonly BrowserDomObservationQuery[]);
 
-const projectModelChoiceState = (observation: GptCoherentObservation): ModelChoiceState => {
+const projectModelChoiceState = (observation: GptCoherentObservation, modelName: ModelName): ModelChoiceState => {
   const choice = (name: ModelName): ModelChoice => {
     const row = observation.rows.find((candidate) => candidate.queryId === modelChoiceQuery(name).queryId)!;
     const first = row.matches[0];
@@ -51,8 +51,6 @@ const projectModelChoiceState = (observation: GptCoherentObservation): ModelChoi
       inert: typeof first?.inert === "boolean" ? first.inert : null,
     });
   };
-  const modelRow = observation.rows.find((row) => row.queryId !== "selected-model-count")!;
-  const modelName = modelRow.queryId === "latest-model" ? "最新" : "GPT-5.6 Sol";
   return Object.freeze({
     choice: choice(modelName),
     selectedRawCount: observation.rows.find((row) => row.queryId === "selected-model-count")!.rawCount,
@@ -68,7 +66,7 @@ export const readModelChoiceState = async (
   signal?: AbortSignal,
 ): Promise<ModelChoiceState> => projectModelChoiceState(await readConfirmedCoherentObservation(
   browser, queries(start), (observation) => {
-    const state = projectModelChoiceState(observation);
+    const state = projectModelChoiceState(observation, start);
     if (state.selectedRawCount > 1 || state.choice.count > 1) return "HARD_FAIL";
     const first = state.choice;
     if (first.count === 0) return "TRANSIENT_DOM";
@@ -76,4 +74,4 @@ export const readModelChoiceState = async (
       || first.ariaDisabled === null || first.disabled === null || first.inert !== false) return "HARD_FAIL";
     return "STABLE_ACT";
   }, signal,
-));
+), start);

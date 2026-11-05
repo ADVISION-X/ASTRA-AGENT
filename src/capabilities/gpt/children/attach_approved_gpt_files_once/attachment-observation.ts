@@ -1,3 +1,4 @@
+import { MAX_BROWSER_APPROVED_FILE_BATCH } from "../../../../lib/browser/browser-authority-api.js";
 import { executionFailure } from "../../../../lib/execution-failure.js";
 
 import type { GptChildCapabilityIntent } from "../../contract.js";
@@ -94,7 +95,7 @@ const attachmentSetState = async (
     { queryId: "attachment-composer", selector: GPT_COMPOSER_FORM_SELECTOR, maxMatches: 2, fields: [] },
     {
       queryId: "attachment-items", selector: GPT_ATTACHMENT_ITEM_SELECTOR,
-      scope: { selector: GPT_COMPOSER_FORM_SELECTOR }, maxMatches: 20, fields: ["ariaLabel" as const],
+      scope: { selector: GPT_COMPOSER_FORM_SELECTOR }, maxMatches: MAX_BROWSER_APPROVED_FILE_BATCH, fields: ["ariaLabel" as const],
     },
   ]);
   const row = (queryId: string) => observation.rows.find((candidate) => candidate.queryId === queryId)!;

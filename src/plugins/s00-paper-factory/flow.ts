@@ -14,7 +14,7 @@ import { executeManuscriptReview } from "../s08-manuscript-review/index.js";
 import { executeOriginalityCitationCheck } from "../s09-originality-citation-check/index.js";
 import { executeResearchPackage } from "../s10-research-package/index.js";
 import { executeWorkspaceFlow } from "./workspace-flow.js";
-import { collectFactoryResult, dialogueIdentityKeys, initialResearchIssues, mergeResearchIssues, type ResearchIssues } from "./result-contract.js";
+import { collectFactoryResult, initialResearchIssues, mergeResearchIssues, type ResearchIssues } from "./result-contract.js";
 
 type FactoryInput = Readonly<{ facts: Readonly<Record<string, unknown>>; profile: GptExecutionProfile }>;
 type ReviewEvidence = Readonly<{ inputs: readonly unknown[]; check: unknown }>;
@@ -27,6 +27,7 @@ function coverageFor(payload: Readonly<Record<string, unknown>>, responsibility:
 
 function checkReview(author: ProductPluginOutput, review: ProductPluginOutput, roles: readonly [string, string],
   sourceKey: string, checkKey: string): ReviewEvidence | undefined {
+  if (author.payload === null || review.payload === null) return;
   const result = v.object(review.payload, "FACTORY_REVIEW");
   if (result.decision !== "continue" && (!Array.isArray(result.resolved_issues) || !result.resolved_issues.length)) return;
   const written = v.object(author.payload, "FACTORY_AUTHOR");
@@ -68,6 +69,7 @@ function closeResearchIssues(state: ResearchIssues, closures: unknown, unresolve
 function recordResearchStage(state: ResearchIssues, output: ProductPluginOutput,
   boundary: "repair-step" | "originality-handoff" | "result",
   review?: ReviewEvidence): boolean {
+  if (output.payload === null) return false;
   const payload = v.object(output.payload, "FACTORY_STAGE_OUTPUT_INVALID");
   const unresolved = mergeResearchIssues(state, payload);
   closeResearchIssues(state, payload.resolved_issues, unresolved, review);
@@ -80,6 +82,34 @@ function recordResearchStage(state: ResearchIssues, output: ProductPluginOutput,
     }
   }
   return true;
+}
+
+function requiredStageRef(value: unknown): void {
+  const ref = v.object(value, "FACTORY_STAGE_REFERENCE_REQUIRED");
+  v.text(ref.ref, "FACTORY_STAGE_REFERENCE_REQUIRED");
+  v.text(ref.version, "FACTORY_STAGE_REFERENCE_REQUIRED");
+  v.hash(ref.sha256, "FACTORY_STAGE_REFERENCE_REQUIRED");
+  if (!Number.isSafeInteger(ref.bytes) || Number(ref.bytes) < 1) v.fail("FACTORY_STAGE_REFERENCE_REQUIRED");
+}
+
+function recordStage(state: ResearchIssues, results: ProductPluginOutput[],
+  boundary: Parameters<typeof recordResearchStage>[2], options: Readonly<{
+    proof?: () => ReviewEvidence | undefined;
+    requiredRef?: string;
+    independentReviewOf?: string;
+  }> = {}): boolean {
+  const output = results.at(-1)!;
+  const checked = v.settleMechanicalOutput(output.evidence_refs, () => {
+    const continues = recordResearchStage(state, output, boundary, options.proof?.());
+    if (continues && options.requiredRef) {
+      const stage = v.object(output.payload, "FACTORY_STAGE_OUTPUT_INVALID");
+      requiredStageRef(v.object(stage.body, "FACTORY_STAGE_BODY_REQUIRED")[options.requiredRef]);
+      if (options.independentReviewOf) requiredStageRef(coverageFor(stage, options.independentReviewOf).context_ref);
+    }
+    return continues;
+  });
+  if (checked.payload === null) results[results.length - 1] = checked;
+  return checked.payload === true;
 }
 
 function researchInput(input: FactoryInput, stages: readonly ProductPluginOutput[], state: ResearchIssues): FactoryInput {
@@ -98,20 +128,20 @@ function factoryContractVersion(task: WebsiteAgentTask): string {
   return `${match[1]}.v${match[2]}`;
 }
 
-function profileFor(task: WebsiteAgentTask, controls: Readonly<Record<string, unknown>>, dialogue = false): GptExecutionProfile {
+function profileFor(task: WebsiteAgentTask, controls: Readonly<Record<string, unknown>>): GptExecutionProfile {
   const presale = task.action_id === "prepare_brief";
   const standaloneDialogue = task.action_id === "user_dialogue";
   const chat = presale || standaloneDialogue;
   const policy = chat ? null : v.object(controls.execution_policy, "FACTORY_EXECUTION_POLICY_MISSING");
   const selected = policy ? v.object(policy.profile, "FACTORY_SELECTED_PROFILE_MISSING") : null;
-  const model = chat ? "GPT-5.6 Sol" : v.text(selected!.model, "FACTORY_MODEL_MISSING");
-  if (model !== "最新" && model !== "GPT-5.6 Sol") throw new Error("FACTORY_MODEL_UNSUPPORTED");
-  const requestedReasoningValue = dialogue || standaloneDialogue ? 2 : presale ? 3 : Number(selected!.reasoning);
+  const model = presale ? "GPT-6.1 Sol" : standaloneDialogue ? "GPT-5.6 Sol" : v.text(selected!.model, "FACTORY_MODEL_MISSING");
+  if (model !== "最新" && model !== "GPT-5.6 Sol" && model !== "GPT-6.1 Sol") throw new Error("FACTORY_MODEL_UNSUPPORTED");
+  const requestedReasoningValue = standaloneDialogue ? 2 : presale ? 3 : Number(selected!.reasoning);
   if (!chat && selected!.mode !== "work") throw new Error("FACTORY_WORK_MODE_REQUIRED");
   const profileRef = standaloneDialogue ? `paper-dialogue:${task.parameters.turn_id}`
     : presale ? `paper-presale:${task.parameters.research_tier}` : String(selected!.profile_revision);
   return buildGptExecutionProfile({ profileRef,
-    startModelDisplayName: model, requestedReasoningValue, executorIdentityRef: task.job_id,
+    startModelDisplayName: model, requestedReasoningValue, ...(presale && {requireExactReasoning:true}), executorIdentityRef: task.job_id,
     acceptanceRef: task.business_identity.authorization_ref, acceptanceVersion: factoryContractVersion(task) });
 }
 function assetIds(value: unknown): readonly string[] {
@@ -153,9 +183,11 @@ function prepareInput(task: WebsiteAgentTask, context: SharedExecutionContext): 
     const order = facts.order === null ? null : v.object(facts.order, "C01_CONTEXT_ORDER_INVALID");
     if (facts.project_id !== task.parameters.project_id || facts.input_version !== task.parameters.dialogue_input_version
       || (order?.revision ?? null) !== task.parameters.dialogue_order_revision) throw new Error("C01_CONTEXT_IDENTITY_INVALID");
-    const identity = Object.fromEntries(dialogueIdentityKeys.map(key => [key, task.parameters[key]]));
-    return { facts: { identity, ...languageFacts(task, facts), question: v.text(task.parameters.question, "C01_QUESTION_INVALID"), context: facts },
+    return { facts: { ...languageFacts(task, facts), question: v.text(task.parameters.question, "C01_QUESTION_INVALID"), context: facts },
       profile: profileFor(task, {}) };
+  }
+  if (task.action_id === "prepare_brief") {
+    return { facts: languageFacts(task, null), profile: profileFor(task, {}) };
   }
   const controls: Record<string, unknown> = {};
   for (const material of context.materials) {
@@ -164,60 +196,46 @@ function prepareInput(task: WebsiteAgentTask, context: SharedExecutionContext): 
     }
   }
   const workRequests: Readonly<{ material_id: string; asset_id?: string }>[] = [];
-  for (const material of task.material_refs.filter(m => m.role === "research_input")) {
-    workRequests.push({ material_id: material.material_id });
-  }
   for (const material of context.materials) {
     const selected = material.role === "project_context" && task.action_id === "prepare_workspace" ? controls.project_context
       : material.role === "delivery_plan" ? controls.delivery_plan
         : material.role === "research_context" ? v.object(controls.research_context, "RESEARCH_CONTEXT_INVALID").public_sources : null;
     for (const assetId of new Set(assetIds(selected))) workRequests.push({ material_id: material.material_id, asset_id: assetId });
   }
-  const frozen = task.action_id === "prepare_brief" ? null : v.object(controls.project_context, "FACTORY_PROJECT_CONTEXT_INVALID");
+  const frozen = v.object(controls.project_context, "FACTORY_PROJECT_CONTEXT_INVALID");
   return { facts: { ...languageFacts(task, frozen), controls, work_access_requests: workRequests }, profile: profileFor(task, controls) };
-}
-async function brief(task: WebsiteAgentTask, context: SharedExecutionContext, input: FactoryInput): Promise<readonly ProductPluginOutput[]> {
-  const result = await executeResearchBrief(task, context, input);
-  const payload = v.object(result.payload, "S01_RESULT_INVALID");
-  if (payload.disposition !== "needs_input") return [result];
-  const dialogue = await executeUserDialogue(task, context, {
-    facts: { communication_locale: input.facts.communication_locale, missing_items: payload.missing_items },
-    profile: profileFor(task, {}, true),
-  });
-  return [{ payload: { ...payload, missing_items: v.object(dialogue.payload, "C01_RESULT_INVALID").missing_items },
-    evidence_refs: [...result.evidence_refs, ...dialogue.evidence_refs] }];
 }
 async function evidence(task: WebsiteAgentTask, context: SharedExecutionContext, input: FactoryInput,
   issues: ResearchIssues): Promise<readonly ProductPluginOutput[]> {
   const plan = await executeResearchPlan(task, context, researchInput(input, [], issues));
   const results = [plan];
-  if (!recordResearchStage(issues, plan, "repair-step")) return results;
+  if (!recordStage(issues, results, "repair-step", { requiredRef: "plan_ref" })) return results;
   const materials = await executeMaterialAcquisition(task, context, researchInput(input, results, issues));
   results.push(materials);
-  if (!recordResearchStage(issues, materials, "repair-step")) return results;
+  if (!recordStage(issues, results, "repair-step")) return results;
   const processed = await executeEvidenceProcessing(task, context, researchInput(input, results, issues));
   results.push(processed);
-  if (!recordResearchStage(issues, processed, "repair-step")) return results;
+  if (!recordStage(issues, results, "repair-step")) return results;
   const research = await executeSubtopicResearch(task, context, researchInput(input, results, issues));
   results.push(research);
-  if (!recordResearchStage(issues, research, "repair-step")) return results;
+  if (!recordStage(issues, results, "repair-step", { requiredRef: "evidence_ref", independentReviewOf: "S05" })) return results;
   const verification = await executeEvidenceVerification(task, context, researchInput(input, results, issues));
   results.push(verification);
-  recordResearchStage(issues, verification, "result", checkReview(research, verification, ["S05", "S06"], "evidence_ref", "verification_ref"));
+  recordStage(issues, results, "result", { proof: () => checkReview(research, verification, ["S05", "S06"], "evidence_ref", "verification_ref") });
   return results;
 }
 async function manuscript(task: WebsiteAgentTask, context: SharedExecutionContext, input: FactoryInput,
   issues: ResearchIssues): Promise<readonly ProductPluginOutput[]> {
   const draft = await executeManuscriptAuthoring(task, context, researchInput(input, [], issues));
   const results = [draft];
-  if (!recordResearchStage(issues, draft, "repair-step")) return results;
+  if (!recordStage(issues, results, "repair-step", { requiredRef: "manuscript_ref", independentReviewOf: "S07" })) return results;
   const review = await executeManuscriptReview(task, context, researchInput(input, results, issues));
   results.push(review);
-  if (!recordResearchStage(issues, review, "originality-handoff",
-    checkReview(draft, review, ["S07", "S08"], "manuscript_ref", "review_ref"))) return results;
+  if (!recordStage(issues, results, "originality-handoff",
+    { proof: () => checkReview(draft, review, ["S07", "S08"], "manuscript_ref", "review_ref") })) return results;
   const originality = await executeOriginalityCitationCheck(task, context, researchInput(input, results, issues));
   results.push(originality);
-  recordResearchStage(issues, originality, "result", checkReview(draft, originality, ["S07", "S09"], "manuscript_ref", "originality_ref"));
+  recordStage(issues, results, "result", { proof: () => checkReview(draft, originality, ["S07", "S09"], "manuscript_ref", "originality_ref") });
   return results;
 }
 export async function executePaperFactory(task: WebsiteAgentTask, context: SharedExecutionContext) {
@@ -225,7 +243,7 @@ export async function executePaperFactory(task: WebsiteAgentTask, context: Share
   let results: readonly ProductPluginOutput[];
   let issues: ResearchIssues | undefined;
   switch (task.action_id) {
-    case "prepare_brief": results = await brief(task, context, input); break;
+    case "prepare_brief": results = [await executeResearchBrief(task, context, input)]; break;
     case "user_dialogue": results = [await executeUserDialogue(task, context, input)]; break;
     case "prepare_workspace":
     case "maintain_workspace": results = [await executeWorkspaceFlow(task, context, input)]; break;
@@ -239,5 +257,6 @@ export async function executePaperFactory(task: WebsiteAgentTask, context: Share
     case "archive_delivery": results = [await executeResearchPackage(task, context, input)]; break;
     default: throw new Error("FACTORY_ACTION_UNSUPPORTED");
   }
-  return context.complete(collectFactoryResult(task, context, results, issues));
+  const controls = input.facts.controls as { project_context?: { workspace?: unknown } } | undefined;
+  return context.complete(collectFactoryResult(task, context, results, issues, controls?.project_context?.workspace));
 }
