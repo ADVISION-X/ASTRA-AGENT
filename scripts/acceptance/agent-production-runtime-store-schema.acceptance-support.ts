@@ -73,7 +73,10 @@ const verifyCompleteOutputDurability = async (temporary: string): Promise<void> 
   const linked = task({ jobId: "job:linked-output", productId: "payment_screenshot_observation", actionId: "observe" });
   store.acceptTask(linked, "attempt:output");
   await symlink(directory, path.join(directory, "plugin-tasks", "production-runtime", linked.job_id));
-  assert.throws(() => store.preserveCompleteOutput(linked.job_id, "attempt:output", output, []), /PRODUCTION_COMPLETE_OUTPUT_PATH_INVALID/u);
+  const linkTargetEntries = (await readdir(directory)).sort();
+  assert.throws(() => store.preserveCompleteOutput(linked.job_id, "attempt:output", output, []),
+    /PRODUCTION_STORAGE_SYMLINK_INVALID/u);
+  assert.deepEqual((await readdir(directory)).sort(), linkTargetEntries, "must not create output under the link target");
   const race = task({ jobId: "job:outbox-race", productId: "payment_screenshot_observation", actionId: "observe" });
   store.acceptTask(race, "attempt:output"); const beforeCandidate = zeroInputSeal(store, race);
   const attemptHash = hashCanonical({ attempt_id: "attempt:output" }).slice(7, 23);

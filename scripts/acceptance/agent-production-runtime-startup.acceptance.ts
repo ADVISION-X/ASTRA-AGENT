@@ -27,6 +27,7 @@ import type { BrowserExecutionArtifact } from "../../src/lib/browser/browser-aut
 
 await assertProductionStartupPreflight();
 await assertSessionBindingMismatchStartup();
+await assertSessionBindingMismatchStartup(true);
 await assertShutdownFailureOutcomes();
 
 const shutdownDirectory = await mkdtemp(path.join(tmpdir(), "runtime-drain-"));
@@ -335,6 +336,6 @@ try {
   await rm(directory, { recursive: true, force: true });
 }
 for (const evidenceMode of ["exam.golden", "exam.property"] as const) emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-002-V12", evidenceMode, clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "summary"],
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-002-V1", evidenceMode, clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "summary"],
   locator: `acceptance:agent-production-runtime:credential:${evidenceMode}`,
   observedValue: "Original preflight and session-binding tests rejected typed credential/version failures before mutation, retained the long-lived credential, and kept blocked Shell healthy." });

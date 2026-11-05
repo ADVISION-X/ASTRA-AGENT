@@ -3,8 +3,8 @@
   "capabilityDomain": "architecture-boundary",
   "status": "active",
   "lawIds": [
-    "LAW-ARCHITECTURE-BOUNDARY-001-V22",
-    "LAW-ARCHITECTURE-BOUNDARY-002-V2"
+    "LAW-ARCHITECTURE-BOUNDARY-001-V1",
+    "LAW-ARCHITECTURE-BOUNDARY-002-V1"
   ],
   "ownedPaths": [
     "docs/项目方案/AGENT原attempt无失败事实恢复-完整实现方案.md",

@@ -3,8 +3,8 @@
   "capabilityDomain": "gpt",
   "status": "active",
   "lawIds": [
-    "LAW-GPT-001-V70",
-    "LAW-GPT-002-V35"
+    "LAW-GPT-001-V1",
+    "LAW-GPT-002-V1"
   ],
   "ownedPaths": [
     ".agents/skills/gpt-page-operation-evidence/**",
@@ -13,6 +13,7 @@
     "docs/项目方案/GPT图片附件首次识别替换-完整实现方案.md",
     "docs/项目方案/GPT当前回答停止状态误识别-完整实现方案.md",
     "docs/项目方案/GPT文本回答扫描门禁根治-完整实现方案.md",
+    "docs/项目方案/GPT文本回答空结束单次重试-完整实现方案.md",
     "docs/项目方案/GPT附件入口OR精确迭代-完整实现方案.md",
     "docs/项目方案/GPT页面DOM与代码差距报告.md",
     "docs/项目方案/GPT页面操作子能力实证资料.json",

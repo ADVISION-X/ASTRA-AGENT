@@ -132,8 +132,8 @@ const inspectStartupBoundary = (context: InspectorContext, findings: Finding[], 
   const packageJson = JSON.parse(readFileSync(resolveFromRepo(packagePath), "utf8")) as {
     scripts?: Record<string, string>;
   };
-  if (packageJson.scripts?.["astra:start"] !== startupCommand) {
-    addFinding(findings, lawId, packagePath, "astra:start must inject only the optional local runtime configuration before the sole startup entrypoint.");
+  if (packageJson.scripts?.["grasseye:start"] !== startupCommand) {
+    addFinding(findings, lawId, packagePath, "grasseye:start must inject only the optional local runtime configuration before the sole startup entrypoint.");
   }
   if (!hasNamedImport(launch, "browser-runtime-preflight", "runBrowserRuntimePreflight")
     || !hasCall(launch, "runBrowserRuntimePreflight")) {
@@ -148,8 +148,10 @@ const inspectStartupCommandContract = (
 ): void => {
   const launch = sourceFile(context, launchPath);
   const packageJson = JSON.parse(readFileSync(resolveFromRepo(packagePath), "utf8")) as { scripts?: Record<string, string> };
-  if (packageJson.scripts?.["astra:start"] !== startupCommand) addFinding(findings, lawId, packagePath,
-    "astra:start must remain the one optional .env.local loader and startup entrypoint.", "static.contract");
+  const scripts = packageJson.scripts ?? {};
+  if (scripts["grasseye:start"] !== startupCommand || "astra:start" in scripts
+    || Object.values(scripts).filter((command) => command === startupCommand).length !== 1) addFinding(findings, lawId, packagePath,
+    "grasseye:start must remain the one optional .env.local loader and startup entrypoint.", "static.contract");
   const exportedStarts = launch?.getFunctions().filter((declaration) => declaration.isExported()).length ?? 0;
   if (!launch || exportedStarts !== 0) addFinding(findings, lawId, launchPath,
     "The startup entrypoint must execute directly and must not export a second callable startup contract.", "static.contract");
@@ -163,7 +165,7 @@ const inspectLocalLaunchAuthority = (
   lawId: string,
 ): void => {
   const packageJson = JSON.parse(readFileSync(resolveFromRepo(packagePath), "utf8")) as { scripts?: Record<string, string> };
-  const configuredStartupCommand = packageJson.scripts?.["astra:start"] ?? "";
+  const configuredStartupCommand = packageJson.scripts?.["grasseye:start"] ?? "";
   if (configuredStartupCommand !== startupCommand) {
     addFinding(findings, lawId, packagePath, "The ordinary startup command must load only this repository's optional .env.local and the sole launch entrypoint.");
   }
@@ -186,6 +188,11 @@ const inspectLocalLaunchAuthority = (
     || !hasNamedImport(launch, "browser-application-identity", "ASTRA_LOCAL_PORT")
     || !launch.getVariableDeclaration("port")?.getInitializer()?.getText().includes("ASTRA_LOCAL_PORT")) {
     addFinding(findings, lawId, launchPath, "The sole ASTRA Shell must bind its canonical loopback identity and port 4174.");
+  }
+  const dataRoot = launch.getVariableDeclaration("startupDataDir")?.getInitializerIfKind(SyntaxKind.CallExpression);
+  if (!hasNamedImport(launch, "default-data-dir", "resolveProductionLocalDataDir")
+    || dataRoot?.getExpression().getText() !== "resolveProductionLocalDataDir") {
+    addFinding(findings, lawId, launchPath, "The startup data directory must come from the canonical repository guard.");
   }
   const forbiddenStartupCalls = new Set([
     "enrollProductionRuntimeCloudDevice", "registerOperatorTargetClaim", "acquireJobBoundTargetLease",
@@ -272,8 +279,8 @@ const inspectArtifactResultContract = (
 };
 
 const inspectDomainEvaluation = (context: InspectorContext) => {
-  const lawId = selectLawId(context.planEntry.lawIds, "LAW-STARTUP-ENTRYPOINT-001-V4");
-  const boundaryLawId = selectLawId(context.planEntry.lawIds, "LAW-STARTUP-ENTRYPOINT-002-V5");
+  const lawId = selectLawId(context.planEntry.lawIds, "LAW-STARTUP-ENTRYPOINT-001-V1");
+  const boundaryLawId = selectLawId(context.planEntry.lawIds, "LAW-STARTUP-ENTRYPOINT-002-V6");
   const findings: Finding[] = [];
   const staticCheckReceipts: import("../../shared/inspector-contracts.js").StaticCheckReceipt[] = [];
   recordStaticCheck({ check: "inspectStartupBoundary", findings, implementation: inspectStartupBoundary,
@@ -314,7 +321,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
   };
   return validateStaticInspection(context, {
     capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,
-    lawResults: [lawResult("LAW-STARTUP-ENTRYPOINT-001-V4", staticClauses(11)),
-      lawResult("LAW-STARTUP-ENTRYPOINT-002-V5", staticClauses(0, 1, 2))], inspectedFiles: evaluation.inspectedFiles,
+    lawResults: [lawResult("LAW-STARTUP-ENTRYPOINT-001-V1", staticClauses(11)),
+      lawResult("LAW-STARTUP-ENTRYPOINT-002-V6", staticClauses(0, 1, 2))], inspectedFiles: evaluation.inspectedFiles,
   });
 };

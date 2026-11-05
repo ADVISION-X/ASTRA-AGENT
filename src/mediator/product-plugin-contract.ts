@@ -95,6 +95,7 @@ export interface ProductionRoutePolicy {
   }>[];
   readonly result_schema_version: string;
   readonly result_contract?: Readonly<Record<string, unknown>> | undefined;
+  readonly next_business_actions?: Readonly<Record<string, readonly (ProductionActionId | null)[]>> | undefined;
   readonly relation_kind: "primary" | "followup" | "provider_continuation" | "review";
 }
 

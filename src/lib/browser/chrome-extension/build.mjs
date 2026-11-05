@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
 import { createHash, randomUUID } from "node:crypto";
 import { execFile as execFileCallback } from "node:child_process";
+import { existsSync, lstatSync, realpathSync } from "node:fs";
 import { copyFile, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { dirname, relative, resolve, sep } from "node:path";
 import { promisify } from "node:util";
+import { fileURLToPath } from "node:url";
 import { ASTRA_DATA_DIRECTORY, ASTRA_BROWSER_EXTENSION_ID } from "../profile/browser-application-identity.ts";
 
 const execFile = promisify(execFileCallback);
@@ -20,6 +22,19 @@ const canonical = (value) => JSON.stringify(value);
 const resolveOutputDirectory = () => fixedOutputDirectory;
 
 const readJson = async (filePath) => JSON.parse(await readFile(filePath, "utf8"));
+
+export function assertBrowserArtifactPaths() {
+  const dataDir = resolve(workspaceRoot, ASTRA_DATA_DIRECTORY);
+  for (const directory of [dataDir, buildRoot, fixedOutputDirectory, dirname(releaseRecordPath)]) {
+    const metadata = lstatSync(directory, { throwIfNoEntry: false });
+    if (metadata && !metadata.isDirectory()) throw new Error("BROWSER_UNPACKED_ARTIFACT_INVALID");
+  }
+  for (const file of [releaseRecordPath, resolve(fixedOutputDirectory, "manifest.json"),
+    resolve(fixedOutputDirectory, "extension-build-manifest.json"), resolve(fixedOutputDirectory, "pairing.html")]) {
+    const metadata = lstatSync(file, { throwIfNoEntry: false });
+    if (metadata && (!metadata.isFile() || metadata.nlink !== 1)) throw new Error("BROWSER_UNPACKED_ARTIFACT_INVALID");
+  }
+}
 
 const sourceManifest = async () => {
   const manifestPath = resolve(sourceRoot, "manifest.json");
@@ -125,6 +140,10 @@ const writeExtensionReleaseRecord = async (outputDirectory, extensionTreeHash, r
 };
 
 export const buildChromeExtension = async (argv = process.argv.slice(2)) => {
+  if (workspaceRoot !== resolve(fileURLToPath(new URL("../../../../", import.meta.url)))) {
+    throw new Error("BROWSER_UNPACKED_ARTIFACT_REPOSITORY_MISMATCH");
+  }
+  assertBrowserArtifactPaths();
   const outputDirectory = resolveOutputDirectory(argv);
   const releaseBuildId = `build-${randomUUID()}`;
   await prepareOutputDirectory(outputDirectory);
@@ -134,7 +153,7 @@ export const buildChromeExtension = async (argv = process.argv.slice(2)) => {
   return Object.freeze({ outputDirectory, ...buildManifest, releaseRecordPath, releaseBuildId: releaseRecord.releaseBuildId });
 };
 
-if (process.argv[1] && resolve(process.argv[1]) === resolve(new URL(import.meta.url).pathname)) {
+if (process.argv[1] && existsSync(process.argv[1]) && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const result = await buildChromeExtension();
   process.stdout.write(`${JSON.stringify({ status: "BUILT", outputDirectory: result.outputDirectory, extensionTreeHash: result.extensionTreeHash })}\n`);
 }

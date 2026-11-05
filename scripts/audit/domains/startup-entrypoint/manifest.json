@@ -3,8 +3,8 @@
   "capabilityDomain": "startup-entrypoint",
   "status": "active",
   "lawIds": [
-    "LAW-STARTUP-ENTRYPOINT-001-V4",
-    "LAW-STARTUP-ENTRYPOINT-002-V5"
+    "LAW-STARTUP-ENTRYPOINT-001-V1",
+    "LAW-STARTUP-ENTRYPOINT-002-V6"
   ],
   "ownedPaths": [
     "docs/项目方案/AGENT停止接单与在途工单完整收尾-完整实现方案.md",

@@ -7,7 +7,24 @@ export interface EvidenceVerificationInput {
 }
 export const parseEvidenceVerificationResult = (raw: string, evidence: readonly string[]): ProductPluginOutput => {
   const payload = v.parseJsonObject(raw, "S06_RESULT");
-  v.exact(payload, ["schema_version", "workspace", "decision", "issues", "unresolved", "outputs", "coverage", "resources", "body"], "S06_RESULT_FIELDS_INVALID");
+  const fields = ["schema_version", "workspace", "decision", "issues", "unresolved", "outputs", "coverage", "resources", "body"];
+  if (Object.hasOwn(payload, "resolved_issues")) {
+    fields.push("resolved_issues");
+    for (const item of v.array(payload.resolved_issues, "S06_RESOLVED_ISSUES_INVALID")) {
+      const closure = v.object(item, "S06_ISSUE_CLOSURE_INVALID");
+      v.exact(closure, ["issue_id", "object_ref", "object_version", "repaired_ref", "check_ref"], "S06_ISSUE_CLOSURE_FIELDS_INVALID");
+      for (const key of ["issue_id", "object_ref", "object_version"]) v.text(closure[key], "S06_ISSUE_CLOSURE_IDENTITY_INVALID");
+      for (const key of ["repaired_ref", "check_ref"]) {
+        const ref = v.object(closure[key], "S06_ISSUE_CLOSURE_REF_INVALID");
+        v.exact(ref, ["ref", "version", "sha256", "bytes"], "S06_ISSUE_CLOSURE_REF_INVALID");
+        v.text(ref.ref, "S06_ISSUE_CLOSURE_REF_INVALID");
+        v.text(ref.version, "S06_ISSUE_CLOSURE_REF_INVALID");
+        v.hash(ref.sha256, "S06_ISSUE_CLOSURE_REF_INVALID");
+        if (!Number.isSafeInteger(ref.bytes) || Number(ref.bytes) <= 0) v.fail("S06_ISSUE_CLOSURE_REF_INVALID");
+      }
+    }
+  }
+  v.exact(payload, fields, "S06_RESULT_FIELDS_INVALID");
   if (payload.schema_version !== "astra-s06-output.v1") v.fail("S06_RESULT_SCHEMA_INVALID");
   if (!["continue", "supplement", "rework", "blocked"].includes(String(payload.decision))) v.fail("S06_DECISION_INVALID");
   for (const key of ["issues", "unresolved", "outputs", "coverage"]) v.array(payload[key], `S06_${key}_INVALID`);

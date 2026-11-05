@@ -1,4 +1,10 @@
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
+import { execFileSync } from "node:child_process";
+import { cp, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import type { BrowserRuntimePreflightResult } from "../startup/lib/browser-runtime-preflight.mjs";
+import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 
 import { ensureCurrentBrowserRuntimeArtifact } from "../startup/lib/browser-runtime-artifact.mjs";
 import {
@@ -53,11 +59,16 @@ await assert.rejects(
 );
 
 const opening = getOpenCommand("http://127.0.0.1:4174", "darwin");
-assert.equal(opening.command, "open");
-assert.deepEqual(opening.args, ["-a", opening.browserPath, "http://127.0.0.1:4174"]);
+assert.equal(opening.command, "osascript");
+assert.equal(opening.args[0], "-e");
+const openingScript = opening.args[1]!;
+assert.match(openingScript, /if URL of shellTab is "http:\/\/127\.0\.0\.1:4174\/" then/u);
+assert.ok(openingScript.indexOf('return "reused_shell_tab"') < openingScript.indexOf("make new tab"));
+assert.ok(openingScript.indexOf('return "opened_shell_tab"') < openingScript.indexOf("make new window"));
 assert.equal(opening.args.some(value => /user-data-dir|profile-directory|^--args$|^-n$/u.test(value)), false,
   "startup must reuse the current signed-in Chrome instead of creating a clean profile or another instance");
 assert.throws(() => getOpenCommand("http://127.0.0.1:4173", "darwin"), /ASTRA_WORKBENCH_ORIGIN_MISMATCH/u);
+assert.throws(() => getOpenCommand("http://127.0.0.1:4174/?foreign", "darwin"), /ASTRA_WORKBENCH_ORIGIN_MISMATCH/u);
 const restoreScript = buildChromeWindowRestoreScript("http://127.0.0.1:4174");
 assert.match(restoreScript, /if \(count of windows\) > 0 then return "already_visible"/u);
 assert.doesNotMatch(restoreScript, /make new tab|user-data-dir|profile-directory/u);
@@ -81,5 +92,62 @@ const unsupported = await restoreWorkbenchWindowIfChromeHasNoWindow(
 );
 assert.equal(unsupported.handoffMode, "unsupported_platform_noop");
 assert.equal(restoreRuns, 1, "non-macOS recovery must not launch a second browser path");
+
+const verifyUnpackedWebSocketPreflight = async (): Promise<void> => {
+  const root = process.cwd(), fixture = await mkdtemp(path.join(tmpdir(), "grasseye-artifact-preflight-"));
+  const builder = path.join(fixture, "src/lib/browser/chrome-extension/build.mjs");
+  const preflightUrl = new URL("../startup/lib/browser-runtime-preflight.mjs", import.meta.url).href;
+  const probe = (): BrowserRuntimePreflightResult => JSON.parse(execFileSync(process.execPath,
+    ["--input-type=module", "-e", "const {runBrowserRuntimePreflight}=await import(process.argv[1]);process.stdout.write(JSON.stringify(await runBrowserRuntimePreflight()));", preflightUrl],
+    { cwd: fixture, encoding: "utf8", timeout: 15_000 }));
+  const build = (): void => { execFileSync(process.execPath, [builder], { cwd: fixture, timeout: 30_000, stdio: "pipe" }); };
+  try {
+    await cp(path.join(root, "src"), path.join(fixture, "src"), { recursive: true });
+    await symlink(path.join(root, "node_modules"), path.join(fixture, "node_modules"), "dir");
+    await verifyLinkedBrowserBuildRejected(fixture, build);
+    build();
+    const current = probe();
+    assert.equal(current.status, "READY");
+    assert.equal(current.releaseState, "UNPACKED_WEBSOCKET_AUTHORITY");
+    assert.equal(current.authorityState, "BROWSER_AUTHORITY_ABSENT");
+    assert.equal(current.failureReason, "BROWSER_CHROME_PROFILE_READBACK_NOT_PRODUCTION_VERIFIED");
+    const source = path.join(fixture, "src/lib/browser/chrome-extension/service-worker.ts");
+    await writeFile(source, (await readFile(source, "utf8")) + "\n// fixture input drift\n");
+    const stale = probe();
+    assert.equal(stale.releaseState, "REPAIR_REQUIRED");
+    assert.equal(stale.failureReason, "BROWSER_UNPACKED_ARTIFACT_READBACK_MISMATCH");
+    assert.equal(stale.authorityState, "BROWSER_AUTHORITY_ABSENT");
+    build();
+    const rebuilt = probe();
+    assert.equal(rebuilt.releaseState, "UNPACKED_WEBSOCKET_AUTHORITY");
+    assert.equal(rebuilt.authorityState, "BROWSER_AUTHORITY_ABSENT");
+    assert.notEqual(rebuilt.releaseBuildId, current.releaseBuildId);
+    const manifestPath = path.join(fixture, "src/lib/browser/chrome-extension/manifest.json");
+    const wrongApplication = JSON.parse(await readFile(manifestPath, "utf8")) as Record<string, unknown>;
+    wrongApplication.key = "YW5vdGhlci1hcHBsaWNhdGlvbg==";
+    await writeFile(manifestPath, JSON.stringify(wrongApplication));
+    assert.throws(build, /ASTRA manifest key must derive/u, "a foreign key must never be released under the ASTRA extension ID");
+  } finally {
+    await rm(fixture, { recursive: true, force: true });
+  }
+};
+
+async function verifyLinkedBrowserBuildRejected(fixture: string, build: () => void): Promise<void> {
+  const dataDir = path.join(fixture, ".astra-local");
+  const foreign = path.join(fixture, "foreign-build");
+  await mkdir(path.join(foreign, "extension"), { recursive: true });
+  await mkdir(dataDir);
+  await writeFile(path.join(foreign, "extension", "sentinel"), "foreign extension");
+  const linked = path.join(dataDir, "browser-build");
+  await symlink(foreign, linked, "dir");
+  assert.throws(build, /BROWSER_UNPACKED_ARTIFACT_INVALID/u);
+  assert.equal(await readFile(path.join(foreign, "extension", "sentinel"), "utf8"), "foreign extension");
+  await rm(linked);
+}
+
+await verifyUnpackedWebSocketPreflight();
+emitQualityProofObservation({ lawId: "LAW-STARTUP-ENTRYPOINT-002-V6", evidenceMode: "exam.golden",
+  clauses: ["forbidden:3"], locator: "acceptance:startup:fixed-artifact-sync",
+  observedValue: "current and stale extension artifacts were checked and rebuilt on disk with Browser Authority absent" });
 
 process.stdout.write("STARTUP_BROWSER_ARTIFACT_SYNC_ACCEPTANCE_PASS\n");

@@ -1,9 +1,12 @@
 import projection from "./website-agent-route-policies.v1.json" with { type: "json" };
+import dependency from "../../../../docs/specs/agent-production-runtime/website-agent-task-result.dependency.spec.json" with { type: "json" };
 import type { ProductionRoutePolicy, WebsiteAgentTask } from "../../../mediator/product-plugin-contract.js";
 export type { ProductionRoutePolicy } from "../../../mediator/product-plugin-contract.js";
 
 if (projection.schema_version !== "website-agent-route-policies.v1"
-  || projection.contract_id !== "astra.website-agent-task-result" || projection.contract_version !== 2) {
+  || projection.contract_id !== dependency.contract.contractId
+  || projection.contract_version !== dependency.contract.version
+  || projection.contract_version !== dependency.version) {
   throw new Error("PRODUCTION_ROUTE_POLICY_PROJECTION_INVALID");
 }
 export const productionRoutePolicies: readonly ProductionRoutePolicy[] = Object.freeze(
@@ -40,12 +43,35 @@ function assertMaterialRoles(task: WebsiteAgentTask, route: ProductionRoutePolic
   }
   if (ordinal !== task.material_refs.length) throw new Error("AGENT_ROUTE_MATERIAL_SET_INVALID");
 }
+
+const parameterTypes: Readonly<Record<string, string>> = projection.parameter_types;
+function matchesParameterShape(type: string | undefined, value: unknown): boolean {
+  switch (type) {
+    case "positive_integer": return Number.isSafeInteger(value) && Number(value) > 0;
+    case "nonnegative_integer": return Number.isSafeInteger(value) && Number(value) >= 0;
+    case "nullable_positive_integer": return value === null || Number.isSafeInteger(value) && Number(value) > 0;
+    case "uuid": return typeof value === "string" && /^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/iu.test(value);
+    case "sha256": return typeof value === "string" && /^sha256:[a-f0-9]{64}$/u.test(value);
+    case "string": return typeof value === "string";
+    // Website owns the allowed business values for these string-shaped parameters.
+    case "nullable_non_empty_string": return value === null || typeof value === "string" && !!value.trim();
+    case "non_empty_string":
+    case "research_tier":
+    case "research_purpose":
+    case "payment_observation_version": return typeof value === "string" && value.trim().length > 0;
+    default: return false;
+  }
+}
+
 export function assertProductionTaskRoutePolicy(task: WebsiteAgentTask): void {
   const route = productionRoutePolicy(task.product_id, task.action_id);
   const actual = Object.keys(task.parameters).sort();
   const expected = [...route.required_parameter_keys].sort();
   if (actual.length !== expected.length || actual.some((key, index) => key !== expected[index])) {
     throw new Error("AGENT_ROUTE_PARAMETER_SET_INVALID");
+  }
+  if (expected.some(key => !matchesParameterShape(parameterTypes[key], task.parameters[key]))) {
+    throw new Error("AGENT_ROUTE_PARAMETER_SHAPE_INVALID");
   }
   assertMaterialRoles(task, route);
   const parent = [task.parent_task_ref, task.parent_result_ref, task.parent_result_hash].filter(x => x !== undefined);

@@ -3,9 +3,9 @@
   "capabilityDomain": "app-shell-ui",
   "status": "active",
   "lawIds": [
-    "LAW-APP-SHELL-UI-001-V4",
+    "LAW-APP-SHELL-UI-001-V1",
     "LAW-APP-SHELL-UI-002-V1",
-    "LAW-APP-SHELL-UI-003-V3"
+    "LAW-APP-SHELL-UI-003-V1"
   ],
   "ownedPaths": [
     "docs/current-sub-capabilities.zh.md",

@@ -1,8 +1,8 @@
-import { ASTRA_DATA_DIRECTORY } from "../../src/lib/browser/profile/browser-application-identity.js";
 import path from "node:path";
 
 import Database from "better-sqlite3";
 
+import { resolveProductionLocalDataDir } from "../../src/lib/local-runtime/default-data-dir.js";
 import { readProductionRuntimeStorageInventory, type ProductionRuntimeStorageResponsibilities } from
   "../../src/lib/local-runtime/production/runtime-storage-inventory.js";
 
@@ -10,7 +10,7 @@ if (JSON.stringify(process.argv.slice(2)) !== JSON.stringify(["--dry-run"])) {
   throw new Error("PRODUCTION_STORAGE_MAINTENANCE_DRY_RUN_ONLY");
 }
 
-const dataDir = path.resolve(process.env.GRASSEYE_DATA_DIR ?? path.join(process.cwd(), ASTRA_DATA_DIRECTORY));
+const dataDir = resolveProductionLocalDataDir();
 const databasePath = path.join(dataDir, "production-runtime.sqlite");
 const database = new Database(databasePath, { readonly: true, fileMustExist: true });
 let responsibilities: ProductionRuntimeStorageResponsibilities;

@@ -76,8 +76,8 @@ const buildZombieGraphState = (
     moduleGraph,
   });
   return {
-    antiEvasionLawId: selectLawId(lawIds, "LAW-CODE-PURITY-001-V6"),
-    dynamicImportLawId: selectLawId(lawIds, "LAW-CODE-PURITY-002-V3"),
+    antiEvasionLawId: selectLawId(lawIds, "LAW-CODE-PURITY-001-V1"),
+    dynamicImportLawId: selectLawId(lawIds, "LAW-CODE-PURITY-002-V1"),
     liveEntryState,
     moduleGraph,
     namespaceUsage: scanZombieNamespaceUsage({
@@ -91,7 +91,7 @@ const buildZombieGraphState = (
     productionReachability,
     reachability,
     symbolGraph: buildZombieSymbolGraph(governedFiles),
-    zombieLawId: selectLawId(lawIds, "LAW-CODE-PURITY-003-V5"),
+    zombieLawId: selectLawId(lawIds, "LAW-CODE-PURITY-003-V1"),
   };
 };
 

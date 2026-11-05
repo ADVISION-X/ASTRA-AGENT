@@ -42,7 +42,7 @@ for (const path of repositoryPaths().filter(governedPath)) {
 
 process.stdout.write("[ACCEPTANCE][app-shell-retired-authority-absence] PASS\n");
 emitQualityProofObservation({
-  lawId: "LAW-APP-SHELL-UI-003-V3",
+  lawId: "LAW-APP-SHELL-UI-003-V1",
   evidenceMode: "exam.golden",
   clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "summary"],
   locator: "acceptance:app-shell-ui:retired-startup-blueprint-physical-absence",

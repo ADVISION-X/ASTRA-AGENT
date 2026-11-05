@@ -1,7 +1,7 @@
 {
   "schema_version": "website-agent-route-policies.v1",
   "contract_id": "astra.website-agent-task-result",
-  "contract_version": 2,
+  "contract_version": 4,
   "parameter_types": {
     "observation_schema_version": "payment_observation_version",
     "submission_id": "non_empty_string",
@@ -17,7 +17,14 @@
     "tier": "research_tier",
     "expected_revision": "positive_integer",
     "parent_result_hash": "sha256",
-    "purpose": "research_purpose"
+    "purpose": "research_purpose",
+    "turn_id": "uuid",
+    "dialogue_input_version": "nonnegative_integer",
+    "dialogue_order_revision": "nullable_positive_integer",
+    "dialogue_context_hash": "sha256",
+    "question": "string",
+    "communication_locale": "nullable_non_empty_string",
+    "manuscript_locale": "nullable_non_empty_string"
   },
   "routes": [
     {
@@ -106,7 +113,9 @@
         "submission_id",
         "original_text",
         "input_version",
-        "research_tier"
+        "research_tier",
+        "communication_locale",
+        "manuscript_locale"
       ],
       "material_roles": [
         {
@@ -259,7 +268,9 @@
         "tier",
         "expected_revision",
         "parent_result_hash",
-        "purpose"
+        "purpose",
+        "communication_locale",
+        "manuscript_locale"
       ],
       "material_roles": [
         {
@@ -645,6 +656,29 @@
                 "nullable": true
               }
             }
+          },
+          "next_business_action": {
+            "enum": [
+              "build_evidence",
+              null,
+              "compose_manuscript"
+            ]
+          },
+          "public_updates": {
+            "type": "array",
+            "max_items": 3,
+            "items": {
+              "type": "object",
+              "field_types": {
+                "text": {
+                  "type": "non_empty_string",
+                  "max_codepoints": 240
+                },
+                "source_ref": {
+                  "type": "non_empty_string"
+                }
+              }
+            }
           }
         },
         "required_responsibilities": [
@@ -657,11 +691,28 @@
           "Read actual original materials and full required manuscript. Record unread limits. S06/S08 use independent Work contexts.",
           "Use only this frozen input, purchased profile, authorized workspace and bounded scope. Never accept customer additions mid-run.",
           "Preserve original producing attempt/fence. Same-attempt result delivery under a regranted fence must not rewrite the payload or repeat provider/file effects.",
-          "Return necessary decisions, problem locations, versioned refs and actual tool facts; never research body, prompts, credentials or invented hashes."
+          "Return necessary decisions, problem locations, versioned refs and actual tool facts; never research body, prompts, credentials or invented hashes.",
+          "S00 owns the internal professional flow and proposes next_business_action; Website checks the declared business boundary, never infers a skill target. public_updates are confidentially cleaned summaries of actual Work observations; each source_ref must match existing envelope evidence_refs. No safe update means an empty array."
         ],
         "public_reference_requirement": "outputs须逐项包含本次实际使用的公共R2原件的稳定object_key、sha256及bytes；私有材料不得跨单共享。"
       },
-      "relation_kind": "primary"
+      "relation_kind": "primary",
+      "next_business_actions": {
+        "continue": [
+          "build_evidence"
+        ],
+        "supplement": [
+          "build_evidence",
+          "compose_manuscript"
+        ],
+        "rework": [
+          "build_evidence",
+          "compose_manuscript"
+        ],
+        "blocked": [
+          null
+        ]
+      }
     },
     {
       "product_id": "astra_paper_research",
@@ -677,7 +728,9 @@
         "tier",
         "expected_revision",
         "parent_result_hash",
-        "purpose"
+        "purpose",
+        "communication_locale",
+        "manuscript_locale"
       ],
       "material_roles": [
         {
@@ -1068,6 +1121,29 @@
                 "nullable": true
               }
             }
+          },
+          "next_business_action": {
+            "enum": [
+              "compose_manuscript",
+              null,
+              "build_evidence"
+            ]
+          },
+          "public_updates": {
+            "type": "array",
+            "max_items": 3,
+            "items": {
+              "type": "object",
+              "field_types": {
+                "text": {
+                  "type": "non_empty_string",
+                  "max_codepoints": 240
+                },
+                "source_ref": {
+                  "type": "non_empty_string"
+                }
+              }
+            }
           }
         },
         "required_responsibilities": [
@@ -1082,11 +1158,28 @@
           "Read actual original materials and full required manuscript. Record unread limits. S06/S08 use independent Work contexts.",
           "Use only this frozen input, purchased profile, authorized workspace and bounded scope. Never accept customer additions mid-run.",
           "Preserve original producing attempt/fence. Same-attempt result delivery under a regranted fence must not rewrite the payload or repeat provider/file effects.",
-          "Return necessary decisions, problem locations, versioned refs and actual tool facts; never research body, prompts, credentials or invented hashes."
+          "Return necessary decisions, problem locations, versioned refs and actual tool facts; never research body, prompts, credentials or invented hashes.",
+          "S00 owns the internal professional flow and proposes next_business_action; Website checks the declared business boundary, never infers a skill target. public_updates are confidentially cleaned summaries of actual Work observations; each source_ref must match existing envelope evidence_refs. No safe update means an empty array."
         ],
         "public_reference_requirement": "outputs须逐项包含本次实际使用的公共R2原件的稳定object_key、sha256及bytes；私有材料不得跨单共享。"
       },
-      "relation_kind": "primary"
+      "relation_kind": "primary",
+      "next_business_actions": {
+        "continue": [
+          "compose_manuscript"
+        ],
+        "supplement": [
+          "build_evidence",
+          "compose_manuscript"
+        ],
+        "rework": [
+          "build_evidence",
+          "compose_manuscript"
+        ],
+        "blocked": [
+          null
+        ]
+      }
     },
     {
       "product_id": "astra_paper_research",
@@ -1102,7 +1195,9 @@
         "tier",
         "expected_revision",
         "parent_result_hash",
-        "purpose"
+        "purpose",
+        "communication_locale",
+        "manuscript_locale"
       ],
       "material_roles": [
         {
@@ -1493,6 +1588,30 @@
                 "nullable": true
               }
             }
+          },
+          "next_business_action": {
+            "enum": [
+              "prepare_delivery",
+              null,
+              "build_evidence",
+              "compose_manuscript"
+            ]
+          },
+          "public_updates": {
+            "type": "array",
+            "max_items": 3,
+            "items": {
+              "type": "object",
+              "field_types": {
+                "text": {
+                  "type": "non_empty_string",
+                  "max_codepoints": 240
+                },
+                "source_ref": {
+                  "type": "non_empty_string"
+                }
+              }
+            }
           }
         },
         "required_responsibilities": [
@@ -1505,11 +1624,28 @@
           "Read actual original materials and full required manuscript. Record unread limits. S06/S08 use independent Work contexts.",
           "Use only this frozen input, purchased profile, authorized workspace and bounded scope. Never accept customer additions mid-run.",
           "Preserve original producing attempt/fence. Same-attempt result delivery under a regranted fence must not rewrite the payload or repeat provider/file effects.",
-          "Return necessary decisions, problem locations, versioned refs and actual tool facts; never research body, prompts, credentials or invented hashes."
+          "Return necessary decisions, problem locations, versioned refs and actual tool facts; never research body, prompts, credentials or invented hashes.",
+          "S00 owns the internal professional flow and proposes next_business_action; Website checks the declared business boundary, never infers a skill target. public_updates are confidentially cleaned summaries of actual Work observations; each source_ref must match existing envelope evidence_refs. No safe update means an empty array."
         ],
         "public_reference_requirement": "outputs须逐项包含本次实际使用的公共R2原件的稳定object_key、sha256及bytes；私有材料不得跨单共享。"
       },
-      "relation_kind": "primary"
+      "relation_kind": "primary",
+      "next_business_actions": {
+        "continue": [
+          "prepare_delivery"
+        ],
+        "supplement": [
+          "build_evidence",
+          "compose_manuscript"
+        ],
+        "rework": [
+          "build_evidence",
+          "compose_manuscript"
+        ],
+        "blocked": [
+          null
+        ]
+      }
     },
     {
       "product_id": "astra_paper_research",
@@ -1525,7 +1661,9 @@
         "tier",
         "expected_revision",
         "parent_result_hash",
-        "purpose"
+        "purpose",
+        "communication_locale",
+        "manuscript_locale"
       ],
       "material_roles": [
         {
@@ -1996,6 +2134,30 @@
                 "nullable": true
               }
             }
+          },
+          "next_business_action": {
+            "enum": [
+              "archive_delivery",
+              null,
+              "build_evidence",
+              "compose_manuscript"
+            ]
+          },
+          "public_updates": {
+            "type": "array",
+            "max_items": 3,
+            "items": {
+              "type": "object",
+              "field_types": {
+                "text": {
+                  "type": "non_empty_string",
+                  "max_codepoints": 240
+                },
+                "source_ref": {
+                  "type": "non_empty_string"
+                }
+              }
+            }
           }
         },
         "required_responsibilities": [
@@ -2010,11 +2172,28 @@
           "Read actual original materials and full required manuscript. Record unread limits. S06/S08 use independent Work contexts.",
           "Use only this frozen input, purchased profile, authorized workspace and bounded scope. Never accept customer additions mid-run.",
           "Preserve original producing attempt/fence. Same-attempt result delivery under a regranted fence must not rewrite the payload or repeat provider/file effects.",
-          "Return necessary decisions, problem locations, versioned refs and actual tool facts; never research body, prompts, credentials or invented hashes."
+          "Return necessary decisions, problem locations, versioned refs and actual tool facts; never research body, prompts, credentials or invented hashes.",
+          "S00 owns the internal professional flow and proposes next_business_action; Website checks the declared business boundary, never infers a skill target. public_updates are confidentially cleaned summaries of actual Work observations; each source_ref must match existing envelope evidence_refs. No safe update means an empty array."
         ],
         "public_reference_requirement": "outputs须逐项包含本次实际使用的公共R2原件的稳定object_key、sha256及bytes；私有材料不得跨单共享。"
       },
-      "relation_kind": "primary"
+      "relation_kind": "primary",
+      "next_business_actions": {
+        "continue": [
+          "archive_delivery"
+        ],
+        "supplement": [
+          "build_evidence",
+          "compose_manuscript"
+        ],
+        "rework": [
+          "build_evidence",
+          "compose_manuscript"
+        ],
+        "blocked": [
+          null
+        ]
+      }
     },
     {
       "product_id": "astra_paper_research",
@@ -2030,7 +2209,9 @@
         "tier",
         "expected_revision",
         "parent_result_hash",
-        "purpose"
+        "purpose",
+        "communication_locale",
+        "manuscript_locale"
       ],
       "material_roles": [
         {
@@ -2486,6 +2667,29 @@
                 "nullable": true
               }
             }
+          },
+          "next_business_action": {
+            "enum": [
+              null,
+              "build_evidence",
+              "compose_manuscript"
+            ]
+          },
+          "public_updates": {
+            "type": "array",
+            "max_items": 3,
+            "items": {
+              "type": "object",
+              "field_types": {
+                "text": {
+                  "type": "non_empty_string",
+                  "max_codepoints": 240
+                },
+                "source_ref": {
+                  "type": "non_empty_string"
+                }
+              }
+            }
           }
         },
         "required_responsibilities": [
@@ -2499,11 +2703,22 @@
           "Read actual original materials and full required manuscript. Record unread limits. S06/S08 use independent Work contexts.",
           "Use only this frozen input, purchased profile, authorized workspace and bounded scope. Never accept customer additions mid-run.",
           "Preserve original producing attempt/fence. Same-attempt result delivery under a regranted fence must not rewrite the payload or repeat provider/file effects.",
-          "Return necessary decisions, problem locations, versioned refs and actual tool facts; never research body, prompts, credentials or invented hashes."
+          "Return necessary decisions, problem locations, versioned refs and actual tool facts; never research body, prompts, credentials or invented hashes.",
+          "S00 owns the internal professional flow and proposes next_business_action; Website checks the declared business boundary, never infers a skill target. public_updates are confidentially cleaned summaries of actual Work observations; each source_ref must match existing envelope evidence_refs. No safe update means an empty array."
         ],
         "public_reference_requirement": "outputs须逐项包含本次实际使用的公共R2原件的稳定object_key、sha256及bytes；私有材料不得跨单共享。"
       },
-      "relation_kind": "primary"
+      "relation_kind": "primary",
+      "next_business_actions": {
+        "continue": [
+          null
+        ],
+        "supplement": [],
+        "rework": [],
+        "blocked": [
+          null
+        ]
+      }
     },
     {
       "product_id": "astra_paper_research",
@@ -2519,7 +2734,9 @@
         "tier",
         "expected_revision",
         "parent_result_hash",
-        "purpose"
+        "purpose",
+        "communication_locale",
+        "manuscript_locale"
       ],
       "material_roles": [
         {
@@ -2941,6 +3158,28 @@
                 "nullable": true
               }
             }
+          },
+          "next_business_action": {
+            "enum": [
+              null,
+              "prepare_delivery"
+            ]
+          },
+          "public_updates": {
+            "type": "array",
+            "max_items": 3,
+            "items": {
+              "type": "object",
+              "field_types": {
+                "text": {
+                  "type": "non_empty_string",
+                  "max_codepoints": 240
+                },
+                "source_ref": {
+                  "type": "non_empty_string"
+                }
+              }
+            }
           }
         },
         "required_responsibilities": [
@@ -2951,12 +3190,101 @@
           "Read actual original materials and full required manuscript. Record unread limits. S06/S08 use independent Work contexts.",
           "Use only this frozen input, purchased profile, authorized workspace and bounded scope. Never accept customer additions mid-run.",
           "Preserve original producing attempt/fence. Same-attempt result delivery under a regranted fence must not rewrite the payload or repeat provider/file effects.",
-          "Return necessary decisions, problem locations, versioned refs and actual tool facts; never research body, prompts, credentials or invented hashes."
+          "Return necessary decisions, problem locations, versioned refs and actual tool facts; never research body, prompts, credentials or invented hashes.",
+          "S00 owns the internal professional flow and proposes next_business_action; Website checks the declared business boundary, never infers a skill target. public_updates are confidentially cleaned summaries of actual Work observations; each source_ref must match existing envelope evidence_refs. No safe update means an empty array."
         ],
         "public_reference_requirement": "outputs须逐项包含本次实际使用的公共R2原件的稳定object_key、sha256及bytes；私有材料不得跨单共享。",
         "original_delivery_requirement": "inspect及repair_files的original_delivery_ref必须绑定research_context.original_delivery.manuscript_ref；该上下文同时给原归档/脚本及文件身份，不得猜测或改研究内容。"
       },
-      "relation_kind": "primary"
+      "relation_kind": "primary",
+      "next_business_actions": {
+        "continue": [
+          null,
+          "prepare_delivery"
+        ],
+        "supplement": [],
+        "rework": [],
+        "blocked": [
+          null
+        ]
+      }
+    },
+    {
+      "product_id": "astra_paper_research",
+      "action_id": "user_dialogue",
+      "required_parameter_keys": [
+        "turn_id",
+        "project_id",
+        "dialogue_input_version",
+        "dialogue_order_revision",
+        "dialogue_context_hash",
+        "question",
+        "communication_locale"
+      ],
+      "material_roles": [
+        {
+          "role": "dialogue_context",
+          "trust_class": "locked_fact",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        },
+        {
+          "role": "result_contract",
+          "trust_class": "instruction",
+          "may_issue_instruction": true,
+          "media_types": [
+            "application/json"
+          ],
+          "storage_class": "private_owner_scoped",
+          "owner_scope_policy": "required"
+        }
+      ],
+      "result_schema_version": "astra-user-dialogue.v1",
+      "relation_kind": "primary",
+      "result_contract": {
+        "schema_version": "astra-dialogue-result-contract.v1",
+        "field_types": {
+          "schema_version": {
+            "const": "astra-user-dialogue.v1"
+          },
+          "turn_id": {
+            "type": "uuid"
+          },
+          "project_id": {
+            "type": "uuid"
+          },
+          "dialogue_input_version": {
+            "type": "nonnegative_integer"
+          },
+          "dialogue_order_revision": {
+            "type": "positive_integer",
+            "nullable": true
+          },
+          "dialogue_context_hash": {
+            "type": "sha256"
+          },
+          "disposition": {
+            "enum": [
+              "answer",
+              "needs_input",
+              "refer_operator",
+              "new_order"
+            ]
+          },
+          "answer": {
+            "type": "non_empty_string"
+          },
+          "requirements": {
+            "type": "string_array"
+          }
+        },
+        "unknown_field_policy": "reject",
+        "semantics": "S00 calls C01 Chat only. Explain the frozen authorized customer facts; do not change order/input/payment or inspect Work final answers. Requirements are pre-sale candidates requiring explicit intake and S01. Return only customer-safe plain text. Echo the original turn and context hash."
+      }
     }
   ]
 }

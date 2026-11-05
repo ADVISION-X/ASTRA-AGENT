@@ -9,18 +9,20 @@ const FINGERPRINT_ROOTS = [
 
 const INCLUDED_EXTENSIONS = new Set([".ts", ".mjs", ".json"]);
 
-const walkFiles = (absoluteDir) =>
+const walkFiles = (absoluteDir, pluginRoot) =>
   readdirSync(absoluteDir, { withFileTypes: true }).flatMap((entry) => {
     const absolutePath = path.join(absoluteDir, entry.name);
-    if (entry.isDirectory()) return walkFiles(absolutePath);
-    if (!entry.isFile() || !INCLUDED_EXTENSIONS.has(path.extname(entry.name))) return [];
+    if (entry.isDirectory()) return walkFiles(absolutePath, pluginRoot);
+    if (!entry.isFile()) return [];
+    const productSkill = entry.name === "SKILL.md" && absolutePath.startsWith(pluginRoot + path.sep);
+    if (!productSkill && !INCLUDED_EXTENSIONS.has(path.extname(entry.name))) return [];
     return [absolutePath];
   });
 
 export function buildStartupSourceFingerprint(rootDir) {
   const hash = createHash("sha256");
   const files = FINGERPRINT_ROOTS
-    .flatMap((relativeRoot) => walkFiles(path.join(rootDir, relativeRoot)))
+    .flatMap((relativeRoot) => walkFiles(path.join(rootDir, relativeRoot), path.join(rootDir, "src/plugins")))
     .sort();
 
   for (const absolutePath of files) {

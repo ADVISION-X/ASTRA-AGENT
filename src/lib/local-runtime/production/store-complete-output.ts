@@ -86,7 +86,7 @@ export const readCompleteOutputFile = (dataDir: string, task: WebsiteAgentTask,
       if (readdirSync(directory).length) return fail("PRODUCTION_COMPLETE_OUTPUT_INCOMPLETE");
       return null;
     }
-    if (stat.isSymbolicLink() || !stat.isFile() || (stat.mode & 0o077) !== 0) {
+    if (stat.isSymbolicLink() || !stat.isFile() || stat.nlink !== 1 || (stat.mode & 0o077) !== 0) {
       return fail("PRODUCTION_COMPLETE_OUTPUT_PATH_INVALID");
     }
     return validateOutput(readFileSync(file), task, attemptId);

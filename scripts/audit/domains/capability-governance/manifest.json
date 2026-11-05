@@ -3,8 +3,8 @@
   "capabilityDomain": "capability-governance",
   "status": "active",
   "lawIds": [
-    "LAW-CAPABILITY-GOVERNANCE-001-V21",
-    "LAW-CAPABILITY-GOVERNANCE-002-V5"
+    "LAW-CAPABILITY-GOVERNANCE-001-V1",
+    "LAW-CAPABILITY-GOVERNANCE-002-V1"
   ],
   "ownedPaths": [
     "docs/governance/法案系统建设说明书-冻结定稿版.pdf",

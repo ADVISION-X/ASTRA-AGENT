@@ -26,7 +26,7 @@ const findingIds = (files: Record<string, string>): Set<string> => new Set(
 );
 
 const mechanicalContentFindingIds = (files: Record<string, string>): Set<string> => new Set(
-  inspectCapabilityGovernanceProject(projectWith(files), false, "LAW-CAPABILITY-GOVERNANCE-002-V5")
+  inspectCapabilityGovernanceProject(projectWith(files), false, "LAW-CAPABILITY-GOVERNANCE-002-V1")
     .findings.map((finding) => finding.checkId),
 );
 
@@ -69,7 +69,7 @@ assert.ok(findingIds({
 const sourceOfTruth = loadCapabilitySourceOfTruth();
 const sourceTruthFindings: Array<{ checkId: string }> = [];
 pushCapabilitySourceOfTruthFindings({
-  admissionLawId: "LAW-CAPABILITY-GOVERNANCE-001-V21",
+  admissionLawId: "LAW-CAPABILITY-GOVERNANCE-001-V1",
   actualCapabilityRoots: new Set([...sourceOfTruth.lawActiveCapabilityRoots, "src/capabilities/amazon-legacy"]),
   pushFinding: (finding) => sourceTruthFindings.push(finding),
 });
@@ -117,12 +117,12 @@ assert.equal(blueprintMarkdownBodyValid(blueprintWithoutAcceptanceEvidence), fal
 
 console.log("capability-governance-acceptance-ok");
 emitQualityProofObservation({
-  lawId: "LAW-CAPABILITY-GOVERNANCE-001-V21", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:10","forbidden:11","forbidden:2","forbidden:3","forbidden:4","forbidden:5","forbidden:6","forbidden:7","forbidden:8","forbidden:9","summary"],
+  lawId: "LAW-CAPABILITY-GOVERNANCE-001-V1", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:10","forbidden:11","forbidden:2","forbidden:3","forbidden:4","forbidden:5","forbidden:6","forbidden:7","forbidden:8","forbidden:9","summary"],
   locator: "acceptance:capability-governance:mutant-matrix",
   observedValue: "seven capability-governance clause mutants rejected by the capability-governance inspector",
 });
 emitQualityProofObservation({
-  lawId: "LAW-CAPABILITY-GOVERNANCE-002-V5", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","forbidden:4","forbidden:5","forbidden:6","summary"],
+  lawId: "LAW-CAPABILITY-GOVERNANCE-002-V1", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","forbidden:4","forbidden:5","forbidden:6","summary"],
   locator: "acceptance:capability-governance:mechanical-content-mutant",
   observedValue: "deterministic semantic-quality gate mutant rejected by the capability-governance inspector",
 });

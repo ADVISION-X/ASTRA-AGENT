@@ -131,7 +131,7 @@ export const deviceStatusWithoutAdmission = (
 
 export const validDeviceCredential = {
   protocol_version: "xuanxue-ai-production-v6",
-  server_base_url: "http://127.0.0.1:4322",
+  server_base_url: "https://127.0.0.1:4343",
   environment_id: "production",
   origin: "http://127.0.0.1:4174",
   device_id: "device:projection-owner-test",

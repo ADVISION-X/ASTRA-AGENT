@@ -18,7 +18,7 @@ import { ProviderRateLimitControl } from "./provider-rate-limit-control.js";
 import { typedRuntimeTransportFailure } from "./transport-failure.js";
 import { ProductionWorkerSession } from "./worker-session.js";
 import { readProductionOperationsSnapshot } from "./operations-snapshot.js";
-import type { ProductionRuntimeHandle, ProductionRuntimeHealth } from "./runtime-contract.js";
+import { isProductionSessionBindingFailure, type ProductionRuntimeHandle, type ProductionRuntimeHealth } from "./runtime-contract.js";
 import {
   readHealth,
   runtimeState,
@@ -372,8 +372,10 @@ export const startProductionRuntime = async (
   const sessionFailure = await establishCloudSession(input, state, startSpan);
   const transportFailure = sessionFailure === null
     ? null : typedRuntimeTransportFailure(sessionFailure);
-  if (transportFailure?.httpStatus === 409
-    && failureCode(sessionFailure) === "AI_SESSION_BINDING_MISMATCH") {
+  const sessionFailureCode = failureCode(sessionFailure);
+  if (isProductionSessionBindingFailure(sessionFailureCode)
+    && (sessionFailureCode === "PRODUCTION_SESSION_BINDING_INVALID"
+      || transportFailure?.httpStatus === 409 || transportFailure?.httpStatus === 401)) {
     return blockedRuntimeHandle(
       input, store, sessionFailure, productionControlContractVersion,
     );

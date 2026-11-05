@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { lstatSync } from "node:fs";
 import { lstat, mkdir, open, readFile, rename, rm } from "node:fs/promises";
 import path from "node:path";
 
@@ -24,6 +25,7 @@ import {
 import { PRODUCTION_BUSINESS_CAPACITY_MAX } from "./control-contract-dependency.js";
 import { ProductionWorkerSession } from "./worker-session.js";
 import { ProductionRuntimeStore } from "./store.js";
+import { assertProductionFileLinks } from "./runtime-storage-inventory.js";
 import type { CompleteProductionOutput } from "./store-complete-output.js";
 import { executionFailure } from "../../execution-failure.js";
 import { productionCloudFetch } from "./cloud-transport.js";
@@ -96,8 +98,10 @@ export async function claimProductionTasks(
 const writeProductionMaterial = async (destination: string, bytes: Uint8Array): Promise<void> => {
   try {
     const metadata = await lstat(destination);
+    if (!metadata.isFile()) throw executionFailure("failed", "MATERIAL_LOCAL_IDENTITY_CONFLICT");
+    assertProductionFileLinks(destination, metadata);
     const existing = await readFile(destination);
-    if (!metadata.isFile() || existing.byteLength !== bytes.byteLength
+    if (existing.byteLength !== bytes.byteLength
       || sha256(existing) !== sha256(bytes)) {
       throw executionFailure("failed", "MATERIAL_LOCAL_IDENTITY_CONFLICT");
     }
@@ -128,6 +132,8 @@ export async function downloadProductionMaterials(
   signal: AbortSignal,
 ): Promise<readonly LocalProductionMaterial[]> {
   signal.throwIfAborted();
+  const metadata = lstatSync(materialDir, { throwIfNoEntry: false });
+  if (metadata && !metadata.isDirectory()) throw executionFailure("failed", "PRODUCTION_STORAGE_STRUCTURE_INVALID");
   await mkdir(materialDir, { recursive: true, mode: 0o700 });
   const verified: LocalProductionMaterial[] = [];
   const ordered = [...job.material_refs].sort((a, b) => a.ordinal - b.ordinal);

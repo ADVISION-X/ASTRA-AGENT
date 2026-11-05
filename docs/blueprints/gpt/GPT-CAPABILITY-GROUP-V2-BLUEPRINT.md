@@ -1,7 +1,7 @@
 # GPT 能力组 V73 施工图
 
 ```blueprint-record
-{"schemaVersion":1,"blueprintId":"gpt-capability-group-v73","status":"active","owner":"gpt","lawIds":["LAW-GPT-001-V70","LAW-GPT-002-V35"],"contractRefs":[],"dependencyEdges":[{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"capability-governance","repo":"local"}},{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"forensics-persistence-capability","repo":"local"}},{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"local-browser-session","repo":"local"}}],"prohibitedDependencyEdges":[]}
+{"schemaVersion":1,"blueprintId":"gpt-capability-group-v73","status":"active","owner":"gpt","lawIds":["LAW-GPT-001-V1","LAW-GPT-002-V1"],"contractRefs":[],"dependencyEdges":[{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"capability-governance","repo":"local"}},{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"forensics-persistence-capability","repo":"local"}},{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"local-browser-session","repo":"local"}}],"prohibitedDependencyEdges":[]}
 ```
 
 ## 唯一 Owner 与职责
@@ -58,7 +58,7 @@ ChatGPT 页面控件变更时，GPT Child 只在原有 coherent observation、�
 `FROZEN-GPT-RESPONSE-NO-PROMPT-REHASH-001` 固定：提示词 hash 只属于发送 Child 的发送前内容身份和发送后新 user turn 证明。文本与图片回答读取 Child 不得接收 `expectedPromptHash`，仅允许 Browser 在当前 user bubble 的文本节点精确查找原 marker；不得从已折叠或重新渲染的历史 user message DOM 提取完整 Prompt、规范化、重算或比较 `precedingPromptHash`，也不得把该二次 hash 写入回答或图片 receipt。文本回答身份由同一 confirmed effect 独立定位的 canonical conversation URL、原 Product `turnMarker` 在当前 Document 唯一对应的 user turn、其真实紧邻 assistant turn，以及 Browser 当前 Target/Document/revision 共同确定；图片仍由原精确 `userTurnId` 定位；提交 UUID 继续用于原 WAL 收据、既有 artifact lineage 与 submit/checkpoint 一致性核对，不再用于当前 DOM 文本定位或重发资格；回答的 `rawDomHash`、`semanticTextHash` 与图片媒体 bytes hash 继续保留。改变或删除本冻结边界，必须由用户在未来任务中明确解冻，并同步替换施工图、实现与唯一质检；普通修复或 CI 授权不构成解冻。
 
 
-在已确认 canonical conversation `/c/...` 的同包文本回答 observation 中，显式 `data-composer-placement="home"` 的 Composer 属于首页，不贡献当前回答的 stop 计数；其余现役 Composer 的 stop 仍计数，包括缺 placement、隐藏或屏外的结构。该取值归属不要求 Composer 存在、唯一或可见，不改变已定位回答的完整 DOM/semantic text 返回或上述两门判定。
+在已确认 canonical conversation `/c/...` 的同包文本回答 observation 中，显式 `data-composer-placement="home"` 的 Composer 属于首页，不贡献当前回答的 stop 计数；其余现役 Composer 的 stop 仍计数，包括缺 placement、隐藏或屏外的结构。该取值归属不要求 Composer 存在、唯一或可见，不改变已定位回答的完整 DOM/semantic text 返回或下文 `FROZEN-GPT-TEXT-RESPONSE-TWO-GATES-001` 的两门判定。
 
 Provider 对已发送 user-role Prompt 的 DOM 展示只允许一项确定性投影：逐字符把 U+00A0 映射为 U+0020 后再与批准 Prompt 比较。该投影不 trim、不做 NFKC、不折叠连续空白、不映射其它 Unicode 空白，也不得作用于 assistant-role 回答；批准 Prompt 自身含 U+00A0 时仍保持原批准值，不做反向或对称改写，不等即失败关闭。该规则只修复 Provider 将普通空格展示为 NBSP 的已证实边界，不建立第二 parser、模糊比较或兼容链。
 
@@ -119,6 +119,10 @@ GPT 只消费 Browser 签发的实时 current Document 和 typed command termina
 原settledConversation/recoverySelectionRequired把结算后可信U交给下一实际页面调用；live及reacquired均在原Child同一runAtomicStep先精确选择并绑定U，再准备/输入，成功才消费待交接资格。原答案cache/source返回本身零页面动作。SEO首research仅Website当前revision=0显式fresh，获准新revision沿原入口在U重建准备；所有review及其它产品原fresh保持。submit/回答两门、独立locator、原ack及原结果优先不变。
 
 ## 原回答空结束的五次机械重试
+
+`FROZEN-GPT-TEXT-RESPONSE-TWO-GATES-001` 以同一原子 observation 的 confirmed canonical URL、原 Product marker 所属的唯一 user、真实紧邻的唯一 assistant、当前 Target/Document/main-frame loader 与 revision 共同证明回答身份。结算只读 stop 和正文。stop 存在则 pending 并保留正文，stop 缺席且正文非空立即 DONE，stop 缺席且正文为空即交当前调用按下文规则处理。页面末位、Composer 数量、可见性、Prompt 重算、轮次编号及其他 UI 外壳不得成为附加判据。
+
+下段的原轮询资格、原子读回和附属 retry 适用 `FROZEN-EXACT-TARGET-POLL-RESULT-REVISION-001`。
 
 普通回答观察为零输入：保留exact job—system Target唯一绑定，40秒静默、GPT只给至少70秒eligibleAt，BrowserLaneCoordinator为唯一计时Owner，在唯一FIFO依原到期/取消及原lane空闲放行；不足70秒不acquire，填写/上传/结算不被抢占，不新增timer或账号随机等待。每轮先核同effect WAL，以confirmed-readback取当前Target并核current Document；canonical URL相同零导航，否则最多一次Browser-owned Page.navigate并经2500ms fresh readback，不回首页。文本以原Product marker唯一user及真实紧邻唯一assistant，图片沿原exact userTurnId。文本未挂载时只在原observation预算内按实时容器几何/进展物化、无固定步数，图片最多48步，均命令截止前3秒结束；命中立即原子读取，零CDP输入/点击/搜索/展开/WAL。stop存在不得按时长、空文本或deadline判停；观察使用原execution单调预算/abort，不保留20分钟空等或替代计时窗。当前普通执行授权及原max_provider_turns预算内，原submit已CONFIRMED、无完成结果且精确原回答stop缺席/正文为空时，GPT仅可在原URL、原user回合以原批准模型执行序号1..5的附属retry；每序号独立effect各至多一次现实输入。稳定调用stopped-empty-retry:<根effect hash正文>:<ordinal>绑定根/前驱/原批准profile，完整WAL必须连续无分叉；attempt/进程/Target/Document/URL变化不刷新额度。仅原turn互相绑定菜单内唯一默认重试可生成，开菜单与生成分别经原子Child、原FIFO/permit/WAL及native前fresh原两门重核；不改Prompt/附件/模型或新增user消息。每次生成必须原后置证明启动；旧空DOM、unknown或DISPATCHED不得推进下一序号。stop出现继续原观察，正文非空完成；仅五次均确证启动并结束为空才可产生GPT_RESPONSE_STOPPED_EMPTY。预算、撤权、限流、身份失败按原typed出口，不伪五次耗尽。delivery-only、source/readback及风险输入不取得附属retry权限。五次耗尽proof唯一为gpt-stopped-empty-after-five-retries.v1，精确七顶层schema_version/original_effect_identity_hash/original_wal_authority_ref/original_wal_authority_hash/retries/terminal_observation_revision_hash/terminal_observed_at；retries恰好五项严格ordinal1..5，各含ordinal/effect_identity_hash/wal_authority_ref/wal_authority_hash/pre_empty_observation_revision_hash，effect互异、原Browser authority可验。retry i+1前置空观察结算i，最后空观察在原first fact；顶层failure为retry5真实CONFIRMED/confirmed/evidence。Website沿原job事务唯一rejection绑定terminal observation及整链，拒收集合仅为真实根submit+retry1..5六effect；rejected_call主项retry5，仅该情形附original_submit及prior_retries恰好ordinal1..4，各用原call/effect字段验同一receipt。其它历史逐项原证明，普通RESULT_SETTLED_UNUSABLE仍单effect。原Store/Outbox/source seal及accepted历史字节不迁移、不重签，不设第二reader/队列/表；历史已签原raw只经原seal及原first-fact绑定回读，不成为新current proof。本条已依用户本轮原文授权定点替换并重新冻结；未来改变仍须用户明确解冻并同步现役法案、施工图、合同、实现及唯一原生质检；普通修复或CI不隐含解冻。
 

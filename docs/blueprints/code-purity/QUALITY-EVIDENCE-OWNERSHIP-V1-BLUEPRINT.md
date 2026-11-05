@@ -7,9 +7,9 @@
   "status": "active",
   "owner": "code-purity",
   "lawIds": [
-    "LAW-CODE-PURITY-001-V6",
-    "LAW-CODE-PURITY-002-V3",
-    "LAW-CODE-PURITY-003-V5"
+    "LAW-CODE-PURITY-001-V1",
+    "LAW-CODE-PURITY-002-V1",
+    "LAW-CODE-PURITY-003-V1"
   ],
   "contractRefs": [],
   "dependencyEdges": [

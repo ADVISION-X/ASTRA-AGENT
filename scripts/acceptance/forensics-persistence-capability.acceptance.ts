@@ -1,6 +1,6 @@
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 import { createHash } from "node:crypto";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { link, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
@@ -72,13 +72,29 @@ try {
   assert.notEqual(imageReadback.artifact.integrityHash,
     `sha256:${createHash("sha256").update(imageBytes).digest("hex")}`,
     "integrityHash authenticates the stored envelope, not the raw image identity");
+
+  const directoryLinkRoot = join(tempRoot, "directory-link");
+  await mkdir(directoryLinkRoot);
+  await symlink(join(tempRoot, "forensics"), join(directoryLinkRoot, "forensics"), "dir");
+  await assert.rejects(createGrassEyeFileStorage(directoryLinkRoot).readArtifact(artifact.artifactRef),
+    /FORENSICS_ARTIFACT_STRUCTURE_INVALID/u);
+  const indexLinkRoot = join(tempRoot, "index-link");
+  await mkdir(join(indexLinkRoot, "forensics"), { recursive: true });
+  await symlink(join(tempRoot, "forensics", "artifacts.ndjson"), join(indexLinkRoot, "forensics", "artifacts.ndjson"));
+  await assert.rejects(createGrassEyeFileStorage(indexLinkRoot).readArtifact(artifact.artifactRef),
+    /FORENSICS_ARTIFACT_STRUCTURE_INVALID/u);
+  const blob = join(tempRoot, "forensics", "artifacts", `${artifact.artifactRef}.bin`);
+  const shared = join(tempRoot, "shared-artifact.bin");
+  await link(blob, shared);
+  await assert.rejects(storage.readArtifact(artifact.artifactRef), /FORENSICS_ARTIFACT_STRUCTURE_INVALID/u);
+  assert.equal(await readFile(shared, "utf8"), "raw-answer");
 } finally {
   await rm(tempRoot, { recursive: true, force: true });
 }
 
 process.stdout.write("[ACCEPTANCE] forensics-persistence-capability PASS\n");
-for (const lawId of ["LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V7",
-  "LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V7", "LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V6"]) {
+for (const lawId of ["LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V1",
+  "LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V1", "LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V1"]) {
   emitQualityProofObservation({ lawId, evidenceMode: "exam.golden", clauses: ["forbidden:0", "summary"],
     locator: "acceptance:forensics:raw-answer-artifact",
     observedValue: "one idempotent raw answer artifact is appended and read back; record ledger is absent" });

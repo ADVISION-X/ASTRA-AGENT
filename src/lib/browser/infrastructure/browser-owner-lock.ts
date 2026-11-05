@@ -1,3 +1,4 @@
+import { constants } from "node:fs";
 import { lstat, mkdir, open, unlink } from "node:fs/promises";
 import { dirname } from "node:path";
 
@@ -30,11 +31,11 @@ export class BrowserOwnerLock {
   }
 
   private async removeProvenDeadOwnerLock(): Promise<boolean> {
-    const candidate = await open(this.lockPath, "r");
+    const candidate = await open(this.lockPath, constants.O_RDONLY | constants.O_NOFOLLOW);
     try {
       const stat = await candidate.stat();
       const ownerUid = typeof process.getuid === "function" ? process.getuid() : null;
-      if (!stat.isFile() || (stat.mode & 0o077) !== 0 || (ownerUid !== null && stat.uid !== ownerUid)) {
+      if (!stat.isFile() || stat.nlink !== 1 || (stat.mode & 0o077) !== 0 || (ownerUid !== null && stat.uid !== ownerUid)) {
         throw new Error("BROWSER_REPAIR_REQUIRED");
       }
       const rawPid = (await candidate.readFile("utf8")).trim();

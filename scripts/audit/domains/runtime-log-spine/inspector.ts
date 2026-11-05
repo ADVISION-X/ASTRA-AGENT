@@ -17,9 +17,9 @@ import {
   validateStaticInspection,
 } from "../../shared/static-inspection-contract.js";
 
-const LAW_OPERATIONAL = "LAW-RUNTIME-LOG-SPINE-001-V8";
-const LAW_PRIVACY = "LAW-RUNTIME-LOG-SPINE-002-V4";
-const LAW_STRUCTURE = "LAW-RUNTIME-LOG-SPINE-003-V6";
+const LAW_OPERATIONAL = "LAW-RUNTIME-LOG-SPINE-001-V1";
+const LAW_PRIVACY = "LAW-RUNTIME-LOG-SPINE-002-V1";
+const LAW_STRUCTURE = "LAW-RUNTIME-LOG-SPINE-003-V1";
 const SOURCE_EXTENSIONS = new Set([".js", ".mjs", ".mts", ".ts"]);
 const TERMINAL_PROTOCOL_OUTPUTS = new Set([
   "scripts/startup/lib/dependency-check.mjs",

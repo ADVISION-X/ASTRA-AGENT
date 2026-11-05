@@ -7,7 +7,7 @@
 原supervisor关WAL前只读核DISPATCHED未决；存在未决则聚合异常但仍尝试全部资源关闭，保留原WAL值，覆盖尚未构成Runtime实例的迟到初始化；不新增恢复或终态入口。
 
 ```blueprint-record
-{"schemaVersion":1,"blueprintId":"local-browser-authority-v60","status":"active","owner":"local-browser-session","lawIds":["LAW-LOCAL-BROWSER-SESSION-001-V4","LAW-LOCAL-BROWSER-SESSION-003-V51","LAW-LOCAL-BROWSER-SESSION-004-V60","LAW-LOCAL-BROWSER-SESSION-006-V50"],"contractRefs":[],"dependencyEdges":[],"prohibitedDependencyEdges":[]}
+{"schemaVersion":1,"blueprintId":"local-browser-authority-v60","status":"active","owner":"local-browser-session","lawIds":["LAW-LOCAL-BROWSER-SESSION-001-V1","LAW-LOCAL-BROWSER-SESSION-003-V1","LAW-LOCAL-BROWSER-SESSION-004-V1","LAW-LOCAL-BROWSER-SESSION-006-V1"],"contractRefs":[],"dependencyEdges":[],"prohibitedDependencyEdges":[]}
 ```
 
 Website 已以精确 `RESULT_SETTLED_UNUSABLE` 或 `GPT_RESPONSE_STOPPED_EMPTY` 拒绝整个旧 result revision 时，Browser 仅在原 rejection receipt 授权的新 revision、完整旧 WAL effect 历史与当前精确授权已核的同 job 中允许新 effect 各至多一次输入。此分支由 Website 的 `prior_result_rejection` 授权，与“答案不可取得”的逐调用风险 grant 互斥；未被 Website 拒绝的旧结果仍先零输入读回。旧 effect 与原 WAL 动作取证原样保留，不将拒绝当作零输入证明。

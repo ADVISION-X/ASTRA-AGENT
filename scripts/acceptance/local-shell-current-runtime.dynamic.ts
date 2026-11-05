@@ -1,8 +1,6 @@
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { mkdtemp, rm } from "node:fs/promises";
-import { createServer } from "node:net";
+import { existsSync, lstatSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
@@ -12,16 +10,19 @@ import Database from "better-sqlite3";
 
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 import { buildStartupSourceFingerprint } from "../startup/lib/source-fingerprint.mjs";
+import { ASTRA_LOCAL_HOST, ASTRA_LOCAL_ORIGIN, ASTRA_LOCAL_PORT } from "../../src/lib/browser/profile/browser-application-identity.js";
+import { resolveProductionLocalDataDir } from "../../src/lib/local-runtime/default-data-dir.js";
+import { productionCredentialPath } from "../../src/lib/local-runtime/production/credential.js";
 
 const dynamicClaimContract = (/* GOVERNANCE_DYNAMIC_CLAIM_CONTRACT_BEGIN */
 {
   "schema_version": "producer-dynamic-claim-contract.v1",
   "routes": {
-    "LAW-LOCAL-APP-SHELL-001-V6:dynamic.browser": {"claims": {"forbidden:5": [{"path": "/facts/browser_command_surface_count", "operator": "equals", "expected": 0}]}},
-    "LAW-LOCAL-APP-SHELL-001-V6:dynamic.service": {"claims": {"forbidden:4": [{"path": "/facts/listener_count", "operator": "equals", "expected": 1}], "forbidden:8": [{"path": "/facts/readiness_component_count", "operator": "gte", "expected": 2}, {"path": "/facts/readiness_components_distinct", "operator": "equals", "expected": true}]}},
-    "LAW-LOCAL-APP-SHELL-003-V4:dynamic.service": {"claims": {"forbidden:0": [{"path": "/facts/readiness_component_count", "operator": "gte", "expected": 2}, {"path": "/facts/readiness_components_distinct", "operator": "equals", "expected": true}]}},
-    "LAW-STARTUP-ENTRYPOINT-001-V4:dynamic.service": {"claims": {"forbidden:5": [{"path": "/facts/production_task_count", "operator": "equals", "expected": 0}, {"path": "/facts/shell_http_available", "operator": "equals", "expected": true}]}},
-    "LAW-STARTUP-ENTRYPOINT-002-V5:dynamic.service": {"claims": {"forbidden:0": [{"path": "/facts/foreign_repository_child_process_count", "operator": "equals", "expected": 0}]}}
+    "LAW-LOCAL-APP-SHELL-001-V1:dynamic.browser": {"claims": {"forbidden:5": [{"path": "/facts/browser_command_surface_count", "operator": "equals", "expected": 0}]}},
+    "LAW-LOCAL-APP-SHELL-001-V1:dynamic.service": {"claims": {"forbidden:4": [{"path": "/facts/listener_count", "operator": "equals", "expected": 1}], "forbidden:8": [{"path": "/facts/readiness_component_count", "operator": "gte", "expected": 2}, {"path": "/facts/readiness_components_distinct", "operator": "equals", "expected": true}]}},
+    "LAW-LOCAL-APP-SHELL-003-V1:dynamic.service": {"claims": {"forbidden:0": [{"path": "/facts/readiness_component_count", "operator": "gte", "expected": 2}, {"path": "/facts/readiness_components_distinct", "operator": "equals", "expected": true}]}},
+    "LAW-STARTUP-ENTRYPOINT-001-V1:dynamic.service": {"claims": {"forbidden:5": [{"path": "/facts/production_task_count", "operator": "equals", "expected": 0}, {"path": "/facts/shell_http_available", "operator": "equals", "expected": true}]}},
+    "LAW-STARTUP-ENTRYPOINT-002-V6:dynamic.service": {"claims": {"forbidden:0": [{"path": "/facts/foreign_repository_child_process_count", "operator": "equals", "expected": 0}]}}
   }
 }
 /* GOVERNANCE_DYNAMIC_CLAIM_CONTRACT_END */) as const;
@@ -37,15 +38,6 @@ assert.ok(proofReceiptDir.startsWith(`${path.resolve(tmpdir())}/`));
 mkdirSync(proofReceiptDir, { recursive: true, mode: 0o700 });
 
 const delay = (milliseconds: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, milliseconds));
-const freePort = async (): Promise<number> => {
-  const server = createServer();
-  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
-  const address = server.address();
-  assert(address && typeof address === "object");
-  await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
-  return address.port;
-};
-
 const listenerPids = (port: number): number[] => {
   const result = spawnSync("lsof", ["-nP", `-iTCP:${port}`, "-sTCP:LISTEN", "-t"], { encoding: "utf8" });
   if (result.status === 1 && !result.stdout.trim()) return [];
@@ -111,9 +103,14 @@ const waitForCurrentHealth = async (baseUrl: string, child: ChildProcess, output
   throw new Error(`CURRENT_RUNTIME_HEALTH_TIMEOUT:${lastFailure}:${output()}`);
 };
 
-const port = await freePort();
-const dataDir = await mkdtemp(path.join(tmpdir(), "grasseye-current-runtime-"));
-const baseUrl = `http://127.0.0.1:${port}`;
+const port = ASTRA_LOCAL_PORT;
+const dataDir = resolveProductionLocalDataDir();
+const baseUrl = ASTRA_LOCAL_ORIGIN;
+const credentialPath = productionCredentialPath(dataDir);
+assert.deepEqual(listenerPids(port), [], "dynamic Shell proof requires the ASTRA port to be idle");
+assert.equal(lstatSync(credentialPath, { throwIfNoEntry: false }), undefined,
+  "dynamic Shell proof requires no enrolled production device");
+assert.equal(productionTaskCount(dataDir), 0, "dynamic Shell proof requires the isolated ASTRA database to be empty");
 let stdout = "";
 let stderr = "";
 let browser: Browser | undefined;
@@ -126,9 +123,10 @@ const shellHealthReceiptPath = path.join(proofReceiptDir, "shell-health.json");
 const degradedHealthReceiptPath = path.join(proofReceiptDir, "degraded-health.json");
 const startupProcessReceiptPath = path.join(proofReceiptDir, "startup-process.json");
 const startupListenerReceiptPath = path.join(proofReceiptDir, "startup-listener.json");
-const launch = spawn(process.execPath, ["--env-file-if-exists=.env.local", "scripts/startup/launch-grasseye.mjs", "--no-open"], {
+const launch = spawn(process.execPath, ["--import", "tsx", "--env-file-if-exists=.env.local", "scripts/startup/launch-grasseye.mjs", "--no-open"], {
   cwd: root,
-  env: { ...process.env, GRASSEYE_DATA_DIR: dataDir, GRASSEYE_HOST: "127.0.0.1", GRASSEYE_PORT: String(port), GRASSEYE_SKIP_OPEN: "1" },
+  env: { ...process.env, GRASSEYE_DATA_DIR: dataDir, GRASSEYE_HOST: ASTRA_LOCAL_HOST, GRASSEYE_PORT: String(port),
+    AGENT_PRODUCTION_CREDENTIAL_FILE: credentialPath },
   stdio: ["ignore", "pipe", "pipe"],
 });
 launch.stdout?.on("data", (chunk: Buffer) => { stdout += chunk.toString(); });
@@ -148,7 +146,7 @@ try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   await page.goto(baseUrl, { waitUntil: "networkidle" });
   const pageTitle = await page.title();
-  assert.equal(pageTitle, "GrassEye AGENT Workbench");
+  assert.equal(pageTitle, "ASTRA-AGENT Workbench");
   assert.deepEqual({
     shell: await page.locator("[data-app-shell]").count(), sidebar: await page.locator("[data-app-shell-sidebar]").count(),
     workspace: await page.locator("main[data-app-shell-workspace]").count(), inspector: await page.locator("[data-app-shell-inspector]").count(),
@@ -158,8 +156,7 @@ try {
     "[data-browser-command], [data-browser-action], form[action*='browser']",
   ).count();
   assert.equal(browserCommandSurfaceCount, 0);
-  const screenshot = path.join(dataDir, "current-app-shell.png");
-  await page.screenshot({ path: screenshot, fullPage: true, type: "png" });
+  const screenshot = await page.screenshot({ fullPage: true, type: "png" });
   const foreignRepositoryChildProcessCount = descendantPids(launch.pid!).filter((pid) => {
     const cwd = processField(pid, "cwd");
     return cwd.length > 0 && cwd !== root && !cwd.startsWith(`${root}/`);
@@ -168,14 +165,13 @@ try {
   const observedProductionTaskCount = productionTaskCount(dataDir);
   assert.equal(observedProductionTaskCount, 0);
   observation = Object.freeze({ health, listenerPid, browserVersion: browser.version(), pageTitle,
-    screenshotSha256: createHash("sha256").update(readFileSync(screenshot)).digest("hex"),
+    screenshotSha256: createHash("sha256").update(screenshot).digest("hex"),
     browserCommandSurfaceCount, foreignRepositoryChildProcessCount,
     productionTaskCount: observedProductionTaskCount });
 } finally {
   await browser?.close();
   await stopLaunch(launch);
   assert.deepEqual(listenerPids(port), [], "the current runtime listener must be cleaned up");
-  await rm(dataDir, { recursive: true, force: true });
 }
 
 assert(observation);
@@ -215,44 +211,44 @@ const clausesFor = (lawId: string, evidenceMode: string): string[] => Object.key
   (dynamicClaimContract.routes as Readonly<Record<string, { claims: Readonly<Record<string, unknown>> }>>)
     [`${lawId}:${evidenceMode}`]!.claims,
 ).sort((left, right) => Buffer.compare(Buffer.from(left), Buffer.from(right)));
-const browserClauses = clausesFor("LAW-LOCAL-APP-SHELL-001-V6", "dynamic.browser");
-const shellClauses = clausesFor("LAW-LOCAL-APP-SHELL-001-V6", "dynamic.service");
-const degradedClauses = clausesFor("LAW-LOCAL-APP-SHELL-003-V4", "dynamic.service");
-const startupProcessClauses = clausesFor("LAW-STARTUP-ENTRYPOINT-001-V4", "dynamic.service");
-const startupListenerClauses = clausesFor("LAW-STARTUP-ENTRYPOINT-002-V5", "dynamic.service");
+const browserClauses = clausesFor("LAW-LOCAL-APP-SHELL-001-V1", "dynamic.browser");
+const shellClauses = clausesFor("LAW-LOCAL-APP-SHELL-001-V1", "dynamic.service");
+const degradedClauses = clausesFor("LAW-LOCAL-APP-SHELL-003-V1", "dynamic.service");
+const startupProcessClauses = clausesFor("LAW-STARTUP-ENTRYPOINT-001-V1", "dynamic.service");
+const startupListenerClauses = clausesFor("LAW-STARTUP-ENTRYPOINT-002-V6", "dynamic.service");
 const degradedValue = `${runtimeValue};components=${componentNames.length}`;
-const startupProcessValue = `${runtimeValue};startup=astra:start;cleanup=verified`;
+const startupProcessValue = `${runtimeValue};startup=grasseye:start;cleanup=verified`;
 const startupListenerValue = `${runtimeValue};listenerOwner=${root};cleanup=verified`;
 writeReceipt(browserReceiptPath, {
-  clauses: browserClauses, evidenceMode: "dynamic.browser", lawId: "LAW-LOCAL-APP-SHELL-001-V6",
+  clauses: browserClauses, evidenceMode: "dynamic.browser", lawId: "LAW-LOCAL-APP-SHELL-001-V1",
   observedValue: browserValue,
   observation: { browserVersion: observation.browserVersion, endpoint: baseUrl, pageTitle: observation.pageTitle,
     facts: { browser_command_surface_count: observation.browserCommandSurfaceCount },
     sessionFacts: { screenshotSha256: observation.screenshotSha256, shellCount: 1, retiredSurfaceCount: 0 } },
 });
 writeReceipt(shellHealthReceiptPath, { clauses: shellClauses, evidenceMode: "dynamic.service",
-  lawId: "LAW-LOCAL-APP-SHELL-001-V6", observedValue: runtimeValue,
+  lawId: "LAW-LOCAL-APP-SHELL-001-V1", observedValue: runtimeValue,
   observation: serviceObservation("local-app-shell") });
 writeReceipt(degradedHealthReceiptPath, { clauses: degradedClauses, evidenceMode: "dynamic.service",
-  lawId: "LAW-LOCAL-APP-SHELL-003-V4", observedValue: degradedValue,
+  lawId: "LAW-LOCAL-APP-SHELL-003-V1", observedValue: degradedValue,
   observation: serviceObservation("local-app-shell-status") });
 writeReceipt(startupProcessReceiptPath, { clauses: startupProcessClauses, evidenceMode: "dynamic.service",
-  lawId: "LAW-STARTUP-ENTRYPOINT-001-V4", observedValue: startupProcessValue,
+  lawId: "LAW-STARTUP-ENTRYPOINT-001-V1", observedValue: startupProcessValue,
   observation: serviceObservation("grasseye-startup-shell") });
 writeReceipt(startupListenerReceiptPath, { clauses: startupListenerClauses, evidenceMode: "dynamic.service",
-  lawId: "LAW-STARTUP-ENTRYPOINT-002-V5", observedValue: startupListenerValue,
+  lawId: "LAW-STARTUP-ENTRYPOINT-002-V6", observedValue: startupListenerValue,
   observation: serviceObservation("grasseye-local-listener") });
 const nativeReceipt = (receiptPath: string): string => createHash("sha256").update(readFileSync(receiptPath)).digest("hex");
-emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-LOCAL-APP-SHELL-001-V6", evidenceMode: "dynamic.browser", clauses: browserClauses,
+emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-LOCAL-APP-SHELL-001-V1", evidenceMode: "dynamic.browser", clauses: browserClauses,
   locator: browserReceiptPath, receipt: nativeReceipt(browserReceiptPath), observedValue: browserValue });
-emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-LOCAL-APP-SHELL-001-V6", evidenceMode: "dynamic.service", clauses: shellClauses,
+emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-LOCAL-APP-SHELL-001-V1", evidenceMode: "dynamic.service", clauses: shellClauses,
   locator: shellHealthReceiptPath, receipt: nativeReceipt(shellHealthReceiptPath), observedValue: runtimeValue });
-emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-LOCAL-APP-SHELL-003-V4", evidenceMode: "dynamic.service", clauses: degradedClauses,
+emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-LOCAL-APP-SHELL-003-V1", evidenceMode: "dynamic.service", clauses: degradedClauses,
   locator: degradedHealthReceiptPath, receipt: nativeReceipt(degradedHealthReceiptPath),
   observedValue: degradedValue });
-emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-STARTUP-ENTRYPOINT-001-V4", evidenceMode: "dynamic.service", clauses: startupProcessClauses,
+emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-STARTUP-ENTRYPOINT-001-V1", evidenceMode: "dynamic.service", clauses: startupProcessClauses,
   locator: startupProcessReceiptPath, receipt: nativeReceipt(startupProcessReceiptPath),
   observedValue: startupProcessValue });
-emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-STARTUP-ENTRYPOINT-002-V5", evidenceMode: "dynamic.service", clauses: startupListenerClauses,
+emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-STARTUP-ENTRYPOINT-002-V6", evidenceMode: "dynamic.service", clauses: startupListenerClauses,
   locator: startupListenerReceiptPath, receipt: nativeReceipt(startupListenerReceiptPath),
   observedValue: startupListenerValue });

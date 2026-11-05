@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { readdir, readFile } from "node:fs/promises";
+import { lstat, readdir, readFile } from "node:fs/promises";
 import { join, relative, resolve } from "node:path";
 
 export type ExtensionDirectoryHashV1 = `sha256:${string}`;
@@ -17,7 +17,7 @@ const readEntries = async (root: string, current = root): Promise<readonly Direc
     .map(async (entry): Promise<readonly DirectoryEntry[]> => {
       const path = join(current, entry.name);
       if (entry.isDirectory()) return readEntries(root, path);
-      if (!entry.isFile()) throw new Error("BROWSER_UNPACKED_ARTIFACT_INVALID");
+      if (!entry.isFile() || (await lstat(path)).nlink !== 1) throw new Error("BROWSER_UNPACKED_ARTIFACT_INVALID");
       return [{ path: relative(root, path), sha256: sha256(await readFile(path)) }];
     }));
   return nested.flat();

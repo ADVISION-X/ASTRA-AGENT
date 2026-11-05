@@ -64,7 +64,9 @@ const readAiProductionComponents = (
       ok: health.cloudState === "ready",
       detail: `AGENT Cloud Worker state=${health.cloudState}; control_contract_version=${health.controlContractVersion ?? "none"}; last_heartbeat=${health.lastSuccessfulHeartbeatAt ?? "none"}; error=${health.lastErrorCode ?? "none"}.`,
       actionableMessage: health.cloudState === "ready" ? null
-        : health.lastErrorCode === "AI_SESSION_BINDING_MISMATCH"
+        : health.lastErrorCode === "AI_DEVICE_REVOKED"
+          ? "Ask the Website owner to verify this exact device. Use authorized enrollment only after explicit revocation."
+          : health.lastErrorCode === "AI_SESSION_BINDING_MISMATCH" || health.lastErrorCode === "PRODUCTION_SESSION_BINDING_INVALID"
           ? "Keep every existing job and attempt unchanged. Compare the enrolled device, environment, origin and control contract version; use enrollment only for a first device or explicit revoked-device recovery. Do not retry the same binding."
         : health.cloudState === "contract_blocked"
           ? "Deploy the Website provider contract and AGENT consumer dependency at the exact same control contract version."

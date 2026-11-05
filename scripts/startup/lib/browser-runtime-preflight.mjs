@@ -1,7 +1,8 @@
 import { createHash } from "node:crypto";
-import { access, readFile, readdir } from "node:fs/promises";
+import { access, lstat, readFile, readdir } from "node:fs/promises";
 import { join, relative, resolve } from "node:path";
 import { ASTRA_DATA_DIRECTORY, ASTRA_BROWSER_EXTENSION_ID } from "../../../src/lib/browser/profile/browser-application-identity.ts";
+import { assertBrowserArtifactPaths } from "../../../src/lib/browser/chrome-extension/build.mjs";
 
 const extensionDirectory = resolve(process.cwd(), ASTRA_DATA_DIRECTORY, "browser-build", "extension");
 const releaseRecordPath = resolve(process.cwd(), ASTRA_DATA_DIRECTORY, "browser-release", "release-record.json");
@@ -43,7 +44,7 @@ const hashExtensionDirectoryV1 = async (root, current = root) => {
     .map(async (entry) => {
       const path = join(current, entry.name);
       if (entry.isDirectory()) return hashExtensionDirectoryV1(root, path);
-      if (!entry.isFile()) throw new Error("BROWSER_UNPACKED_ARTIFACT_INVALID");
+      if (!entry.isFile() || (await lstat(path)).nlink !== 1) throw new Error("BROWSER_UNPACKED_ARTIFACT_INVALID");
       return [{ path: relative(root, path), sha256: sha256(await readFile(path)) }];
     }));
   return sha256(JSON.stringify(nested.flat()));
@@ -87,6 +88,7 @@ const repairRequired = (failureReason) => Object.freeze({
 
 export async function runBrowserRuntimePreflight() {
   try {
+    assertBrowserArtifactPaths();
     await access(extensionDirectory);
     const [recordSource, manifestSource, buildManifestSource, sourceManifest, pairingPage, sourcePairingPage, protocolSource, sitePolicySource] = await Promise.all([
       readFile(releaseRecordPath, "utf8"),

@@ -20,12 +20,12 @@ import {
 } from "./contract-inspection.js";
 
 const inspectDomainEvaluation = async (context: InspectorContext): Promise<InspectorEvaluation> => {
-  const lawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-001-V4");
-  const mutationLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-004-V60");
-  const channelLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-002-V6");
-  const claimLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-003-V51");
-  const releaseLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-005-V6");
-  const opaqueLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-006-V50");
+  const lawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-001-V1");
+  const mutationLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-004-V1");
+  const channelLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-002-V1");
+  const claimLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-003-V1");
+  const releaseLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-005-V1");
+  const opaqueLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-006-V1");
   const findings: InspectorFinding[] = [];
   const staticCheckReceipts: InspectorEvaluation["staticCheckReceipts"] = [];
   const run = (check: string, lawIds: readonly string[], implementation: (...args: never[]) => unknown,
@@ -69,26 +69,26 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
   const evaluation = await inspectDomainEvaluation(context);
   const astChecks = (lawId: string): string[] => ({
-    "LAW-LOCAL-BROWSER-SESSION-001-V4": ["inspectSessionCore"],
-    "LAW-LOCAL-BROWSER-SESSION-002-V6": ["inspectAuthenticatedChannelGuards", "inspectAutomaticPairingAndReload"],
-    "LAW-LOCAL-BROWSER-SESSION-003-V51": ["inspectAutomaticPairingAndReload", "inspectTargetClaimGuards", "inspectInteractionReadiness", "inspectProviderEffectAttemptGuard"],
-    "LAW-LOCAL-BROWSER-SESSION-004-V60": ["inspectAtomicIfAndThenBoundary", "inspectDomMechanicalFacts", "inspectBrowserMutationSettlement", "inspectDisposableAttemptBoundary", "inspectProviderEffectAttemptGuard", "inspectRegistryAndMutationBoundary", "inspectInteractionReadiness", "inspectTargetClaimGuards"],
-    "LAW-LOCAL-BROWSER-SESSION-005-V6": ["inspectAutomaticPairingAndReload", "inspectReleaseAndRetiredPaths"],
-    "LAW-LOCAL-BROWSER-SESSION-006-V50": ["inspectDomMechanicalFacts", "inspectOpaqueAuthorityBoundary", "inspectTargetClaimGuards"],
+    "LAW-LOCAL-BROWSER-SESSION-001-V1": ["inspectSessionCore"],
+    "LAW-LOCAL-BROWSER-SESSION-002-V1": ["inspectAuthenticatedChannelGuards", "inspectAutomaticPairingAndReload"],
+    "LAW-LOCAL-BROWSER-SESSION-003-V1": ["inspectAutomaticPairingAndReload", "inspectTargetClaimGuards", "inspectInteractionReadiness", "inspectProviderEffectAttemptGuard"],
+    "LAW-LOCAL-BROWSER-SESSION-004-V1": ["inspectAtomicIfAndThenBoundary", "inspectDomMechanicalFacts", "inspectBrowserMutationSettlement", "inspectDisposableAttemptBoundary", "inspectProviderEffectAttemptGuard", "inspectRegistryAndMutationBoundary", "inspectInteractionReadiness", "inspectTargetClaimGuards"],
+    "LAW-LOCAL-BROWSER-SESSION-005-V1": ["inspectAutomaticPairingAndReload", "inspectReleaseAndRetiredPaths"],
+    "LAW-LOCAL-BROWSER-SESSION-006-V1": ["inspectDomMechanicalFacts", "inspectOpaqueAuthorityBoundary", "inspectTargetClaimGuards"],
   } as Readonly<Record<string, string[]>>)[lawId] ?? [];
   const contractChecks = (lawId: string): string[] => ({
-    "LAW-LOCAL-BROWSER-SESSION-001-V4": ["inspectSessionCoreContract"],
-    "LAW-LOCAL-BROWSER-SESSION-002-V6": ["inspectAuthenticatedChannelContract"],
-    "LAW-LOCAL-BROWSER-SESSION-003-V51": ["inspectTargetClaimContract"],
-    "LAW-LOCAL-BROWSER-SESSION-005-V6": ["inspectReleaseIdentityContract"],
-    "LAW-LOCAL-BROWSER-SESSION-006-V50": ["inspectOpaqueAuthorityContract"],
+    "LAW-LOCAL-BROWSER-SESSION-001-V1": ["inspectSessionCoreContract"],
+    "LAW-LOCAL-BROWSER-SESSION-002-V1": ["inspectAuthenticatedChannelContract"],
+    "LAW-LOCAL-BROWSER-SESSION-003-V1": ["inspectTargetClaimContract"],
+    "LAW-LOCAL-BROWSER-SESSION-005-V1": ["inspectReleaseIdentityContract"],
+    "LAW-LOCAL-BROWSER-SESSION-006-V1": ["inspectOpaqueAuthorityContract"],
   } as Readonly<Record<string, string[]>>)[lawId] ?? [];
   const contractClauses = (lawId: string): string[] => ({
-    "LAW-LOCAL-BROWSER-SESSION-001-V4": staticClauses(6, 7),
-    "LAW-LOCAL-BROWSER-SESSION-002-V6": staticClauses(5, 8),
-    "LAW-LOCAL-BROWSER-SESSION-003-V51": staticClauses(15),
-    "LAW-LOCAL-BROWSER-SESSION-005-V6": staticClauses(4, 5),
-    "LAW-LOCAL-BROWSER-SESSION-006-V50": staticClauses(0),
+    "LAW-LOCAL-BROWSER-SESSION-001-V1": staticClauses(6, 7),
+    "LAW-LOCAL-BROWSER-SESSION-002-V1": staticClauses(5, 8),
+    "LAW-LOCAL-BROWSER-SESSION-003-V1": staticClauses(15),
+    "LAW-LOCAL-BROWSER-SESSION-005-V1": staticClauses(4, 5),
+    "LAW-LOCAL-BROWSER-SESSION-006-V1": staticClauses(0),
   } as Readonly<Record<string, string[]>>)[lawId] ?? [];
   const lawResult = (lawId: string, astClauses: string[], hasContract = true) => {
     const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
@@ -106,12 +106,12 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
   return validateStaticInspection(context, {
     capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,
     lawResults: [
-      lawResult("LAW-LOCAL-BROWSER-SESSION-001-V4", staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9)),
-      lawResult("LAW-LOCAL-BROWSER-SESSION-002-V6", staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13)),
-      lawResult("LAW-LOCAL-BROWSER-SESSION-003-V51", staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18)),
-      lawResult("LAW-LOCAL-BROWSER-SESSION-004-V60", staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23), false),
-      lawResult("LAW-LOCAL-BROWSER-SESSION-005-V6", staticClauses(0, 1, 2, 3, 4, 5, 6)),
-      lawResult("LAW-LOCAL-BROWSER-SESSION-006-V50", staticClauses(0, 1, 2, 3, 4, 5)),
+      lawResult("LAW-LOCAL-BROWSER-SESSION-001-V1", staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9)),
+      lawResult("LAW-LOCAL-BROWSER-SESSION-002-V1", staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13)),
+      lawResult("LAW-LOCAL-BROWSER-SESSION-003-V1", staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18)),
+      lawResult("LAW-LOCAL-BROWSER-SESSION-004-V1", staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23), false),
+      lawResult("LAW-LOCAL-BROWSER-SESSION-005-V1", staticClauses(0, 1, 2, 3, 4, 5, 6)),
+      lawResult("LAW-LOCAL-BROWSER-SESSION-006-V1", staticClauses(0, 1, 2, 3, 4, 5)),
     ], inspectedFiles: evaluation.inspectedFiles,
   });
 };

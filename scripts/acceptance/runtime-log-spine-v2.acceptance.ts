@@ -1,6 +1,6 @@
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 import { createHash } from "node:crypto";
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { linkSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -17,7 +17,7 @@ import {
 } from "../../src/lib/runtime-logs/index.js";
 import type { RuntimeLogEventV2, RuntimeSpanFailureEvent, RuntimeSpanTerminalEvent } from
   "../../src/lib/runtime-logs/runtime-event-contract.js";
-import { shouldProjectRuntimeEvent } from "../../src/lib/runtime-logs/sinks.js";
+import { createRuntimeFileSink, shouldProjectRuntimeEvent } from "../../src/lib/runtime-logs/sinks.js";
 import { BrowserRuntimeLogEmitter } from "../../src/lib/browser/infrastructure/browser-runtime-log-emitter.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 import { emitBrowserCommandDiagnostic } from "../../src/lib/browser/exact-target/browser-command-runtime-logging.js";
@@ -347,7 +347,30 @@ assert.equal(capacityWrite.ok, false);
 if (!capacityWrite.ok) assert.equal(capacityWrite.code, "RUNTIME_LOG_CAPACITY_BLOCKED");
 assert.equal(capacityLogger.isWritable(), false);
 
+const isolatedLogs = mkdtempSync(path.join(tmpdir(), "astra-log-path-"));
+try {
+  const foreign = path.join(isolatedLogs, "foreign");
+  mkdirSync(foreign);
+  const linked = path.join(isolatedLogs, "linked");
+  symlinkSync(foreign, linked, "dir");
+  assert.throws(() => createRuntimeFileSink("agent", "dir-link", { directoryPath: linked }),
+    /RUNTIME_LOG_STORAGE_PATH_INVALID/u);
+  const local = path.join(isolatedLogs, "local");
+  mkdirSync(path.join(local, "agent"), { recursive: true });
+  const source = path.join(foreign, "old.jsonl");
+  writeFileSync(source, "foreign log sentinel");
+  linkSync(source, path.join(local, "agent", "old.jsonl"));
+  assert.throws(() => createRuntimeFileSink("agent", "segment-link", { directoryPath: local }),
+    /RUNTIME_LOG_STORAGE_PATH_INVALID/u);
+  const linkedDiagnosis = diagnoseRuntimeLog({ sources: [local], traceId });
+  assert.ok(linkedDiagnosis.findings.some((finding) => finding.startsWith("ACTIVE_SOURCE_LAYOUT_INVALID:")));
+  assert.ok(linkedDiagnosis.findings.every((finding) => !finding.startsWith("TRUNCATED_FINAL_LINE:")));
+  assert.equal(readFileSync(source, "utf8"), "foreign log sentinel");
+} finally {
+  rmSync(isolatedLogs, { recursive: true, force: true });
+}
+
 process.stdout.write("runtime log spine V2 acceptance: PASS\n");
-emitQualityProofObservation({ lawId: "LAW-RUNTIME-LOG-SPINE-001-V8", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:5","forbidden:6","forbidden:7","forbidden:8","forbidden:9","summary"], locator: "acceptance:runtime-log:single-spine-golden", observedValue: "single structured spine recorded full JSONL while terminal projection deduplicated unchanged events" });
-emitQualityProofObservation({ lawId: "LAW-RUNTIME-LOG-SPINE-001-V8", evidenceMode: "exam.property", clauses: ["forbidden:0","forbidden:1","forbidden:5","forbidden:6","forbidden:7","forbidden:8","forbidden:9","summary"], locator: "acceptance:runtime-log:lifecycle-property-matrix", observedValue: "integrity redaction writer capacity authority readability scope discovery and projection variants rejected unsafe states" });
-emitQualityProofObservation({ lawId: "LAW-RUNTIME-LOG-SPINE-001-V8", evidenceMode: "exam.state-machine", clauses: ["forbidden:1","forbidden:2","forbidden:3","forbidden:4","forbidden:5","forbidden:6","forbidden:7","forbidden:8","forbidden:9","summary"], locator: "acceptance:runtime-log:diagnosis-state-machine", observedValue: "started terminal causal aggregation scope discovery and terminal state-change projection exercised" });
+emitQualityProofObservation({ lawId: "LAW-RUNTIME-LOG-SPINE-001-V1", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:5","forbidden:6","forbidden:7","forbidden:8","forbidden:9","summary"], locator: "acceptance:runtime-log:single-spine-golden", observedValue: "single structured spine recorded full JSONL while terminal projection deduplicated unchanged events" });
+emitQualityProofObservation({ lawId: "LAW-RUNTIME-LOG-SPINE-001-V1", evidenceMode: "exam.property", clauses: ["forbidden:0","forbidden:1","forbidden:5","forbidden:6","forbidden:7","forbidden:8","forbidden:9","summary"], locator: "acceptance:runtime-log:lifecycle-property-matrix", observedValue: "integrity redaction writer capacity authority readability scope discovery and projection variants rejected unsafe states" });
+emitQualityProofObservation({ lawId: "LAW-RUNTIME-LOG-SPINE-001-V1", evidenceMode: "exam.state-machine", clauses: ["forbidden:1","forbidden:2","forbidden:3","forbidden:4","forbidden:5","forbidden:6","forbidden:7","forbidden:8","forbidden:9","summary"], locator: "acceptance:runtime-log:diagnosis-state-machine", observedValue: "started terminal causal aggregation scope discovery and terminal state-change projection exercised" });

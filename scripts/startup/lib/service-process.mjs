@@ -13,7 +13,7 @@ function relay(stream, write) {
 }
 
 export function startLocalService({ rootDir, env = {}, onStdoutLine, onStderrLine }) {
-  const child = spawn(process.execPath, ["--import", "tsx", "src/app/server.ts"], {
+  const child = spawn(process.execPath, ["--use-system-ca", "--import", "tsx", "src/app/server.ts"], {
     cwd: rootDir, env: { ...process.env, ...env }, stdio: ["ignore", "pipe", "pipe"],
   });
   const started = new Promise((resolve, reject) => {

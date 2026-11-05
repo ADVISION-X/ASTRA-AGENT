@@ -25,7 +25,7 @@ const describeError = (code: string | undefined): string => ({
   BROWSER_AUTH_TRANSCRIPT_INVALID: "当前一次性密钥已经失效，请重新自动连接。",
   BROWSER_PAIRING_ORIGIN_REJECTED: "AGENT 拒绝了扩展来源，请检查固定扩展身份或本地网络权限。",
   BROWSER_PAIRING_RESPONSE_INVALID: "AGENT 返回了无效的配对或插件版本状态。",
-  BROWSER_EXTENSION_CHANNEL_UNAVAILABLE: "无法连接本机 ASTRA-AGENT。请先运行 npm run astra:start。",
+  BROWSER_EXTENSION_CHANNEL_UNAVAILABLE: "无法连接本机 ASTRA-AGENT。请先运行 npm run grasseye:start。",
   BROWSER_LIVENESS_EXPIRED: "浏览器授权已失效，请重新连接。",
   BROWSER_PAIRING_IN_PROGRESS: "连接正在进行，请稍候。",
   BROWSER_PAIRING_ALREADY_AUTHENTICATED: "扩展已经完成认证。",

@@ -30,6 +30,9 @@ const CHILDREN_CONTRACT = {
   write_exact_gpt_prompt: [4, 1, "TARGET_LOCAL_MUTATION"],
 } as const;
 const expectedIds = Object.keys(CHILDREN_CONTRACT).sort();
+export const gptMutationChildIds = Object.entries(CHILDREN_CONTRACT)
+  .filter(([, [, , profile]]) => profile !== "DOM_OBSERVATION")
+  .map(([id]) => id);
 const objectInitializer = (source: SourceFile | undefined, name: string) => {
   const value = source?.getVariableDeclaration(name)?.getInitializer();
   return Node.isObjectLiteralExpression(value) ? value : value?.getFirstDescendantByKind(SyntaxKind.ObjectLiteralExpression);
@@ -37,9 +40,15 @@ const objectInitializer = (source: SourceFile | undefined, name: string) => {
 const names = (members: readonly Node[]): string[] => members.flatMap(member =>
   Node.isPropertyAssignment(member) || Node.isPropertySignature(member) || Node.isShorthandPropertyAssignment(member)
     ? [member.getName().replace(/^['"]|['"]$/gu, "")] : []).sort();
+const namedAssignment = (object: import("ts-morph").ObjectLiteralExpression | undefined, name: string) => {
+  const matches = object?.getProperties().filter(Node.isPropertyAssignment).filter(property => {
+    const key = property.getNameNode();
+    return Node.isStringLiteral(key) ? key.getLiteralValue() === name : Node.isIdentifier(key) && key.getText() === name;
+  });
+  return matches?.length === 1 ? matches[0] : undefined;
+};
 const initializerText = (object: import("ts-morph").ObjectLiteralExpression | undefined, name: string): string => {
-  const property = object?.getProperty(name);
-  return Node.isPropertyAssignment(property) ? property.getInitializer()?.getText() ?? "" : "";
+  return namedAssignment(object, name)?.getInitializer()?.getText() ?? "";
 };
 const check = (ok: boolean, id: string, path: string, message: string,
   findings: InspectorFinding[], finding: FindingFactory): void => {
@@ -272,15 +281,16 @@ export const inspectGptContractDenominator = (context: InspectorContext, finding
     checkpoint_gpt_generated_image: ["DONE", "FAIL_CLOSED"], checkpoint_gpt_text_response: ["DONE", "FAIL_CLOSED"],
     close_gpt_execution_profile: ["DONE", "ACT", "FAIL_CLOSED"], open_gpt_attachment_control: ["DONE", "ACT", "WAIT", "FAIL_CLOSED"],
     open_gpt_execution_profile: ["DONE", "ACT", "WAIT", "FAIL_CLOSED"], open_gpt_model_selector_v3: ["DONE", "ACT", "FAIL_CLOSED"],
-    prepare_clean_gpt_chat: ["DONE", "ACT", "WAIT", "FAIL_CLOSED"], reconcile_gpt_attachment_set: ["DONE", "WAIT", "FAIL_CLOSED"],
+    prepare_clean_gpt_chat: ["DONE", "ACT", "WAIT", "FAIL_CLOSED"], prepare_clean_gpt_work: ["DONE", "ACT", "WAIT", "FAIL_CLOSED"],
+    open_exact_gpt_retry_menu: ["DONE", "ACT", "FAIL_CLOSED"], retry_exact_gpt_response_once: ["ACT", "FAIL_CLOSED"],
+    reconcile_gpt_attachment_set: ["DONE", "WAIT", "FAIL_CLOSED"],
     select_gpt_model_from_start_v3: ["ACT", "FAIL_CLOSED"], select_gpt_reasoning_from_start_v3: ["ACT", "FAIL_CLOSED"],
     submit_exact_gpt_turn_once: ["ACT", "FAIL_CLOSED"], write_exact_gpt_prompt: ["DONE", "ACT", "WAIT", "FAIL_CLOSED"],
   };
   for (const [id, [version, inputVersion, profile]] of Object.entries(CHILDREN_CONTRACT)) {
-    const property = contracts.getProperty(id), value = Node.isPropertyAssignment(property)
-      ? property.getInitializerIfKind(SyntaxKind.ObjectLiteralExpression) : undefined;
+    const value = namedAssignment(contracts, id)?.getInitializerIfKind(SyntaxKind.ObjectLiteralExpression);
     const observation = profile === "DOM_OBSERVATION";
-    const exactOne = ["acknowledge_known_gpt_rate_limit", "select_gpt_model_from_start_v3",
+    const exactOne = ["acknowledge_known_gpt_rate_limit", "retry_exact_gpt_response_once", "select_gpt_model_from_start_v3",
       "select_gpt_reasoning_from_start_v3", "submit_exact_gpt_turn_once"].includes(id);
     const budget = observation ? "zero" : exactOne ? "exactly-one-browser-input" : "zero-or-one-browser-input";
     const replay = observation ? "observation-only" : profile === "PROVIDER_EFFECT_ONCE" ? "provider-effect-once" : "target-local-per-generation";

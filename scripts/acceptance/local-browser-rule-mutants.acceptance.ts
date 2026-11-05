@@ -13,6 +13,7 @@ import { assertBrowserDomIntent } from "../../src/lib/browser/exact-target/brows
 import { inspectAuthenticatedChannelGuards } from "../audit/domains/local-browser-session/authenticated-channel-inspection.js";
 import { inspectOpaqueAuthorityBoundary } from "../audit/domains/local-browser-session/opaque-proof-inspection.js";
 import { inspectDomMechanicalFacts } from "../audit/domains/local-browser-session/dom-mechanical-facts-inspection.js";
+import { readRegistryProjection } from "../audit/governance-authority.js";
 
 const hash = (digit: string): `sha256:${string}` => `sha256:${digit.repeat(64)}`;
 const TERMINAL_RULE_MUTANTS = [
@@ -129,6 +130,11 @@ const TERMINAL_RULE_MUTANTS = [
       'if (mutationClass === "observation") await this.interactionReadiness.executeObservation(target, execute, assertCommandActive); if (mutationClass === "observation") return '],
     ["src/lib/browser/exact-target/browser-submitted-conversation-locator.ts", "requireCanonicalGptConversationUrl(value.canonicalConversationUrl)", "value.canonicalConversationUrl"],
     ["src/lib/browser/exact-target/browser-submitted-conversation-locator.ts", "set provider_recovery_payload=?", "set state='REJECTED',provider_recovery_payload=?"],
+    ["src/lib/browser/exact-target/browser-mutation-evidence.ts", "callId: row.call_id, childCapabilityId: row.child_capability_id,", "callId: row.call_id,"],
+    ["src/lib/browser/exact-target/browser-mutation-evidence.ts", "childCapabilityId: row.child_capability_id,\n          exactCallIdentityHash:", 'childCapabilityId: "submit_exact_gpt_turn_once",\n          exactCallIdentityHash:'],
+    ["src/lib/browser/exact-target/browser-mutation-evidence.ts", "unsealProviderRecoveryPayload(this.payloadKey, row.command_id, row.provider_recovery_payload)", 'unsealProviderRecoveryPayload(this.payloadKey, "foreign", row.provider_recovery_payload)'],
+    ["src/lib/browser/exact-target/browser-mutation-evidence.ts", 'recovered && input.effectScope === "provider_effect" && row.state === "CONFIRMED"', 'recovered && input.effectScope === "provider_effect"'],
+    ["src/lib/browser/exact-target/browser-mutation-evidence.ts", "const recovered = row.provider_recovery_payload === null ? null", "const recovered = true ? null"],
     ["src/lib/browser/chrome-extension/extension-target-authority.ts", "this.interactionReadiness.invalidateNavigation();", ""],
     ["src/lib/browser/chrome-extension/extension-target-authority.ts", "parameters?.frameId === this.activeMainFrameId", "false"],
     ["src/lib/browser/chrome-extension/extension-target-authority.ts", "await this.parkActiveTarget();\n      return this.debuggerRuntime.withProviderInputGuard", "void 0;\n      return this.debuggerRuntime.withProviderInputGuard"],
@@ -146,23 +152,45 @@ const exerciseInspectors = (): void => {
   const started = performance.now();
   let completed = 0;
   process.stderr.write(`[QUALITY][browser-mutants:start] total=${TERMINAL_RULE_MUTANTS.length}\n`);
-  const project = new Project({ tsConfigFilePath: "tsconfig.json" }), lawId = "LAW-LOCAL-BROWSER-SESSION-004-V59";
+  const project = new Project({ tsConfigFilePath: "tsconfig.json" });
+  const registry = readRegistryProjection();
+  const domain = registry.domains.find(entry => entry.capabilityDomain === "local-browser-session");
+  assert(domain);
   const paths = project.getSourceFiles().map(source => source.getFilePath().slice(process.cwd().length + 1));
-  const context: InspectorContext = { project, sealedRoot: process.cwd(), selectedLawId: lawId, targetPaths: paths,
-    targetSet: { queryRef: "terminal-owner-mutants", count: paths.length }, lawRequirements: [{ lawId, forbiddenCount: 24,
-      requiredStaticModes: ["static.ast"], targetPaths: paths, targetSet: { queryRef: "terminal-owner-mutants", count: paths.length } }],
-    planEntry: { capabilityDomain: "local-browser-session", executionGroup: "domain", lawIds: [lawId],
-      manifestPath: "scripts/audit/domains/local-browser-session/manifest.json", ownerInspectorPath: "scripts/audit/domains/local-browser-session/inspector.ts" }, generatedPlan: [] };
-  const inspect = (): InspectorFinding[] => { const findings: InspectorFinding[] = [];
-    inspectBrowserMutationSettlement(context, findings, lawId); inspectTargetClaimGuards(context, findings, lawId); inspectInteractionReadiness(context, findings, lawId);
-    inspectDomMechanicalFacts(context, findings, lawId); inspectAuthenticatedChannelGuards(context, findings, lawId);
-    inspectOpaqueAuthorityBoundary(context, findings, lawId); return findings; };
+  const targetSet = { queryRef: "terminal-owner-mutants", count: paths.length };
+  const lawRequirements = registry.laws.filter(law => domain.lawIds.includes(law.lawId)).map(law => ({
+    lawId: law.lawId, forbiddenCount: law.forbidden.length,
+    requiredStaticModes: law.evidenceModes.filter(mode => mode.startsWith("static.")), targetPaths: paths, targetSet,
+  }));
+  const inspect = (): InspectorFinding[] => {
+    const findings: InspectorFinding[] = [];
+    for (const [lawPrefix, checks] of [
+      ["004", [inspectBrowserMutationSettlement, inspectTargetClaimGuards, inspectInteractionReadiness, inspectDomMechanicalFacts]],
+      ["003", [inspectTargetClaimGuards]], ["002", [inspectAuthenticatedChannelGuards]],
+      ["006", [inspectOpaqueAuthorityBoundary]],
+    ] as const) {
+      const lawId = domain.lawIds.find(id => id.startsWith(`LAW-LOCAL-BROWSER-SESSION-${lawPrefix}-`));
+      assert(lawId);
+      const context: InspectorContext = { project, sealedRoot: process.cwd(), selectedLawId: lawId, targetPaths: paths, targetSet,
+        lawRequirements, planEntry: { ...domain, executionGroup: "domain",
+          ownerInspectorPath: "scripts/audit/domains/local-browser-session/inspector.ts" }, generatedPlan: [] };
+      for (const check of checks) check(context, findings, lawId);
+    }
+    return findings;
+  };
   assert.deepEqual(inspect(), [], "Actual native Owner chain must be accepted before negative mutations.");
   for (const [path, original, replacement] of TERMINAL_RULE_MUTANTS) {
     const source = project.getSourceFileOrThrow(path), before = source.getFullText(); assert.ok(before.includes(original), original);
     let after = before.replace(original, replacement);
     if (path.endsWith("debugger-runtime.ts")) after = after.replace("const DEVTOOLS_CONTROL_METHODS = new Set([", 'const DEVTOOLS_CONTROL_METHODS = new Set([\n  "Page.navigate",');
-    try { source.replaceWithText(after); assert.ok(inspect().length > 0, `Native inspector missed ${original}`); }
+    try {
+      source.replaceWithText(after);
+      const findings = inspect();
+      const expected = path.endsWith("/browser-mutation-evidence.ts") ? findings.some(finding =>
+        finding.lawId.startsWith("LAW-LOCAL-BROWSER-SESSION-006-")
+        && finding.checkId === "browser-authority/closed-invocation-payload") : findings.length > 0;
+      assert.ok(expected, `Native inspector missed ${original}`);
+    }
     finally { source.replaceWithText(before); }
     assert.deepEqual(inspect(), [], "Each mutant is isolated and restored in memory.");
     completed += 1;

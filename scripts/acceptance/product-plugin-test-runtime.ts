@@ -79,7 +79,9 @@ export const buildProductTask = (
       ordinal,
       role: material.role,
       display_name: `material-${ordinal}.${material.media_types[0] === "application/zip" ? "zip" : "json"}`,
-      object_ref: material.role === "subject_result" ? "result:subject" : `object:${ordinal}`,
+      object_ref: material.role === "result_contract"
+        ? `contract:astra.website-agent-task-result:4:owner:fixture:${route.product_id}:${route.action_id}`
+        : material.role === "subject_result" ? "result:subject" : `object:${ordinal}`,
       sha256: FIXTURE_HASH,
       bytes: 10,
       media_type: material.media_types[0]!,

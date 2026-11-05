@@ -35,7 +35,7 @@ test("a Product acceptance needs no standalone self-name literal and retains for
   const inspect = (body: string) => {
     const project = sourceProject({ ...sources, "scripts/acceptance/product-plugins/alpha.acceptance.ts": body });
     const findings: Parameters<typeof inspectProductAcceptanceBoundaries>[0]["findings"] = [];
-    inspectProductAcceptanceBoundaries({ project, lawId: "LAW-ARCHITECTURE-BOUNDARY-001-V18", findings, inspectedFiles: new Set() });
+    inspectProductAcceptanceBoundaries({ project, lawId: "LAW-ARCHITECTURE-BOUNDARY-001-V1", findings, inspectedFiles: new Set() });
     return findings.map((finding) => finding.checkId);
   };
   assert.deepEqual(inspect("import { alpha } from '../../../src/plugins/alpha/index.js'; console.log(alpha.pluginId);"), []);
@@ -58,7 +58,7 @@ const inspectBagScope = (input: {
     "scripts/acceptance/scope-check.ts": `import { subject, type Shape } from '../../${subjectPath.replace(/\.ts$/u, ".js")}'; ${input.verification}`,
     "src/scope-unreachable.ts": `import { subject, type Shape } from '../${subjectPath.replace(/\.ts$/u, ".js")}'; ${input.unreachable ?? ""}`,
   });
-  const laws = ["LAW-CODE-PURITY-001-V6", "LAW-CODE-PURITY-002-V2", "LAW-CODE-PURITY-003-V3"];
+  const laws = ["LAW-CODE-PURITY-001-V1", "LAW-CODE-PURITY-002-V1", "LAW-CODE-PURITY-003-V1"];
   const result = scanZombieSurfaces(createInspectorContextFixture(project, "code-purity", laws),
     collectCodePurityGovernedFiles(project), laws, { packageScripts: {
       start: "node src/scope-main.ts", test: "node scripts/acceptance/scope-check.ts",

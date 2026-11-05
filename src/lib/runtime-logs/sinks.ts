@@ -1,12 +1,11 @@
 import {
   appendFileSync,
-  existsSync,
+  lstatSync,
   mkdirSync,
   readdirSync,
-  statSync,
   writeFileSync,
 } from "node:fs";
-import { basename, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 
 import { isEventVisibleInMode, type RuntimeLogMode } from "./mode.js";
 import type { RuntimeLogEventV2 } from "./runtime-event-contract.js";
@@ -88,17 +87,32 @@ const DEFAULT_MAX_TOTAL_BYTES = 2 * 1024 * 1024 * 1024;
 const SEGMENTS_PER_CAPACITY = 16;
 const safeToken = (value: string): string => value.replace(/[^A-Za-z0-9_.-]/gu, "-");
 
-const segmentFiles = (directoryPath: string): string[] => {
-  if (!existsSync(directoryPath)) return [];
+const localLogEntry = (filePath: string, kind: "directory" | "file") => {
+  const stat = lstatSync(filePath, { throwIfNoEntry: false });
+  if (!stat) return undefined;
+  if (kind === "directory" ? !stat.isDirectory() : !stat.isFile() || stat.nlink !== 1) {
+    throw new Error("RUNTIME_LOG_STORAGE_PATH_INVALID");
+  }
+  return stat;
+};
+
+const segmentFiles = (directoryPath: string) => {
+  localLogEntry(dirname(directoryPath), "directory");
+  if (!localLogEntry(directoryPath, "directory")) return [];
   return readdirSync(directoryPath)
     .filter((name) => name.endsWith(".jsonl"))
-    .map((name) => join(directoryPath, name))
-    .sort((left, right) => statSync(left).mtimeMs - statSync(right).mtimeMs || left.localeCompare(right));
+    .map((name) => {
+      const filePath = join(directoryPath, name);
+      const stat = localLogEntry(filePath, "file");
+      if (!stat) throw new Error("RUNTIME_LOG_STORAGE_PATH_INVALID");
+      return { filePath, modifiedAt: stat.mtimeMs, size: stat.size };
+    })
+    .sort((left, right) => left.modifiedAt - right.modifiedAt || left.filePath.localeCompare(right.filePath));
 };
 
 const ensureCapacity = (directoryPath: string, requiredBytes: number, maxTotalBytes: number): void => {
   const files = segmentFiles(directoryPath);
-  const used = files.reduce((total, file) => total + statSync(file).size, 0);
+  const used = files.reduce((total, file) => total + file.size, 0);
   if (used + requiredBytes <= maxTotalBytes) return;
   throw new Error("RUNTIME_LOG_CAPACITY_BLOCKED");
 };
@@ -112,16 +126,19 @@ export const createRuntimeFileSink = (
   const maxTotalBytes = options.maxTotalBytes ?? DEFAULT_MAX_TOTAL_BYTES;
   if (!Number.isInteger(maxTotalBytes) || maxTotalBytes < 1) throw new Error("RUNTIME_LOG_CAPACITY_INVALID");
   const segmentBytes = Math.max(1, Math.floor(maxTotalBytes / SEGMENTS_PER_CAPACITY));
+  localLogEntry(dirname(options.directoryPath), "directory");
+  const segments = segmentFiles(directoryPath);
   mkdirSync(directoryPath, { recursive: true });
   const prefix = `${safeToken(producerRunId)}-`;
   const writerLockPath = join(directoryPath, `${safeToken(producerRunId)}.writer.lock`);
+  localLogEntry(writerLockPath, "file");
   try {
     writeFileSync(writerLockPath, `${process.pid}\n`, { encoding: "utf8", flag: "wx", flush: true });
   } catch {
     throw new Error("RUNTIME_LOG_PRODUCER_RUN_MULTI_WRITER");
   }
-  const existingSegments = segmentFiles(directoryPath)
-    .map((path) => basename(path))
+  const existingSegments = segments
+    .map(({ filePath }) => basename(filePath))
     .filter((name) => name.startsWith(prefix))
     .map((name) => Number(name.slice(prefix.length, -".jsonl".length)))
     .filter(Number.isInteger);
@@ -131,12 +148,18 @@ export const createRuntimeFileSink = (
   return {
     currentPath: pathFor,
     write(event) {
+      localLogEntry(dirname(options.directoryPath), "directory");
+      localLogEntry(options.directoryPath, "directory");
+      localLogEntry(directoryPath, "directory");
+      localLogEntry(writerLockPath, "file");
       const line = `${JSON.stringify(event)}\n`;
       const bytes = Buffer.byteLength(line);
-      const currentBytes = existsSync(pathFor()) ? statSync(pathFor()).size : 0;
+      const currentBytes = localLogEntry(pathFor(), "file")?.size ?? 0;
       if (currentBytes > 0 && currentBytes + bytes > segmentBytes) segment += 1;
       ensureCapacity(directoryPath, bytes, maxTotalBytes);
-      appendFileSync(pathFor(), line, { encoding: "utf8", flush: true });
+      const destination = pathFor();
+      localLogEntry(destination, "file");
+      appendFileSync(destination, line, { encoding: "utf8", flush: true });
     },
   };
 };

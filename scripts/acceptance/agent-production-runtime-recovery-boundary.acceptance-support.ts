@@ -56,7 +56,7 @@ const inspectRuntimeSources = (project: Project, queryRef: string) => {
   inspectAgentProductionRuntime({
     project,
     sealedRoot: path.resolve("."),
-    selectedLawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V85",
+    selectedLawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V1",
     targetSet: { queryRef, count: project.getSourceFiles().length },
     targetPaths: project.getSourceFiles().map((source) => path.relative(path.resolve("."), source.getFilePath()).replaceAll("\\", "/")),
     lawRequirements: [],
@@ -65,7 +65,7 @@ const inspectRuntimeSources = (project: Project, queryRef: string) => {
       manifestPath: "scripts/audit/domains/agent-production-runtime/manifest.json",
       ownerInspectorPath: "scripts/audit/domains/agent-production-runtime/inspector.ts",
       executionGroup: "domain",
-      lawIds: ["LAW-AGENT-PRODUCTION-RUNTIME-001-V85"],
+      lawIds: ["LAW-AGENT-PRODUCTION-RUNTIME-001-V1"],
     },
     generatedPlan: [],
   }, findings);
@@ -156,7 +156,7 @@ const exerciseProviderAndOpaqueRouteMutants = (): void => {
   const findings: Parameters<typeof inspectAgentContracts>[1] = [];
   inspectAgentContracts(context, findings);
   inspectAgentProductionRuntime(context, findings);
-  assert.equal(findings.length, 0, "the actual Native Runtime scope must establish the original contracts");
+  assert.equal(findings.length, 0, `the actual Native Runtime scope must establish the original contracts: ${JSON.stringify(findings)}`);
   const generator = project.getSourceFileOrThrow(path.resolve("scripts/generate/sync-website-agent-route-policy-projection.ts"));
   const originalGenerator = generator.getFullText();
   generator.getVariableDeclarationOrThrow("bytes").setInitializer("await readFile(destination)");
@@ -282,7 +282,7 @@ const exerciseManifestAndLawOwnership = async (): Promise<void> => {
   const runtimeLawRecords = [...runtimeLawSource.matchAll(/```law-record\n([\s\S]*?)\n```/gu)]
     .map((match) => JSON.parse(match[1]!) as { lawId: string; forbidden: string[] });
   const runtimeCoreLaw = runtimeLawRecords.find(
-    (record) => record.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V85",
+    (record) => record.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V1",
   );
   assert.ok(runtimeCoreLaw);
   for (const token of [

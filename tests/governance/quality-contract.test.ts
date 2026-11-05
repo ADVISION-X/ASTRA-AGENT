@@ -79,7 +79,7 @@ const fixtureDynamicClauses = ["forbidden:4", "forbidden:8"];
 writeFileSync(fixtureEvidencePath, `${JSON.stringify({
   schema_version: "governance-dynamic-observation.v2",
   proof_run_id: "a".repeat(64), candidate: "b".repeat(40), captured_at: "2026-08-27T00:00:00.000Z",
-  lawId: "LAW-LOCAL-APP-SHELL-001-V6", evidenceMode: "dynamic.service",
+  lawId: "LAW-LOCAL-APP-SHELL-001-V1", evidenceMode: "dynamic.service",
   observation_kind: "service", clauses: fixtureDynamicClauses, observed_value: "fixture",
   producer_script: "proof:local-shell-current-runtime",
   observation: {
@@ -343,13 +343,13 @@ test("each Dynamic mode authenticates its native object, clause binding, and obs
       }, recoveryJobId: "job-1", unresolvedCount: 0 },
   } as const;
   const routes = {
-    browser: { lawId: "LAW-LOCAL-BROWSER-SESSION-001-V4", clauses: ["forbidden:6"] },
-    service: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V83", clauses: ["summary"] },
-    database: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V83", clauses: ["forbidden:0", "forbidden:2"] },
-    storage: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V83", clauses: ["forbidden:2"] },
-    provider: { lawId: "LAW-GPT-001-V69", clauses: ["forbidden:0", "forbidden:3", "forbidden:7"] },
-    authorization: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-002-V12", clauses: ["forbidden:1", "forbidden:2"] },
-    recovery: { lawId: "LAW-RUNTIME-LOG-SPINE-001-V8", clauses: ["summary"] },
+    browser: { lawId: "LAW-LOCAL-BROWSER-SESSION-001-V1", clauses: ["forbidden:6"] },
+    service: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V1", clauses: ["summary"] },
+    database: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V1", clauses: ["forbidden:0", "forbidden:2"] },
+    storage: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V1", clauses: ["forbidden:2"] },
+    provider: { lawId: "LAW-GPT-001-V1", clauses: ["forbidden:0", "forbidden:3", "forbidden:7"] },
+    authorization: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-002-V1", clauses: ["forbidden:1", "forbidden:2"] },
+    recovery: { lawId: "LAW-RUNTIME-LOG-SPINE-001-V1", clauses: ["summary"] },
   } as const;
   for (const [kind, observation] of Object.entries(observations)) {
     const evidenceMode = `dynamic.${kind}`;
@@ -385,15 +385,18 @@ test("each Dynamic mode authenticates its native object, clause binding, and obs
   }
   const serviceMode = "dynamic.service";
   const serviceRoute = routes.service;
+  const producerScript = "acceptance:agent-production-runtime:real-proof";
   assert.equal(validateDynamicReceiptPayload({ ...base, ...serviceRoute, evidenceMode: serviceMode,
-    observation_kind: "service", observation: observations.browser }, { ...serviceRoute, evidenceMode: serviceMode,
+    observation_kind: "service", producer_script: producerScript, observation: observations.browser }, { ...serviceRoute, evidenceMode: serviceMode,
     observedValue: base.observed_value, proofRunId: base.proof_run_id, candidate: base.candidate,
-    producerScript: base.producer_script }), false,
+    producerScript }), false,
   "a browser object cannot authenticate a service receipt");
 });
 
 test("a generic service object cannot authenticate a factually unrelated startup clause", () => {
-  const route = { lawId: "LAW-STARTUP-ENTRYPOINT-002-V4", evidenceMode: "dynamic.service",
+  const law = buildRegistry().laws.find(entry => entry.lawId.startsWith("LAW-STARTUP-ENTRYPOINT-002-V"));
+  assert.ok(law);
+  const route = { lawId: law.lawId, evidenceMode: "dynamic.service",
     clauses: ["forbidden:0"] };
   const producerScript = "proof:local-shell-current-runtime";
   const payload = {
@@ -519,7 +522,7 @@ test("Exam observations reject duplicate self-attested stdout before route bindi
 });
 
 test("a Dynamic producer cannot self-authenticate an invented native object", () => {
-  const law = { ...fixtureLaw(), lawId: "LAW-LOCAL-APP-SHELL-001-V6", capabilityDomain: "local-app-shell" };
+  const law = { ...fixtureLaw(), lawId: "LAW-LOCAL-APP-SHELL-001-V1", capabilityDomain: "local-app-shell" };
   const routes = [{ law, mode: "dynamic.service" }];
   const requests = proofRequests(routes, "dynamic");
   const marker = `${proofObservationPrefix}${JSON.stringify({
@@ -555,7 +558,7 @@ test("a Dynamic producer cannot self-authenticate an invented native object", ()
 });
 
 test("Dynamic receipts must be exact regular files created in this proof run directory", () => {
-  const law = { ...fixtureLaw(), lawId: "LAW-LOCAL-APP-SHELL-001-V6", capabilityDomain: "local-app-shell" };
+  const law = { ...fixtureLaw(), lawId: "LAW-LOCAL-APP-SHELL-001-V1", capabilityDomain: "local-app-shell" };
   const routes = [{ law, mode: "dynamic.service" }];
   const requests = proofRequests(routes, "dynamic");
   const outsideDirectory = mkdtempSync(resolve(tmpdir(), "quality-outside-evidence-"));
@@ -591,7 +594,7 @@ test("Dynamic receipts must be exact regular files created in this proof run dir
 });
 
 test("Dynamic routes cannot substitute one mode-bound receipt locator", () => {
-  const law = { ...fixtureLaw(), lawId: "LAW-LOCAL-APP-SHELL-001-V6", capabilityDomain: "local-app-shell" };
+  const law = { ...fixtureLaw(), lawId: "LAW-LOCAL-APP-SHELL-001-V1", capabilityDomain: "local-app-shell" };
   const routes = [{ law, mode: "dynamic.service" }, { law, mode: "dynamic.browser" }];
   const requests = proofRequests(routes, "dynamic");
   const output = requests.map((request) => `${proofObservationPrefix}${JSON.stringify({
@@ -1118,9 +1121,12 @@ test("provider contracts reject malformed payloads before identity matching", ()
   const providerDocument: unknown = JSON.parse(readFileSync(
     "docs/specs/agent-production-runtime/agent-route-capability-manifest.provider.spec.json", "utf8",
   ));
-  assert.doesNotThrow(() => validateProviderContractSpec(providerDocument, "ADVISION-X/AGENT",
-    new Map(buildRegistry().laws.map(law => [law.lawId, law.capabilityDomain])),
-    path => path === "src/lib/local-runtime/production/catalog.ts"));
+  const astraDomains = new Map(buildRegistry().laws.map(law => [law.lawId, law.capabilityDomain]));
+  const catalogArtifact = (path: string) => path === "src/lib/local-runtime/production/catalog.ts";
+  assert.doesNotThrow(() => validateProviderContractSpec(providerDocument, "ADVISION-X/ASTRA-AGENT",
+    astraDomains, catalogArtifact));
+  assert.throws(() => validateProviderContractSpec(providerDocument, "ADVISION-X/AGENT", astraDomains, catalogArtifact),
+    (error: unknown) => error instanceof GovernanceError && error.code === "EXTERNAL_SURFACE_AUTHORITY_MISSING");
 });
 
 test("hidden inspector errors, stale projections, and unsafe index states fail closed", () => {
@@ -1359,7 +1365,7 @@ test("every active law scope is deterministic, owned, unique, and includes all c
 
 test("active mutation inspectors use one DISPATCHED chain inside each law scope", () => {
   const registry = buildRegistry();
-  const agentLaw = registry.laws.find((law) => law.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V83");
+  const agentLaw = registry.laws.find((law) => law.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V1");
   assert.ok(agentLaw);
   const agentTargets = computeTargetPaths(agentLaw, registry);
   const crossOwnerPaths = [
@@ -1446,7 +1452,7 @@ test("active mutation inspectors use one DISPATCHED chain inside each law scope"
 });
 
 test("local Browser static source lookup fails closed outside the law target set", () => {
-  const lawId = "LAW-LOCAL-BROWSER-SESSION-004-V19";
+  const lawId = "LAW-LOCAL-BROWSER-SESSION-004-V1";
   const findings: import("../../scripts/audit/shared/inspector-contracts.js").InspectorFinding[] = [];
   const context = {
     project: new Project({ useInMemoryFileSystem: true }),
@@ -1489,7 +1495,7 @@ test("Browser reply inspection rejects mixed transport and permit identities", (
   const commandAdvance = "this.active = { ...active, replies, nextServerSequence: sequence + 1 };";
   const source = readFileSync(path, "utf8");
   for (const anchor of [commandSequence, commandAdvance]) assert.equal(source.split(anchor).length, 2, anchor);
-  verifyBrowserBoundaryMutants("LAW-LOCAL-BROWSER-SESSION-001-V4", inspectSingleTransport, [
+  verifyBrowserBoundaryMutants("LAW-LOCAL-BROWSER-SESSION-001-V1", inspectSingleTransport, [
     [path, "if (this.closed) { socket.close(1000); return; }", "if (this.closed) { return; }"],
     [path, "if (this.closed) { socket.close(1000); return; }", "if (false) { socket.close(1000); return; }"],
     [path, 'integerField(body, "requestSequence", 1)', 'integerField(body, "permitSequence", 1)'],
@@ -1522,7 +1528,7 @@ test("Browser reply inspection rejects mixed transport and permit identities", (
 
 test("Browser receipt inspection rejects raw caller facts and unbound WAL readback", () => {
   const path = "src/lib/browser/exact-target/browser-command-actor.ts";
-  verifyBrowserBoundaryMutants("LAW-LOCAL-BROWSER-SESSION-004-V59", inspectProviderEffectAttemptGuard, [
+  verifyBrowserBoundaryMutants("LAW-LOCAL-BROWSER-SESSION-004-V1", inspectProviderEffectAttemptGuard, [
     [path, "verifyNormalBrowserMutationReply(permit, command, { result: reply.result, mutationReceipt: reply.mutationReceipt })", "reply.mutationReceipt!"],
     [path, "receipt.terminal === \"confirmed\" ? \"CONFIRMED\" : \"REJECTED\"", "\"CONFIRMED\""],
     [path, "private completeMutation(permit: BrowserCommandPermit, command: BrowserGovernedCommand, reply: BrowserCommandReply,\n    span: ReturnType<typeof startBrowserCommandSpan>, state: BrowserCommandExecutionState): void", "private async completeMutation(permit: BrowserCommandPermit, command: BrowserGovernedCommand, reply: BrowserCommandReply,\n    span: ReturnType<typeof startBrowserCommandSpan>, state: BrowserCommandExecutionState): Promise<void>"],
@@ -1568,7 +1574,7 @@ test("Extension command failure preserves its original redacted intent identity"
 });
 test("Browser media inspection rejects alternate identities, missing guards and duplicate input", () => {
   const path = "src/lib/browser/chrome-extension/extension-command-runtime.ts";
-  verifyBrowserBoundaryMutants("LAW-LOCAL-BROWSER-SESSION-006-V49", inspectOpaqueAuthorityBoundary, [
+  verifyBrowserBoundaryMutants("LAW-LOCAL-BROWSER-SESSION-006-V1", inspectOpaqueAuthorityBoundary, [
     [path, 'case "authenticated-media": return', 'case "other-media": return'],
     [path, "switch (command.kind) {", 'switch ("never-media") {'],
     [path, "switch (command.kind) {", "if (false) switch (command.kind) {"],
@@ -1707,7 +1713,7 @@ test("Browser inspectors require current WAL schema without startup migration an
   for (const [path, original] of mutations) {
     assert.equal((path === exactPath ? exact : fixed).split(original).length, 2, `unique current mutation: ${original}`);
   }
-  verifyBrowserBoundaryMutants("LAW-LOCAL-BROWSER-SESSION-004-V59", inspectDomMechanicalFacts, mutations);
+  verifyBrowserBoundaryMutants("LAW-LOCAL-BROWSER-SESSION-004-V1", inspectDomMechanicalFacts, mutations);
 });
 
 test("GPT001 native AST and contract routes reject text settlement and attachment selector drift under their own law", () => {
@@ -1732,7 +1738,7 @@ test("GPT001 native AST and contract routes reject text settlement and attachmen
     ["--import", "tsx", resolve("scripts/audit/shared/quality-inspector-worker.ts")],
     { encoding: "utf8", maxBuffer: 10 * 1024 * 1024, env: { ...process.env,
       GOVERNANCE_SEALED_ROOT: root, GOVERNANCE_INSPECTION_REQUEST: requestPath } }), "gpt")
-    .lawResults.find(law => law.lawId === "LAW-GPT-001-V69")!;
+    .lawResults.find(law => law.lawId === "LAW-GPT-001-V1")!;
   const ownModes = (law: ReturnType<typeof inspect>) => law.assertions
     .filter(assertion => ["static.ast", "static.contract"].includes(assertion.evidenceMode))
     .map(assertion => assertion.passed);
@@ -1741,12 +1747,12 @@ test("GPT001 native AST and contract routes reject text settlement and attachmen
   const baseline = readFileSync(path, "utf8");
   for (const [original, replacement] of [
     ["while (Date.now() < deadline || exactResponseObserved)", "while (Date.now() < deadline)"],
-    ["Date.now() + GPT_STOPPED_EMPTY_CONFIRMATION_MS : deadline", "deadline"],
+    ["exactResponseObserved ? null : deadline, nextWaitReason", "deadline, nextWaitReason"],
     ["if (exactResponseObserved) continue", "if (exactResponseObserved) break"],
     ['nextWaitReason = "exact-user-turn-unavailable"', 'nextWaitReason = "adjacent-assistant-missing"'],
-    ["observationDeadline, nextWaitReason", 'observationDeadline, "initial-observation"'],
+    ["exactResponseObserved ? null : deadline, nextWaitReason", 'exactResponseObserved ? null : deadline, "initial-observation"'],
     ["assistant && assistant.generatingRaw === 0 && assistant.semanticText.trim().length > 0", "assistant && assistant.hidden === false && assistant.generatingRaw === 0 && assistant.semanticText.trim().length > 0"],
-    ["observation.generatingRaw > 0 || observation.semanticText.trim().length > 0", "observation.generatingRaw > 0 || observation.composerRaw > 0 || observation.semanticText.trim().length > 0"],
+    ["if (context.stoppedEmptyRetryAuthorized === true) emptyEndedObservation(assistant);", "emptyEndedObservation(assistant);"],
     ["readExactAssistantTurn(browser, userTurnId, turnMarker, conversationUrl)", 'readExactAssistantTurn(browser, userTurnId, "constant-marker", conversationUrl)'],
     ["const waitForProviderObservation = requireObservationGate(context);", "await readExactAssistantTurn(browser, userTurnId, turnMarker, conversationUrl); const waitForProviderObservation = requireObservationGate(context);"],
   ]) {
@@ -1820,9 +1826,12 @@ test("GPT Provider wait reasons remain a closed diagnostic projection", () => {
   assert.equal(valid(contract, lifecycle.replace(
     "GPT_PROVIDER_WAIT_EXACT_USER_TURN_UNAVAILABLE", "GPT_PROVIDER_WAIT_ACTIVE",
   )), false);
-  assert.equal(valid(contract, lifecycle, textHandler.replace(
-    "observationDeadline, nextWaitReason", 'observationDeadline, "initial-observation"',
-  )), false);
+  const constantReason = textHandler.replace(
+    "exactResponseObserved ? null : deadline, nextWaitReason",
+    'exactResponseObserved ? null : deadline, "initial-observation"',
+  );
+  assert.notEqual(constantReason, textHandler);
+  assert.equal(valid(contract, lifecycle, constantReason), false);
   assert.equal(valid(contract, lifecycle, `${textHandler}\nif (nextWaitReason) throw new Error();`), false);
   assert.equal(valid(contract, lifecycle, textHandler, imageHandler.replace(
     'deadline, "generated-image-source-pending"', 'deadline, "initial-observation"',
@@ -1874,7 +1883,7 @@ test("every declared Dynamic mode has one exact producer claim route", () => {
 
 test("a law-authorized summary-only Dynamic claim validates against its exact producer fact", () => {
   const binding = {
-    lawId: "LAW-RUNTIME-LOG-SPINE-001-V8", evidenceMode: "dynamic.browser", clauses: ["summary"],
+    lawId: "LAW-RUNTIME-LOG-SPINE-001-V1", evidenceMode: "dynamic.browser", clauses: ["summary"],
     observedValue: "native-runtime-log", proofRunId: "a".repeat(64), candidate: "b".repeat(40),
     producerScript: "acceptance:runtime-log-spine:real-proof",
   };

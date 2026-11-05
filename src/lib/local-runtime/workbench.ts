@@ -11,7 +11,7 @@ import type {
   WorkbenchInitializationState,
 } from "./workbench-status-types.js";
 import { buildProductionRuntimeHandle } from "./workbench-production-runtime-handle.js";
-import { startProductionRuntime, type ProductionRuntimeHandle } from "./production/runtime.js";
+import { isProductionSessionBindingFailure, startProductionRuntime, type ProductionRuntimeHandle } from "./production/runtime.js";
 import { requireRuntimeLogWrite } from "../runtime-logs/index.js";
 
 const buildWorkbenchHandle = (
@@ -73,7 +73,8 @@ export class GrassEyeWorkbench {
   constructor(private readonly options: GrassEyeWorkbenchOptions) {}
 
   private scheduleBlockedRuntimeRetry(): void {
-    if (this.blockedRetryTimer || this.shuttingDown) return;
+    if (this.blockedRetryTimer || this.shuttingDown || !this.productionRuntime
+      || isProductionSessionBindingFailure(this.productionRuntime.readHealth().lastErrorCode)) return;
     this.blockedRetryTimer = setTimeout(() => {
       this.blockedRetryTimer = null;
       this.retryPromise = this.retryBlockedRuntime().finally(() => { this.retryPromise = null; });

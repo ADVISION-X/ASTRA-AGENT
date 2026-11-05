@@ -5,9 +5,9 @@
   "version": 3,
   "owner": "runtime-log-spine",
   "lawIds": [
-    "LAW-RUNTIME-LOG-SPINE-001-V8",
-    "LAW-RUNTIME-LOG-SPINE-002-V4",
-    "LAW-RUNTIME-LOG-SPINE-003-V6"
+    "LAW-RUNTIME-LOG-SPINE-001-V1",
+    "LAW-RUNTIME-LOG-SPINE-002-V1",
+    "LAW-RUNTIME-LOG-SPINE-003-V1"
   ],
   "specKind": "typed-contract",
   "contract": {

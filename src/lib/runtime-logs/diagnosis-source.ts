@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { lstatSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { runtimeEventIntegrityValid } from "./integrity.js";
@@ -8,9 +8,9 @@ import {
 import type { RuntimeLogEventV2 } from "./runtime-event-contract.js";
 
 const activeJsonlFiles = (root: string, findings: string[]): string[] => {
-  if (!existsSync(root)) return [];
-  const rootStat = statSync(root);
-  if (rootStat.isFile()) return [root];
+  const rootStat = lstatSync(root, { throwIfNoEntry: false });
+  if (!rootStat) return [];
+  if (rootStat.isFile() && rootStat.nlink === 1) return [root];
   if (!rootStat.isDirectory()) return [];
   const found: string[] = [];
   for (const producer of readdirSync(root, { withFileTypes: true }).filter((entry) => entry.isDirectory())) {
@@ -34,7 +34,7 @@ export const parseRuntimeLogSource = (source: string, findings: string[], maxFil
   try {
     files = activeJsonlFiles(source, findings);
     if (maxFiles !== undefined) {
-      files = files.sort((left, right) => statSync(left).mtimeMs - statSync(right).mtimeMs
+      files = files.sort((left, right) => lstatSync(left).mtimeMs - lstatSync(right).mtimeMs
         || left.localeCompare(right)).slice(-maxFiles);
     }
   } catch {
@@ -43,6 +43,11 @@ export const parseRuntimeLogSource = (source: string, findings: string[], maxFil
   if (files.length === 0) findings.push(`SOURCE_UNAVAILABLE:${source}`);
   const events: RuntimeLogEventV2[] = [];
   for (const path of files) {
+    const metadata = lstatSync(path, { throwIfNoEntry: false });
+    if (!metadata?.isFile() || metadata.nlink !== 1) {
+      findings.push(`ACTIVE_SOURCE_LAYOUT_INVALID:${path}`);
+      continue;
+    }
     const lines = readFileSync(path, "utf8").split("\n");
     for (let index = 0; index < lines.length; index += 1) {
       const line = lines[index]!;

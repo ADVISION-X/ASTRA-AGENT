@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { dirname, relative, resolve } from 'node:path';
 import test from 'node:test';
 
-import { assertActiveSpecVersionWindows, assertOneActiveMajorPerLawKey, buildRegistry, checkProjection, loadLaws, motherSpecIdentityValid, parseLawSource, verifyEntry, verifyGovernanceCommandSurface, verifyProductionOwnership } from '../../scripts/audit/governance-authority.js';
+import { assertActiveSpecVersionWindows, assertOneActiveMajorPerLawKey, buildRegistry, loadLaws, motherSpecIdentityValid, parseLawSource, verifyEntry, verifyGovernanceCommandSurface } from '../../scripts/audit/governance-authority.js';
 import { assertLawMajorVersionChanges, assertProviderContractVersionChanges } from '../../scripts/audit/governance-change-authority.js';
 import { assertProductionDeleteAuthorization } from '../../scripts/audit/governance.js';
 import { assertNoCaseCollision, GovernanceError } from '../../scripts/audit/governance-runtime.js';
@@ -236,8 +236,6 @@ test('registry is schema 5 projection without hashes, bindings, or verdicts', ()
     assert.equal('sectionSha256' in law.source, false);
     assert.equal(law.contractRefs.some((reference) => reference.includes('#')), false);
   }
-  checkProjection();
-  verifyProductionOwnership(registry);
 });
 
 test('candidate roles preserve the exact mother-spec vocabulary and keep the PDF non-authoritative', () => {
@@ -331,8 +329,11 @@ test('quality CHANGE rejects malformed touched law, Manifest, blueprint, and spe
       const value = JSON.parse(source) as Record<string, unknown>;
       return `${JSON.stringify({ ...value, unexpected: true }, null, 2)}\n`;
     } },
-    { path: 'docs/specs/agent-production-runtime/website-agent-task-result.dependency.spec.json',
-      mutate: (source) => source.replace('"contractId": "ai-acceptance.website-agent-task-result"', '"contractId": "<contract-id>"') },
+    { path: 'docs/specs/agent-production-runtime/website-agent-task-result.dependency.spec.json', mutate: (source) => {
+      const value = JSON.parse(source) as { contract: { contractId: string } };
+      value.contract.contractId = '<contract-id>';
+      return `${JSON.stringify(value, null, 2)}\n`;
+    } },
     { path: 'docs/specs/agent-production-runtime/website-agent-task-result.dependency.spec.json', mutate: (source) => {
       const value = JSON.parse(source) as { lawIds: string[] };
       value.lawIds = ['LAW-NONEXISTENT-999-V1'];

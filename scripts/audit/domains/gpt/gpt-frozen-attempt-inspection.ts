@@ -3,9 +3,10 @@ import { resolve } from "node:path";
 import { Node, Project, SyntaxKind } from "ts-morph";
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
+import { gptMutationChildIds } from "./gpt-contract-inspection.js";
 import { sourceFor } from "./gpt-inspection-support.js";
 
-const LAW_ID = "LAW-GPT-002-V35", ROOT = "src/capabilities/gpt";
+const LAW_ID = "LAW-GPT-002-V1", ROOT = "src/capabilities/gpt";
 const compact = (source: string): string => source.replace(/\s+/gu, "");
 const responseSyntax = (node: Node): string => {
   const visit = (current: Node): unknown => {
@@ -192,10 +193,12 @@ const atomicProjectionIsFrozen = (context: InspectorContext): boolean => {
     compact(statement.getExpression().getText()) === "!HASH.test(identity.inputHash)||Object.entries(expected).some(([key,value])=>identity[keyaskeyoftypeofidentity]!==value)");
   const consumers = context.project.getSourceFiles().filter(source => source.getFilePath().includes("/src/capabilities/gpt/children/"))
     .flatMap(source => source.getDescendantsOfKind(SyntaxKind.CallExpression).filter(call => call.getExpression().getText() === "projectBrowserFact"));
+  const consumerPaths = new Set<string>(consumers.map(call => call.getSourceFile().getFilePath()));
   const body = projection?.getText() ?? "";
   return JSON.stringify(keys) === JSON.stringify(["actionOrdinal", "callId", "childCapabilityId", "inputHash", "productStepId", "replayPolicy", "resultRevision"])
     && reject?.getThenStatement().getText().includes('throw gptExecutionFailure("GPT_BROWSER_TERMINAL_FACT_REQUIRED")') === true
-    && new Set(consumers.map(call => call.getSourceFile().getFilePath())).size === 11
+    && consumerPaths.size === gptMutationChildIds.length
+    && gptMutationChildIds.every(id => consumerPaths.has(resolve(context.sealedRoot, ROOT, "children", id, "handler.ts")))
     && consumers.every(call => compact(call.getText()) === "projectBrowserFact(intent,context)")
     && ["readAtomicStepOutcome(identity)", "const identity = context.browserAtomicIdentity",
       'contract.replayPolicy === "provider-effect-once" ? identity.inputHash : intent.inputHash'].every(token => body.includes(token));

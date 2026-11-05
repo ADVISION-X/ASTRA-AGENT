@@ -10,9 +10,9 @@ import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorEvaluation, InspectorFinding, SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { producerModePassed, recordStaticCheck, staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
 
-const LAW_SHELL = "LAW-LOCAL-APP-SHELL-001-V6";
-const LAW_BOUNDARY = "LAW-LOCAL-APP-SHELL-002-V3";
-const LAW_STATUS = "LAW-LOCAL-APP-SHELL-003-V4";
+const LAW_SHELL = "LAW-LOCAL-APP-SHELL-001-V1";
+const LAW_BOUNDARY = "LAW-LOCAL-APP-SHELL-002-V1";
+const LAW_STATUS = "LAW-LOCAL-APP-SHELL-003-V1";
 const checkId = "local-app-shell/owner-contract";
 
 const requiredPaths = Object.freeze([

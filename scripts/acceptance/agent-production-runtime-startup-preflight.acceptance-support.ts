@@ -1,6 +1,8 @@
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
-import { chmod, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
+import { execFileSync } from "node:child_process";
+import { chmod, cp, link, mkdir, mkdtemp, readFile, realpath, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
+import { setTimeout as delay } from "node:timers/promises";
 import path from "node:path";
 
 import { createGptAbilityGroup } from "../../src/capabilities/gpt/index.js";
@@ -11,6 +13,7 @@ import {
   readProductionCredential,
 } from "../../src/lib/local-runtime/production/credential.js";
 import { startProductionRuntime } from "../../src/lib/local-runtime/production/runtime.js";
+import { GrassEyeWorkbench } from "../../src/lib/local-runtime/workbench.js";
 import { productionControlContractVersion } from "../../src/lib/local-runtime/production/control-contract-dependency.js";
 import {
   productionRuntimeTaskRoot,
@@ -109,6 +112,8 @@ const assertCredentialValueFailures = async (credentialTemporary: string): Promi
     const copiedDevice = path.join(credentialTemporary, "copied-device");
     await writeCredential(copiedDevice, { ...validDeviceCredential, origin: "http://127.0.0.1:4173" });
     await expectCredentialCode(copiedDevice, "PRODUCTION_CREDENTIAL_ORIGIN_INVALID");
+    await writeCredential(copiedDevice, { ...validDeviceCredential, server_base_url: "http://127.0.0.1:4322" });
+    await expectCredentialCode(copiedDevice, "PRODUCTION_CREDENTIAL_ORIGIN_INVALID");
   
     const permissiveFile = path.join(credentialTemporary, "permissive-file");
     await writeCredential(permissiveFile, validDeviceCredential, 0o644);
@@ -128,10 +133,17 @@ const assertCredentialSymlinkAndValid = async (credentialTemporary: string): Pro
     await writeFile(linkTarget, JSON.stringify(validDeviceCredential), { mode: 0o600 });
     await symlink(linkTarget, linkedDestination);
     await expectCredentialCode(linked, "PRODUCTION_CREDENTIAL_SYMLINK_INVALID");
+    await rm(linkedDestination);
+    await link(linkTarget, linkedDestination);
+    await expectCredentialCode(linked, "PRODUCTION_CREDENTIAL_FILE_PERMISSIONS_INVALID");
   
     const valid = path.join(credentialTemporary, "valid");
-    await writeCredential(valid, validDeviceCredential);
+    const credentialPath = await writeCredential(valid, validDeviceCredential);
     assert.deepEqual(await readProductionCredential(valid), validDeviceCredential);
+    process.env.AGENT_PRODUCTION_CREDENTIAL_FILE = linkTarget;
+    try { await expectCredentialCode(valid, "PRODUCTION_CREDENTIAL_PATH_INVALID"); }
+    finally { delete process.env.AGENT_PRODUCTION_CREDENTIAL_FILE; }
+    assert.equal(productionCredentialPath(valid), credentialPath);
 };
 
 const assertCredentialBoundary = async (): Promise<void> => {
@@ -164,8 +176,8 @@ const assertEmptyStorageInventory = async (inventoryTemporary: string): Promise<
 };
 
 const assertInventoryStartup = async (dataDir: string, root: string): Promise<void> => {
-    const priorCredential = process.env.AGENT_PRODUCTION_CREDENTIAL_FILE, priorFetch = globalThis.fetch;
-    process.env.AGENT_PRODUCTION_CREDENTIAL_FILE = await writeCredential(dataDir, validDeviceCredential);
+    const priorFetch = globalThis.fetch;
+    await writeCredential(dataDir, validDeviceCredential);
     let requests = 0;
     globalThis.fetch = (async () => {
       requests += 1;
@@ -196,11 +208,7 @@ const assertInventoryStartup = async (dataDir: string, root: string): Promise<vo
       assert.equal(await readFile(path.join(root, "job:orphan", "materials", "orphan.txt"), "utf8"), "orphan");
     } finally {
       try { await runtime?.close(); }
-      finally {
-        globalThis.fetch = priorFetch;
-        if (priorCredential === undefined) delete process.env.AGENT_PRODUCTION_CREDENTIAL_FILE;
-        else process.env.AGENT_PRODUCTION_CREDENTIAL_FILE = priorCredential;
-      }
+      finally { globalThis.fetch = priorFetch; }
     }
 };
 
@@ -224,11 +232,26 @@ const assertOccupiedStorageInventory = async (
   return { dataDir, root };
 };
 
-const assertStorageSymlinkRejected = async (
+const assertMaterialHardlinkBoundary = async (
   inventoryTemporary: string,
   dataDir: string,
   root: string,
 ): Promise<void> => {
+    const materialDir = path.join(root, "job:owned", "materials");
+    const localAlias = path.join(materialDir, "permitted-alias.txt");
+    const outsideAlias = path.join(inventoryTemporary, "outside-alias.txt");
+    await link(path.join(materialDir, "owned.txt"), localAlias);
+    assert.equal((await readProductionRuntimeStorageInventory(dataDir, responsibilities(["job:owned"])))
+      .owned_directory_count, 1);
+    await link(localAlias, outsideAlias);
+    await assert.rejects(readProductionRuntimeStorageInventory(dataDir, responsibilities(["job:owned"])),
+      (error: unknown) => error instanceof ProductionRuntimeTaskStorageFailure
+        && error.jobId === "job:owned" && error.code === "PRODUCTION_STORAGE_STRUCTURE_INVALID");
+    await rm(outsideAlias);
+    await rm(localAlias);
+};
+
+const assertStorageSymlinkRejected = async (inventoryTemporary: string, dataDir: string, root: string): Promise<void> => {
     const linkedFile = path.join(inventoryTemporary, "linked-material.txt");
     await writeFile(linkedFile, "linked");
     await symlink(linkedFile, path.join(root, "job:owned", "materials", "linked.txt"));
@@ -239,12 +262,22 @@ const assertStorageSymlinkRejected = async (
         && error.jobId === "job:owned" && error.code === "PRODUCTION_STORAGE_SYMLINK_INVALID");
     await assertInventoryStartup(dataDir, root);
     assert.equal(await readFile(path.join(root, "job:orphan", "materials", "orphan.txt"), "utf8"), "orphan");
+};
+
+const assertSharedStorageSymlinkRejected = async (inventoryTemporary: string, root: string): Promise<void> => {
     const sharedData = path.join(inventoryTemporary, "shared-root-link");
     await mkdir(path.dirname(productionRuntimeTaskRoot(sharedData)), { recursive: true });
     await symlink(root, productionRuntimeTaskRoot(sharedData));
     await assert.rejects(readProductionRuntimeStorageInventory(sharedData, responsibilities([])),
       (error: unknown) => !(error instanceof ProductionRuntimeTaskStorageFailure)
         && typedExecutionFailure(error)?.code === "PRODUCTION_STORAGE_SYMLINK_INVALID");
+    const linkedParent = path.join(inventoryTemporary, "shared-parent-link");
+    await mkdir(linkedParent);
+    await symlink(path.dirname(root), path.join(linkedParent, "plugin-tasks"));
+    await assert.rejects(readProductionRuntimeStorageInventory(linkedParent, responsibilities([])),
+      (error: unknown) => typedExecutionFailure(error)?.code === "PRODUCTION_STORAGE_SYMLINK_INVALID");
+    assert.throws(() => productionRuntimeTaskPath(linkedParent, "job:owned"),
+      (error: unknown) => typedExecutionFailure(error)?.code === "PRODUCTION_STORAGE_SYMLINK_INVALID");
 };
 
 const assertStorageInventoryBoundary = async (): Promise<void> => {
@@ -252,16 +285,87 @@ const assertStorageInventoryBoundary = async (): Promise<void> => {
   try {
     await assertEmptyStorageInventory(inventoryTemporary);
     const { dataDir, root } = await assertOccupiedStorageInventory(inventoryTemporary);
+    await assertMaterialHardlinkBoundary(inventoryTemporary, dataDir, root);
     await assertStorageSymlinkRejected(inventoryTemporary, dataDir, root);
+    await assertSharedStorageSymlinkRejected(inventoryTemporary, root);
   } finally {
     await rm(inventoryTemporary, { recursive: true, force: true });
   }
 };
 
+async function assertEnrollmentPreflight(): Promise<void> {
+  const root = await realpath(await mkdtemp(path.join(tmpdir(), "astra-enrollment-acceptance-")));
+  try {
+    await cp("src", path.join(root, "src"), { recursive: true });
+    await cp("package.json", path.join(root, "package.json"));
+    await symlink(path.resolve("node_modules"), path.join(root, "node_modules"), "dir");
+    const dataDir = path.join(root, ".astra-local");
+      const program = `
+      import assert from "node:assert/strict";
+      import { chmod, lstat, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+      import { dirname } from "node:path";
+      import { enrollProductionDevice, productionCredentialPath } from "./src/lib/local-runtime/production/credential.ts";
+      import { typedExecutionFailure } from "./src/lib/execution-failure.ts";
+      const requestId = "aipenroll_00000000-0000-4000-8000-000000000001";
+      const enroll = () => enrollProductionDevice({ requestId });
+      const file = productionCredentialPath(process.env.GRASSEYE_DATA_DIR);
+      await mkdir(dirname(file), { recursive: true });
+      await chmod(dirname(file), 0o755);
+      let requests = 0;
+      globalThis.fetch = async (url, init) => {
+        requests += 1;
+        assert.equal(url, "https://127.0.0.1:4343/internal/ai-production/v6/devices/enroll");
+        assert.equal(init.redirect, "error");
+        assert.equal(JSON.parse(init.body).request_id, requestId);
+        if (requests === 1) await writeFile(file, "existing device", { mode: 0o600 });
+        return Response.json({ ok: true, data: {
+          device: { device_id: "fixture", environment_id: "production", device_epoch: 1, status: "active",
+            origin_allowlist: ["http://127.0.0.1:4174"], credential_revocation_epoch: 0 }, device_credential: "aidc_v6_" + "x".repeat(32),
+        } });
+      };
+      await assert.rejects(enroll(), error => typedExecutionFailure(error)?.code === "PRODUCTION_CREDENTIAL_PARENT_PERMISSIONS_INVALID");
+      assert.equal(requests, 0);
+      await chmod(dirname(file), 0o700);
+      const verifiedOrigin = process.env.AGENT_PRODUCTION_CLOUD_BASE_URL;
+      process.env.AGENT_PRODUCTION_CLOUD_BASE_URL = "http://127.0.0.1:4340";
+      await assert.rejects(enroll(), error => typedExecutionFailure(error)?.code === "PRODUCTION_CREDENTIAL_ORIGIN_INVALID");
+      assert.equal(requests, 0);
+      process.env.AGENT_PRODUCTION_CLOUD_BASE_URL = verifiedOrigin;
+      await assert.rejects(enroll(), error => typedExecutionFailure(error)?.code === "PRODUCTION_DEVICE_ALREADY_ENROLLED");
+      assert.equal(await readFile(file, "utf8"), "existing device");
+      await rm(file);
+      assert.equal((await enroll()).credentialPath, file);
+      const metadata = await lstat(file);
+      assert.equal(metadata.mode & 0o777, 0o600);
+      assert.equal(metadata.nlink, 1);
+      assert.equal(requests, 2);
+    `;
+    execFileSync(process.execPath, ["--import", "tsx", "--input-type=module", "-e", program], {
+      cwd: root, env: { ...process.env, GRASSEYE_DATA_DIR: dataDir, AGENT_PRODUCTION_CREDENTIAL_FILE: "",
+        AGENT_PRODUCTION_AGENT_ORIGIN: "http://127.0.0.1:4174", AGENT_PRODUCTION_ENROLLMENT_TOKEN: "fixture-only",
+        AGENT_PRODUCTION_CLOUD_BASE_URL: "https://127.0.0.1:4343" },
+      timeout: 15_000,
+    });
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+}
+
 export const assertProductionStartupPreflight = async (): Promise<void> => {
-  await assertDependencyProjection();
-  await assertCredentialBoundary();
-  await assertStorageInventoryBoundary();
+  const previous = process.env.AGENT_PRODUCTION_CLOUD_BASE_URL;
+  const previousCredential = process.env.AGENT_PRODUCTION_CREDENTIAL_FILE;
+  delete process.env.AGENT_PRODUCTION_CREDENTIAL_FILE;
+  process.env.AGENT_PRODUCTION_CLOUD_BASE_URL = validDeviceCredential.server_base_url;
+  try {
+    await assertDependencyProjection();
+    await assertCredentialBoundary();
+    await assertStorageInventoryBoundary();
+    await assertEnrollmentPreflight();
+  } finally {
+    if (previous === undefined) delete process.env.AGENT_PRODUCTION_CLOUD_BASE_URL;
+    else process.env.AGENT_PRODUCTION_CLOUD_BASE_URL = previous;
+    if (previousCredential !== undefined) process.env.AGENT_PRODUCTION_CREDENTIAL_FILE = previousCredential;
+  }
 };
 
 const seedHistoricalTerminalAttempt = async (dataDir: string): Promise<void> => {
@@ -297,18 +401,27 @@ const seedHistoricalTerminalAttempt = async (dataDir: string): Promise<void> => 
   historyStore.close();
 };
 
-export const assertSessionBindingMismatchStartup = async (): Promise<void> => {
+export const assertSessionBindingMismatchStartup = async (successfulMismatch = false): Promise<void> => {
+const expected = successfulMismatch ? "PRODUCTION_SESSION_BINDING_INVALID" : "AI_SESSION_BINDING_MISMATCH";
 const bindingMismatchTemporary = await mkdtemp(path.join(tmpdir(), "agent-session-binding-mismatch-"));
-const bindingMismatchCredentialPath = path.join(bindingMismatchTemporary, "device-credential.json");
 const bindingMismatchOriginalCredentialPath = process.env.AGENT_PRODUCTION_CREDENTIAL_FILE;
+const bindingMismatchOriginalCloud = process.env.AGENT_PRODUCTION_CLOUD_BASE_URL;
 const bindingMismatchOriginalFetch = globalThis.fetch;
 let bindingMismatchRuntime: Awaited<ReturnType<typeof startProductionRuntime>> | null = null;
 const bindingMismatchRequestPaths: string[] = [];
 try {
-  await writeFile(bindingMismatchCredentialPath, JSON.stringify(validDeviceCredential), { mode: 0o600 });
-  process.env.AGENT_PRODUCTION_CREDENTIAL_FILE = bindingMismatchCredentialPath;
-  globalThis.fetch = (async (input: string | URL | Request) => {
+  delete process.env.AGENT_PRODUCTION_CREDENTIAL_FILE;
+  process.env.AGENT_PRODUCTION_CLOUD_BASE_URL = validDeviceCredential.server_base_url;
+  globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
+    assert.equal(init?.redirect, "error");
     bindingMismatchRequestPaths.push(new URL(input instanceof Request ? input.url : input).pathname);
+    if (successfulMismatch) return Response.json({ ok: true, data: {
+      session: { device_id: validDeviceCredential.device_id, worker_session_id: "wrong-version",
+        worker_session_epoch: 1, attestation_seq: 0, control_contract_version: productionControlContractVersion + 1 },
+      session_credential: { schema_version: "xuanxue-ai-worker-session-credential.v6", worker_session_id: "wrong-version",
+        worker_session_epoch: 1, token_generation: 1, token: "aisc_v6_" + "x".repeat(32),
+        issued_at: "2026-11-05T00:00:00Z", expires_at: "2026-11-05T00:03:00Z", previous_generation_valid_until: null },
+    } });
     return new Response(JSON.stringify({
       ok: false,
       error: {
@@ -320,7 +433,7 @@ try {
     }), { status: 409, headers: { "content-type": "application/json" } });
   }) as typeof globalThis.fetch;
   const dataDir = path.join(bindingMismatchTemporary, "runtime");
-  await mkdir(dataDir);
+  await writeCredential(dataDir, validDeviceCredential);
   await seedHistoricalTerminalAttempt(dataDir);
   bindingMismatchRuntime = await startProductionRuntime({
     dataDir,
@@ -347,7 +460,18 @@ try {
   assert.equal(health.claimAdmissionState, "blocked");
   assert.equal(health.controlContractVersion, productionControlContractVersion,
     "blocked diagnostics must retain only the consumer contract version needed for exact comparison");
-  assert.equal(health.lastErrorCode, "AI_SESSION_BINDING_MISMATCH");
+  assert.equal(health.lastErrorCode, expected);
+  const workbench = new GrassEyeWorkbench({ dataDir });
+  Reflect.set(workbench, "productionRuntime", bindingMismatchRuntime);
+  Reflect.get(workbench, "scheduleBlockedRuntimeRetry").call(workbench);
+  try {
+    assert.equal(Reflect.get(workbench, "blockedRetryTimer"), null);
+    if (!successfulMismatch) await delay(5_100);
+    assert.equal(Reflect.get(workbench, "blockedRetryTimer"), null);
+  } finally {
+    const timer = Reflect.get(workbench, "blockedRetryTimer");
+    if (timer) clearTimeout(timer);
+  }
   await assert.rejects(bindingMismatchRuntime.close(), /RUNTIME_SHUTDOWN_INCOMPLETE/u,
     "blocked shutdown cannot report complete while an original task is unfinished");
   bindingMismatchRuntime = null;
@@ -358,6 +482,8 @@ try {
   globalThis.fetch = bindingMismatchOriginalFetch;
   if (bindingMismatchOriginalCredentialPath === undefined) delete process.env.AGENT_PRODUCTION_CREDENTIAL_FILE;
   else process.env.AGENT_PRODUCTION_CREDENTIAL_FILE = bindingMismatchOriginalCredentialPath;
+  if (bindingMismatchOriginalCloud === undefined) delete process.env.AGENT_PRODUCTION_CLOUD_BASE_URL;
+  else process.env.AGENT_PRODUCTION_CLOUD_BASE_URL = bindingMismatchOriginalCloud;
   await rm(bindingMismatchTemporary, { recursive: true, force: true });
 }
 

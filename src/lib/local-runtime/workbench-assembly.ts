@@ -1,4 +1,4 @@
-import { getDefaultPhase04LocalDataDir } from "./default-data-dir.js";
+import { resolveProductionLocalDataDir } from "./default-data-dir.js";
 import path from "node:path";
 import {
   createRuntimeLogger,
@@ -25,7 +25,7 @@ export type WorkbenchAssembly = {
 export async function createWorkbenchAssembly(
   options: GrassEyeWorkbenchOptions,
 ): Promise<WorkbenchAssembly> {
-  const dataDir = options.dataDir ?? getDefaultPhase04LocalDataDir();
+  const dataDir = options.dataDir ?? resolveProductionLocalDataDir();
   const runtimeLogger = createWorkbenchRuntimeLogger(dataDir);
   let browserAuthority: WorkbenchBrowserAuthority;
   try {

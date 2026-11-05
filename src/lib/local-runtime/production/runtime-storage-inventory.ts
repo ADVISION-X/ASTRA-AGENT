@@ -1,4 +1,4 @@
-import type { Dirent, Stats } from "node:fs";
+import { lstatSync, readdirSync, type Dirent, type Stats } from "node:fs";
 import { lstat, readdir } from "node:fs/promises";
 import path from "node:path";
 
@@ -21,13 +21,31 @@ export type ProductionRuntimeStorageResponsibilities = Readonly<{
   pending_outbox_count: number;
 }>;
 
-export const productionRuntimeTaskRoot = (dataDir: string): string =>
-  path.join(dataDir, "plugin-tasks", "production-runtime");
-export function productionRuntimeTaskPath(dataDir: string, jobId: string): string {
+function assertTaskDirectory(directory: string): void {
+  let metadata: Stats | undefined;
+  try { metadata = lstatSync(directory, { throwIfNoEntry: false }); }
+  catch (error) { return storageFailure("PRODUCTION_STORAGE_INVENTORY_UNREADABLE", error); }
+  if (metadata?.isSymbolicLink()) storageFailure("PRODUCTION_STORAGE_SYMLINK_INVALID");
+  if (metadata && !metadata.isDirectory()) storageFailure("PRODUCTION_STORAGE_STRUCTURE_INVALID");
+}
+
+export function productionRuntimeTaskRoot(dataDir: string): string {
+  const tasks = path.join(dataDir, "plugin-tasks");
+  const root = path.join(tasks, "production-runtime");
+  for (const directory of [dataDir, tasks, root]) assertTaskDirectory(directory);
+  return root;
+}
+function assertTaskJobId(jobId: string): void {
   if (!jobId || jobId === "." || jobId === ".." || /[\\/\0]/u.test(jobId)) {
     throw executionFailure("failed", "PRODUCTION_STORAGE_JOB_ID_INVALID");
   }
-  return path.join(productionRuntimeTaskRoot(dataDir), jobId);
+}
+
+export function productionRuntimeTaskPath(dataDir: string, jobId: string): string {
+  assertTaskJobId(jobId);
+  const directory = path.join(productionRuntimeTaskRoot(dataDir), jobId);
+  assertTaskDirectory(directory);
+  return directory;
 }
 
 const nativeCode = (error: unknown): string | null =>
@@ -44,12 +62,32 @@ export class ProductionRuntimeTaskStorageFailure extends TypedExecutionFailure {
   }
 }
 
+export function assertProductionFileLinks(filePath: string, metadata: Stats): void {
+  if (metadata.nlink === 1) return;
+  const directory = path.dirname(filePath);
+  if (path.basename(directory) !== "materials") storageFailure("PRODUCTION_STORAGE_STRUCTURE_INVALID");
+  let localLinks: number;
+  try {
+    localLinks = readdirSync(directory, { withFileTypes: true }).filter((entry) => {
+      if (!entry.isFile()) return false;
+      const sibling = lstatSync(path.join(directory, entry.name));
+      return sibling.dev === metadata.dev && sibling.ino === metadata.ino;
+    }).length;
+  } catch (error) {
+    return storageFailure("PRODUCTION_STORAGE_INVENTORY_UNREADABLE", error);
+  }
+  if (localLinks !== metadata.nlink) storageFailure("PRODUCTION_STORAGE_STRUCTURE_INVALID");
+}
+
 const entryBytes = async (entryPath: string): Promise<number> => {
   let metadata: Stats;
   try { metadata = await lstat(entryPath); }
   catch (error) { return storageFailure("PRODUCTION_STORAGE_INVENTORY_UNREADABLE", error); }
   if (metadata.isSymbolicLink()) storageFailure("PRODUCTION_STORAGE_SYMLINK_INVALID");
-  if (metadata.isFile()) return metadata.size;
+  if (metadata.isFile()) {
+    assertProductionFileLinks(entryPath, metadata);
+    return metadata.size;
+  }
   if (!metadata.isDirectory()) storageFailure("PRODUCTION_STORAGE_STRUCTURE_INVALID");
   let names: string[];
   try { names = await readdir(entryPath); }
@@ -84,7 +122,7 @@ export async function readProductionRuntimeStorageInventory(
   try { entries = await readdir(root, { withFileTypes: true }); }
   catch (error) { return storageFailure("PRODUCTION_STORAGE_INVENTORY_UNREADABLE", error); }
   const owners = new Set(responsibilities.task_ids.map((jobId) => {
-    productionRuntimeTaskPath(dataDir, jobId);
+    assertTaskJobId(jobId);
     return jobId;
   }));
   const directoryNames = entries.map((entry) => entry.name).sort();

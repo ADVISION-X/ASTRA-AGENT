@@ -1,7 +1,7 @@
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 import Database from "better-sqlite3";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { link, mkdtemp, readFile, rm, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -24,6 +24,22 @@ import { encryptBrowserAuthorityFrame, decryptBrowserAuthorityFrame } from "../.
 import { BROWSER_PROTOCOL_REVISION } from "../../src/lib/browser/protocol/generated/browser-protocol.generated.js";
 import { identity, terminalFact } from "./local-browser-mutation-store-support.js";
 import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
+import { BrowserOwnerLock } from "../../src/lib/browser/infrastructure/browser-owner-lock.js";
+
+const lockFixture = await mkdtemp(join(tmpdir(), "astra-owner-lock-"));
+try {
+  const foreignLock = join(lockFixture, "foreign.lock");
+  const lockPath = join(lockFixture, "owner.lock");
+  writeFileSync(foreignLock, `${process.pid}\n`, { mode: 0o600 });
+  await symlink(foreignLock, lockPath);
+  await assert.rejects(new BrowserOwnerLock(lockPath).acquire(), /ELOOP/u);
+  await rm(lockPath);
+  await link(foreignLock, lockPath);
+  await assert.rejects(new BrowserOwnerLock(lockPath).acquire(), /BROWSER_REPAIR_REQUIRED/u);
+  assert.equal(await readFile(foreignLock, "utf8"), `${process.pid}\n`);
+} finally {
+  await rm(lockFixture, { recursive: true, force: true });
+}
 
 const repoRoot = resolve(import.meta.dirname, "../..");
 const retiredPaths = [

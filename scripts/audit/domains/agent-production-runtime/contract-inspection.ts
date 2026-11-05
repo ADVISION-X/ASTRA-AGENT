@@ -6,14 +6,14 @@ import type { InspectorContext, InspectorFinding } from "../../shared/inspector-
 import { producerClaimRoutesFor } from "../../shared/proof-observation.js";
 
 export const LAWS = {
-  core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V85",
-  credential: "LAW-AGENT-PRODUCTION-RUNTIME-002-V12",
-  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V55",
-  admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V50",
-  database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V46",
-  storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V51",
-  staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V51",
-  dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V52",
+  core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V1",
+  credential: "LAW-AGENT-PRODUCTION-RUNTIME-002-V1",
+  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V56",
+  admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V1",
+  database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V1",
+  storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V1",
+  staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V1",
+  dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V1",
 } as const;
 export const ALL_LAWS = Object.values(LAWS);
 export const RUNTIME_ROOT = "src/lib/local-runtime/production";
@@ -123,7 +123,7 @@ const inspectAdmission = (context: InspectorContext, findings: InspectorFinding[
 
 const inspectDependencies = (context: InspectorContext, findings: InspectorFinding[]): void => {
   for (const [name, id, version, provider] of [
-    ["website-agent-task-result", "astra.website-agent-task-result", 2, "ADVISION-X/AI-Paper-Factory"],
+    ["website-agent-task-result", "astra.website-agent-task-result", 4, "ADVISION-X/AI-Paper-Factory"],
     ["xuanxue-ai-production-v6", "astra.production-control-v6", 1, "ADVISION-X/AI-Paper-Factory"],
   ] as const) {
     const path = `docs/specs/agent-production-runtime/${name}.dependency.spec.json`;
@@ -141,7 +141,7 @@ const inspectDependencies = (context: InspectorContext, findings: InspectorFindi
       result_contract?: unknown; required_parameter_keys: string[] }[] };
   const identities = projection.routes.map(route => `${route.product_id}\0${route.action_id}`);
   const used = new Set(projection.routes.flatMap(route => route.required_parameter_keys));
-  const currentRoutes = projection.contract_id === "astra.website-agent-task-result" && projection.contract_version === 2
+  const currentRoutes = projection.contract_id === "astra.website-agent-task-result" && projection.contract_version === 4
     && projection.routes.length > 0 && new Set(identities).size === projection.routes.length
     && used.size === Object.keys(projection.parameter_types).length
     && [...used].every(key => Object.hasOwn(projection.parameter_types, key))

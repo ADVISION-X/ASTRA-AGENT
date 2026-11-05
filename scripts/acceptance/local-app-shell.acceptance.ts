@@ -63,7 +63,7 @@ assert.deepEqual(inspectLocalAppShellProject(fixture()), [], "the current owner 
     type: "{ selector: string }",
   });
   const findings = inspectLocalAppShellProject(project);
-  assert.ok(findings.some((finding) => finding.lawId === "LAW-LOCAL-APP-SHELL-002-V3"
+  assert.ok(findings.some((finding) => finding.lawId === "LAW-LOCAL-APP-SHELL-002-V1"
     && finding.message.includes("browser control field selector")));
 }
 {
@@ -72,7 +72,7 @@ assert.deepEqual(inspectLocalAppShellProject(fixture()), [], "the current owner 
   const property = source.getDescendantsOfKind(SyntaxKind.PropertySignature).find((item) => item.getName() === "executionState");
   property?.remove();
   const findings = inspectLocalAppShellProject(project);
-  assert.ok(findings.some((finding) => finding.lawId === "LAW-LOCAL-APP-SHELL-003-V4"
+  assert.ok(findings.some((finding) => finding.lawId === "LAW-LOCAL-APP-SHELL-003-V1"
     && finding.message.includes("executionState must remain an independently typed status dimension")));
 }
 {
@@ -86,7 +86,7 @@ assert.deepEqual(inspectLocalAppShellProject(fixture()), [], "the current owner 
   project.getSourceFileOrThrow("src/lib/local-runtime/workbench.ts")
     .addStatements("setInterval(() => workbench.getHealth(), 1000);");
   const findings = inspectLocalAppShellProject(project);
-  assert.ok(findings.some((finding) => finding.lawId === "LAW-LOCAL-APP-SHELL-003-V4"
+  assert.ok(findings.some((finding) => finding.lawId === "LAW-LOCAL-APP-SHELL-003-V1"
     && finding.message.includes("operator-refresh only")));
 }
 
@@ -172,6 +172,6 @@ try {
 }
 
 console.log("local-app-shell-acceptance-ok");
-emitQualityProofObservation({ lawId: "LAW-LOCAL-APP-SHELL-001-V6", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","forbidden:5","forbidden:6","summary"], locator: "acceptance:local-shell:single-owned-shell", observedValue: "single repository-owned Shell health boundary verified" });
-emitQualityProofObservation({ lawId: "LAW-LOCAL-APP-SHELL-002-V3", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","summary"], locator: "acceptance:local-shell:boundary-mutants", observedValue: "foreign and duplicate Shell boundary mutants rejected" });
-emitQualityProofObservation({ lawId: "LAW-LOCAL-APP-SHELL-003-V4", evidenceMode: "exam.golden", clauses: ["forbidden:2","summary"], locator: "acceptance:local-shell:degraded-readiness", observedValue: "execution dependency failure keeps diagnostic Shell ready" });
+emitQualityProofObservation({ lawId: "LAW-LOCAL-APP-SHELL-001-V1", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","forbidden:5","forbidden:6","summary"], locator: "acceptance:local-shell:single-owned-shell", observedValue: "single repository-owned Shell health boundary verified" });
+emitQualityProofObservation({ lawId: "LAW-LOCAL-APP-SHELL-002-V1", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","summary"], locator: "acceptance:local-shell:boundary-mutants", observedValue: "foreign and duplicate Shell boundary mutants rejected" });
+emitQualityProofObservation({ lawId: "LAW-LOCAL-APP-SHELL-003-V1", evidenceMode: "exam.golden", clauses: ["forbidden:2","summary"], locator: "acceptance:local-shell:degraded-readiness", observedValue: "execution dependency failure keeps diagnostic Shell ready" });

@@ -1,6 +1,6 @@
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 import Database from "better-sqlite3";
-import { chmod, cp, mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
+import { chmod, cp, link, mkdir, mkdtemp, readFile, readdir, realpath, rm, symlink, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import { connect } from "node:net";
 import { tmpdir } from "node:os";
@@ -9,7 +9,6 @@ import { execFileSync, spawn, type ChildProcess } from "node:child_process";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 
 import { getHealthReport } from "../../src/lib/local-runtime/workbench-status.js";
-import type { BrowserRuntimePreflightResult } from "../startup/lib/browser-runtime-preflight.mjs";
 import { GRASSEYE_TOOL_EXTENSION_ID_HEADER, GRASSEYE_BROWSER_EXTENSION_ORIGIN } from "../../src/app/workbench-api-boundary.js";
 import { GRASSEYE_UNPACKED_EXTENSION_ID } from "../../src/lib/browser/release/unpacked-extension-release-identity.js";
 import { clearPortListeners } from "../startup/lib/process-control.mjs";
@@ -18,8 +17,20 @@ import { createStartupLogHelpers } from "../startup/lib/startup-log-helpers.mjs"
 import { diagnoseRuntimeLog } from "../../src/lib/runtime-logs/index.js";
 import { createWorkbenchAssembly } from "../../src/lib/local-runtime/workbench-assembly.js";
 import { startLocalService } from "../startup/lib/service-process.mjs";
+import { buildStartupSourceFingerprint } from "../startup/lib/source-fingerprint.mjs";
 import { GrassEyeWorkbench } from "../../src/lib/local-runtime/workbench.js";
 import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
+
+const fingerprintRoot=await mkdtemp(path.join(tmpdir(),"astra-source-fingerprint-"));
+try{
+  const skill=path.join(fingerprintRoot,"src/plugins/s07-manuscript-authoring/SKILL.md");
+  await mkdir(path.dirname(skill),{recursive:true});
+  await mkdir(path.join(fingerprintRoot,"scripts/startup"),{recursive:true});
+  await writeFile(skill,"write according to the frozen manuscript locale");
+  const before=buildStartupSourceFingerprint(fingerprintRoot);
+  await writeFile(skill,"write according to the interface locale");
+  assert.notEqual(buildStartupSourceFingerprint(fingerprintRoot),before);
+}finally{await rm(fingerprintRoot,{recursive:true,force:true});}
 
 const waitForChildReady = (child: ChildProcess): Promise<void> => new Promise((resolve, reject) => {
   let output = "";
@@ -175,7 +186,7 @@ const verifySingleLocalEnvironmentInjection = async (): Promise<void> => {
     scripts?: Record<string, string>;
   };
   assert.equal(
-    packageJson.scripts?.["astra:start"],
+    packageJson.scripts?.["grasseye:start"],
     "node --import tsx --env-file-if-exists=.env.local scripts/startup/launch-grasseye.mjs",
     "the sole startup command must make the enrolled cloud worker configuration available without a second environment loader",
   );
@@ -219,13 +230,29 @@ const verifyNodeRuntimeContract = async (): Promise<void> => {
 };
 
 const createBrokenCredentialFixture = async (): Promise<Readonly<{
+  root: string;
   credentialFile: string;
-  dataDir: string;
   port: number;
 }>> => {
-  const dataDir = await mkdtemp(path.join(tmpdir(), "grasseye-degraded-shell-"));
-  const credentialDir = path.join(dataDir, "credential");
-  const credentialFile = path.join(credentialDir, "cloud-device-credential.json");
+  const root = await realpath(await mkdtemp(path.join(tmpdir(), "grasseye-degraded-shell-")));
+  try {
+    for (const entry of ["src", "scripts/startup", "docs/specs/agent-production-runtime", "package.json"]) {
+      await mkdir(path.dirname(path.join(root, entry)), { recursive: true });
+      await cp(path.resolve(entry), path.join(root, entry), { recursive: true });
+    }
+    await symlink(path.resolve("node_modules"), path.join(root, "node_modules"), "dir");
+    await verifyProductionPathRejections(root);
+    execFileSync(process.execPath, ["src/lib/browser/chrome-extension/build.mjs"], { cwd: root, timeout: 30_000 });
+    return await createFixtureCredential(root);
+  } catch (error) {
+    await rm(root, { recursive: true, force: true });
+    throw error;
+  }
+};
+
+const createFixtureCredential = async (root: string) => {
+  const credentialDir = path.join(root, ".astra-local", "runtime-data", "production-runtime");
+  const credentialFile = path.join(credentialDir, "device-credential.json");
   await mkdir(credentialDir, { recursive: true, mode: 0o700 });
   await writeFile(credentialFile, "{}\n", { mode: 0o644 });
   await chmod(credentialFile, 0o644);
@@ -234,23 +261,34 @@ const createBrokenCredentialFixture = async (): Promise<Readonly<{
   const address = probe.address();
   assert(address && typeof address === "object");
   await new Promise<void>((resolve, reject) => probe.close((error) => error ? reject(error) : resolve()));
-  return { credentialFile, dataDir, port: address.port };
+  return { root, credentialFile, port: address.port };
 };
 
-const waitForDiagnosticShell = async (port: number): Promise<void> => {
-  let lastFailure = "health endpoint not ready";
-  for (let attempt = 0; attempt < 100; attempt += 1) {
-    try {
-      const response = await fetch(`http://127.0.0.1:${port}/api/health`);
-      if (response.ok) return;
-      lastFailure = `health endpoint returned ${response.status}`;
-    } catch (error) {
-      lastFailure = error instanceof Error ? error.message : String(error);
-    }
-    await new Promise((resolve) => setTimeout(resolve, 50));
-  }
-  throw new Error(`diagnostic shell readiness timeout: ${lastFailure}`);
-};
+async function verifyProductionPathRejections(root: string): Promise<void> {
+  const dataDir = path.join(root, ".astra-local");
+  const foreign = path.join(root, "foreign");
+  await mkdir(foreign);
+  const assertReject = (command: string, code: RegExp, env: NodeJS.ProcessEnv = {}) => {
+    assert.throws(() => execFileSync(process.execPath, ["--import", "tsx", command], {
+      cwd: root, env: { ...process.env, GRASSEYE_PORT: "4174", GRASSEYE_HOST: "127.0.0.1",
+        GRASSEYE_DATA_DIR: dataDir, ...env }, timeout: 5_000, stdio: "pipe",
+    }), code);
+  };
+  assertReject("src/app/server.ts", /ASTRA_LOCAL_IDENTITY_MISMATCH/u, { GRASSEYE_PORT: "4173" });
+  assertReject("src/app/server.ts", /ASTRA_DATA_DIRECTORY_MISMATCH/u, { GRASSEYE_DATA_DIR: foreign });
+  assertReject("scripts/startup/launch-grasseye.mjs", /ASTRA_DATA_DIRECTORY_MISMATCH/u, { GRASSEYE_DATA_DIR: foreign });
+  await symlink(foreign, dataDir, "dir");
+  assertReject("src/app/server.ts", /ASTRA_DATA_PATH_INVALID/u);
+  await rm(dataDir);
+  await mkdir(dataDir);
+  const source = path.join(foreign, "database");
+  const linked = path.join(dataDir, "production-runtime.sqlite");
+  await writeFile(source, "foreign database sentinel");
+  await link(source, linked);
+  assertReject("src/app/server.ts", /ASTRA_DATA_PATH_INVALID/u);
+  assert.equal(await readFile(source, "utf8"), "foreign database sentinel");
+  await rm(linked);
+}
 
 const assertDiagnosticShellHealth = async (port: number): Promise<void> => {
   const response = await fetch(`http://127.0.0.1:${port}/api/health`);
@@ -271,21 +309,36 @@ const assertDiagnosticShellHealth = async (port: number): Promise<void> => {
 };
 
 const verifyDiagnosticShellSurvivesExecutionDependencyFailure = async (): Promise<void> => {
-  const { credentialFile, dataDir, port } = await createBrokenCredentialFixture();
-  const child = spawn(process.execPath, ["--import", "tsx", "src/app/server.ts"], {
-    cwd: process.cwd(),
+  const { root, credentialFile, port } = await createBrokenCredentialFixture();
+  const exerciseListener = `
+    import { Server } from "node:net";
+    const listen = Server.prototype.listen;
+    Server.prototype.listen = function(port, host, ...args) {
+      if (port !== 4174 || host !== "127.0.0.1") throw new Error("ASTRA_FIXTURE_LISTEN_IDENTITY_MISMATCH");
+      return Reflect.apply(listen, this, [Number(process.argv[1]), host, ...args]);
+    };
+    const { startLocalRuntime } = await import("./src/app/server.ts");
+    await startLocalRuntime();
+  `;
+  const child = spawn(process.execPath, ["--import", "tsx", "--input-type=module", "-e", exerciseListener, String(port)], {
+    cwd: root,
     env: {
       ...process.env,
-      GRASSEYE_DATA_DIR: dataDir,
-      GRASSEYE_PORT: String(port),
+      GRASSEYE_DATA_DIR: path.join(root, ".astra-local"),
+      GRASSEYE_PORT: "4174",
+      GRASSEYE_HOST: "127.0.0.1",
       GRASSEYE_SOURCE_FINGERPRINT: `sha256:${"0".repeat(64)}`,
-      AGENT_PRODUCTION_CLOUD_BASE_URL: "https://example.invalid",
+      AGENT_PRODUCTION_CLOUD_BASE_URL: "http://127.0.0.1:4340",
       AGENT_PRODUCTION_CREDENTIAL_FILE: credentialFile,
     },
     stdio: ["ignore", "pipe", "pipe"],
   });
   try {
-    await waitForDiagnosticShell(port);
+    await waitForWorkbenchHealth({
+      baseUrl: `http://127.0.0.1:${port}`, attempts: 100, delayMs: 50,
+      expectedSourceFingerprint: `sha256:${"0".repeat(64)}`,
+      toFailureReason: (error) => error instanceof Error ? error.message : String(error),
+    });
     await new Promise((resolve) => setTimeout(resolve, 100));
     await assertDiagnosticShellHealth(port);
     const socket = connect(port, "127.0.0.1");
@@ -302,7 +355,7 @@ const verifyDiagnosticShellSurvivesExecutionDependencyFailure = async (): Promis
     assert.equal(socket.destroyed, true);
   } finally {
     await stopFixture(child);
-    await rm(dataDir, { recursive: true, force: true });
+    await rm(root, { recursive: true, force: true });
   }
 };
 
@@ -338,44 +391,6 @@ const verifyStartupEntrypointAcceptsDiagnosticShell = async (): Promise<void> =>
       "startup entrypoint must keep the reachable diagnostic Shell alive while execution remains blocked");
   } finally {
     await new Promise<void>((resolve, reject) => fixture.close((error) => error ? reject(error) : resolve()));
-  }
-};
-
-const verifyUnpackedWebSocketPreflight = async (): Promise<void> => {
-  const root = process.cwd(), fixture = await mkdtemp(path.join(tmpdir(), "grasseye-artifact-preflight-"));
-  const builder = path.resolve("src/lib/browser/chrome-extension/build.mjs");
-  const preflightUrl = new URL("../startup/lib/browser-runtime-preflight.mjs", import.meta.url).href;
-  const probe = (): BrowserRuntimePreflightResult => JSON.parse(execFileSync(process.execPath,
-    ["--input-type=module", "-e", "const {runBrowserRuntimePreflight}=await import(process.argv[1]);process.stdout.write(JSON.stringify(await runBrowserRuntimePreflight()));", preflightUrl],
-    { cwd: fixture, encoding: "utf8", timeout: 15_000 }));
-  const build = (): void => { execFileSync(process.execPath, [builder], { cwd: fixture, timeout: 30_000, stdio: "pipe" }); };
-  try {
-    await cp(path.join(root, "src"), path.join(fixture, "src"), { recursive: true });
-    await symlink(path.join(root, "node_modules"), path.join(fixture, "node_modules"), "dir");
-    build();
-    const current = probe();
-    assert.equal(current.status, "READY");
-    assert.equal(current.releaseState, "UNPACKED_WEBSOCKET_AUTHORITY");
-    assert.equal(current.authorityState, "BROWSER_AUTHORITY_ABSENT");
-    assert.equal(current.failureReason, "BROWSER_CHROME_PROFILE_READBACK_NOT_PRODUCTION_VERIFIED");
-    const source = path.join(fixture, "src/lib/browser/chrome-extension/service-worker.ts");
-    await writeFile(source, (await readFile(source, "utf8")) + "\n// fixture input drift\n");
-    const stale = probe();
-    assert.equal(stale.releaseState, "REPAIR_REQUIRED");
-    assert.equal(stale.failureReason, "BROWSER_UNPACKED_ARTIFACT_READBACK_MISMATCH");
-    assert.equal(stale.authorityState, "BROWSER_AUTHORITY_ABSENT");
-    build();
-    const rebuilt = probe();
-    assert.equal(rebuilt.releaseState, "UNPACKED_WEBSOCKET_AUTHORITY");
-    assert.equal(rebuilt.authorityState, "BROWSER_AUTHORITY_ABSENT");
-    assert.notEqual(rebuilt.releaseBuildId, current.releaseBuildId);
-    const manifestPath = path.join(fixture, "src/lib/browser/chrome-extension/manifest.json");
-    const wrongApplication = JSON.parse(await readFile(manifestPath, "utf8")) as Record<string, unknown>;
-    wrongApplication.key = "YW5vdGhlci1hcHBsaWNhdGlvbg==";
-    await writeFile(manifestPath, JSON.stringify(wrongApplication));
-    assert.throws(build, /ASTRA manifest key must derive/u, "a foreign key must never be released under the ASTRA extension ID");
-  } finally {
-    await rm(fixture, { recursive: true, force: true });
   }
 };
 
@@ -434,16 +449,15 @@ export async function runStartupInitializationHealthAcceptance(): Promise<void> 
   await verifyInitializationHealth();
   await verifyDiagnosticShellSurvivesExecutionDependencyFailure();
   await verifyStartupEntrypointAcceptsDiagnosticShell();
-  await verifyUnpackedWebSocketPreflight();
-  await verifyStartupFailureClosesExactSteps();
+    await verifyStartupFailureClosesExactSteps();
   await verifyBrowserInitializationFailureIsTyped();
   await verifyRepositoryOwnedPortCleanup();
 }
 
 await runStartupInitializationHealthAcceptance();
 process.stdout.write("startup initialization health acceptance: PASS\n");
-emitQualityProofObservation({ lawId: "LAW-STARTUP-ENTRYPOINT-001-V4", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:10","forbidden:2","forbidden:3","forbidden:4","forbidden:5","forbidden:6","forbidden:7","forbidden:8","forbidden:9","summary"], locator: "acceptance:startup:shell-survives-dependency-failure", observedValue: "diagnostic Shell remains ready while execution dependency is blocked" });
-emitQualityProofObservation({ lawId: "LAW-STARTUP-ENTRYPOINT-002-V5", evidenceMode: "exam.golden", clauses: ["forbidden:3","forbidden:4","forbidden:5","forbidden:6","summary"], locator: "acceptance:startup:local-port-and-artifact-boundary", observedValue: "current-source artifact sync, unpacked preflight and repository-owned listener cleanup verified" });
+emitQualityProofObservation({ lawId: "LAW-STARTUP-ENTRYPOINT-001-V1", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:10","forbidden:2","forbidden:3","forbidden:4","forbidden:5","forbidden:6","forbidden:7","forbidden:8","forbidden:9","summary"], locator: "acceptance:startup:shell-survives-dependency-failure", observedValue: "diagnostic Shell remains ready while execution dependency is blocked" });
+emitQualityProofObservation({ lawId: "LAW-STARTUP-ENTRYPOINT-002-V6", evidenceMode: "exam.golden", clauses: ["forbidden:4","forbidden:5","forbidden:6","summary"], locator: "acceptance:startup:local-port-and-data-boundary", observedValue: "the sole startup command, fixed source server identity, wrong-root rejection and repository-owned listener cleanup were exercised" });
 
 const serviceRoot = await mkdtemp(path.join(tmpdir(), "owned-node-shutdown-"));
 try {

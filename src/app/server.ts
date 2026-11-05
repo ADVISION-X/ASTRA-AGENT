@@ -1,19 +1,20 @@
 import type { Server } from "node:http";
 import type { Socket } from "node:net";
-import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { createWorkbenchServer } from "./create-workbench-server.js";
 import { createGrassEyeWorkbenchHandle } from "../lib/local-runtime/workbench-launch-contract.js";
 import { restoreWorkbenchWindowIfChromeHasNoWindow } from "../../scripts/startup/lib/open-workbench-page.mjs";
-import { ASTRA_LOCAL_HOST, ASTRA_LOCAL_PORT, ASTRA_DATA_DIRECTORY } from "../lib/browser/profile/browser-application-identity.js";
+import { ASTRA_LOCAL_HOST, ASTRA_LOCAL_PORT, ASTRA_LOCAL_ORIGIN } from "../lib/browser/profile/browser-application-identity.js";
+import { resolveProductionLocalDataDir } from "../lib/local-runtime/default-data-dir.js";
 
 const host = process.env.GRASSEYE_HOST ?? ASTRA_LOCAL_HOST;
 const port = Number(process.env.GRASSEYE_PORT ?? ASTRA_LOCAL_PORT);
-const baseUrl = `http://${host}:${port}`;
+if (host !== ASTRA_LOCAL_HOST || port !== ASTRA_LOCAL_PORT) throw new Error("ASTRA_LOCAL_IDENTITY_MISMATCH");
+const baseUrl = ASTRA_LOCAL_ORIGIN;
 const connections = new Map<Socket, Promise<void>>();
 let httpClosing = false;
 const workbench = createGrassEyeWorkbenchHandle({
-  dataDir: process.env.GRASSEYE_DATA_DIR ?? path.resolve(process.cwd(), ASTRA_DATA_DIRECTORY),
+  dataDir: resolveProductionLocalDataDir(),
   restoreBrowserHostVisibility: () => restoreWorkbenchWindowIfChromeHasNoWindow(baseUrl).then(() => undefined),
 });
 

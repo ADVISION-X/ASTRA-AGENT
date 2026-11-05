@@ -157,7 +157,7 @@ assert.match(activeLaw, /TOMBSTONE-WORKBENCH-EXTERNAL-INGRESS-001/u);
 assert.match(activeLaw, /不存在 external website business ingress/u);
 assert.match(activeLaw, /解冻 TOMBSTONE-WORKBENCH-EXTERNAL-INGRESS-001/u);
 emitQualityProofObservation({
-  lawId: "LAW-WORKBENCH-API-BOUNDARY-001-V7", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","forbidden:4","forbidden:5","forbidden:6","forbidden:7","forbidden:8","forbidden:9","summary"],
+  lawId: "LAW-WORKBENCH-API-BOUNDARY-001-V1", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","forbidden:4","forbidden:5","forbidden:6","forbidden:7","forbidden:8","forbidden:9","summary"],
   locator: "acceptance:workbench-api-boundary:no-external-ingress",
   observedValue: "all Workbench routes are local-only, external origins cannot reach a business ingress, and the external-ingress tombstone remained exact",
 });

@@ -17,6 +17,7 @@ import { reconcileBusinessAdmission } from "../../src/lib/local-runtime/producti
 import { reconcileCompletedBrowserTargets, workerLoop } from "../../src/lib/local-runtime/production/runtime-loops.js";
 import { executionFailure, typedExecutionFailure } from "../../src/lib/execution-failure.js";
 import { readProductionDeviceJobStatus } from "../../src/lib/local-runtime/production/cloud-reconciliation-client.js";
+import { createWorkAccessPort } from "../../src/lib/local-runtime/production/work-access.js";
 import { serializeTerminalFailure, serializeTerminalFailureTransport } from
   "../../src/lib/local-runtime/production/terminal-failure.js";
 
@@ -120,7 +121,7 @@ export const exerciseFirstTerminalBeforeProducerCleanup = async (store: Producti
         } },
       };
       const api: Record<string, (input: unknown) => Promise<unknown>> = {};
-      runInNewContext(code, { exports: api, heartbeatWhileRunning,
+      runInNewContext(code, { exports: api, heartbeatWhileRunning, createWorkAccessPort,
         downloadProductionMaterials: async () => [],
         uploadProductionResult: async ({ complete }: { complete: CompleteProductionOutput }) => {
           const bytes = Buffer.from(complete.payload_json, "utf8");

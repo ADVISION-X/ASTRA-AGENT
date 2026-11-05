@@ -292,8 +292,8 @@ export const scanStructuralFilesystemShape = (
   lawIds: readonly string[],
   collector: InventoryFindingCollector,
 ): void => {
-  const sourceAtomicityLawId = selectLawId(lawIds, "LAW-CODE-PURITY-001-V6");
-  const bridgeLawId = selectLawId(lawIds, "LAW-CODE-PURITY-001-V6");
+  const sourceAtomicityLawId = selectLawId(lawIds, "LAW-CODE-PURITY-001-V1");
+  const bridgeLawId = selectLawId(lawIds, "LAW-CODE-PURITY-001-V1");
   scanPathBudget(collector, governedFile, sourceAtomicityLawId, bridgeLawId);
 };
 
@@ -302,6 +302,6 @@ export const scanStructuralDependencyShape = (
   lawIds: readonly string[],
   collector: InventoryFindingCollector,
 ): void => {
-  const sourceAtomicityLawId = selectLawId(lawIds, "LAW-CODE-PURITY-001-V6");
+  const sourceAtomicityLawId = selectLawId(lawIds, "LAW-CODE-PURITY-001-V1");
   scanImportExportBudgets(collector, governedFile, sourceAtomicityLawId);
 };

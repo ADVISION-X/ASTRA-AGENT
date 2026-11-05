@@ -81,13 +81,13 @@ try {
   const cyclic = new Error("NO_LAYOUT_BOX"); Object.defineProperty(cyclic, "cause", { value: cyclic });
   assert.equal(runtimeFailureFromError({ error: cyclic, code: "BROWSER_POSTCONDITION_FAILED", responsibleOwner: "browser-session" }).nativeCause, "NO_LAYOUT_BOX");
 } finally { for (const directory of directories) rmSync(directory, { recursive: true, force: true }); }
-emitQualityProofObservation({ lawId: "LAW-RUNTIME-LOG-SPINE-003-V6", evidenceMode: "exam.golden",
+emitQualityProofObservation({ lawId: "LAW-RUNTIME-LOG-SPINE-003-V1", evidenceMode: "exam.golden",
   clauses: ["forbidden:0", "forbidden:1", "forbidden:3", "forbidden:4", "forbidden:5", "forbidden:7", "summary"],
   locator: "acceptance:runtime-log:failure-matrix-golden", observedValue: "typed failures preserve their Owner, identity and causal terminal event" });
-emitQualityProofObservation({ lawId: "LAW-RUNTIME-LOG-SPINE-003-V6", evidenceMode: "exam.property",
+emitQualityProofObservation({ lawId: "LAW-RUNTIME-LOG-SPINE-003-V1", evidenceMode: "exam.property",
   clauses: ["forbidden:0", "forbidden:1", "forbidden:3", "forbidden:4", "forbidden:6", "forbidden:7", "summary"],
   locator: "acceptance:runtime-log:failure-matrix-properties", observedValue: "nested native causes, exact closed codes, cycle protection and WAL authority variants exercised" });
-emitQualityProofObservation({ lawId: "LAW-RUNTIME-LOG-SPINE-003-V6", evidenceMode: "exam.state-machine",
+emitQualityProofObservation({ lawId: "LAW-RUNTIME-LOG-SPINE-003-V1", evidenceMode: "exam.state-machine",
   clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "forbidden:3", "forbidden:4", "forbidden:5", "forbidden:6", "forbidden:7", "summary"],
   locator: "acceptance:runtime-log:producer-state-machine", observedValue: "duplicate blocking terminals remain causal evidence; cleanup and unknown dispatch do not fabricate recovery" });
 console.log("runtime log failure matrix exercised");

@@ -13,7 +13,7 @@ import { claimTask } from "./agent-production-runtime-fixtures.js";
 export async function exerciseWorkAccessTransport(): Promise<void> {
   const route = productionRoutePolicy("astra_paper_research", "prepare_brief");
   const task = buildProductTask(route, { parameters: { submission_id: "submission:work", original_text: "论文需求",
-    input_version: 1, research_tier: "high" } });
+    input_version: 1, research_tier: "high", communication_locale: "zh-TW", manuscript_locale: "en-US" } });
   const control = new TextEncoder().encode(JSON.stringify(route.result_contract));
   const prepared = { ...task, material_refs: task.material_refs.map(item => item.role === "result_contract"
     ? { ...item, bytes: control.byteLength, sha256: sha256(control) } : item) };

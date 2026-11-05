@@ -10,3 +10,4 @@ export type BrowserExtensionBuildReceipt = Readonly<{
 }>;
 
 export function buildChromeExtension(argv?: readonly string[]): Promise<BrowserExtensionBuildReceipt>;
+export function assertBrowserArtifactPaths(): void;

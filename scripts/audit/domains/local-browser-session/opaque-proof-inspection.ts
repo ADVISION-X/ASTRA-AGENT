@@ -1,5 +1,5 @@
 import { Node, Project, SyntaxKind } from "ts-morph";
-import { astExecutableTree } from "../../shared/ast-node-identity.js";
+import { astExecutableTree, astExpressionPath } from "../../shared/ast-node-identity.js";
 import { type InspectorContext, type InspectorFinding } from "../../shared/inspector-contracts.js";
 import {
   createLocalFinding,
@@ -162,14 +162,33 @@ const inspectEncryptedRecoveryLocator = (
   }));
   const reader = journalEvidence.getClass("BrowserMutationEvidence")?.getMethod("readAtomicStepOutcome");
   const locatorReads = reader?.getDescendantsOfKind(SyntaxKind.CallExpression).filter(call =>
-    call.getExpression().getText() === "readSubmittedConversationLocator") ?? [];
-  const identity = locatorReads[0]?.getArguments()[1];
-  if (locatorReads.length !== 1 || locatorReads[0]?.getArguments()[0]?.getText() !== "recovered"
-    || !Node.isObjectLiteralExpression(identity)
-    || identity.getProperties().map(property => property.getText()).join("|") !==
-      "exactCallIdentityHash: input.exactCallIdentityHash|providerEffectIdentityHash: row.logical_mutation_id!") {
+    astExpressionPath(call.getExpression()) === "readSubmittedConversationLocator") ?? [];
+  const read = locatorReads[0];
+  const guard = read?.getParentIfKind(SyntaxKind.ConditionalExpression);
+  const identity = read?.getArguments()[1];
+  const fields = {
+    callId: "row.call_id", childCapabilityId: "row.child_capability_id",
+    exactCallIdentityHash: "input.exactCallIdentityHash", providerEffectIdentityHash: "row.logical_mutation_id",
+  };
+  const exactIdentity = Node.isObjectLiteralExpression(identity)
+    && identity.getProperties().length === Object.keys(fields).length
+    && Object.entries(fields).every(([name, source]) => {
+      const property = identity.getProperty(name);
+      return Node.isPropertyAssignment(property) && astExpressionPath(property.getInitializer()) === source;
+    });
+  const recovered = reader?.getVariableDeclaration("recovered")?.getInitializerIfKind(SyntaxKind.ConditionalExpression);
+  const unseal = recovered?.getWhenFalse();
+  const originalPayloadNull = recovered?.getCondition().getText().replace(/\s+/gu, "") === "row.provider_recovery_payload===null"
+    && recovered.getWhenTrue().getKind() === SyntaxKind.NullKeyword;
+  const readsOriginalRow = Node.isCallExpression(unseal) && astExpressionPath(unseal.getExpression()) === "unsealProviderRecoveryPayload"
+    && unseal.getArguments().map(astExpressionPath).join("|") === "this.payloadKey|row.command_id|row.provider_recovery_payload";
+  const confirmedEffect = guard?.getCondition().getText().replace(/\s+/gu, "") ===
+    'recovered&&input.effectScope==="provider_effect"&&row.state==="CONFIRMED"';
+  if (locatorReads.length !== 1 || read?.getArguments().length !== 2 || astExpressionPath(read.getArguments()[0]) !== "recovered"
+    || guard?.getWhenTrue() !== read || guard?.getWhenFalse().getKind() !== SyntaxKind.NullKeyword
+    || !confirmedEffect || !exactIdentity || !originalPayloadNull || !readsOriginalRow) {
     findings.push(createLocalFinding({ checkId: "browser-authority/closed-invocation-payload", lawId,
-      filePath: journalEvidencePath, message: "The original atomic readback must decode its own encrypted locator with exact call and effect identities." }));
+      filePath: journalEvidencePath, message: "Atomic readback must decode the original encrypted row using the confirmed effect and all four original identities." }));
   }
   const writes = [...locator.getFullText().matchAll(/update\s+browser_mutations\s+set\s+([\s\S]*?)\s+where/giu)];
   if (writes.length !== 1 || writes[0]![1]!.replace(/\s/gu, "") !== "provider_recovery_payload=?") {

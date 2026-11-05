@@ -58,7 +58,6 @@ export interface ProductionRuntimeState {
   readonly ledger_reconciled: boolean;
 }
 
-const OpenResponseSchema = WorkerSessionCredentialSchema.transform((value) => value);
 const CLOUD_REQUEST_TIMEOUT_MS = 30_000;
 const CLAIM_ATTESTATION_MIN_VALIDITY_MS = CLOUD_REQUEST_TIMEOUT_MS + 5_000;
 
@@ -111,18 +110,18 @@ export class ProductionWorkerSession {
       agent_build_hash: this.agentBuildHash,
       control_contract_version: productionControlContractVersion,
     });
-    const response = data as { session?: Record<string, unknown>; session_credential?: unknown };
-    const credential = OpenResponseSchema.parse(response.session_credential);
-    if (response.session?.device_id !== this.device.device_id
-      || response.session.worker_session_id !== credential.worker_session_id
-      || response.session.worker_session_epoch !== credential.worker_session_epoch
+    const response = data as { session?: Record<string, unknown>; session_credential?: unknown } | null | undefined;
+    const credential = WorkerSessionCredentialSchema.safeParse(response?.session_credential);
+    if (!credential.success || response?.session?.device_id !== this.device.device_id
+      || response.session.worker_session_id !== credential.data.worker_session_id
+      || response.session.worker_session_epoch !== credential.data.worker_session_epoch
       || response.session.control_contract_version !== productionControlContractVersion
       || !Number.isSafeInteger(response.session.attestation_seq)
       || (response.session.attestation_seq as number) < 0) {
       throw executionFailure("failed", "PRODUCTION_SESSION_BINDING_INVALID");
     }
     this.sequence = response.session.attestation_seq as number;
-    this.credential = credential;
+    this.credential = credential.data;
     this.attestation = null;
     this.attestedDrainState = null;
   }
@@ -279,7 +278,7 @@ export class ProductionWorkerSession {
       if (init.signal?.aborted) throw init.signal.reason;
       const request = async () => {
         const response = await fetch(`${this.device.server_base_url.replace(/\/+$/u, "")}${pathname}`, {
-          ...init, headers, signal: controller.signal,
+          ...init, headers, redirect: "error", signal: controller.signal,
         });
         return parseCloudResponse(response);
       };
@@ -336,11 +335,17 @@ export class ProductionWorkerSession {
           "content-type": "application/json",
         },
         body: JSON.stringify(body),
+        redirect: "error",
         signal: AbortSignal.timeout(CLOUD_REQUEST_TIMEOUT_MS),
       });
     } catch (cause) {
       throw executionFailure("failed", "CLOUD_TRANSPORT_UNAVAILABLE", { cause });
     }
-    return parseCloudResponse(response);
+    try {
+      return await parseCloudResponse(response);
+    } catch (error) {
+      if (response.ok) throw executionFailure("failed", "PRODUCTION_SESSION_BINDING_INVALID");
+      throw error;
+    }
   }
 }

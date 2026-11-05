@@ -11,6 +11,7 @@ export const paperFactoryPlugin: ProductPlugin = {
     { productId: "astra_paper_research", actionId: "prepare_delivery" },
     { productId: "astra_paper_research", actionId: "archive_delivery" },
     { productId: "astra_paper_research", actionId: "maintain_workspace" },
+    { productId: "astra_paper_research", actionId: "user_dialogue" },
   ],
   execute: executePaperFactory,
 };

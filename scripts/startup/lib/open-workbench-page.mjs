@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import { spawn } from "node:child_process";
-import { ASTRA_LOCAL_ORIGIN } from "../../../src/lib/browser/profile/browser-application-identity.ts";
+import { ASTRA_LOCAL_ORIGIN } from "../../../src/lib/browser/profile/browser-application-identity.js";
 
 const MACOS_CHROME_APP_CANDIDATES = [
   "/Applications/Google Chrome.app",
@@ -44,32 +44,76 @@ export function resolveMacOsChromeAppPath() {
   return installed;
 }
 
+const appleScriptString = (value) => value.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
+
+function shellUrl(url) {
+  const target = new URL(url);
+  if (target.href !== `${ASTRA_LOCAL_ORIGIN}/`) throw new Error("ASTRA_WORKBENCH_ORIGIN_MISMATCH");
+  return target.href;
+}
+
+function chromeShellSelection(url, browserPath) {
+  const application = appleScriptString(browserPath);
+  const shell = appleScriptString(shellUrl(url));
+  return `
+if application "${application}" is running then
+    tell application "${application}"
+        repeat with browserWindow in windows
+            set tabNumber to 0
+            repeat with shellTab in tabs of browserWindow
+                set tabNumber to tabNumber + 1
+                if URL of shellTab is "${shell}" then
+                    set active tab index of browserWindow to tabNumber
+                    set index of browserWindow to 1
+                    activate
+                    return "reused_shell_tab"
+                end if
+            end repeat
+        end repeat
+        if (count of windows) > 0 then
+            tell front window
+                make new tab at end of tabs with properties {URL:"${shell}"}
+                set active tab index to (count of tabs)
+            end tell
+            activate
+            return "opened_shell_tab"
+        end if
+    end tell
+end if
+${buildChromeWindowRestoreScript(url, browserPath)}`;
+}
+
 export function getOpenCommand(url, platform = process.platform) {
-  if (new URL(url).origin !== ASTRA_LOCAL_ORIGIN) throw new Error("ASTRA_WORKBENCH_ORIGIN_MISMATCH");
+  const target = shellUrl(url);
   if (platform === "darwin") {
     const browserPath = resolveMacOsChromeAppPath();
-    return { command: "open", args: ["-a", browserPath, url], browserName: "Google Chrome", browserPath };
+    return { command: "osascript", args: ["-e", chromeShellSelection(target, browserPath)],
+      browserName: "Google Chrome", browserPath };
   }
   const browserPath = platform === "win32" ? "chrome" : "google-chrome";
-  return { command: browserPath, args: [url], browserName: "Google Chrome", browserPath };
+  return { command: browserPath, args: [target], browserName: "Google Chrome", browserPath };
 }
 
-export async function openWorkbenchPage(url, platform = process.platform) {
+export async function openWorkbenchPage(url, platform = process.platform, spawnRunner = runSpawn) {
   const command = getOpenCommand(url, platform);
-  await runSpawn(command.command, command.args);
-  return { ...command, handoffMode: "opened_current_chrome" };
+  const result = await spawnRunner(command.command, command.args);
+  const handoffMode = platform === "darwin" ? result.stdout : "opened_current_chrome";
+  if (!["reused_shell_tab", "opened_shell_tab", "opened_new_window", "opened_current_chrome"].includes(handoffMode)) {
+    throw new Error("WORKBENCH_OPEN_RESULT_INVALID");
+  }
+  return { ...command, handoffMode };
 }
 
-export function buildChromeWindowRestoreScript(url) {
-  if (new URL(url).origin !== ASTRA_LOCAL_ORIGIN) throw new Error("ASTRA_WORKBENCH_ORIGIN_MISMATCH");
-  const escapedUrl = url.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
+export function buildChromeWindowRestoreScript(url, browserApp = "Google Chrome") {
+  const escapedUrl = appleScriptString(shellUrl(url));
+  const application = appleScriptString(browserApp);
   return `
-if application "Google Chrome" is running then
-    tell application "Google Chrome"
+if application "${application}" is running then
+    tell application "${application}"
         if (count of windows) > 0 then return "already_visible"
     end tell
 end if
-tell application "Google Chrome"
+tell application "${application}"
     activate
     if (count of windows) = 0 then make new window
     set URL of active tab of front window to "${escapedUrl}"
@@ -80,7 +124,7 @@ end tell
 
 export async function restoreWorkbenchWindowIfChromeHasNoWindow(url, platform = process.platform, spawnRunner = runSpawn) {
   if (platform !== "darwin") return { handoffMode: "unsupported_platform_noop" };
-  if (spawnRunner === runSpawn) resolveMacOsChromeAppPath();
-  const result = await spawnRunner("osascript", ["-e", buildChromeWindowRestoreScript(url)]);
+  const browserPath = spawnRunner === runSpawn ? resolveMacOsChromeAppPath() : undefined;
+  const result = await spawnRunner("osascript", ["-e", buildChromeWindowRestoreScript(url, browserPath)]);
   return { handoffMode: result.stdout || "opened_new_window" };
 }
