@@ -457,7 +457,7 @@ export async function runStartupInitializationHealthAcceptance(): Promise<void> 
 await runStartupInitializationHealthAcceptance();
 process.stdout.write("startup initialization health acceptance: PASS\n");
 emitQualityProofObservation({ lawId: "LAW-STARTUP-ENTRYPOINT-001-V1", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:10","forbidden:2","forbidden:3","forbidden:4","forbidden:5","forbidden:6","forbidden:7","forbidden:8","forbidden:9","summary"], locator: "acceptance:startup:shell-survives-dependency-failure", observedValue: "diagnostic Shell remains ready while execution dependency is blocked" });
-emitQualityProofObservation({ lawId: "LAW-STARTUP-ENTRYPOINT-002-V6", evidenceMode: "exam.golden", clauses: ["forbidden:4","forbidden:5","forbidden:6","summary"], locator: "acceptance:startup:local-port-and-data-boundary", observedValue: "the sole startup command, fixed source server identity, wrong-root rejection and repository-owned listener cleanup were exercised" });
+emitQualityProofObservation({ lawId: "LAW-STARTUP-ENTRYPOINT-002-V1", evidenceMode: "exam.golden", clauses: ["forbidden:4","forbidden:5","forbidden:6","summary"], locator: "acceptance:startup:local-port-and-data-boundary", observedValue: "the sole startup command, fixed source server identity, wrong-root rejection and repository-owned listener cleanup were exercised" });
 
 const serviceRoot = await mkdtemp(path.join(tmpdir(), "owned-node-shutdown-"));
 try {

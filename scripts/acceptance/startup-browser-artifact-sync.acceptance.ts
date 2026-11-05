@@ -146,7 +146,7 @@ async function verifyLinkedBrowserBuildRejected(fixture: string, build: () => vo
 }
 
 await verifyUnpackedWebSocketPreflight();
-emitQualityProofObservation({ lawId: "LAW-STARTUP-ENTRYPOINT-002-V6", evidenceMode: "exam.golden",
+emitQualityProofObservation({ lawId: "LAW-STARTUP-ENTRYPOINT-002-V1", evidenceMode: "exam.golden",
   clauses: ["forbidden:3"], locator: "acceptance:startup:fixed-artifact-sync",
   observedValue: "current and stale extension artifacts were checked and rebuilt on disk with Browser Authority absent" });
 

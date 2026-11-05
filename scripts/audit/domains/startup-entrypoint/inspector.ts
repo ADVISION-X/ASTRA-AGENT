@@ -280,7 +280,7 @@ const inspectArtifactResultContract = (
 
 const inspectDomainEvaluation = (context: InspectorContext) => {
   const lawId = selectLawId(context.planEntry.lawIds, "LAW-STARTUP-ENTRYPOINT-001-V1");
-  const boundaryLawId = selectLawId(context.planEntry.lawIds, "LAW-STARTUP-ENTRYPOINT-002-V6");
+  const boundaryLawId = selectLawId(context.planEntry.lawIds, "LAW-STARTUP-ENTRYPOINT-002-V1");
   const findings: Finding[] = [];
   const staticCheckReceipts: import("../../shared/inspector-contracts.js").StaticCheckReceipt[] = [];
   recordStaticCheck({ check: "inspectStartupBoundary", findings, implementation: inspectStartupBoundary,
@@ -322,6 +322,6 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
   return validateStaticInspection(context, {
     capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,
     lawResults: [lawResult("LAW-STARTUP-ENTRYPOINT-001-V1", staticClauses(11)),
-      lawResult("LAW-STARTUP-ENTRYPOINT-002-V6", staticClauses(0, 1, 2))], inspectedFiles: evaluation.inspectedFiles,
+      lawResult("LAW-STARTUP-ENTRYPOINT-002-V1", staticClauses(0, 1, 2))], inspectedFiles: evaluation.inspectedFiles,
   });
 };

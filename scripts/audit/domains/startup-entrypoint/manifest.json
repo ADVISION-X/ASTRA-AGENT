@@ -4,7 +4,7 @@
   "status": "active",
   "lawIds": [
     "LAW-STARTUP-ENTRYPOINT-001-V1",
-    "LAW-STARTUP-ENTRYPOINT-002-V6"
+    "LAW-STARTUP-ENTRYPOINT-002-V1"
   ],
   "ownedPaths": [
     "docs/项目方案/AGENT停止接单与在途工单完整收尾-完整实现方案.md",

@@ -7,7 +7,7 @@
   "status": "active",
   "owner": "startup-entrypoint",
   "lawIds": [
-    "LAW-STARTUP-ENTRYPOINT-002-V6"
+    "LAW-STARTUP-ENTRYPOINT-002-V1"
   ],
   "contractRefs": [],
   "dependencyEdges": [

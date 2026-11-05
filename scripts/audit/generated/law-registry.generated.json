@@ -5,7 +5,7 @@
       "lawIds": [
         "LAW-AGENT-PRODUCTION-RUNTIME-001-V1",
         "LAW-AGENT-PRODUCTION-RUNTIME-002-V1",
-        "LAW-AGENT-PRODUCTION-RUNTIME-003-V56",
+        "LAW-AGENT-PRODUCTION-RUNTIME-003-V1",
         "LAW-AGENT-PRODUCTION-RUNTIME-004-V1",
         "LAW-AGENT-PRODUCTION-RUNTIME-005-V1",
         "LAW-AGENT-PRODUCTION-RUNTIME-006-V1",
@@ -393,7 +393,7 @@
       "capabilityDomain": "startup-entrypoint",
       "lawIds": [
         "LAW-STARTUP-ENTRYPOINT-001-V1",
-        "LAW-STARTUP-ENTRYPOINT-002-V6"
+        "LAW-STARTUP-ENTRYPOINT-002-V1"
       ],
       "manifestPath": "scripts/audit/domains/startup-entrypoint/manifest.json",
       "observedPaths": [
@@ -596,7 +596,7 @@
         "不得发生：Runtime 根据 Skill 编号、行业、论文身份、模型内容或研究建议签发任务、恢复或决定业务接纳。它只核 authenticated transport、wire/schema/hash、当前版本、材料角色与关系、原授权及回执；Work 读取/写入授权只经现役服务端端点取得本单指定对象的短期权限。控制 JSON 与付款附件沿原材料链，研究原件通过限定 Work 读取权，不将完整生产资料搬入 AGENT 作为前置。",
         "不得把本单语言语义改由 Runtime 决定。现有 session 的部署 build 仅由 Website 核准，不使用独立产品或 Skill 身份作为跨仓运行资格。"
       ],
-      "lawId": "LAW-AGENT-PRODUCTION-RUNTIME-003-V56",
+      "lawId": "LAW-AGENT-PRODUCTION-RUNTIME-003-V1",
       "schemaVersion": 2,
       "source": {
         "lineEnd": 155,
@@ -605,7 +605,7 @@
       },
       "status": "active",
       "summary": "必须消费 ASTRA 唯一 task/result v4 与 V6 初版1，精确投影全部公开合同并与唯一 Catalog 双向一致；运输身份、容量、原 complete/Outbox 与回执不变。论文业务内部执行归研究产品，Work 生产文件直接归档，不中转完整资料。论文研究的业务参数随 Website v4 提供方精确投影。旧活动合同须沿原身份收束，禁止并行活动版本。",
-      "supersedesLawId": "LAW-AGENT-PRODUCTION-RUNTIME-003-V55",
+      "supersedesLawId": null,
       "tier": "P0"
     },
     {
@@ -625,7 +625,7 @@
       ],
       "dependsOnLawIds": [
         "LAW-AGENT-PRODUCTION-RUNTIME-001-V1",
-        "LAW-AGENT-PRODUCTION-RUNTIME-003-V56"
+        "LAW-AGENT-PRODUCTION-RUNTIME-003-V1"
       ],
       "enforcementMode": "composite",
       "evidenceModes": [
@@ -762,7 +762,7 @@
       "dependsOnLawIds": [
         "LAW-AGENT-PRODUCTION-RUNTIME-001-V1",
         "LAW-AGENT-PRODUCTION-RUNTIME-002-V1",
-        "LAW-AGENT-PRODUCTION-RUNTIME-003-V56",
+        "LAW-AGENT-PRODUCTION-RUNTIME-003-V1",
         "LAW-AGENT-PRODUCTION-RUNTIME-004-V1",
         "LAW-AGENT-PRODUCTION-RUNTIME-005-V1",
         "LAW-AGENT-PRODUCTION-RUNTIME-006-V1"
@@ -806,7 +806,7 @@
       "dependsOnLawIds": [
         "LAW-AGENT-PRODUCTION-RUNTIME-001-V1",
         "LAW-AGENT-PRODUCTION-RUNTIME-002-V1",
-        "LAW-AGENT-PRODUCTION-RUNTIME-003-V56",
+        "LAW-AGENT-PRODUCTION-RUNTIME-003-V1",
         "LAW-AGENT-PRODUCTION-RUNTIME-004-V1",
         "LAW-AGENT-PRODUCTION-RUNTIME-005-V1",
         "LAW-AGENT-PRODUCTION-RUNTIME-006-V1",
@@ -2037,7 +2037,7 @@
         "不得发生：建立 isolated-test、test-mode、阶段态、过程态或任何非 production 运行身份。",
         "不得发生：把 AGENT 安装到网站服务器、交给网站或 systemd 管理，或把当前同一台 Mac 误写成同一部署单元。"
       ],
-      "lawId": "LAW-STARTUP-ENTRYPOINT-002-V6",
+      "lawId": "LAW-STARTUP-ENTRYPOINT-002-V1",
       "schemaVersion": 2,
       "source": {
         "lineEnd": 1416,
@@ -2046,7 +2046,7 @@
       },
       "status": "active",
       "summary": "必须使 grasseye:start 仅加载本仓唯一 .env.local、从当前 governed sources 同步唯一固定 Browser artifact、以 dependency 内容/存在性/native load 而非 mtime 判断可运行性、建立本地 Mac 上的 4174 production Shell 并安全清理本仓 listener；数据、独立设备凭据与固定扩展身份只绑定本仓 ASTRA 独立运行根，不读取周天命理 AGENT 的凭据或任务；在用户当前已登录 GPT 的 Chrome 精确复用本仓 Shell Tab，缺席才新开 Shell，不新建资料目录、复制登录资料或强制新实例；两套扩展通过固定独立身份与原任务独占 Target 区分。启动器不接触 Browser Target、不配对且不认领任务，固定扩展在 Shell 发布当前构建身份后自行更新并自动配对，空闲 Target 保持 absent；依赖失败保留 Shell 且阻断 execution/claim。",
-      "supersedesLawId": "LAW-STARTUP-ENTRYPOINT-002-V5",
+      "supersedesLawId": null,
       "tier": "P0"
     },
     {

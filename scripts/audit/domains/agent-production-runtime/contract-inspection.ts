@@ -8,7 +8,7 @@ import { producerClaimRoutesFor } from "../../shared/proof-observation.js";
 export const LAWS = {
   core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V1",
   credential: "LAW-AGENT-PRODUCTION-RUNTIME-002-V1",
-  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V56",
+  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V1",
   admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V1",
   database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V1",
   storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V1",

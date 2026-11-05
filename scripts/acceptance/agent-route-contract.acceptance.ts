@@ -84,7 +84,7 @@ const waiting = { job_id: "job:waiting", product_id: "astra_paper_research", act
 assert.doesNotThrow(() => WorkerObservationV6Schema.parse({ ...observed, scope_total: 1, jobs: [waiting] }));
 assert.throws(() => WorkerObservationV6Schema.parse({ ...observed, scope_total: 1, jobs: [{ ...waiting, next_action_at: null }] }));
 for (const evidenceMode of ["exam.golden", "exam.property"] as const) emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-003-V56", evidenceMode,
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-003-V1", evidenceMode,
   clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "forbidden:3", "forbidden:4", "summary"],
   locator: `acceptance:agent-production-runtime:route-contract:${evidenceMode}`,
   observedValue: "ASTRA provider and Catalog route sets agree; exact keys, ordered roles, zero-input brief, private scope, repeatable identities and bounded material count are exercised. File delivery remains a separate Work proof.",
