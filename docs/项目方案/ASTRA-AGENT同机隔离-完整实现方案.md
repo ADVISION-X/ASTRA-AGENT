@@ -172,7 +172,7 @@ code-purity Owner只改A package正式script为G同名`grasseye:start`，删除`
 
 ## 8. 切换、质量、终点和失败
 
-固定顺序：N1/N2授权与落地→P工厂/网站交接→各自原生CHANGE可接纳→D1及各consumer→D3→D4/D5→D2完整一致→单独授权的注册及真实联通。停机时可准备D2投影，但cutover晚于全部真实合同/Catalog交接。无桥、双读或导入旧身份。
+固定顺序：取得N1/N2及具体施工授权→停机下接收P的固定合同与工厂交接→各Owner在同一未运行候选内落实N1/N2及D1—D5→同候选规范/实现/投影一致并完成各自原生CHANGE→单独授权的注册及真实联通。A内部顺序为D1及各consumer→D3→D4/D5→D2完整一致。法案中间状态不先取得质量结论，也不先启动新生产；不能要求法案已变、实现未变时原生检查先通过。停机时可准备D2投影，但cutover晚于全部真实合同/Catalog交接。无桥、双读或导入旧身份。
 
 drain：A旧producer已停止、原Promise/native真实退出。切换前重读新根零task/Outbox/mutation；若出现真实任务，停止空库切换，由原Owner原身份交付、drain，不清库。G/X不动，W由其Owner按原任务drain/启动；同一Mac不等同一部署单元。合同/consumer漂移停止受影响施工，保持本文冻结，不执行中追版改设计。
 
